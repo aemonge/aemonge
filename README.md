@@ -3,28 +3,37 @@
 
 ## Profile
 
-I'm an AI enthusiast, which has started to learn AI on python, through Udacity. I have also refocused my career, moving away from frontend, and into backend (ROR) aiming to become a neural-networks engineer, whilst keeping a functional approach when developing and designing.
-
-Besides that, I'm a passionate Technical Lead trained in web development, highly effective at JavaScript,  DevOps and Ruby.
+A technical lead and engineer manager who is passionate about the new wave for AI development, and since then, I am in the process of moving away from front-end, and into machine learning and neural networks. I'm still an expert in web-development, highly efficient in JavaScript, DevOps and recently Ruby.
 
 I provide value by translating KPI's or any business requirements into meaningful and planned chunks of technical tasks. Furthermore, I take ownership of the architecture and spike research, allowing my team to stay focused. I unblock the team by kick staring projects and proof of concepts, and dive deep into complex solutions.
 
-I'm an open-source enthusiast who loves to take part of the community by generating open-source assets, motivated by its altruism and simplicity.
+My solutions are always functionally driven with slight touch of Object Orientation, since the fundamental paradigm comes natural for me.
 
 ## Work Experience
 
-### Technical Lead
+### Software Engineer Manager / Staff Software Engineer
+> Lavanda, United Kingdom (remote)
+> 2022 - present
+
+Started up as a line manager for two squads, and was also responsible to keep them in focus for a tight delivery. Coordinated directly with the CTO and CPO of the company to trim acceptance criteria to deliver the most value to our customer in three months.
+
+After the successful delivery of the application, and due to the company size at that moment, I've changed my role from a manager into a back-end engineer developing in Ruby and Ruby on Rails 7. My new responsibilities were to design and develop features to alleviate customer churn by delivering features that cause stress to our customers based on the data sent by customers and internally.
+
+* Managed a count of 10 software engineers (front and back) and lead two quality engineers.
+* Developed demo able data creating, which randomized bookings date allocation by ranges with a set occupancy target in less than 100ms.
+* Created a design and proof of concept for a refactor in the monolithic codebase to develop a signature feature.
+
+### Technical Lead / Software Engineer Manager
 > Global Savings Group, Germany (remote)
-> 2021 - present
+> 2021 - 2022
 
-Responsible to keep the legacy code and systems active and clean of critical bugs, while a full company refactoring was taking place. Participated in discovery and planning for the refactor of the code, and  while I was doing this, I've created a CLI tooling to automate a process that costed the company weeks of development and maintenance.
+Responsible of the team that kept the legacy code and systems active and clean of critical bugs, while a full company refactoring was taking place. Participated in discovery and planning for the refactor of the new code, and  while I was doing this, I've created a CLI tooling to automate a process that costed the company weeks of development and maintenance.
 
-* Created Ditto an HTML crawler that built react and web-componets to use as header/footers for partner-sites.
+* Created Ditto an HTML crawler that built react and web-components to use as header/footers for partner-sites.
 * Lead up a team of 7 developers and testers.
-* Developed a randomized date allocation by ranges.
 * Motivated the team enough, that they were all accountable and willing to solve any kind of bug in the legacy system.
 
-### Technical Lead (former Front-end Architect)
+### Technical Lead / Front-end Architect
 > GFT / Santander Global Tech, Madrid, Spain
 > 2018 - 2021
 
@@ -62,7 +71,7 @@ Using polymer with an atomic design, we were able to generate micro-front ends t
 
 * Created a tag generator, with local database synced asynchronously with the company's WordPress tag system.
 
-### Front-end Team Lead (former developer)
+### Front-end Team Lead / Front-end Developer
 > s|ngular / BBVA Compass, Birmingham, Alabama, United States
 > s|ngular / BBVA, Madrid, Spain
 > 2013 - 2017
