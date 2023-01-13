@@ -1,55 +1,19 @@
-#!/bin/sh
-cd ~
-mkdir -p ~/usr/lib/dotFiles
-git clone git@github.com:aemonge/dotFiles.git ~/usr/lib/dotFiles
+#!/bin/bash
+cd ~/usr/projects/aemonge/lvim
 
-# XmodMap
-mv ~/.Xmodmap ~/.Xmodmap.orig
-ln -s ~/usr/lib/dotFiles/.Xmodmap .
+# # Clean
+sh <(curl -s https://raw.githubusercontent.com/lunarvim/lunarvim/master/utils/installer/uninstall.sh)
+rm -Rf ~/.config/lvim ~/.local/bin/lvim ~/.local/share/lunarvim ~/.cache/lvim
+rm -f ~/.config/lvim/lvim.config.lua
 
-# Profile
-mv ~/.profile ~/.profile.orig
-ln -s ~/usr/lib/dotFiles/.profile .
+# # # Install
+bash <(curl -s https://raw.githubusercontent.com/lunarvim/lunarvim/master/utils/installer/install.sh)
 
-# ssh_config
-mv ~/.ssh_config ~/.ssh_config.orig
-ln -s ~/usr/lib/dotFiles/.ssh_config .
+# # My settings
+rm ~/.config/lvim/config.lua
+ln -s $(pwd)/init.config.lua ~/.config/lvim/config.lua
+mkdir ~/.config/lvim/settings
 
-# userChrome
-cd ~/.mozilla/firefox
-for profile in *default; do
-	pushd $profile; 
-	mkdir chrome; 
-	pushd chrome; 
-	ln -s ~/usr/lib/dotFiles/userChrome.css .;
-       	popd && popd; 
+for f in $(ls ./settings); do
+  ln -s $(pwd)/settings/$f ~/.config/lvim/settings/.
 done
-cd ~
-
-#xbindkeys
-mv ~/.xbindkeysrc ~/.xbindkeysrc.orig
-ln -s ~/usr/lib/dotFiles/.xbindkeysrc .
-
-#xinitrc
-mv ~/.xinitrc ~/.xinitrc.orig
-ln -s ~/usr/lib/dotFiles/.xinitrc .
-
-# zathurarc
-mv ~/.zathurarc ~/.zathurarc.orig
-ln -s ~/usr/lib/dotFiles/.zathurarc .
-
-# devilspie
-mv ~/.devilspie ~/.devilspie.orig
-ln -s ~/usr/lib/dotFiles/.devilspie .
-
-# gitconfig
-mv ~/.gitconfig ~/.gitconfig.orig
-ln -s ~/usr/lib/dotFiles/.gitconfig .
-
-# xmodmap
-mv ~/.Xmodmap ~/.Xmodmap.orig
-ln -s ~/usr/lib/dotFiles/.Xmodmap .
-
-# zsh
-mv ~/.zsh ~/.zsh.orig
-ln -s ~/usr/lib/dotFiles/.zshrc .

@@ -1,0 +1,13 @@
+#!/bin/sh
+
+if type nvr > /dev/null
+then
+  nvr -c "cd $(pwd)"
+else
+  if [[ "$OSTYPE"  == "darwin"* ]];
+  then
+    printf ']51;["lua", "Tapi_Cd", "%s"]' "$(pwd)"
+  else
+    printf ']51;["lua", "Tapi_Cd", "%s"]' "`echo -n $(pwd)`"
+  fi
+fi
