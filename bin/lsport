@@ -1,0 +1,7 @@
+#!/bin/sh
+
+if [[ "$OSTYPE"  == "darwin"* ]]; then
+  lsof -i $1 | grep '(LISTEN)' | awk '{print $2}' | uniq
+else
+  echo 'not implemented'
+fi

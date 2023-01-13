@@ -1,0 +1,7 @@
+#!/bin/sh
+
+if [[ "$OSTYPE"  == "darwin"* ]]; then
+  ps -A | grep $1 | head -n 2 | egrep -v "(grep|psall) puma"  | awk '{print $1}' | xargs
+else
+  ps -aux | grep $1 | head -n -2 | egrep -v "(grep|psall) puma" | awk '{print $2}' | xargs
+fi
