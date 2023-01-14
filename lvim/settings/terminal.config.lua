@@ -174,6 +174,8 @@ table.insert(n_mappings, {
 ---------------------------------------------------------------------------
 require "which-key".register(t_mappings, { buffer = nil, silent = true, noremap = true, nowait = true, mode = 't' })
 require "which-key".register(n_mappings, { buffer = nil, silent = true, noremap = true, nowait = true, mode = 'n' })
+-- lvim.builtin.which_key.opts = { buffer = nil, silent = true, noremap = true, nowait = true, mode = 'n' }
+-- table.insert(lvim.builtin.which_key.mappings, n_mappings)
 
 ---------------------------------------------------------------------------
 -- NOTE: Experimental
@@ -221,6 +223,7 @@ table.insert(lvim.plugins, { "akinsho/toggleterm.nvim", -- version = "*",
     })
   end
 })
+
 -- TODO: Check the send TermExec cmd='irb'
   require "which-key".register({
     ["<C-x>"] = { t '<C-\\><C-N>:ToggleTerm<Cr>', "Go to normal mode" },

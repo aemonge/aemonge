@@ -1,8 +1,6 @@
 --------------------------------------------------------------------------------------------------------------------------
 --                                           Navigation, Motions and Search                                              |
 --------------------------------------------------------------------------------------------------------------------------
-local textwidth = 120
-local textheight = 35
 local mappings = {}
 local whichkey_opts = {
   mode = "n",
@@ -39,12 +37,15 @@ local NvimTreeMappings = ({
   { key = "z", action = "collapse_all" },
   { key = "u", action = "dir_up" },
   { key = "m", action = "toggle_mark" },
-  { key = "<c-/>", action = "search" },
+
+  -- Motions
+  -- { key = "/", action = "search_node" },
+  -- { key = "H", action = nil },
 
   -- Opening Actions
-  { key = "<C-t>", action = "tabnew" },
-  { key = "<cr>", action = "edit_no_picker" },
-  { key = "o", action = "edit_no_picker" },
+  { key = 't', action = "tabnew" },
+  { key = { '<cr>', 'o' }, action = "edit_no_picker" },
+  -- { key = "o", action = "edit_no_picker" },
   { key = "Z", action = "expand_all" },
   { key = "s", action = "split" },
   { key = "S", action = "vsplit" },
@@ -64,9 +65,12 @@ local NvimTreeMappings = ({
   { key = "i", action = "toggle_git_ignored" },
   { key = "M", action = "toggle_mark" }
 })
+lvim.builtin.nvimtree.setup.remove_keymaps = true
 lvim.builtin.nvimtree.setup.actions.open_file.quit_on_open = true
 lvim.builtin.nvimtree.setup.auto_reload_on_write = true
 lvim.builtin.nvimtree.setup.filters.dotfiles = true
+-- lvim.builtin.nvimtree.setup.filters.no_buffer = true
+-- lvim.builtin.nvimtree.setup.git.ignore = true
 lvim.builtin.nvimtree.setup.view.width = 50
 lvim.builtin.nvimtree.setup.view.mappings.list = NvimTreeMappings
 
@@ -76,8 +80,6 @@ lvim.builtin.nvimtree.setup.view.mappings.list = NvimTreeMappings
 vim.opt.splitbelow = true
 vim.opt.splitright = true
 vim.opt.equalalways = false -- Not set the split to equal sizes
-vim.opt.winwidth = textwidth
-vim.opt.winheight = textheight
 
 table.insert(mappings, {
   ["<c-w>"] = {
@@ -94,22 +96,20 @@ table.insert(mappings, {
   ['-'] = { ":vertical resize +3<cr>" , "Increase Vertically"}
 })
 
-local focus_conf = {
-  -- excluded_filetypes = { "term" },
-  excluded_buftypes = { "Telescope", "term", "terminal" },
-  compatible_filetrees = { "nvimtree" },
-  number = false,
-  hybridnumber = true,
-  absolutenumber_unfocussed = true,
-  width = textwidth,
-  height = textheight,
-  treewidth = 30,
-  quickfixheight = 20
-}
-table.insert(lvim.plugins,  { "beauwilliams/focus.nvim",
-  build = function()
-    require("focus").setup(focus_conf)
-  end
+table.insert(lvim.plugins,  { 'beauwilliams/focus.nvim',
+  init = function() require("focus").setup({
+    excluded_buftypes = { 'qf', 'scratch', 'help', 'prompt', 'popup' },
+    excluded_filetypes = { '', 'NvimTree', 'Telescope', 'WhichKey', 'toggleterm', 'TelescopePrompt' },
+    compatible_filetrees = { 'NVimTree' },
+    number = false,
+    hybridnumber = true,
+    -- autoresize = true,
+    absolutenumber_unfocussed = true,
+    width = 120,
+    height = 40,
+    treewidth = 30,
+    quickfixheight = 20
+  }) end
 })
 
 ---------------------------------------------------------------------------
@@ -191,6 +191,7 @@ table.insert(mappings, {
   ["<c-f>"] = { ":Telescope live_grep <cr>", "Grep on files in CWD" },
   ["<leader>f"] = { "<cmd>Telescope <CR>", "Telescope All" },
 })
+lvim.builtin.which_key.mappings['f'] = nil
 lvim.builtin.telescope.defaults.mappings = {
   n = {
     ["<esc>"] = require('telescope.actions').close,
@@ -229,4 +230,6 @@ vim.keymap.set(
 ---------------------------------------------------------------------------
 -- Register Mappings into Which Key
 ---------------------------------------------------------------------------
+-- lvim.builtin.which_key.opts = whichkey_opts
+-- table.insert(lvim.builtin.which_key.mappings, mappings)
 require "which-key".register(mappings, whichkey_opts)

@@ -15,11 +15,13 @@
 -- TODO: Properly load the files with:  require, dofile, or loadfile
 -- TODO: How to set it through <Plug>, since it seams to be the convention
 -- TODO: On Experimental, do the TODO for scratch
+-- TODO: Make a special key mapping, a new prefix for all LVim mappings, to keep my self updated with features JIC
 
 --------------------------------------------------------------------------------------------------------------------------
 --                                                  🌚 Index                                                             |
 --------------------------------------------------------------------------------------------------------------------------
 --  0. General - Settings, Lunar-Vim Overwrites and which key - (./settings/general.config.lua)
+
 dofile('/Users/aemonge/.config/lvim/settings/general.config.lua')
 
 --  1. Quick Smart Mappings  - (./settings/mini-plugins.config.lua)

@@ -41,3 +41,4 @@ lvim.log.level = "off"
 lvim.leader = ","
 lvim.format_on_save = false
 lvim.builtin.alpha.active = false
+-- Dare to reset all Lunar vim mappings

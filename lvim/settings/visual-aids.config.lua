@@ -31,7 +31,7 @@ table.insert(lvim.plugins, { "lcheylus/overlength.nvim",
       textwidth_mode = 1,
       default_overlength = textwidth,
       grace_length = 5,
-      disable_ft = { 'qf', 'help', 'man', 'packer', 'NvimTree', 'Telescope', 'WhichKey', 'html', '', 'markdown' },
+      disable_ft = { 'qf', 'help', 'man', 'packer', 'NvimTree', 'Telescope', 'WhichKey', 'html', 'markdown' },
     })
   end
 })

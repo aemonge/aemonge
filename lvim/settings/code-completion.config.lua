@@ -2,9 +2,9 @@
 --                                                    Code Completion                                                  |
 --------------------------------------------------------------------------------------------------------------------------
 vim.opt.wildignorecase = true
-vim.opt.wildmode = "longest:full"
+vim.opt.wildmode = "longest,full" -- full
 vim.opt.completeopt = "longest,menuone,noselect,preview"
-lvim.builtin.cmp.completion.completeopt = "longest,menuone,noselect,preview"
+-- lvim.builtin.cmp.completion.completeopt = "longest,menuone,noselect,preview"
 vim.keymap.set('i', '<c-h>', '<c-x><c-s>') -- Spelling completion
 lvim.keys.normal_mode["<CR>"] = false
 
@@ -77,8 +77,10 @@ table.insert(lvim.plugins, { "codota/tabnine-nvim",
     require("tabnine").setup({
       disable_auto_comment = true,
       accept_keymap="<C-l>",
+      dismiss_keymap = "<Esc>",
       debounce_ms = 500,
       suggestion_color = {gui = '#8B6C91'},
+      execlude_filetypes = { "TelescopePrompt" },
       plugins = {
         cmp = true
       },
