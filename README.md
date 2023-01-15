@@ -1,5 +1,5 @@
 # Andres Monge - Technical Lead / Solutions Architect
-> _"Simplicity is the ultimate sophistication"_ - Leonardo da Vinci
+> _"We cannot release the patient from the OR like that"_
 
 ## Profile
 
@@ -7,7 +7,7 @@ A technical lead and engineer manager who is passionate about the new wave for A
 
 I provide value by translating KPI's or any business requirements into meaningful and planned chunks of technical tasks. Furthermore, I take ownership of the architecture and spike research, allowing my team to stay focused. I unblock the team by kick staring projects and proof of concepts, and dive deep into complex solutions.
 
-My solutions are always functionally driven with slight touch of Object Orientation, since the fundamental paradigm comes natural for me.
+I constantly try to take the extra effort to make my solutions functional and object-oriented, since I found that saves times eventually.
 
 ## Work Experience
 
@@ -176,15 +176,28 @@ I was tasked to create and updated WordPress sites content and modules. I was al
 
 ### Known Software
 
+* Leadership Skills
+* PyTorch
+* NodeJS
 * Ruby on Rails
-* Java
-* Web Components
-* Cucumber
-* Mule-soft
 * AWS
-* Jira
+* Web Components
 * Heroku
+* Jira
+* ATDD
+* Cucumber
+* (neo) Vim
+* Polymer
+* React JS
+* Angular
+* Micro Frontend
+* Java
+* Micro Services
+* Mule-Soft
+* Jenkings
+* Docker
 * Azure
+* Backbone
 
 ### Languages
 
