@@ -1,3 +1,0 @@
-#!/bin/bash
-
-nativefier https://www.di.fm/ ~/lib/ --name digitally-imported --disable-context-menu --single-instance --tray --block-external-urls
