@@ -62,6 +62,7 @@ function TerminalLocalOpts()
   vim.opt_local.ruler = false
   vim.cmd [[
     nnoremap <buffer> <C-f> <C-W>gf
+    nnoremap <buffer> q :startinsert<cr>q
     vnoremap <buffer> <C-f> <C-W>gf
   ]]
 end
@@ -125,11 +126,6 @@ end
 lvim.autocommands = {
   {
     "TermOpen", {
-      callback = TerminalLocalOpts
-    }
-  },
-  { -- BUG: I should not need to re-call the local opts, but someone is resetting the sign-column.
-    "TermEnter", {
       callback = TerminalLocalOpts
     }
   }

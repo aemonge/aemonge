@@ -31,7 +31,7 @@ table.insert(lvim.plugins, { "lcheylus/overlength.nvim",
       textwidth_mode = 1,
       default_overlength = textwidth,
       grace_length = 5,
-      disable_ft = { 'qf', 'help', 'man', 'packer', 'NvimTree', 'Telescope', 'WhichKey', 'html', 'markdown' },
+      disable_ft = { '', 'terminal', 'qf', 'help', 'man', 'packer', 'NvimTree', 'Telescope', 'WhichKey', 'html', 'markdown', 'text' },
     })
   end
 })
@@ -47,10 +47,51 @@ vim.g.limelight_paragraph_span = 2
 vim.g.limelight_priority = -1
 
 ---------------------------------------------------------------------------
+-- Image Viewer
+---------------------------------------------------------------------------
+table.insert(lvim.plugins, { "princejoogie/chafa.nvim",
+  dependencies = {
+    "nvim-lua/plenary.nvim",
+    "m00qek/baleia.nvim"
+  },
+})
+
+---------------------------------------------------------------------------
 --  Settings
 ---------------------------------------------------------------------------
 lvim.builtin.indentlines.options.show_current_context_start = true -- Highlight Indent levels "indent_blankline"
 lvim.lsp.diagnostics.virtual_text = false                          -- Hide diagnostics and show on gl (go line)
+-- Only display the git error icons, and for the rest simple change the color of the line number, have a less obstructive UI
+function ClearSigns()
+  -- No Icons for git changes
+  vim.fn.sign_define("GitSignsAdd",          { text = '', numhl= "GitSignsAdd" })
+  vim.fn.sign_define("GitSignsChange",       { text = '', numhl= "GitSignsChange" })
+  vim.fn.sign_define("GitSignsChangedelete", { text = '', numhl= "GitSignsChange" })
+  vim.fn.sign_define("GitSignsDelete",       { text = '', numhl= "GitSignsDelete" })
+  vim.fn.sign_define("GitSignsTopdelete",    { text = '', numhl= "GitSignsDelete" })
+  vim.fn.sign_define("GitSignsUntracked",    { text = '', numhl= "GitSignsAdd" })
+
+  -- No Icons for error/warns or any diagnostics
+  vim.fn.sign_define("DiagnosticSignError", { text = '', numhl= "DiagnosticSignError" })
+  vim.fn.sign_define("DiagnosticSignWarn",  { text = '', numhl= "DiagnosticSignWarn" })
+  vim.fn.sign_define("DiagnosticSignInfo",  { text = '', numhl= "DiagnosticSignInfo" })
+  vim.fn.sign_define("DiagnosticSignHint",  { text = '', numhl= "DiagnosticSignHint" })
+end
+vim.api.nvim_create_autocmd("VimEnter", {
+  command = "lua ClearSigns()"
+})
+
+---------------------------------------------------------------------------
+-- Comment
+---------------------------------------------------------------------------
+table.insert(lvim.plugins, { "folke/todo-comments.nvim",
+  event = "BufRead",
+  config = function()
+    require("todo-comments").setup({
+      signs = false
+    })
+  end
+})
 
 ---------------------------------------------------------------------------
 --  Treesitter

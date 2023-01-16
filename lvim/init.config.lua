@@ -1,6 +1,8 @@
 --------------------------------------------------------------------------------------------------------------------------
 --                                                  🗒️ Todo's                                                            |
 --------------------------------------------------------------------------------------------------------------------------
+-- TODO: ClearSigns to be a configuration, do not re-call it after all lunar
+-- TODO: Enable signcolumn just for git, ignore the rest
 -- TODO: Clean Out the documentation section, and add a Index to navigate
 -- TODO: Wipe-out all buffer, even if there more than a terminal open, but all in the same tab.
 -- TODO: Accept suggestion with <C-k>

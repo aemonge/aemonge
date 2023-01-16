@@ -1,12 +1,12 @@
 --------------------------------------------------------------------------------------------------------------------------
 --                                                      Experimental                                                     |
 --------------------------------------------------------------------------------------------------------------------------
-table.insert(lvim.plugins, { "hrsh7th/nvim-pasta",
-  config = function ()
-    vim.keymap.set({ 'n', 'x' }, 'p', require('pasta.mappings').p)
-    vim.keymap.set({ 'n', 'x' }, 'P', require('pasta.mappings').P)
-  end
-})
+-- table.insert(lvim.plugins, { "hrsh7th/nvim-pasta", -- Not working with lsp syntax.
+--   init = function ()
+--     vim.keymap.set({ 'n', 'x' }, 'p', require('pasta.mappings').p)
+--     vim.keymap.set({ 'n', 'x' }, 'P', require('pasta.mappings').P)
+--   end
+-- })
 
 -- TODO: Own this repo, to toggle the stack with the same command and to add the option to open in the middle of the screen
 -- table.insert(lvim.plugins, { "RishabhRD/popfix" }) -> To center in a popup the Scratch

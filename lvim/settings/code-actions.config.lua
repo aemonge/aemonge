@@ -4,16 +4,6 @@
 table.insert(lvim.plugins, { "tpope/vim-repeat" })
 
 ---------------------------------------------------------------------------
--- Comment
----------------------------------------------------------------------------
-table.insert(lvim.plugins, { "folke/todo-comments.nvim",
-  event = "BufRead",
-  config = function()
-    require("todo-comments").setup()
-  end,
-})
-
----------------------------------------------------------------------------
 -- Format
 ---------------------------------------------------------------------------
 require "lvim.lsp.null-ls.formatters".setup {

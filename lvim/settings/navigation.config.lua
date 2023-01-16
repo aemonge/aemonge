@@ -44,8 +44,7 @@ local NvimTreeMappings = ({
 
   -- Opening Actions
   { key = 't', action = "tabnew" },
-  { key = { '<cr>', 'o' }, action = "edit_no_picker" },
-  -- { key = "o", action = "edit_no_picker" },
+  { key = { "<CR>", "o" }, action = "edit_no_picker", mode = "n" },
   { key = "Z", action = "expand_all" },
   { key = "s", action = "split" },
   { key = "S", action = "vsplit" },
@@ -65,6 +64,15 @@ local NvimTreeMappings = ({
   { key = "i", action = "toggle_git_ignored" },
   { key = "M", action = "toggle_mark" }
 })
+lvim.builtin.nvimtree.on_config_done = function ()
+  local api = require("nvim-tree.api")
+  local Event = api.events.Event
+
+  api.events.subscribe(Event.TreeClose, function()
+    vim.cmd[[FocusDisable]]
+    vim.cmd[[FocusEnable]]
+  end)
+end
 lvim.builtin.nvimtree.setup.remove_keymaps = true
 lvim.builtin.nvimtree.setup.actions.open_file.quit_on_open = true
 lvim.builtin.nvimtree.setup.auto_reload_on_write = true
@@ -88,7 +96,12 @@ table.insert(mappings, {
     k = { ":vsplit<cr>", "Vertical Split" },
     d = { ":tabc<cr>", "Tab Close" },
     T = { ":lua SplitTerm(1, 1)<CR>", "Open term in hsplit" },
-    t = { ":lua SplitTerm(0, 1)<CR>", "Open term in vsplit" }
+    t = { ":lua SplitTerm(0, 1)<CR>", "Open term in vsplit" },
+    m = { ":FocusMaxOrEqual<CR>", "Focus toggle maximize" },
+    M = { ":FocusMaximise<CR>", "Focus toggle maximize" },
+    ['='] = { ":FocusEqualise<CR>", "Focus equalise buffers" },
+    s = {},
+    v = {},
   },
   ['_'] = { ":resize -2<cr>", "Decrease Horizontally" },
   ['+'] = { ":resize +3<cr>" , "Increase Horizontally"},
@@ -154,7 +167,7 @@ table.insert(lvim.plugins, { "phaazon/hop.nvim",
   config = function()
     require("hop").setup()
     require "which-key".register({
-      s = { ":HopChar1<cr>", "Hop to first char"},
+      s = { ":HopChar2<cr>", "Hop to first two chars"},
       S = { ":HopPattern<cr>", "Hop to patter" }
     }, whichkey_opts)
   end,
