@@ -103,5 +103,5 @@
 ; git checkout $@;
 ; How to use REBASE ?
 ; git rebase -i HEAD~11
-; LC_ALL=C GIT_COMMITTER_DATE='01-08-2023 20:00:00 +0100' git commit --amend --no-edit --date "01-08-2023 20:00:00 +0100"
+; A="01-16-2023 21:17:11 +0100"; LC_ALL=C GIT_COMMITTER_DATE=$A git ca --date $A
 ; Don't make me the author on rebase, keep the blame on them bro 🤙 `git -c rebase.instructionFormat='%s%nexec GIT_COMMITTER_DATE="%cD" git commit --amend --no-edit' rebase -i`
