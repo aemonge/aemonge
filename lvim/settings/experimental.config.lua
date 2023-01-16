@@ -35,6 +35,10 @@ table.insert(lvim.plugins, { 'mtth/scratch.vim',
 
   end
 })
+
+-- TODO: test: https://github.com/ggVGc/vim-fuzzysearch
+-- https://github.com/gelguy/wilder.nvim -- NOT Worth it , too old
+
 --------------------------------------------------------
 -- Terminal Lvim Toggle Term default seams nice bro
 -------------------------------------------------------

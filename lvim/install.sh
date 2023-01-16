@@ -17,3 +17,9 @@ mkdir $HOME/.config/lvim/settings
 for f in $(ls ./settings); do
   ln -s $(pwd)/settings/$f $HOME/.config/lvim/settings/.
 done
+
+for f in $(ls ./bin); do
+  ln -s $(pwd)/bin/$f $HOME/bin/.
+done
+
+MUX

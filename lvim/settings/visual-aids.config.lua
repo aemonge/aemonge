@@ -55,6 +55,17 @@ table.insert(lvim.plugins, { "princejoogie/chafa.nvim",
     "m00qek/baleia.nvim"
   },
 })
+---------------------------------------------------------------------------
+--  Vimade: Lower the none active buffer brightness
+---------------------------------------------------------------------------
+table.insert(lvim.plugins, { "TaDaa/vimade",
+  config = function ()
+    vim.g.vimade.fadelevel = 0.8
+    vim.g.vimade.enablesigns = 0
+    vim.g.vimade.fademinimap = 0
+    vim.g.vimade.enabletreesitter  = 1
+  end
+})
 
 ---------------------------------------------------------------------------
 --  Settings
