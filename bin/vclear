@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if ! type nvr > /dev/null
+if ! type nvr > /dev/null; then
   if [[ "$OSTYPE"  == "darwin"* ]]; then
     printf ']51;["call", "ClearQuickfixList"]'
   else
