@@ -3,11 +3,11 @@
 
 ## Profile
 
-A technical lead and engineer manager who is passionate about the new wave for AI development, and since then, I am in the process of moving away from front-end, and into machine learning and neural networks. I'm still an expert in web-development, highly efficient in JavaScript, DevOps and recently Ruby.
+A trained technical lead and engineer manager who is passionate about the new wave for AI development. Looking to enter into the field of neural network engineering, using my previous skills in web (JavaScript/DevOps/Ruby) and new ones which are recently acquired.
 
 I provide value by translating KPI's or any business requirements into meaningful and planned chunks of technical tasks. Furthermore, I take ownership of the architecture and spike research, allowing my team to stay focused. I unblock the team by kick staring projects and proof of concepts, and dive deep into complex solutions.
 
-I constantly try to take the extra effort to make my solutions functional and object-oriented, since I found that saves times eventually.
+I constantly try to take the extra effort to make my solutions follow a functional declarative and O.O. paradigm, since I found that saves times eventually.
 
 ## Work Experience
 
@@ -15,23 +15,23 @@ I constantly try to take the extra effort to make my solutions functional and ob
 > Lavanda, United Kingdom (remote)
 > 2022 - present
 
-Started up as a line manager for two squads, and was also responsible to keep them in focus for a tight delivery. Coordinated directly with the CTO and CPO of the company to trim acceptance criteria to deliver the most value to our customer in three months.
+Line manager for two squads and responsible to keep a tight delivery, by acting as PO and trimming functionality. Furthermore, design and develop features to alleviate customers churn.
 
-After the successful delivery of the application, and due to the company size at that moment, I've changed my role from a manager into a back-end engineer developing in Ruby and Ruby on Rails 7. My new responsibilities were to design and develop features to alleviate customer churn by delivering features that cause stress to our customers based on the data sent by customers and internally.
-
-* Managed a count of 10 software engineers (front and back) and lead two quality engineers.
-* Developed demo able data creating, which randomized bookings date allocation by ranges with a set occupancy target in less than 100ms.
-* Created a design and proof of concept for a refactor in the monolithic codebase to develop a signature feature.
+* Coordinated with the CTO and CPO.
+* Line manager of 10 software engineers (front and back).
+* Interviews.
+* Ruby / Rails senior developer, and solutions staff engineer.
+* Created an efficient (<100ms) algorithm to allocate randomized bookings with range and date constraints.
 
 ### Technical Lead / Software Engineer Manager
 > Global Savings Group, Germany (remote)
 > 2021 - 2022
 
-Responsible of the team that kept the legacy code and systems active and clean of critical bugs, while a full company refactoring was taking place. Participated in discovery and planning for the refactor of the new code, and  while I was doing this, I've created a CLI tooling to automate a process that costed the company weeks of development and maintenance.
+Kept the legacy code and systems active and clean of critical bugs, while participating in the discovery and planning of a company-wide code refactoring. Designed and developed a solution that save the company costs by automating a complex process.
 
-* Created Ditto an HTML crawler that built react and web-components to use as header/footers for partner-sites.
-* Lead up a team of 7 developers and testers.
-* Motivated the team enough, that they were all accountable and willing to solve any kind of bug in the legacy system.
+* Line manager of 7 software engineers (front, test).
+* Automated solution, Ditto. An HTML crawler that built plug and play react assets (header/footers).
+* Made the team accountable for the full legacy system, purely by motivation.
 
 ### Technical Lead / Front-end Architect
 > GFT / Santander Global Tech, Madrid, Spain
@@ -39,14 +39,13 @@ Responsible of the team that kept the legacy code and systems active and clean o
 
 #### Technical Lead
 
-Responsible for the technical coordination and alignment of development teams. Investigation of new technology and methodologies that would
-accelerate delivery times and/or increase overall quality.
+Technical coordinator, and solutions of development teams. Investigation of new technology and methodologies that would accelerate delivery times and/or increase overall quality.
 
-* Automation assets creation, such as an automatic documentation or a dependency analyzer.
+* Design a solution to generate documentation and dependency hierarchy automatically.
 
-* Introduced ATDD to generate a 20% reduction in delivery time in two projects.
+* Proved increase of 120% in deliver time in two projects designing ATDD.
 
-* Fully researched 12 candidates for a sandbox and mock server.
+* Designed a solution for an ad-hoc sandbox/mock server.
 
 #### Front-end Architect
 
@@ -54,22 +53,22 @@ My role was to create the architectural and guidelines and assets for the web d
 
 * Micro-front end handler, able to load dynamically UMD modules.
 
+* Generated an Angular layout system to wrap micro-front.
+
 * Configuration loader before application starts.
 
-* Generated the developer's architectural referral guidelines, tutorials, and tips.
-
-* Generated an Angular wrapper of https://golden-layout.com/ layout system.
+* Generated *the* developer's architectural referral documentation.
 
 
 ### Front-end Team Lead
 > Bonial / kaufda.be, Berlin, Deutschland
 > 2017 - 2018
 
-Using polymer with an atomic design, we were able to generate micro-front ends to represent the frontal stage of a Camunda process automation, which corrects and teaches the A.I. decisions.
+Developed Micro-fronts using Polymer (inspired with Atomic Design) to handle the UI of a A.I. training system based in Camunda.
 
-* Created an infinite undo/redo global interface
+* Created an infinite undo/redo global interface.
 
-* Created a tag generator, with local database synced asynchronously with the company's WordPress tag system.
+* Created a hipper fast UI tag autocomplete, using local storage for optimization.
 
 ### Front-end Team Lead / Front-end Developer
 > s|ngular / BBVA Compass, Birmingham, Alabama, United States
@@ -81,26 +80,26 @@ Using polymer with an atomic design, we were able to generate micro-front ends t
 
 Experimenting with the newest technology, polymer (web components), we created an ad-hoc framework (cells) and the personal tablet banking app.
 
-* Empowered a junior developer into architect in less than a year
+* Empowered a junior developer into architect in less than a year.
 
-* Handled a team of 5 multidisciplinary members
+* Handled a team of 5 multidisciplinary members.
 
-* Introduced a TDD methodology with its CD for the automatic creation of APK/IPA and web-zip artifacts.
+* Lead and developed the ATDD methodology with full CD/CI integration.
 
-* Did more than 20 public talks about the future of web components and their benefits.
+* More than 20 public talks about the future of web components.
 
 #### Developer
 > s|ngular / BBVA, Madrid, Spain
 
 Besides being responsible for my code, and it's to teach AngularJS, FlightJS and React to other the overall learning curve of the team.
 
-* Created the core architectural components for the using FlightJS
+* Created the core architectural components for the using FlightJS.
 
-* Couched team members to change the mindset form MVC/jQuery into a modular/component-based development.
+* Mentored to implement modules and components, instead of jQuery.
 
 * Helped in the construction of the CD/CI with GULP and git-flow.
 
-* Created a AngularJS component that hosted a ReactJS module (micro-front).
+* Micro-front, an AngularJS component hosting a ReactJS module.
 
 ### Front-end Developer
 > Adesis (GFT), Madrid, Spain
@@ -129,15 +128,15 @@ Responsible for creating end-to-end modules, with BackboneJS and PHP with suppor
 > Freelance, Madrid, Spain
 > 2008 - 2013
 
-I created different websites for international clients, working with open source back-end frameworks and vanilla front-ends. Created ad-hoc themes and plugins to provide simple and narrowed tools for my clients.
+I created different websites for international clients, working with open source back-end frameworks and vanilla front-ends. Created ad-hoc themes and plugins to provide simple and narrowed tools for my clients.
 
-* Universidad Rey Juan Carlos, a very well-known Spanish university, created with Joomla. I've created a set of themed components to be used in an ad-hoc WYSIWYG.
+* [Universidad Rey Juan Carlos](https://urjc.es/), with Joomla and WordPress.
 
-* Los hijos de la Malinche, an e-magazine built with Drupal and an ad-hoc theme.
+* Los hijos de la Malinche, an e-magazine built with Drupal.
 
-* Ananda Pascual, a clothing online store built with OsCommerce with ad-hoc integration for automatic deliveries.
+* Ananda Pascual, online store built with OsCommerce.
 
-* No llores patito, a baby online shop created with an ad-hoc PHP framework that follows the CakePHP vision.
+* No llores patito, online shop created with crafted PHP like CakePHP.
 
 ### Software Engineering Internship
 > KnowCentury, Madrid, Spain
