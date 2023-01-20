@@ -23,7 +23,6 @@
 --                                                  🌚 Index                                                             |
 --------------------------------------------------------------------------------------------------------------------------
 --  0. General - Settings, Lunar-Vim Overwrites and which key - (./settings/general.config.lua)
-
 dofile('/Users/aemonge/.config/lvim/settings/general.config.lua')
 
 --  1. Quick Smart Mappings  - (./settings/mini-plugins.config.lua)

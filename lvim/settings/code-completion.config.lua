@@ -2,7 +2,7 @@
 --                                                    Code Completion                                                  |
 --------------------------------------------------------------------------------------------------------------------------
 vim.opt.wildignorecase = true
-vim.opt.wildmode = "longest,full" -- full
+vim.opt.wildmode = "longest:full,full" -- Truly like bash
 vim.opt.completeopt = "longest,menuone,noselect,preview"
 -- lvim.builtin.cmp.completion.completeopt = "longest,menuone,noselect,preview"
 vim.keymap.set('i', '<c-h>', '<c-x><c-s>') -- Spelling completion

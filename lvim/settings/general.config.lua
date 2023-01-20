@@ -6,6 +6,7 @@ vim.opt.autoread = true           -- Set autoread when a file is changed outside
 vim.opt.autowrite = true          -- Write on make/shell commands au FileChangedShell * echo Warning: File changed on disk
 vim.opt.errorbells = false        -- No sound on errors
 vim.opt.exrc = true               -- Execute .vimrc file under current folders ;)
+vim.opt.foldenable = true         -- More than often I want to start with things folded
 vim.opt.hidden = true             -- Turn on hidden
 vim.opt.modeline = true           -- Turn on modeline
 vim.opt.mouse = "a"               -- Mouse can click over buffers, but just that.

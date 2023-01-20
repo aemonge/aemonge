@@ -25,7 +25,7 @@ end
 --  Functions Helpers
 ---------------------------------------------------------------------------
 function ClearTerm(reset)
-  vim.opt_local.scrollback = 0
+  vim.opt_local.scrollback = 1
   -- vim.o.scrollback = 1
 
   vim.api.nvim_command("startinsert")
@@ -184,7 +184,7 @@ table.insert(lvim.plugins, { "akinsho/toggleterm.nvim", -- version = "*",
     require("toggleterm").setup({
       -- SEE: https://github.com/akinsho/toggleterm.nvim
       hide_numbers = true, -- hide the number column in toggleterm buffers
-      autochdir = false, -- when neovim changes it current directory the terminal will change it's own when next it's opened
+      autochdir = true, -- when neovim changes it current directory the terminal will change it's own when next it's opened
       on_open = function ()
         vim.api.nvim_command("startinsert")
         TerminalLocalOpts()
@@ -202,17 +202,9 @@ table.insert(lvim.plugins, { "akinsho/toggleterm.nvim", -- version = "*",
           guibg = "NONE",
           bg = "NONE",
         },
-        -- Normal = {
-        --   guibg = "NONE",
-        --   bg = "NONE",
-        -- },
-        -- FloatBorder = {
-        --   guibg = "NONE",
-        --   bg = "NONE",
-        -- },
       },
       float_opts = {
-        border = 'curved', -- 'single' | 'double' | 'shadow' | 'curved' | ... other options supported by win open
+        border = 'curved',
         width = 120,
         height = 35
       }

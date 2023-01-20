@@ -22,7 +22,7 @@ local mapping_opts = {
 ---------------------------------------------------------------------------
 local NvimTreeMappings = ({
   -- IO.File operations
-  { key = "c", action = "copy_node" },
+  { key = "c", action = "copy.node" },
   { key = "D", action = "remove" },
   { key = "a", action = "create" },
   { key = "d", action = "trash" },
@@ -99,6 +99,11 @@ table.insert(mappings, {
     t = { ":lua SplitTerm(0, 1)<CR>", "Open term in vsplit" },
     m = { ":FocusMaxOrEqual<CR>", "Focus toggle maximize" },
     M = { ":FocusMaximise<CR>", "Focus toggle maximize" },
+    O = { ":BWipeout! other<CR>", "Close all other buffers" },
+    n = { ":+tabmove <CR>" , "Move tab to next"},
+    p = { ":-tabmove <CR>" , "Move tab to previous"},
+    ['9'] = { ":tabmove <CR>" , "Move tab to Last"},
+    ['0'] = { ":0tabmove <CR>" , "Move tab to first"},
     ['='] = { ":FocusEqualise<CR>", "Focus equalise buffers" },
     s = {},
     v = {},
@@ -186,11 +191,11 @@ table.insert(lvim.plugins, { "debugloop/telescope-undo.nvim",
   end,
 })
 
-table.insert(lvim.plugins, { "nvim-telescope/telescope-fzy-native.nvim",
-  dependencies = { "nvim-telescope/telescope.nvim" },
-  build = "make",
-  event = "BufRead",
-})
+-- table.insert(lvim.plugins, { "nvim-telescope/telescope-fzy-native.nvim",
+  -- dependencies = { "nvim-telescope/telescope.nvim" },
+  -- build = "make",
+  -- event = "BufRead",
+-- })
 
 table.insert(lvim.plugins, { "kelly-lin/telescope-ag",
   dependencies = { "nvim-telescope/telescope.nvim" }

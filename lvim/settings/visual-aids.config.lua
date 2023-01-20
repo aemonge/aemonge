@@ -14,7 +14,7 @@ vim.opt.matchtime = 2        -- Decrease the time to blink
 vim.opt.scrolloff = 0        -- Avoid having a weird padding while moving with L H
 vim.opt.showmatch = true     -- Show matching brackets/parenthesis
 vim.opt.sidescroll = 1       -- Minimal number of columns to scroll horizontally
-vim.opt.textwidth = textwidth
+vim.opt.textwidth = 0        -- Don't use the textwidth relay on overlength to display the warning
 vim.opt.title = true         -- Set title
 vim.opt.wrap = true          -- keep inits easy to read
 vim.opt.foldmethod = "expr"
@@ -31,7 +31,11 @@ table.insert(lvim.plugins, { "lcheylus/overlength.nvim",
       textwidth_mode = 1,
       default_overlength = textwidth,
       grace_length = 5,
-      disable_ft = { '', 'terminal', 'qf', 'help', 'man', 'packer', 'NvimTree', 'Telescope', 'WhichKey', 'html', 'markdown', 'text' },
+      disable_ft = {
+        '', 'terminal', 'qf', 'help', 'man', 'scratch',
+        'packer', 'NvimTree', 'Telescope', 'WhichKey',
+        'html', 'markdown', 'text',
+      }
     })
   end
 })
@@ -58,14 +62,14 @@ table.insert(lvim.plugins, { "princejoogie/chafa.nvim",
 ---------------------------------------------------------------------------
 --  Vimade: Lower the none active buffer brightness
 ---------------------------------------------------------------------------
-table.insert(lvim.plugins, { "TaDaa/vimade",
-  config = function ()
-    vim.g.vimade.fadelevel = 0.8
-    vim.g.vimade.enablesigns = 0
-    vim.g.vimade.fademinimap = 0
-    vim.g.vimade.enabletreesitter  = 1
-  end
-})
+-- table.insert(lvim.plugins, { "TaDaa/vimade",
+--   config = function ()
+--     vim.g.vimade.fadelevel = 0.8
+--     vim.g.vimade.enablesigns = 0
+--     vim.g.vimade.fademinimap = 0
+--     vim.g.vimade.enabletreesitter  = 1
+--   end
+-- })
 
 ---------------------------------------------------------------------------
 --  Settings
@@ -73,14 +77,16 @@ table.insert(lvim.plugins, { "TaDaa/vimade",
 lvim.builtin.indentlines.options.show_current_context_start = true -- Highlight Indent levels "indent_blankline"
 lvim.lsp.diagnostics.virtual_text = false                          -- Hide diagnostics and show on gl (go line)
 -- Only display the git error icons, and for the rest simple change the color of the line number, have a less obstructive UI
-function ClearSigns()
+function ClearSigns(hideGitSigns)
   -- No Icons for git changes
-  vim.fn.sign_define("GitSignsAdd",          { text = '', numhl= "GitSignsAdd" })
-  vim.fn.sign_define("GitSignsChange",       { text = '', numhl= "GitSignsChange" })
-  vim.fn.sign_define("GitSignsChangedelete", { text = '', numhl= "GitSignsChange" })
-  vim.fn.sign_define("GitSignsDelete",       { text = '', numhl= "GitSignsDelete" })
-  vim.fn.sign_define("GitSignsTopdelete",    { text = '', numhl= "GitSignsDelete" })
-  vim.fn.sign_define("GitSignsUntracked",    { text = '', numhl= "GitSignsAdd" })
+  if hideGitSigns == 1  then
+    vim.fn.sign_define("GitSignsAdd",          { text = '', numhl= "GitSignsAdd" })
+    vim.fn.sign_define("GitSignsChange",       { text = '', numhl= "GitSignsChange" })
+    vim.fn.sign_define("GitSignsChangedelete", { text = '', numhl= "GitSignsChange" })
+    vim.fn.sign_define("GitSignsDelete",       { text = '', numhl= "GitSignsDelete" })
+    vim.fn.sign_define("GitSignsTopdelete",    { text = '', numhl= "GitSignsDelete" })
+    vim.fn.sign_define("GitSignsUntracked",    { text = '', numhl= "GitSignsAdd" })
+  end
 
   -- No Icons for error/warns or any diagnostics
   vim.fn.sign_define("DiagnosticSignError", { text = '', numhl= "DiagnosticSignError" })
@@ -88,6 +94,7 @@ function ClearSigns()
   vim.fn.sign_define("DiagnosticSignInfo",  { text = '', numhl= "DiagnosticSignInfo" })
   vim.fn.sign_define("DiagnosticSignHint",  { text = '', numhl= "DiagnosticSignHint" })
 end
+
 vim.api.nvim_create_autocmd("VimEnter", {
   command = "lua ClearSigns()"
 })
