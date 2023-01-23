@@ -138,10 +138,6 @@ table.insert(t_mappings, {
   ["<ESC><ESC>"] = { t '<C-\\><C-N>', "Go to normal mode" },
   -- ['<C-T>'] = { t '<C-\\><C-n>:lua NewTermTab(0)<cr>', "New soft-term tab" },
 
-  ['<C-h>'] = { t '<C-\\><C-N>gT', "Previous Tab" },
-  ['<C-k>'] = { t '<C-\\><C-N><C-w>w', "Next Buffer" },
-  ['<C-j>'] = { t '<C-\\><C-N><C-w>W', "Previous Buffer" },
-
   ['<C-p>'] = { t 'nvr -cc "cd $(pwd) | Telescope find_files" <CR>', "Open files in CWD" },
   ['<C-t>'] = { t '<C-\\><C-n>:lua NewTermTab(1)<cr>', "New hard-term tab" },
 

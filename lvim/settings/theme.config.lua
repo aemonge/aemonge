@@ -56,6 +56,7 @@ lvim.builtin.lualine.sections.lualine_c = {
 lvim.builtin.lualine.options.icons_enabled = true
 lvim.builtin.lualine.on_config_done = function(lualine)
   local config = lualine.get_config()
-  table.insert(config.sections.lualine_x,  3, { "tabnine" })
+  table.remove(config.sections.lualine_x, 2) -- Remove the LSP info
+  -- table.insert(config.sections.lualine_x,  3, { "tabnine" })
   lualine.setup(config)
 end

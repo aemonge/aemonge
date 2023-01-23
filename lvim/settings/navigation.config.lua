@@ -92,19 +92,27 @@ vim.opt.equalalways = false -- Not set the split to equal sizes
 table.insert(mappings, {
   ["<c-w>"] = {
     name = "Split and Resize",
-    j = { ":split<cr>", "Horizontal Split" },
-    k = { ":vsplit<cr>", "Vertical Split" },
+
+    h = { ":FocusSplitLeft<cr>" , "Split left"},
+    j = { ":FocusSplitDown<cr>", "Split down" },
+    k = { ":FocusSplitUp<cr>", "Split up" },
+    l = { ":FocusSplitRight<cr>", "Split Right" },
+
     d = { ":tabc<cr>", "Tab Close" },
+
     T = { ":lua SplitTerm(1, 1)<CR>", "Open term in hsplit" },
     t = { ":lua SplitTerm(0, 1)<CR>", "Open term in vsplit" },
+
     m = { ":FocusMaxOrEqual<CR>", "Focus toggle maximize" },
     M = { ":FocusMaximise<CR>", "Focus toggle maximize" },
     O = { ":BWipeout! other<CR>", "Close all other buffers" },
+
     n = { ":+tabmove <CR>" , "Move tab to next"},
     p = { ":-tabmove <CR>" , "Move tab to previous"},
     ['9'] = { ":tabmove <CR>" , "Move tab to Last"},
     ['0'] = { ":0tabmove <CR>" , "Move tab to first"},
     ['='] = { ":FocusEqualise<CR>", "Focus equalise buffers" },
+
     s = {},
     v = {},
   },
@@ -139,11 +147,32 @@ lvim.builtin.bufferline.options.mode = "tabs"
 
 table.insert(lvim.plugins, { "kazhala/close-buffers.nvim" })
 table.insert(mappings, {
-  ["<c-k>"] = { ":wincmd w<cr>", "Next Visible Buffer" },
-  ["<c-j>"] = { ":wincmd W<cr>", "Previous Visible Buffer" },
-  ["<c-l>"] = { "gt", "Next Tab" },
-  ["<c-h>"] = { "gT", "Previous Tab" },
+  ["<c-h>"] = { "<c-w><Left>" , "Go left"},
+  ["<c-j>"] = { "<c-w><Down>" , "Go down"},
+  ["<c-k>"] = { "<c-w><Up>" , "Go up"},
+  ["<c-l>"] = { "<c-w><Right>" , "Go right"},
+
+  ["<c-j><c-j>"] = { "gT" , "Previous tab"},
+  ["<c-k><c-k>"] = { "gt" , "Next tab"},
 })
+---------------------------------------
+--  On Terminal
+---------------------------------------
+
+local function t(str) --TermCodes
+   return vim.api.nvim_replace_termcodes(str, true, true, true)
+end
+t_mappings = {
+  ['<C-j><C-j>'] = { t '<C-\\><C-N>gT', "Previous Tab" },
+  ['<C-k><C-k>'] = { t '<C-\\><C-N>gt', "Next Tab" },
+
+  ["<c-h>"] = { t '<C-\\><C-N><c-w><Left>' , "Go left"},
+  ["<c-j>"] = { t '<C-\\><C-N><c-w><Down>' , "Go down"},
+  ["<c-k>"] = { t '<C-\\><C-N><c-w><Up>' , "Go up"},
+  ["<c-l>"] = { t '<C-\\><C-N><c-w><Right>' , "Go right"},
+}
+
+require "which-key".register(t_mappings, { buffer = nil, silent = true, noremap = true, nowait = true, mode = 't' })
 
 ---------------------------------------------------------------------------
 --  Camel Case Motion

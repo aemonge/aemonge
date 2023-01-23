@@ -1,0 +1,10 @@
+#!/bin/sh
+
+git ch main
+git pull origin main && git fetch --all
+git ch - && git rebase main
+
+bundle install
+rake db:migrate
+RAILS_ENV=test rake db:migrate
+solargraph bundle
