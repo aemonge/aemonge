@@ -3,22 +3,22 @@
 
 ## Profile
 
-A trained technical lead and engineer manager who is passionate about the new wave for AI development. Looking to enter into the field of neural network engineering, using my previous skills in web (JavaScript/DevOps/Ruby) and new ones which are recently acquired.
+A trained **technical lead** and engineer **manager** who is passionate about the new wave for AI development. Looking to enter into the field of **neural network engineering**, using my previous skills in web (JavaScript/DevOps/Ruby) and new ones which are recently acquired.
 
-I provide value by translating KPI's or any business requirements into meaningful and planned chunks of technical tasks. Furthermore, I take ownership of the architecture and spike research, allowing my team to stay focused. I unblock the team by kick staring projects and proof of concepts, and dive deep into complex solutions.
+I provide value by translating KPI's or any business requirements into meaningful and **planned chunks of technical tasks**. Furthermore, I take ownership of the **architecture and spike** research, allowing my team to stay focused. I unblock the team by kick staring projects and proof of concepts, and dive deep into complex solutions.
 
-I constantly try to take the extra effort to make my solutions follow a functional declarative and O.O. paradigm, since I found that saves times eventually.
+I constantly try to take the extra effort to make my solutions follow a **functional declarative and O.O. paradigm**, since I found that saves times eventually.
 
-## Work Experience
+## Work History
 
 ### Software Engineer Manager / Staff Software Engineer
 > Lavanda, United Kingdom (remote)
 > 2022 - present
 
-Line manager for two squads and responsible to keep a tight delivery, by acting as PO and trimming functionality. Furthermore, design and develop features to alleviate customers churn.
+Line manager for **two squads** and responsible to keep a tight delivery, by acting as PO and trimming functionality. Furthermore, design and develop features to alleviate customers churn.
 
 * Coordinated with the CTO and CPO.
-* Line manager of 10 software engineers (front and back).
+* **Line manager of 10** software engineers (front and back).
 * Interviews.
 * Ruby / Rails senior developer, and solutions staff engineer.
 * Created an efficient (<100ms) algorithm to allocate randomized bookings with range and date constraints.
@@ -27,11 +27,11 @@ Line manager for two squads and responsible to keep a tight delivery, by acting 
 > Global Savings Group, Germany (remote)
 > 2021 - 2022
 
-Kept the legacy code and systems active and clean of critical bugs, while participating in the discovery and planning of a company-wide code refactoring. Designed and developed a solution that save the company costs by automating a complex process.
+Kept the legacy code and systems active and clean of critical bugs, while participating in the discovery and planning of a company-wide code refactoring. Designed and developed a **solution that save the company costs by automating** a complex process.
 
 * Line manager of 7 software engineers (front, test).
 * Automated solution, Ditto. An HTML crawler that built plug and play react assets (header/footers).
-* Made the team accountable for the full legacy system, purely by motivation.
+* Made a **fully accountable team** (legacy system), using my motivational leadership.
 
 ### Technical Lead / Front-end Architect
 > GFT / Santander Global Tech, Madrid, Spain
@@ -43,7 +43,7 @@ Technical coordinator, and solutions of development teams. Investigation of new
 
 * Design a solution to generate documentation and dependency hierarchy automatically.
 
-* Proved increase of 120% in deliver time in two projects designing ATDD.
+* Proved **increase of 120% in deliver time** in two projects designing ATDD.
 
 * Designed a solution for an ad-hoc sandbox/mock server.
 
@@ -51,7 +51,7 @@ Technical coordinator, and solutions of development teams. Investigation of new
 
 My role was to create the architectural and guidelines and assets for the web development in the company, while endorsing a solid and agile methodology.
 
-* Micro-front end handler, able to load dynamically UMD modules.
+* **Micro-front end handler**, able to load dynamically UMD modules.
 
 * Generated an Angular layout system to wrap micro-front.
 
@@ -64,11 +64,11 @@ My role was to create the architectural and guidelines and assets for the web d
 > Bonial / kaufda.be, Berlin, Deutschland
 > 2017 - 2018
 
-Developed Micro-fronts using Polymer (inspired with Atomic Design) to handle the UI of a A.I. training system based in Camunda.
+Developed Micro-fronts using Polymer (inspired with Atomic Design) to handle the **UI of a A.I. training system** based in Camunda.
 
 * Created an infinite undo/redo global interface.
 
-* Created a hipper fast UI tag autocomplete, using local storage for optimization.
+* Created a **hipper fast UI tag autocomplete**, using local storage for optimization.
 
 ### Front-end Team Lead / Front-end Developer
 > s|ngular / BBVA Compass, Birmingham, Alabama, United States
@@ -80,13 +80,13 @@ Developed Micro-fronts using Polymer (inspired with Atomic Design) to handle the
 
 Experimenting with the newest technology, polymer (web components), we created an ad-hoc framework (cells) and the personal tablet banking app.
 
-* Empowered a junior developer into architect in less than a year.
+* Empowered a **junior developer into architect** in less than a year.
 
 * Handled a team of 5 multidisciplinary members.
 
 * Lead and developed the ATDD methodology with full CD/CI integration.
 
-* More than 20 public talks about the future of web components.
+* More than **20 public talks** about the future of web components.
 
 #### Developer
 > s|ngular / BBVA, Madrid, Spain
@@ -97,7 +97,7 @@ Besides being responsible for my code, and it's to teach AngularJS, FlightJS and
 
 * Mentored to implement modules and components, instead of jQuery.
 
-* Helped in the construction of the CD/CI with GULP and git-flow.
+* Helped in the **construction of the CD/CI** with GULP and git-flow.
 
 * Micro-front, an AngularJS component hosting a ReactJS module.
 
@@ -108,11 +108,11 @@ Besides being responsible for my code, and it's to teach AngularJS, FlightJS and
 Responsible for creating robust software for the insurance sector, using my front-end skill to create architectural components and my backend
 skills to lead.
 
-* I've created a personal finance manager app from AngularJS and leading a NodeJS (Sails) developer.
+* I've **created a personal finance manager app** from AngularJS and leading a NodeJS (Sails) developer.
 
 * Created the full set of global front end components for Maphre.
 
-* Couched developers to switch from monolithic development to a modern SPA and API development.
+* Mentored developers to switch from monolithic development to a modern SPA and API development.
 
 ### Front-end Developer
 > CBI Cambridge Business Iniciatives, Madrid, Spain
@@ -120,7 +120,7 @@ skills to lead.
 
 Responsible for creating end-to-end modules, with BackboneJS and PHP with support down to IE7 for an ah-hoc SAP-like system.
 
-* Created import/export tool that automatically parsed raw XLS data into SQL with smart detection of up to 4 categories for the data.
+* Created an plugin which **imported/exported from XLS into SQL**, parsing the data according to the system architecture and schemas, as a 4 dimensional matrix.
 
 * Created 3 WordPress branding sites, with direct contact with the clients.
 
@@ -128,7 +128,7 @@ Responsible for creating end-to-end modules, with BackboneJS and PHP with suppor
 > Freelance, Madrid, Spain
 > 2008 - 2013
 
-I created different websites for international clients, working with open source back-end frameworks and vanilla front-ends. Created ad-hoc themes and plugins to provide simple and narrowed tools for my clients.
+I created different websites for international clients, working with open source back-end frameworks and **vanilla front-ends**. Created ad-hoc themes and plugins to provide simple and narrowed tools for my clients.
 
 * [Universidad Rey Juan Carlos](https://urjc.es/), with Joomla and WordPress.
 
@@ -144,72 +144,7 @@ I created different websites for international clients, working with open sourc
 
 I was tasked to create and updated WordPress sites content and modules. I was also researching search engine optimization for some clients.
 
-* Achieved second result for the query “buy gold” in less than 5 months.
+* Achieved **second result in google for "buy gold"** in less than 5 months.
 
-## Keynotes
 
-### Profile
-
-* 40% Management & Mentoring
-* 30% Research, Spikes & Solutions
-* 30% Architectural & Solutions Development
-
-### Personal Info
-
-* **email**: `andres.monge@gmail.com`
-* **Phone**: `622.505.729`
-* **GitHub**: https://github.com/aemonge
-* **LinkedIn**: https://www.linkedin.com/in/aemonge
-* **StackOverflow**: https://stackoverflow.com/users/1360897/aemonge
-* **Website**: https://www.aemonge.com
-
-### Proficient Software
-
-* **Javascript ES6** (5/5)
-* **HTML/CSS** (4/5)
-* **Dev-Ops** (4/5)
-* **Ruby** (3/5)
-* **Python** (2/5)
-* **Databases** (4/5)
-* **PHP** (3/5)
-
-### Known Software
-
-* Leadership Skills
-* PyTorch
-* NodeJS
-* Ruby on Rails
-* AWS
-* Web Components
-* Heroku
-* Jira
-* ATDD
-* Cucumber
-* (neo) Vim
-* Polymer
-* React JS
-* Angular
-* Micro Frontend
-* Java
-* Micro Services
-* Mule-Soft
-* Jenkings
-* Docker
-* Azure
-* Backbone
-
-### Languages
-
-* **Spanish** (5/5)
-* **English** (5/5)
-* **Deutsch** (1/5)
-
-### Hobbies
-
-* Neo-Vim fan, with my curated settings.
-* Firefox and Linux Styles Customization.
-* Science and Space-time, YouTube binge watching.
-* Privacy enthusiast.
-* A.I. and I.O.T. Robotics.
-* Nintendo Gaming (Zelda, SSBU).
-* Inline Skates.
+> _"We cannot release the patient from the OR like that"_
