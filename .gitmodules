@@ -1,0 +1,3 @@
+[submodule "aemonge.github.io"]
+	path = aemonge.github.io
+	url = git@github.com:aemonge/aemonge.github.io.git
