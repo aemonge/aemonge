@@ -1,3 +1,30 @@
 [submodule "aemonge.github.io"]
 	path = aemonge.github.io
 	url = git@github.com:aemonge/aemonge.github.io.git
+[submodule "projects/alicia"]
+	path = projects/alicia
+	url = git@github.com:aemonge/alicia.git
+[submodule "learnings/aemonge-udacity-image-classifier"]
+	path = learnings/aemonge-udacity-image-classifier
+	url = git@github.com:aemonge/aemonge-udacity-image-classifier.git
+[submodule "env-configs/agnoster-zsh-theme"]
+	path = env-configs/agnoster-zsh-theme
+	url = git@github.com:aemonge/agnoster-zsh-theme.git
+[submodule "learnings/ruby-on-rails-tutorial"]
+	path = learnings/ruby-on-rails-tutorial
+	url = git@github.com:aemonge/ruby-on-rails-tutorial.git
+[submodule "learnings/udacity-deep-learning"]
+	path = learnings/udacity-deep-learning
+	url = git@github.com:aemonge/udacity-deep-learning.git
+[submodule "learnings/udacity"]
+	path = learnings/udacity
+	url = git@github.com:aemonge/udacity.git
+[submodule "projects/exit-code-by-console-log"]
+	path = projects/exit-code-by-console-log
+	url = git@github.com:aemonge/exit-code-by-console-log.git
+[submodule "projects/green-tomato"]
+	path = projects/green-tomato
+	url = git@github.com:aemonge/green-tomato.git
+[submodule "projects/prettyjson"]
+	path = projects/prettyjson
+	url = git@github.com:aemonge/prettyjson.git
