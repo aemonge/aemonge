@@ -143,7 +143,6 @@ table.insert(t_mappings, {
 
   ['<C-l>'] = {
     name = "Cleaners",
-    [''] = { [[<C-\><C-N>gt]], "Next Tab" },
     ['<C-l>'] = { [[<C-\><C-N>:lua ClearTerm(0)<CR>]], "Clear cmd" },
     ['<C-l><C-l>'] = { [[<C-\><C-N>:lua ClearTerm(1)<CR>]], "Clear and wipe history" }
   },

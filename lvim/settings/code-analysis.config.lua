@@ -6,8 +6,6 @@
 -- Lint
 ---------------------------------------------------------------------------
 require "lvim.lsp.null-ls.linters".setup {
-  { command = "rubocop", filetypes = { "ruby" }}, -- , severity = 1 (error), 2 (warning), 3 (information), 4 (hint)
-  { command = "eslint", filetypes = { "javascript", "typescript" }, },
   { command = "pylint", filetypes = { "python" }, },
 }
 

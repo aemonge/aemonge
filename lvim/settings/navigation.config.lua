@@ -113,8 +113,8 @@ table.insert(mappings, {
     ['0'] = { ":0tabmove <CR>" , "Move tab to first"},
     ['='] = { ":FocusEqualise<CR>", "Focus equalise buffers" },
 
-    s = {},
-    v = {},
+    s = nil,
+    v = nil,
   },
   ['_'] = { ":resize -2<cr>", "Decrease Horizontally" },
   ['+'] = { ":resize +3<cr>" , "Increase Horizontally"},

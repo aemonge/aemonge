@@ -10,12 +10,12 @@ require'lspconfig'.jedi_language_server.setup{}
 ---------------------------------------------------------------------------
 -- Rails
 ---------------------------------------------------------------------------
-table.insert(lvim.plugins, { "tpope/vim-rbenv",
-  ft = "ruby"
-})
-table.insert(lvim.plugins, { "tpope/vim-rails",
-  ft = "ruby"
-})
+-- table.insert(lvim.plugins, { "tpope/vim-rbenv",
+--   ft = "ruby"
+-- })
+-- table.insert(lvim.plugins, { "tpope/vim-rails",
+--   ft = "ruby"
+-- })
 
 ---------------------------------------------------------------------------
 -- Jupiter [vim-jukit](https://github.com/luk400/vim-jukit)

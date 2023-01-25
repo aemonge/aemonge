@@ -16,10 +16,11 @@ lvim.builtin.treesitter.ignore_install = {
   "PHP", "java", "julia"
 }
 lvim.builtin.treesitter.ensure_installed = {
-  "bash", "help",
-  "javascript", "typescript",
-  "css", "html", "lua", "markdown",
-  "python", "ruby", "sql",
+  "bash", "help", "vim", "lua",
+  "python",
+  -- "javascript", "typescript",
+  -- "css", "html", "lua", "markdown",
+  -- "python", "ruby", "sql",
   "yaml", "json"
 }
 

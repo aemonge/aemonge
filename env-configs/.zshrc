@@ -1,6 +1,7 @@
 ENABLE_LVIM=1
 # https://github.com/nodenv/nodenv-aliases
 # https://github.com/tpope/rbenv-aliases
+
 PATH() {
   export PATH=$PATH:/bin
   export PATH=$PATH:/opt/homebrew/bin
@@ -12,7 +13,7 @@ PATH() {
   export PATH=$PATH:/usr/sbin
   export PATH=$PATH:$HOME/.local/bin
   export PATH=$PATH:$HOME/.zplug/bin
-  export PATH=$PATH:$HOME/bin/
+  export PATH=$PATH:$HOME/aemonge/bin/
   export PATH=$PATH:$HOME/usr/scripts/bin/
   export PATH=$PATH:$HOME/.npm-global/bin/
 }
@@ -25,18 +26,17 @@ PROFILE() {
   source ~/.aliases
 }
 
-# SEE: [virtualenvs-for-all](https://jsatt.com/blog/virtualenvs-for-all/) and [conda](https://anaconda.org/search?q=nodejs)
 CONDA() {
   # >>> conda initialize >>>
   # !! Contents within this block are managed by 'conda init' !!
-  __conda_setup="$('/opt/homebrew/Caskroom/miniconda/base/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+  __conda_setup="$('/usr/local/Caskroom/miniconda/base/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
   if [ $? -eq 0 ]; then
       eval "$__conda_setup"
   else
-      if [ -f "/opt/homebrew/Caskroom/miniconda/base/etc/profile.d/conda.sh" ]; then
-          . "/opt/homebrew/Caskroom/miniconda/base/etc/profile.d/conda.sh"
+      if [ -f "/usr/local/Caskroom/miniconda/base/etc/profile.d/conda.sh" ]; then
+          . "/usr/local/Caskroom/miniconda/base/etc/profile.d/conda.sh"
       else
-          export PATH="/opt/homebrew/Caskroom/miniconda/base/bin:$PATH"
+          export PATH="/usr/local/Caskroom/miniconda/base/bin:$PATH"
       fi
   fi
   unset __conda_setup
@@ -56,39 +56,39 @@ MORPHO() {
 }
 
 PLUGINS_FISH() {
-  # Fish-like fast/unobtrusive autosuggestions for ZSH.
   # zplug "zsh-users/autosuggestions"
-  # git clone https://github.com/zsh-users/zsh-autosuggestions ~/.zsh-autosuggestions
-  source ~/.zsh-autosuggestions/zsh-autosuggestions.zsh
+  source /usr/local/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+
   bindkey '^g' autosuggest-execute
   bindkey '^n' forward-word
-  # export ZVM_LINE_INIT_MODE=$ZVM_MODE_NORMAL
-  ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 }
 
 PLUGINS() {
   CASE_INSENSITIVE="true"
-  source ~/.zplug/init.zsh
 
-  zplug "asuran/zsh-docker-machine"
-  zplug "bobsoppe/zsh-ssh-agent"
-  zplug "conda-incubator/conda-zsh-completion"
-  zplug "dim-an/cod"
-  zplug "eastokes/aws-plugin-zsh"
-  zplug "iloginow/zsh-paci"
-  zplug "johnhamelink/env-zsh"
-  zplug "lukechilds/zsh-better-npm-completion", defer:2
-  zplug "plugins/dirhistory", from:oh-my-zsh
-  zplug "plugins/history", from:oh-my-zsh
-  zplug "rawkode/zsh-docker-run"
-  zplug "reegnz/jq-zsh-plugin"
-  zplug "srijanshetty/zsh-pip-completion"
-  zplug "sroze/docker-compose-zsh-plugin"
-  zplug "webyneter/docker-aliases"
+  # Essential
   zplug "zplug/zplug"
+  zplug "johnhamelink/env-zsh"
+  zplug "bobsoppe/zsh-ssh-agent"
+  zplug "srijanshetty/zsh-pip-completion"
   zplug "zsh-users/zsh-completions"
   zplug "zsh-users/zsh-syntax-highlighting"
   zplug "felipec/git-completion"
+
+  # Dev
+  # zplug "conda-incubator/conda-zsh-completion"
+  # zplug "asuran/zsh-docker-machine"
+  # zplug "eastokes/aws-plugin-zsh"
+  # zplug "rawkode/zsh-docker-run"
+  # zplug "sroze/docker-compose-zsh-plugin"
+  # zplug "webyneter/docker-aliases"
+  # zplug "dim-an/cod"
+  # zplug "iloginow/zsh-paci"
+  # zplug "lukechilds/zsh-better-npm-completion", defer:2
+  # zplug "plugins/dirhistory", from:oh-my-zsh
+  # zplug "plugins/history", from:oh-my-zsh
+  # zplug "reegnz/jq-zsh-plugin"
+
   # zplug "bobthecow/git-flow-completion"
   # zplug "plugins/pip", from:oh-my-zsh
   # zplug "z-shell/zsh-morpho"
@@ -103,7 +103,7 @@ PLUGINS() {
   # zplug "MenkeTechnologies/zsh-expand"
 
   # FZF
-  [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+  # [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
   # Theme
   export AGNOSTER_THEME_TINY=1
@@ -122,54 +122,39 @@ PLUGINS() {
   # rbenv ctags SEE: https://github.com/tpope/rbenv-ctags, https://github.com/rbenv/rbenv-default-gems
 
   # heroku autocomplete setup
-  HEROKU_AC_ZSH_SETUP_PATH=/Users/aemonge/Library/Caches/heroku/autocomplete/zsh_setup && test -f $HEROKU_AC_ZSH_SETUP_PATH && source $HEROKU_AC_ZSH_SETUP_PATH;
+  # HEROKU_AC_ZSH_SETUP_PATH=/Users/aemonge/Library/Caches/heroku/autocomplete/zsh_setup && test -f $HEROKU_AC_ZSH_SETUP_PATH && source $HEROKU_AC_ZSH_SETUP_PATH;
 
   # Then, source plugins and add commands to $PATH
   zplug load
 }
 
-SET_OPTS() {
-  # # setopt no_complete_aliases
-  # [[ -r "/opt/homebrew/etc/profile.d/bash_completion.sh" ]] && . "/opt/homebrew/etc/profile.d/bash_completion.sh"
-  # autoload -U compinit && compinit
-  # unsetopt complete_aliases
-  # setopt no_complete_aliases
-  # compdef _git bstack=git-checkout # BUG: This isn't working yet.
-  # compdef git bstack push=git-checkout
-  # compdef git bstack pop=git-checkout
-}
-
 ZPLUG(){
+  export ZPLUG_HOME=/usr/local/opt/zplug
+  source $ZPLUG_HOME/init.zsh
   PLUGINS
   PLUGINS_FISH
-  SET_OPTS
-  # MORPHO
-  # TERRAFORM
+}
+
+VENVS() {
+  CONDA
+  if [ -e ~/.env ]; then
+    source ~/.env;
+  fi
+  # eval "$(rbenv init - zsh)"
+  # eval "$(nodenv init -)"
 }
 
 BEFORE_ALL() {
   PATH
   PROFILE
-
-  CONDA # Conda manages my ~Ruby~, Python and NodeJS interpreters
-  eval "$(rbenv init - zsh)"
-  eval "$(nodenv init -)"
-
-  if [ $ENABLE_LVIM = 1 ]; then
-    if [ -e ~/.env ]; then
-      source ~/.env;
-    fi
-  fi
+  VENVS
 }
 
 BEFORE_NVIM() {
-  if [ -e ~/.env ]; then
-    source ~/.env;
-  fi
 }
 
 AFTER_NVIM() {
-  alias vim=~/bin/vim
+  alias vim=~/aemonge/bin/vim
   ZPLUG
 }
 

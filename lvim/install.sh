@@ -10,7 +10,7 @@ rm -f ~/.config/lvim/lvim.config.lua
 bash <(curl -s https://raw.githubusercontent.com/lunarvim/lunarvim/master/utils/installer/install.sh)
 
 # # My settings
-mkdir -p $HOME/.config/nvim/settings/
+mkdir -p $HOME/.config/lvim/settings/
 ln -s $(pwd)/init.config.lua $HOME/.config/lvim/config.lua
 
 for f in $(ls ./settings); do
