@@ -13,7 +13,7 @@ PATH() {
   export PATH=$PATH:/usr/sbin
   export PATH=$PATH:$HOME/.local/bin
   export PATH=$PATH:$HOME/.zplug/bin
-  export PATH=$PATH:$HOME/aemonge/bin/
+  export PATH=$PATH:$HOME/u/bin/
   export PATH=$PATH:$HOME/usr/scripts/bin/
   export PATH=$PATH:$HOME/.npm-global/bin/
 }
@@ -154,7 +154,7 @@ BEFORE_NVIM() {
 }
 
 AFTER_NVIM() {
-  alias vim=~/aemonge/bin/vim
+  alias vim=~/u/bin/vim
   ZPLUG
 }
 
