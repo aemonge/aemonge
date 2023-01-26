@@ -7,10 +7,12 @@ lvim.builtin.which_key.mappings["h"] = nil
 --  Copy
 ---------------------------------------------------------------------------
 lvim.builtin.which_key.mappings["y"] = {
-  name = "+Yank",
+  name = "File operations",
   F = { ":let @+=fnamemodify(expand('%'), ':~:.')<CR>", "Yank file-path" },
   f = { ":let @+=fnamemodify(expand('%:t'), ':~:.')<CR>", "Yank file-name" },
-  a = { "ggVGyg;", "Yank file-contents" }
+  a = { "ggVGyg;", "Yank file contents" },
+  p = { "ggVGpg;", "Replace file contents with clipboard" },
+  c = { "ggVGdg;", "Clear file contents" }
 }
 
 ---------------------------------------------------------------------------
