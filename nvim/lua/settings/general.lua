@@ -29,7 +29,7 @@ vim.opt.number = true                                         -- Show the curren
 vim.opt.numberwidth = 2                                       -- set number column width to 2 {default 4}
 vim.opt.pumheight = 10                                        -- pop up menu height
 vim.opt.relativenumber = true                                 -- Show line numbers relative
-vim.opt.scrolloff = 1                                         -- Avoid having a weird padding while moving with L H
+vim.opt.scrolloff = 2                                         -- Avoid having a weird padding while moving with L H
 vim.opt.shiftwidth = 2                                        -- the number of spaces inserted for each indentation
 vim.opt.showmatch = true                                      -- Show matching brackets/parenthesis
 vim.opt.showmode = false                                      -- we don't need to see things like -- INSERT -- anymore
@@ -58,17 +58,4 @@ vim.opt.wrap = true                                           -- keep inits easy
 vim.opt.writebackup = false                                   -- if a file is being edited by another program, it is not allowed to be edited
 vim.opt_global.spelllang = { "en", "es" }                     -- My languages that I can read and write
 
--- TODO: Move me to INIT
-vim.keymap.set("", ",", "<Nop>", maps_opts)
-vim.g.mapleader = ","
-vim.g.maplocalleader = ","
-
--- TODO: Move me Make the past keep the clipboard, and don't replace it
-vim.keymap.set("v", "p", '"_dP', maps_opts)
-
-vim.opt.completeopt = "longest,menuone,noselect,preview"      -- mostly used for CMP :TODO: Move to completion-settings
-vim.opt.foldexpr = "nvim_treesitter#foldexpr()"               -- TODO: Move to TreeSitter - settings
-vim.opt.foldmethod = "expr"                                   -- TODO: move to TreeSitter - settings
--- vim.opt.foldmethod = "indent"
 vim.opt.linebreak = false                                     -- Don't break my lines, just warn me with TODO: overlength
-vim.opt.wildmode = { "longest:full", "full" }                 -- Truly like bash TODO: completion-settings

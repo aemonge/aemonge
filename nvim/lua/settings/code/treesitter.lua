@@ -1,4 +1,9 @@
-table.insert(plugins, { "nvim-treesitter/nvim-treesitter",
+local M = {}
+
+vim.opt.foldexpr = "nvim_treesitter#foldexpr()"
+vim.opt.foldmethod = "expr"
+
+table.insert(M, { "nvim-treesitter/nvim-treesitter",
   dependencies = { 
     "JoosepAlviste/nvim-ts-context-commentstring",
     "andymass/vim-matchup",
@@ -9,11 +14,12 @@ table.insert(plugins, { "nvim-treesitter/nvim-treesitter",
   config = function ()
     require'nvim-treesitter.configs'.setup {
       auto_install = true,
-    }
-    require'nvim-treesitter.configs'.setup {
       context_commentstring = {
         enable = true
       }
     }
+    -- vim.cmd[[ hi TreesitterContextBottom gui=underline guisp=Grey ]]
   end
 })
+
+return M

@@ -1,6 +1,16 @@
------- CMP Engines
+--------------------------------------------------------------------------------------------------------------------------
+--                                                         CMP                                                           |
+--------------------------------------------------------------------------------------------------------------------------
+local M = {}
+
+vim.opt.wildmode = { "longest:full", "full" }
+vim.opt.completeopt = "longest,menuone,noselect,preview"
+
 disabled = {}
-table.insert(plugins, { "tzachar/cmp-tabnine",
+-------------------------------------------------------
+-- TabNine 
+-------------------------------------------------------
+table.insert(M, { "tzachar/cmp-tabnine",
   build = "./install.sh",
   dependencies = "hrsh7th/nvim-cmp",
   event = "InsertEnter",
@@ -16,20 +26,36 @@ table.insert(plugins, { "tzachar/cmp-tabnine",
   end
 })
 
-table.insert(plugins, { "hrsh7th/cmp-buffer", event = "InsertEnter" })
-table.insert(plugins, { "hrsh7th/cmp-path", event = "InsertEnter" })
-table.insert(plugins, { "hrsh7th/cmp-cmdline", event = "InsertEnter" })
-table.insert(plugins, { "saadparwaiz1/cmp_luasnip", event = "InsertEnter" })
+-------------------------------------------------------
+-- Plugins
+-------------------------------------------------------
+-- table.insert(M, { "hrsh7th/cmp-buffer", event = "InsertEnter" })
+-- table.insert(M, { "hrsh7th/cmp-path", event = "InsertEnter" })
+table.insert(M, { "hrsh7th/cmp-cmdline", event = "InsertEnter" })
+table.insert(M, { "saadparwaiz1/cmp_luasnip", event = "InsertEnter" })
+table.insert(M, { "rafamadriz/friendly-snippets", event = "InsertEnter" })
+table.insert(M, { "onsails/lspkind.nvim", event = "InsertEnter" })
+table.insert(M, { "L3MON4D3/LuaSnip", event = "InsertEnter" })
+table.insert(M, { "hrsh7th/cmp-nvim-lsp", event = "InsertEnter" })
+table.insert(M, { 'tzachar/fuzzy.nvim', 
+  requires = {'nvim-telescope/telescope-fzf-native.nvim'}
+})
+table.insert(M, { 'tzachar/cmp-fuzzy-buffer', event = "InsertEnter", 
+  requires = {'hrsh7th/nvim-cmp', 'tzachar/fuzzy.nvim'}
+})
+table.insert(M, { 'tzachar/cmp-fuzzy-path',  event = "InsertEnter",
+  requires = {'hrsh7th/nvim-cmp', 'tzachar/fuzzy.nvim'}
+})
+table.insert(M, { "ray-x/cmp-treesitter", event = "InsertEnter" })
+-------------------------------------------------------
+-- Disabled
+-------------------------------------------------------
 
-table.insert(disabled, { "hrsh7th/cmp-nvim-lsp", event = "InsertEnter" })
-
-table.insert(plugins, { "rafamadriz/friendly-snippets", event = "InsertEnter" })
-table.insert(plugins, { "onsails/lspkind.nvim", event = "InsertEnter" })
-table.insert(plugins, { "L3MON4D3/LuaSnip", event = "InsertEnter" })
-
-------- Load the CMP
-table.insert(plugins, { "hrsh7th/nvim-cmp",
-  -- event = "InsertEnter",
+-------------------------------------------------------
+-- Load CMP
+-------------------------------------------------------
+table.insert(M, { "hrsh7th/nvim-cmp",
+  event = "InsertEnter",
   dependencies = {
     "hrsh7th/cmp-buffer",
     "hrsh7th/cmp-path",
@@ -125,12 +151,14 @@ table.insert(plugins, { "hrsh7th/nvim-cmp",
         end,
       },
       sources = {
-        { name = "cmp_tabnine" },
-        { name = "nvim_lsp" },
-        { name = "luasnip" },
-        { name = "buffer" },
-        { name = "path" },
-        { name = "cmdline" },
+        { name = "cmp_tabnine", keyword_length = 0 },
+        { name = "nvim_lsp", keyword_length = 1 },
+        { name = 'treesitter', keyword_length = 1 },
+        { name = "luasnip", keyword_length = 2 },
+        { name = 'fuzzy_buffer', keyword_length = 2 },
+
+        { name = 'fuzzy_path', keyword_length = 1 },
+        { name = "cmdline", keyword_length = 1 },
       },
       confirm_opts = {
         behavior = cmp.ConfirmBehavior.Replace,
@@ -143,5 +171,11 @@ table.insert(plugins, { "hrsh7th/nvim-cmp",
         ghost_text = false
       },
     }
+    -- cmp.event:on(
+    --   'confirm_done',
+    --   require('nvim-autopairs.completion.cmp').on_confirm_done()
+    -- )
   end
 })
+
+return M

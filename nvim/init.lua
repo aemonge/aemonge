@@ -1,4 +1,8 @@
-require "settings.options"
+vim.keymap.set("", ",", "<Nop>", { silent = true, noremap = true, nowait = true })
+vim.g.mapleader = ","
+vim.g.maplocalleader = ","
+
+require "settings.general"
 
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.loop.fs_stat(lazypath) then
@@ -13,22 +17,26 @@ if not vim.loop.fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
-maps_opts = {
-  silent = true,
-  noremap = true,
-  nowait = true,
-}
+smart_maps = require "settings.extra.smart-mappings"
+
 plugins = {}
 
-require "settings.theme"
-require "settings.cmp"
-require "settings.lsp"
-require "settings.telescope"
-require "settings.treesitter"
-require "settings.autopairs"
-require "settings.comment"
-require "settings.gitsigns"
--- require "settings.nvim-tree" -- Start to slow down things
-require "settings.bufferline"
+core = require "settings.core"
+table.insert(plugins, core)
+
+visual = require "settings.visual"
+table.insert(plugins, visual)
+
+navigation = require "settings.navigation"
+table.insert(plugins, navigation)
+
+terminal = require "settings.terminal"
+table.insert(plugins, terminal)
+
+code = require "settings.code"
+table.insert(plugins, code)
+
+extra = require "settings.extra"
+table.insert(plugins, extra)
 
 require("lazy").setup(plugins)

@@ -69,11 +69,11 @@ PLUGINS() {
   # Essential
   zplug "zplug/zplug"
   zplug "johnhamelink/env-zsh"
-  zplug "bobsoppe/zsh-ssh-agent"
-  zplug "srijanshetty/zsh-pip-completion"
   zplug "zsh-users/zsh-completions"
   zplug "zsh-users/zsh-syntax-highlighting"
-  zplug "felipec/git-completion"
+  # zplug "bobsoppe/zsh-ssh-agent"
+  # zplug "srijanshetty/zsh-pip-completion"
+  # zplug "felipec/git-completion"
 
   # Dev
   # zplug "conda-incubator/conda-zsh-completion"
@@ -164,7 +164,7 @@ VIM_MUX() {
   if [ $ENABLE_LVIM -eq "1" ]; then
     if [ -z $NVIM ]; then
       BEFORE_NVIM
-      lvim +':lua StartTerm(1, 1)' && exit # || exit
+      nvim +':lua StartTerm(1, 1)' && exit # || exit
     elif then
       AFTER_NVIM
     fi

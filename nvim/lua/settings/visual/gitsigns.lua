@@ -1,4 +1,5 @@
-table.insert(plugins, { "lewis6991/gitsigns.nvim",
+local M = {}
+table.insert(M, { "lewis6991/gitsigns.nvim",
   config = function ()
     require('gitsigns').setup {
       signs = {
@@ -42,7 +43,15 @@ table.insert(plugins, { "lewis6991/gitsigns.nvim",
         enable = false
       },
     }  
+
+    local wk = require("which-key")
+    wk.register({
+      ['gb'] = { ":Gitsigns blame_line<cr>", "Git blame" }
+    }, { mode = "n", prefix = "<leader>", buffer = nil, 
+      silent = true, noremap = true, nowait = true, 
+    })
   end
 })
 
 -- Git signs can blame ! check if it can move me to the commit is self ;)
+return M

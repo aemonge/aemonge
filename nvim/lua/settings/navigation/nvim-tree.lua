@@ -1,14 +1,16 @@
 --------------------------------------------------------------------------------------------------------------------------
 --                                                     NVimTree                                                          |
 --------------------------------------------------------------------------------------------------------------------------
-table.insert(plugins, { "nvim-tree/nvim-tree.lua", 
+local M = {}
+
+table.insert(M, { "nvim-tree/nvim-tree.lua", 
   dependencies = "nvim-tree/nvim-web-devicons",
   config = function ()
     require("nvim-tree").setup({
       sort_by = "case_sensitive",
       view = {
         adaptive_size = true,
-        width = 50,
+        width = 40,
         mappings = {
           list = {
             -- IO.File operations
@@ -68,5 +70,18 @@ table.insert(plugins, { "nvim-tree/nvim-tree.lua",
         }
       }
     })
+
+    require "which-key".register({
+      e = { ":NvimTreeToggle <cr>" , "NvimTree"}
+    }, {
+      mode = "n",
+      prefix = "<leader>",
+      buffer = nil,
+      silent = true,
+      noremap = true,
+      nowait = true,
+    })
   end
 })
+
+return M

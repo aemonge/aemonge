@@ -1,5 +1,8 @@
 -- https://github.com/VonHeikemen/lsp-zero.nvim/blob/v1.x/advance-usage.md
-table.insert(plugins, { 'VonHeikemen/lsp-zero.nvim',
+local M = {}
+
+table.insert(M, { 'VonHeikemen/lsp-zero.nvim',
+  event = "InsertEnter",
   dependencies = {
     -- LSP Support
     {'neovim/nvim-lspconfig'},             -- Required
@@ -57,3 +60,5 @@ table.insert(plugins, { 'VonHeikemen/lsp-zero.nvim',
     ClearSigns()
   end
 })
+
+return M

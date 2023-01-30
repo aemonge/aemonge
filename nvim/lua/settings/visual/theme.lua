@@ -1,11 +1,12 @@
 --------------------------------------------------------------------------------------------------------------------------
 --                                                      Theme 🎨                                                         |
 --------------------------------------------------------------------------------------------------------------------------
+local M = {}
 ---------------------------------------------------------------------------
 --  Theme: https://github.com/EdenEast/nightfox.nvim
 --    DroidSans-Mono-Nerd-Font or InconsolataLGC
 ---------------------------------------------------------------------------
-table.insert(plugins, { "EdenEast/nightfox.nvim",
+table.insert(M, { "EdenEast/nightfox.nvim",
   priority = 99999,
   config = function()
     require('nightfox').setup({
@@ -33,40 +34,25 @@ table.insert(plugins, { "EdenEast/nightfox.nvim",
       groups = {
         nordfox = {
           NormalNC = { bg = "NONE", fg = "#7e8188" },
+          NormalFloat = { bg = "NONE" },
+          FloatShadowThrough = { bg = "NONE" },
           CursorLine = { bg =  "NONE", style = "bold" },
           CursorColumn = { bg =  "NONE", style = "bold" },
           NonText = { bg = "NONE" },
           Terminal = { bg = "NONE" },
           Normal = { bg = "NONE" },
           Folded = { bg = "NONE" },
+          Pmenu = { bg = "NONE" },
           CursorLineNr = { fg = "NONE" }
         }
       }
     })
     vim.cmd('colorscheme nordfox')
-
     vim.cmd[[
-      hi CursorLine   gui=bold      cterm=bold 
-      hi CursorColumn gui=bold      cterm=bold 
+      hi WhichKeyFloat blend=10
     ]]
   end
 })
-
----------------------------------------------------------------------------
--- [NordFox] plugin/syntax.vim: Output the highlight group under the cursor 
----------------------------------------------------------------------------
-vim.cmd[[
-  function! SynStack()
-    for i1 in synstack(line("."), col("."))
-      let i2 = synIDtrans(i1)
-      let n1 = synIDattr(i1, "name")
-      let n2 = synIDattr(i2, "name")
-      echo n1 "->" n2
-    endfor
-  endfunction
-
-  map <F2> <cmd>call SynStack()<cr>
-]]
 
 ---------------------------------------------------------------------------
 --  Lualine
@@ -93,3 +79,5 @@ vim.cmd[[
   -- -- table.insert(config.sections.lualine_x,  3, { "tabnine" })
   -- lualine.setup(config)
 -- end
+--
+return M

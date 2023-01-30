@@ -1,4 +1,5 @@
-table.insert(plugins, { "akinsho/bufferline.nvim" ,
+local M = {}
+table.insert(M, { "akinsho/bufferline.nvim" ,
   dependencies = 'nvim-tree/nvim-web-devicons',
   config = function ()
     require"bufferline".setup {
@@ -7,7 +8,11 @@ table.insert(plugins, { "akinsho/bufferline.nvim" ,
         sort_by = "tabs",
         numbers = "none", -- | "ordinal" | "buffer_id" | "both" | function({ ordinal, id, lower, raise }): string,
         close_command = "Bdelete! %d", -- can be a string | function, see "Mouse actions"
-        indicator_icon = "▎",
+        indicator = {
+          style = {
+            icon = "▎"
+          }
+        },
         buffer_close_icon = "",
         modified_icon = "●",
         close_icon = "",
@@ -24,8 +29,6 @@ table.insert(plugins, { "akinsho/bufferline.nvim" ,
         show_close_icon = true,
         show_tab_indicators = true,
         persist_buffer_sort = true, -- whether or not custom sorted buffers should persist
-        -- can also be a table containing 2 custom separators
-        -- [focused and unfocused]. eg: { '|', '|' }
         separator_style = "thin", -- | "thick" | "thin" | { 'any', 'any' },
         enforce_regular_tabs = true,
         always_show_bufferline = true,
@@ -33,3 +36,5 @@ table.insert(plugins, { "akinsho/bufferline.nvim" ,
     }
   end
 })
+
+return M
