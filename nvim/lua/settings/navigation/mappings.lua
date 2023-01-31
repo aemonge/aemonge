@@ -24,12 +24,18 @@ local M = {
   },
 
   ["<c-h>"] = { "<c-w><Left>" , "Go left"},
-  ["<c-j>"] = { "<c-w><Down>" , "Go down"},
-  ["<c-k>"] = { "<c-w><Up>" , "Go up"},
   ["<c-l>"] = { "<c-w><Right>" , "Go right"},
+  ["<c-j>"] = {
+    { "<c-w><Down>" , "Go down"},
+    -- [''] = { "<c-w><Down>" , "Go down"},
+    ["<c-j>"] = { "gT" , "Previous tab"}
+  },
+  ["<c-k>"] = {
+    { "<c-w><Up>" , "Go up"},
+    -- [''] = { "<c-w><Up>" , "Go up"},
+    ["<c-k>"] = { "gt" , "Next tab"}
+  },
 
-  ["<c-j><c-j>"] = { "gT" , "Previous tab"},
-  ["<c-k><c-k>"] = { "gt" , "Next tab"},
 
   ['_'] = { ":resize -2<cr>", "Decrease Horizontally" },
   ['+'] = { ":resize +3<cr>" , "Increase Horizontally"},

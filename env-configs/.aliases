@@ -1,3 +1,5 @@
 # alias docker-clean="docker kill $(docker ps -q | xargs); docker volume rm $(docker volume ls -q | xargs);  docker image rm -f $(docker image ls -q | xargs)"
 # alias open='xdg-open'
 alias xclip=pbcopy
+alias vim=~/u/bin/vim
+alias vcd=~/u/bin/vcd

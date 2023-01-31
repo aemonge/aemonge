@@ -43,41 +43,17 @@ table.insert(M, { "EdenEast/nightfox.nvim",
           Normal = { bg = "NONE" },
           Folded = { bg = "NONE" },
           Pmenu = { bg = "NONE" },
+          lualine_c_normal = { bg = "#232831" },
+          lualine_b_normal = { bg = "#232831" },
           CursorLineNr = { fg = "NONE" }
         }
       }
     })
     vim.cmd('colorscheme nordfox')
     vim.cmd[[
-      hi WhichKeyFloat blend=10
+      hi WhichKeyFloat blend=15
     ]]
   end
 })
 
----------------------------------------------------------------------------
---  Lualine
----------------------------------------------------------------------------
--- lvim.builtin.lualine.options.disabled_buftypes = { 'terminal', 'quickfix', 'prompt' }
--- lvim.builtin.lualine.options.disabled_filetypes = { 'terminal' }
--- lvim.builtin.lualine.sections.lualine_c = {
-  -- { "aerial" },
-  -- { "chadtree" },
-  -- { "fugitive" },
-  -- { "pythonenv" },
-  -- { "diff" },
-  -- { "nvim-dap-ui" },
-  -- { "nvim-tree" },
-  -- { "filename",
-    -- path = 1, shorting_target = 80
-  -- }
--- }
-
--- lvim.builtin.lualine.options.icons_enabled = true
--- lvim.builtin.lualine.on_config_done = function(lualine)
-  -- local config = lualine.get_config()
-  -- table.remove(config.sections.lualine_x, 2) -- Remove the LSP info
-  -- -- table.insert(config.sections.lualine_x,  3, { "tabnine" })
-  -- lualine.setup(config)
--- end
---
 return M

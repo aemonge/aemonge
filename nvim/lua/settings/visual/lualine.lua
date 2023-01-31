@@ -10,14 +10,14 @@ local diagnostics = {
 
 local diff = {
   "diff",
-  colored = false,
+  colored = true,
   symbols = { added = " ", modified = " ", removed = " " }, -- changes diff symbols
   cond = hide_in_width
 }
 
 local filetype = {
   "filetype",
-  icons_enabled = true,
+  icons_enabled = false,
   icon = nil,
 }
 
@@ -32,7 +32,7 @@ local M =  { 'nvim-lualine/lualine.nvim',
     require('lualine').setup {
       options = {
         icons_enabled = true,
-        theme = "auto",
+        theme = "material",
         component_separators = { left = "", right = "" },
         section_separators = { left = "", right = "" },
         disabled_filetypes = { "dashboard", "NvimTree", "Outline" },
@@ -42,20 +42,22 @@ local M =  { 'nvim-lualine/lualine.nvim',
         lualine_a = { branch },
         lualine_b = { diagnostics },
         lualine_c = {
-          { "diff" },
           { "nvim-tree" },
           { "filename", path = 1, shorting_target = 80 }
         },
-        lualine_x = { diff,  filetype },
+        lualine_x = { diff },
+        lualine_y = { filetype },
+        lualine_z = {'os.date("%I:%M:%S", os.time())'},
       },
       inactive_sections = {
         lualine_a = { branch },
         lualine_b = {},
         lualine_c = {
-          { "diff" },
           { "filename", path = 1, shorting_target = 80 }
         },
-        lualine_x = { diff,  filetype },
+        lualine_x = {},
+        lualine_y = { filetype },
+        lualine_z = {'os.date("%I:%M:%S", os.time())'},
       },
       disabled_filetypes = { "", "NvimTree", "Outline", "terminal" },
       disabled_buftypes = { "", "terminal", "quickfix", "prompt" },

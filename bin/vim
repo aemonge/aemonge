@@ -6,7 +6,7 @@ then
     nvr --remote-tab `greadlink -f $@ | xargs`
     # nvr -c "tabedit `greadlink -f $@ | xargs`"
   else
-    nvr --remote-tab `greadlink -f $@ | xargs`
+    nvr --remote-tab `readlink -f $@ | xargs`
     # nvr -c "tabedit `readlink -f $@ | xargs`"
   fi
 else

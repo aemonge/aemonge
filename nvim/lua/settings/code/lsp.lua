@@ -2,7 +2,6 @@
 local M = {}
 
 table.insert(M, { 'VonHeikemen/lsp-zero.nvim',
-  event = "InsertEnter",
   dependencies = {
     -- LSP Support
     {'neovim/nvim-lspconfig'},             -- Required

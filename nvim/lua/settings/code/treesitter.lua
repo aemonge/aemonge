@@ -4,7 +4,7 @@ vim.opt.foldexpr = "nvim_treesitter#foldexpr()"
 vim.opt.foldmethod = "expr"
 
 table.insert(M, { "nvim-treesitter/nvim-treesitter",
-  dependencies = { 
+  dependencies = {
     "JoosepAlviste/nvim-ts-context-commentstring",
     "andymass/vim-matchup",
     "nvim-treesitter/nvim-treesitter-context" ,
@@ -18,7 +18,6 @@ table.insert(M, { "nvim-treesitter/nvim-treesitter",
         enable = true
       }
     }
-    -- vim.cmd[[ hi TreesitterContextBottom gui=underline guisp=Grey ]]
   end
 })
 

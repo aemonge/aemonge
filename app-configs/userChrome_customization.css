@@ -40,6 +40,10 @@
   height: calc(var(--tab-min-height) + var(--space-above-tabbar)) !important;
 }
 
+#toolbar-menubar[context="toolbar-context-menu"] {
+  display: none;
+}
+
 #TabsToolbar {
   display: grid;
   position: fixed;
@@ -85,8 +89,8 @@
  * Permanent background image, for the sake of having background images.
  */
 stack.browserStack {
-  background: url('file:///Users/aemonge/.firefox-bg.jpg');
-  background: url('file:///Users/aemonge/.firefox-bg.png');
+  background: url('file:///~/.firefox-bg.jpg');
+  background: url('file:///~/.firefox-bg.png');
   background-size: cover;
 }
 

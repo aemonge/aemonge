@@ -21,12 +21,13 @@ envConfig() {
 }
 
 firefox() {
-  cd /Users/aemonge/Library/Application\ Support/Firefox/Profiles/*dev-edition-default/
+  cd /home/deck/.mozilla/firefox/c3bkk9ay.default-release/
   mkdir -p chrome
   cd chrome
-  ln -s $HOME/u/configs/userChrome_customization.css userChrome.css
+  ln -s $HOME/u/app-configs/userChrome_customization.css userChrome.css
 }
 
 devConfig
 envConfig
 firefox
+sudo pacman -Syu flameshot

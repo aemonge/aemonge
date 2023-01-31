@@ -30,7 +30,7 @@ table.insert(M, { "folke/which-key.nvim",
       },
       window = {
         border = "double", -- none, single, double, shadow
-        winblend = 10
+        winblend = 15
       },
       layout = {
         height = { min = 2, max = 4 }, -- min and max height of the columns

@@ -12,4 +12,7 @@ table.insert(M, bufferline)
 local lualine = require "settings.visual.lualine"
 table.insert(M, lualine)
 
+local overlength = require "settings.visual.overlength"
+table.insert(M, overlength)
+
 return M

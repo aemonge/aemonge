@@ -3,14 +3,14 @@
 --------------------------------------------------------------------------------------------------------------------------
 local M = {}
 
-table.insert(M, { "nvim-tree/nvim-tree.lua", 
+table.insert(M, { "nvim-tree/nvim-tree.lua",
   dependencies = "nvim-tree/nvim-web-devicons",
   config = function ()
     require("nvim-tree").setup({
       sort_by = "case_sensitive",
       view = {
-        adaptive_size = true,
-        width = 40,
+        -- adaptive_size = true,
+        width = 20,
         mappings = {
           list = {
             -- IO.File operations
@@ -72,7 +72,7 @@ table.insert(M, { "nvim-tree/nvim-tree.lua",
     })
 
     require "which-key".register({
-      e = { ":NvimTreeToggle <cr>" , "NvimTree"}
+      e = { ":NvimTreeFindFileToggle! <cr>" , "NvimTree"}
     }, {
       mode = "n",
       prefix = "<leader>",
