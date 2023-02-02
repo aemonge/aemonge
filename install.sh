@@ -30,4 +30,3 @@ firefox() {
 devConfig
 envConfig
 firefox
-sudo pacman -Syu flameshot
