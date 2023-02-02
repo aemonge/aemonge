@@ -40,7 +40,6 @@ local M = {
   },
 
 
-  ["<c-d>"] = {":bd<cr>", "delete current buffer"},
   ['_'] = { ":resize -2<cr>", "Decrease Horizontally" },
   ['+'] = { ":resize +3<cr>" , "Increase Horizontally"},
   ['='] = { ":vertical resize -2<cr>" , "Decrease Vertically"},

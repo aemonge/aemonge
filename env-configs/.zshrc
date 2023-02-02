@@ -142,12 +142,7 @@ ZINIT_PLUGINS(){
   # zinit load zdharma-continuum/history-search-multi-word
   zinit light zsh-users/zsh-completions
   zinit light zdharma-continuum/fast-syntax-highlighting
-  zinit light Tarrasch/zsh-autoenv
-
-  # zdharma-continuum/history-search-multi-word
-  # zstyle ":history-search-multi-word" page-size "11"
-  # zinit ice wait"1" lucid
-  # zinit load zdharma-continuum/history-search-multi-word
+  zinit snippet OMZP::dotenv
 
   # zsh-autosuggestions
   zinit light zsh-users/zsh-autosuggestions

@@ -53,8 +53,8 @@ table.insert(M, { "ahmedkhalf/project.nvim",
   config = function()
     require("project_nvim").setup {
       patterns = {
-        ".git", "_darcs", ".hg", ".bzr", ".svn", "Makefile", "package.json", "requirements.txt", "Gemfile", "environment.yml",
-        "README.rst", "README.md", "pyproject.toml", "tox.ini"
+        ".env", ".git", "_darcs", ".hg", ".bzr", ".svn", "Makefile", "package.json", "requirements.txt",
+        "Gemfile", "environment.yml", "README.rst", "README.md", "pyproject.toml", "tox.ini"
       }
     }
   end
