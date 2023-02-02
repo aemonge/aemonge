@@ -28,9 +28,9 @@ START() {
 ALL() {
   PATH
   PROFILE
+  VENVS
   INITS
   ZINIT_PLUGINS
-  VENVS
   THEME
 
   alias vim=~/u/bin/vim

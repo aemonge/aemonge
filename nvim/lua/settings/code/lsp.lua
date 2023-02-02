@@ -1,6 +1,21 @@
 -- https://github.com/VonHeikemen/lsp-zero.nvim/blob/v1.x/advance-usage.md
 local M = {}
 
+table.insert(M, { "williamboman/mason.nvim",
+  config = function ()
+    require("mason").setup({
+      ui = {
+        border = "rounded",
+        icons = {
+            package_installed = "✓",
+            package_pending = "➜",
+            package_uninstalled = "✗"
+        }
+      }
+    })
+  end
+})
+
 table.insert(M, { 'VonHeikemen/lsp-zero.nvim',
   dependencies = {
     -- LSP Support
@@ -25,7 +40,6 @@ table.insert(M, { 'VonHeikemen/lsp-zero.nvim',
     lsp.set_preferences({
       suggest_lsp_servers = true,
       setup_servers_on_start = true,
-      set_lsp_keymaps = true, -- probably I need to disable this to make my mappings work
       configure_diagnostics = true,
       cmp_capabilities = true,
       manage_nvim_cmp = false,

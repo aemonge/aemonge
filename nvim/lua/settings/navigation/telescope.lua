@@ -86,19 +86,19 @@ table.insert(M, { 'nvim-telescope/telescope.nvim',
             ["?"] = actions.which_key,
           },
         },
-      },
-      extensions = {
-        emoji = {
-          action = function (emoji)
-            vim.fn.setreg("*", emoji.value)
-          end
-        },
-        glyph = {
-          action = function (glyph)
-            vim.fn.setreg("*", glyph.value)
-          end
+        extensions = {
+          emoji = {
+            action = function (emoji)
+              vim.fn.setreg("*", emoji.value)
+            end
+          },
+          glyph = {
+            action = function (glyph)
+              vim.fn.setreg("*", glyph.value)
+            end
+          }
         }
-      }
+      },
     }
 
     require "which-key".register({

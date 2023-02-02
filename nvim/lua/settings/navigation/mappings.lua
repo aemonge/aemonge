@@ -8,10 +8,10 @@ local M = {
     h = { ":leftabove vsplit<cr>" , "Split left"},
     j = { ":rightbelow split<cr>", "Split down" },
     k = { ":leftabove split<cr>", "Split up" },
-    l = { ":rightbelow vsplit<cr>", "Split Right" },
+    l = { ":rightbelow vsplit<cr>", "Split right" },
 
-    t = {":ToggleTerm direction='vertical'<cr>", "Toggle Vertical Term"},
-    T = {":ToggleTerm direction='horizontal'<cr>", "Toggle Vertical Term"},
+    t = {":rightbelow vsplit | lua StartTerm(0)<cr>", "Toggle vertical term"},
+    T = {":rightbelow split  | lua StartTerm(0)<cr>", "Toggle horizontal term"},
 
     d = { ":tabc<cr>", "Tab Close" },
 

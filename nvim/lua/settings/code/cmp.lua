@@ -143,6 +143,7 @@ table.insert(M, { "hrsh7th/nvim-cmp",
         completion = cmp.config.window.bordered({
           winhighlight = 'FloatBorder:Normal,CursorLine:Visual,Search:None',
           scrollbar = false,
+          completeopt = "longest,menuone,noselect,preview"
         }),
       },
       formatting = {

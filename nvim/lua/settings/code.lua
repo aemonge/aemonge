@@ -15,4 +15,7 @@ table.insert(M, comment)
 local autpair = require "settings.code.autopairs"
 table.insert(M, autpair)
 
+local swenv = require "settings.code.swenv"
+table.insert(M, swenv)
+
 return M

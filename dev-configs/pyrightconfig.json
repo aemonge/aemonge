@@ -1,5 +1,4 @@
 {
-  "venv": "image-classifier",
-  "venvPath": "/opt/homebrew/Caskroom/miniconda/base/envs/",
-  "reportGeneralTypeIssues": false
+  "venv": "udacity",
+  "venvPath": "~/.anaconda3/envs/udacity"
 }
