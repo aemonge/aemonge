@@ -10,10 +10,12 @@ end
 
 table.insert(M, { "akinsho/toggleterm.nvim", -- version = "*",
   config = function()
+    local t_mappings = require "settings.terminal.mappings"
+
     require("toggleterm").setup({
       -- SEE: https://github.com/akinsho/toggleterm.nvim
       hide_numbers = true, -- hide the number column in toggleterm buffers
-      autochdir = true, -- when neovim changes it current directory the terminal will change it's own when next it's opened
+      autochdir = true, -- based on the current working directory of neovim
       on_open = function ()
         vim.api.nvim_command("startinsert")
         TerminalLocalOpts()
@@ -39,18 +41,17 @@ table.insert(M, { "akinsho/toggleterm.nvim", -- version = "*",
       }
     })
 
-    require "which-key".register({
-      ["<C-x>"] = { t '<C-\\><C-N>:ToggleTerm<Cr>', "Go to normal mode" },
-    }, { mode = "t", prefix = nil, buffer = nil, silent = true, noremap = true, nowait = true})
+    require "which-key".register(t_mappings, {
+      mode = "t", prefix = nil, buffer = nil, silent = true, noremap = true, nowait = true
+    })
     require "which-key".register({
       ['<C-x>'] = { ":ToggleTerm direction=float<cr>", "Toggle float term" },
-    }, { mode = "n", prefix = nil, buffer = nil, silent = true, noremap = true, nowait = true,})
+    }, {
+      mode = "n", prefix = nil, buffer = nil, silent = true, noremap = true, nowait = true,
+    })
     require "which-key".register({
       ['<C-x>'] = { ":ToggleTermSendVisualSelection<cr>", "Send Visual selection to toggled term" },
     }, { mode = "v", prefix = nil, buffer = nil, silent = true, noremap = true, nowait = true,})
-
-    require "which-key".register(t_mappings, { buffer = nil, silent = true, noremap = true, nowait = true, mode = 't' })
-    require "which-key".register(n_mappings, { buffer = nil, silent = true, noremap = true, nowait = true, mode = 'n' })
   end
 })
 

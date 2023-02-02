@@ -1,17 +1,9 @@
 local M = {}
 
----------------------------------------------------------------------------
--- [neovim-remote](nvr): Close on Git Commit messages
----------------------------------------------------------------------------
-vim.api.nvim_create_autocmd('FileType', {
-  pattern = {"gitrebase", "gitcommit", "diff"},
-  command = "setlocal bufhidden=wipe"
-})
+require "settings.terminal.autocommands"
+require "settings.terminal.terminal-functions"
 
-t_mappings = require "settings.terminal.my-terminal"
-n_mappings = require "settings.terminal.mappings"
-
-local toggleterm = require "settings.terminal.toggleterm"
+local toggleterm = require "settings.terminal.toggleterm"  -- require "settings.terminal.mappings"
 table.insert(M, toggleterm)
 
 return M

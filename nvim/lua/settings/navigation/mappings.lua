@@ -10,6 +10,9 @@ local M = {
     k = { ":leftabove split<cr>", "Split up" },
     l = { ":rightbelow vsplit<cr>", "Split Right" },
 
+    t = {":ToggleTerm direction='vertical'<cr>", "Toggle Vertical Term"},
+    T = {":ToggleTerm direction='horizontal'<cr>", "Toggle Vertical Term"},
+
     d = { ":tabc<cr>", "Tab Close" },
 
     O = { ":BWipeout! other<CR>", "Close all other buffers" },
@@ -25,18 +28,19 @@ local M = {
 
   ["<c-h>"] = { "<c-w><Left>" , "Go left"},
   ["<c-l>"] = { "<c-w><Right>" , "Go right"},
-  ["<c-j>"] = {
-    { "<c-w><Down>" , "Go down"},
-    -- [''] = { "<c-w><Down>" , "Go down"},
-    ["<c-j>"] = { "gT" , "Previous tab"}
-  },
+
   ["<c-k>"] = {
-    { "<c-w><Up>" , "Go up"},
-    -- [''] = { "<c-w><Up>" , "Go up"},
-    ["<c-k>"] = { "gt" , "Next tab"}
+    [''] = { "<c-w><Up>" , "Go up"},
+    ["<c-k>"] = { "gt" , "Next tab" },
+  },
+
+  ["<c-j>"] = {
+    [''] = { "<c-w><Down>" , "Go down"},
+    ["<c-j>"] = { "gT" , "Previous tab" },
   },
 
 
+  ["<c-d>"] = {":bd<cr>", "delete current buffer"},
   ['_'] = { ":resize -2<cr>", "Decrease Horizontally" },
   ['+'] = { ":resize +3<cr>" , "Increase Horizontally"},
   ['='] = { ":vertical resize -2<cr>" , "Decrease Vertically"},

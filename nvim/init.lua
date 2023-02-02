@@ -27,14 +27,14 @@ table.insert(plugins, core)
 visual = require "settings.visual"
 table.insert(plugins, visual)
 
-navigation = require "settings.navigation"
-table.insert(plugins, navigation)
-
 terminal = require "settings.terminal"
 table.insert(plugins, terminal)
 
 code = require "settings.code"
 table.insert(plugins, code)
+
+navigation = require "settings.navigation"
+table.insert(plugins, navigation)
 
 extra = require "settings.extra"
 table.insert(plugins, extra)

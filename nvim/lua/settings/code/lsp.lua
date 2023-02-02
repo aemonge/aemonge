@@ -30,7 +30,12 @@ table.insert(M, { 'VonHeikemen/lsp-zero.nvim',
       cmp_capabilities = true,
       manage_nvim_cmp = false,
       call_servers = 'local',
-      sign_icons = false
+      sign_icons = false,
+      set_lsp_keymaps = {
+        omit = {
+          '<C-k>', '<Ctrl-k>'
+        }
+      },
     })
 
     lsp.setup()

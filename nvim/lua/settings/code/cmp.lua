@@ -8,7 +8,7 @@ vim.opt.completeopt = "longest,menuone,noselect,preview"
 
 disabled = {}
 -------------------------------------------------------
--- TabNine 
+-- TabNine
 -------------------------------------------------------
 table.insert(M, { "tzachar/cmp-tabnine",
   build = "./install.sh",
@@ -37,14 +37,14 @@ table.insert(M, { "rafamadriz/friendly-snippets", event = "InsertEnter" })
 table.insert(M, { "onsails/lspkind.nvim", event = "InsertEnter" })
 table.insert(M, { "L3MON4D3/LuaSnip", event = "InsertEnter" })
 table.insert(M, { "hrsh7th/cmp-nvim-lsp", event = "InsertEnter" })
-table.insert(M, { 'tzachar/fuzzy.nvim', 
-  requires = {'nvim-telescope/telescope-fzf-native.nvim'}
+table.insert(M, { 'tzachar/fuzzy.nvim',
+  dependencies = {'nvim-telescope/telescope-fzf-native.nvim'}
 })
-table.insert(M, { 'tzachar/cmp-fuzzy-buffer', event = "InsertEnter", 
-  requires = {'hrsh7th/nvim-cmp', 'tzachar/fuzzy.nvim'}
+table.insert(M, { 'tzachar/cmp-fuzzy-buffer', event = "InsertEnter",
+  dependencies = {'hrsh7th/nvim-cmp', 'tzachar/fuzzy.nvim'}
 })
 table.insert(M, { 'tzachar/cmp-fuzzy-path',  event = "InsertEnter",
-  requires = {'hrsh7th/nvim-cmp', 'tzachar/fuzzy.nvim'}
+  dependencies = {'hrsh7th/nvim-cmp', 'tzachar/fuzzy.nvim'}
 })
 table.insert(M, { "ray-x/cmp-treesitter", event = "InsertEnter" })
 -------------------------------------------------------

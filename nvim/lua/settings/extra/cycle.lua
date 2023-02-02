@@ -4,9 +4,9 @@ table.insert(M, { "bootleq/vim-cycle",
   config = function ()
     vim.g.cycle_no_mappings = 1
     vim.cmd [[ nmap <silent> <C-a> <Plug>CycleNext ]]
-    vim.cmd [[ vmap <silent> <C-x> <Plug>CyclePrev ]]
-    vim.cmd [[ noremap <silent> <Plug>CycleFallbackNext <C-A> ]]
-    vim.cmd [[ noremap <silent> <Plug>CycleFallbackPrev <C-X> ]]
+    vim.cmd [[ nmap <silent> <C-A> <Plug>CyclePrev ]]
+    vim.cmd [[ noremap <silent> <Plug>CycleFallbackNext <C-a> ]]
+    vim.cmd [[ noremap <silent> <Plug>CycleFallbackPrev <C-A> ]]
 
     vim.cmd [[ silent! call cycle#add_group([ 'set', 'get' ]) ]]
     vim.cmd [[ silent! call cycle#add_group(['form', 'to']) ]]

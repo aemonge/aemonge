@@ -16,7 +16,7 @@ table.insert(M, { "EdenEast/nightfox.nvim",
         dim_inactive = true,    -- Non focused panes set to alternative background
         module_default = true,   -- Default enable value for modules
         inverse = {             -- Inverse highlight for different types
-          match_paren = true,
+          match_paren = false,
           search = false,
         },
         module_default = true,
