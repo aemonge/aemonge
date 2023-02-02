@@ -21,7 +21,7 @@ table.insert(M, { "tzachar/cmp-tabnine",
       sort = true,
       run_on_every_keystroke = true,
       snippet_placeholder = '..',
-      show_prediction_strength = false
+      show_prediction_strength = true
     })
   end
 })
@@ -29,9 +29,9 @@ table.insert(M, { "tzachar/cmp-tabnine",
 -------------------------------------------------------
 -- Plugins
 -------------------------------------------------------
--- table.insert(M, { "hrsh7th/cmp-buffer", event = "InsertEnter" })
--- table.insert(M, { "hrsh7th/cmp-path", event = "InsertEnter" })
-table.insert(M, { "hrsh7th/cmp-cmdline", event = "InsertEnter" })
+table.insert(M, { "davidsierradz/cmp-conventionalcommits", ft = "gitcommit" })
+table.insert(M, { "delphinus/cmp-ctags" })
+table.insert(M, { "f3fora/cmp-spell"})
 table.insert(M, { "saadparwaiz1/cmp_luasnip", event = "InsertEnter" })
 table.insert(M, { "rafamadriz/friendly-snippets", event = "InsertEnter" })
 table.insert(M, { "onsails/lspkind.nvim", event = "InsertEnter" })
@@ -59,7 +59,6 @@ table.insert(M, { "hrsh7th/nvim-cmp",
   dependencies = {
     "hrsh7th/cmp-buffer",
     "hrsh7th/cmp-path",
-    "hrsh7th/cmp-cmdline",
     "saadparwaiz1/cmp_luasnip",
 
     -- "hrsh7th/cmp-nvim-lsp",
@@ -74,6 +73,14 @@ table.insert(M, { "hrsh7th/nvim-cmp",
     local cmp = require "cmp"
     local lspkind = require('lspkind')
     local luasnip = require('luasnip')
+
+    local source_mapping = {
+      buffer = "[Buffer]",
+      nvim_lsp = "[LSP]",
+      nvim_lua = "[Lua]",
+      cmp_tabnine = "[T9]",
+      path = "[Path]",
+    }
 
     local check_backspace = function()
       local col = vim.fn.col "." - 1
@@ -133,32 +140,39 @@ table.insert(M, { "hrsh7th/nvim-cmp",
 
       window = {
         documentation = cmp.config.window.bordered(),
-        completion = {
+        completion = cmp.config.window.bordered({
           winhighlight = 'FloatBorder:Normal,CursorLine:Visual,Search:None',
-          col_offset = -3,
-          side_padding = 0,
-        },
+          scrollbar = false,
+        }),
       },
       formatting = {
         fields = { "kind", "abbr", "menu" },
         format = function(entry, vim_item)
-          local kind = lspkind.cmp_format({ mode = "symbol_text", maxwidth = 50 })(entry, vim_item)
-          local strings = vim.split(kind.kind, "%s", { trimempty = true })
-          kind.kind = " " .. (strings[1] or "") .. " "
-          kind.menu = "    (" .. (strings[2] or "") .. ")"
-
-          return kind
-        end,
+          vim_item.kind = lspkind.symbolic(vim_item.kind, {mode = "symbol", maxwidth = 50})
+          vim_item.menu = source_mapping[entry.source.name]
+          if entry.source.name == "cmp_tabnine" then
+            local detail = (entry.completion_item.data or {}).detail
+            vim_item.kind = ""
+          end
+          return vim_item
+        end
       },
       sources = {
-        { name = "cmp_tabnine", keyword_length = 0 },
-        { name = "nvim_lsp", keyword_length = 1 },
-        { name = 'treesitter', keyword_length = 1 },
-        { name = "luasnip", keyword_length = 2 },
-        { name = 'fuzzy_buffer', keyword_length = 2 },
-
-        { name = 'fuzzy_path', keyword_length = 1 },
-        { name = "cmdline", keyword_length = 1 },
+        { name = "cmp_tabnine"},
+        { name = "nvim_lsp"},
+        { name = 'treesitter'},
+        { name = "luasnip" },
+        { name = 'fuzzy_buffer'},
+        { name = 'fuzzy_path'},
+        { name = 'cmp-ctags' },
+        { name = 'spell',
+          option = {
+            keep_all_entries = false,
+            enable_in_context = function()
+                return true
+            end,
+          },
+        },
       },
       confirm_opts = {
         behavior = cmp.ConfirmBehavior.Replace,
@@ -170,11 +184,11 @@ table.insert(M, { "hrsh7th/nvim-cmp",
       experimental = {
         ghost_text = false
       },
+      completion = {
+        keyword_length = 2,
+        keyword_pattern = [[^\s]]
+      }
     }
-    -- cmp.event:on(
-    --   'confirm_done',
-    --   require('nvim-autopairs.completion.cmp').on_confirm_done()
-    -- )
   end
 })
 

@@ -56,6 +56,6 @@ vim.opt.whichwrap = "<,>,[,],b,h,l,s"                         -- Allow specified
 vim.opt.wildignorecase = true                                 -- As it reads, ignoring case on wild menu, be like bash
 vim.opt.wrap = true                                           -- keep inits easy to read
 vim.opt.writebackup = false                                   -- if a file is being edited by another program, it is not allowed to be edited
--- vim.opt_global.spelllang = { "en", "es" }                     -- My languages that I can read and write
+-- vim.opt.spelllang = { "en_us", "es_es" }                      -- My languages that I can read and write
 
 vim.opt.linebreak = false                                     -- Don't break my lines, just warn me with TODO: overlength

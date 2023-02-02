@@ -12,7 +12,7 @@ table.insert(M, { "nvim-tree/nvim-tree.lua",
         -- adaptive_size = true,
         width = 20,
         mappings = {
-          custom_only = false,
+          custom_only = true,
           list = {
             -- IO.File operations
             { key = "c", action = "copy.node" },

@@ -18,7 +18,6 @@ table.insert(M, { "akinsho/toggleterm.nvim", -- version = "*",
       autochdir = true, -- based on the current working directory of neovim
       on_open = function ()
         vim.api.nvim_command("startinsert")
-        TerminalLocalOpts()
       end,
       shade_terminals = false,
       start_in_insert = true,
