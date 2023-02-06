@@ -10,6 +10,7 @@ I provide value by translating KPI's or any business requirements into meaningfu
 I constantly try to take the extra effort to make my solutions follow a **functional declarative and O.O. paradigm**, since I found that saves times eventually.
 
 ## Open Source Projects
+* https://confirm.udacity.com/KTKTKJC7
 
 * A set of different neural network models to classify images, and measure their respective performance. [alicia](https://github.com/aemonge/alicia)
 * A simple fork of pretty-json with transparency included, to enable copy and paste without missing characters [prettyjson](https://github.com/aemonge/prettyjson)
