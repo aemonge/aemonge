@@ -1,8 +1,11 @@
 set editing-mode vi
 set keymap vi-insert
-"\C-b": backward-char
-"(": "\C-v()\C-b"
-"[": "\C-v[]\C-b"
-"{": "\C-v{}\C-b"
-"\"": "\C-v\"\C-v\"\C-b"
-"\047": "\C-v\047\C-v\047\C-b"
+# set show-all-if-unmodified on
+set show-all-if-ambiguous on
+
+# "\C-b": backward-char
+# "(": "\C-v()\C-b"
+# "[": "\C-v[]\C-b"
+# "{": "\C-v{}\C-b"
+# "\"": "\C-v\"\C-v\"\C-b"
+# "\047": "\C-v\047\C-v\047\C-b"
