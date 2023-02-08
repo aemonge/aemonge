@@ -1,5 +1,8 @@
 local M = {}
 
+table.insert(M, { "RRethy/nvim-align" })
+table.insert(M, { "gpanders/editorconfig.nvim" })
+
 local cmp = require "settings.code.cmp"
 table.insert(M, cmp)
 
@@ -17,5 +20,8 @@ table.insert(M, autpair)
 
 local swenv = require "settings.code.swenv"
 table.insert(M, swenv)
+
+local surround = require "settings.code.surround"
+table.insert(M, surround)
 
 return M

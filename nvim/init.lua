@@ -20,6 +20,7 @@ vim.opt.rtp:prepend(lazypath)
 smart_maps = require "settings.extra.smart-mappings"
 
 plugins = {}
+lazy_settings = require "settings.core.lazy"
 
 core = require "settings.core"
 table.insert(plugins, core)
@@ -39,4 +40,4 @@ table.insert(plugins, navigation)
 extra = require "settings.extra"
 table.insert(plugins, extra)
 
-require("lazy").setup(plugins)
+require("lazy").setup(plugins, lazy_settings)

@@ -3,6 +3,9 @@ local M = {}
 local theme = require "settings.visual.theme"
 table.insert(M, theme)
 
+local dressing = require "settings.visual.dressing"
+table.insert(M, dressing)
+
 local gitsigns = require "settings.visual.gitsigns"
 table.insert(M, gitsigns)
 

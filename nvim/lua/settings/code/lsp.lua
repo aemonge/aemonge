@@ -58,13 +58,36 @@ table.insert(M, { 'VonHeikemen/lsp-zero.nvim',
       virtual_text = false,
       signs = true,
       update_in_insert = false,
-      underline = false,
+      underline = true,
       severity_sort = true,
       float = {
         focusable = true,
+        code = true,
         style = 'minimal',
         border = 'rounded',
-        source = 'always'
+        source = 'always',
+        header = '',
+        prefix = function(diagnostic)
+          local code = diagnostic.code
+
+          if code == nil then
+            code = ''
+          else
+            code = '('.. code ..') '
+          end
+
+          if diagnostic.severity == vim.diagnostic.severity.ERROR then
+            return '  ' .. code
+          elseif diagnostic.severity == vim.diagnostic.severity.WARN then
+            return '  ' .. code
+          elseif diagnostic.severity == vim.diagnostic.severity.INFO then
+            return '  ' .. code
+          elseif diagnostic.severity == vim.diagnostic.severity.HINT then
+            return ' 󱧢 ' .. code
+          else
+            return code
+          end
+        end
       },
     })
 

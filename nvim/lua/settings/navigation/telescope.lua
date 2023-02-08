@@ -33,6 +33,18 @@ table.insert(M, { 'nvim-telescope/telescope.nvim',
     telescope.load_extension("undo")
 
     telescope.setup {
+      extensions = {
+        glyph = {
+          action = function(emoji)
+            vim.api.nvim_put({ emoji.value }, 'c', false, true)
+          end,
+        },
+        emoji = {
+          action = function(emoji)
+            vim.api.nvim_put({ emoji.value }, 'c', false, true)
+          end,
+        }
+      },
       defaults = {
         prompt_prefix = " ",
         selection_caret = " ",
@@ -81,23 +93,11 @@ table.insert(M, { 'nvim-telescope/telescope.nvim',
             ["G"] = actions.move_to_bottom,
 
             ["<C-u>"] = actions.preview_scrolling_up,
-            ["<C-d>"] = actions.preview_scrolling_down,
+            ["<C-d>"] = actions.delete_buffer,
 
             ["?"] = actions.which_key,
           },
         },
-        extensions = {
-          emoji = {
-            action = function (emoji)
-              vim.fn.setreg("*", emoji.value)
-            end
-          },
-          glyph = {
-            action = function (glyph)
-              vim.fn.setreg("*", glyph.value)
-            end
-          }
-        }
       },
     }
 

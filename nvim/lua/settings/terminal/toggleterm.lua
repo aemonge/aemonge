@@ -23,6 +23,7 @@ table.insert(M, { "akinsho/toggleterm.nvim", -- version = "*",
       start_in_insert = true,
       insert_mappings = false, -- whether or not the open mapping applies in insert mode
       terminal_mappings = true, -- whether or not the open mapping applies in the opened terminals
+      persist_size = false,
       persist_mode = true, -- if set to true (default) the previous terminal mode will be remembered
       direction = 'float', -- 'vertical' | 'horizontal' | 'tab' | 'float',
       close_on_exit = true, -- close the terminal window when the process exits
@@ -35,8 +36,8 @@ table.insert(M, { "akinsho/toggleterm.nvim", -- version = "*",
       },
       float_opts = {
         border = 'curved',
-        width = 120,
-        height = 35
+        width = 85,
+        height = 45
       }
     })
 

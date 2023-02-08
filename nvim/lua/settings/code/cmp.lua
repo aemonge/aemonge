@@ -30,7 +30,6 @@ table.insert(M, { "tzachar/cmp-tabnine",
 -- Plugins
 -------------------------------------------------------
 table.insert(M, { "davidsierradz/cmp-conventionalcommits", ft = "gitcommit" })
-table.insert(M, { "delphinus/cmp-ctags" })
 table.insert(M, { "f3fora/cmp-spell"})
 table.insert(M, { "saadparwaiz1/cmp_luasnip", event = "InsertEnter" })
 table.insert(M, { "rafamadriz/friendly-snippets", event = "InsertEnter" })
@@ -40,12 +39,13 @@ table.insert(M, { "hrsh7th/cmp-nvim-lsp", event = "InsertEnter" })
 table.insert(M, { 'tzachar/fuzzy.nvim',
   dependencies = {'nvim-telescope/telescope-fzf-native.nvim'}
 })
-table.insert(M, { 'tzachar/cmp-fuzzy-buffer', event = "InsertEnter",
-  dependencies = {'hrsh7th/nvim-cmp', 'tzachar/fuzzy.nvim'}
-})
-table.insert(M, { 'tzachar/cmp-fuzzy-path',  event = "InsertEnter",
-  dependencies = {'hrsh7th/nvim-cmp', 'tzachar/fuzzy.nvim'}
-})
+-- table.insert(M, { 'tzachar/cmp-fuzzy-buffer', event = "InsertEnter",
+--   dependencies = {'hrsh7th/nvim-cmp', 'tzachar/fuzzy.nvim'}
+-- })
+-- table.insert(M, { 'tzachar/cmp-fuzzy-path',  event = "InsertEnter",
+--   dependencies = {'hrsh7th/nvim-cmp', 'tzachar/fuzzy.nvim'}
+-- })
+table.insert(M, {"hrsh7th/cmp-path"})
 table.insert(M, { "ray-x/cmp-treesitter", event = "InsertEnter" })
 -------------------------------------------------------
 -- Disabled
@@ -75,11 +75,13 @@ table.insert(M, { "hrsh7th/nvim-cmp",
     local luasnip = require('luasnip')
 
     local source_mapping = {
-      buffer = "[Buffer]",
       nvim_lsp = "[LSP]",
-      nvim_lua = "[Lua]",
+      buffer = "[Buffer]",
+      nvim_lua = "[Snip]",
+      treesitter = "[TrStr]",
       cmp_tabnine = "[T9]",
       path = "[Path]",
+      spell = "[Spell]",
     }
 
     local check_backspace = function()
@@ -143,7 +145,7 @@ table.insert(M, { "hrsh7th/nvim-cmp",
         completion = cmp.config.window.bordered({
           winhighlight = 'FloatBorder:Normal,CursorLine:Visual,Search:None',
           scrollbar = false,
-          completeopt = "longest,menuone,noselect,preview"
+          completeopt = { "menuone", "preview", "noselect" } -- "longest,menuone,noselect,preview"
         }),
       },
       formatting = {
@@ -159,14 +161,48 @@ table.insert(M, { "hrsh7th/nvim-cmp",
         end
       },
       sources = {
-        { name = "cmp_tabnine"},
-        { name = "nvim_lsp"},
-        { name = 'treesitter'},
-        { name = "luasnip" },
-        { name = 'fuzzy_buffer'},
-        { name = 'fuzzy_path'},
-        { name = 'cmp-ctags' },
+        { name = "cmp_tabnine",
+          keyword_length = 3
+        },
+        { name = "nvim_lsp",
+          keyword_length = 1,
+          entry_filter = function(entry, ctx)
+            local kind = require("cmp.types").lsp.CompletionItemKind[entry:get_kind()]
+            if kind == "Snippet" and ctx.prev_context.filetype == "java" then
+              return false
+            end
+            if kind == "Text" then
+              return false
+            end
+            return true
+          end,
+          keyword_pattern = [[^\s]]
+        },
+        { name = 'treesitter',
+          keyword_length = 1,
+          keyword_pattern = [[^\s]]
+        },
+        { name = "luasnip",
+          keyword_length = 2,
+          keyword_pattern = [[^\s]]
+        },
+        { name = 'buffer',
+          option = {
+            -- keyword_pattern = [[\k\+]],
+            get_bufnrs = function()
+              local bufs = {}
+              for _, win in ipairs(vim.api.nvim_list_wins()) do
+                bufs[vim.api.nvim_win_get_buf(win)] = true
+              end
+              return vim.tbl_keys(bufs)
+            end
+          }
+        },
+        { name = 'path',
+          keyword_length = 1,
+        },
         { name = 'spell',
+          keyword_length = 5,
           option = {
             keep_all_entries = false,
             enable_in_context = function()
@@ -185,10 +221,6 @@ table.insert(M, { "hrsh7th/nvim-cmp",
       experimental = {
         ghost_text = false
       },
-      completion = {
-        keyword_length = 2,
-        keyword_pattern = [[^\s]]
-      }
     }
   end
 })

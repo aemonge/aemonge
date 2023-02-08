@@ -26,8 +26,9 @@ table.insert(M, {
     -- p = {":TodoLocList<cr>", "Todo location list"},
     h = {":set nohlsearch!<cr>", "Search highlight"},
     -- l = {":Limelight!!<cr>", "Limelight"},
-  }
+  },
 })
+
 
 ---------------------------------------------------------------------------
 -- Strip all trailing white-space in the current file and a maximum
