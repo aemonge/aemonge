@@ -1,6 +1,13 @@
 local M = {}
 
 ---------------------------------------------------------------------------
+-- Clear the search highlight when changing mode until next search
+---------------------------------------------------------------------------
+vim.api.nvim_create_autocmd({"ModeChanged"}, {
+  command = ':let @/=""'
+})
+
+---------------------------------------------------------------------------
 -- Make the past keep the clipboard, and don't replace it
 ---------------------------------------------------------------------------
 vim.keymap.set("v", "p", '"_dP', { silent = true, noremap = true, nowait = true })

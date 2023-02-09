@@ -19,25 +19,28 @@ vim.opt.rtp:prepend(lazypath)
 
 smart_maps = require "settings.extra.smart-mappings"
 
-plugins = {}
-lazy_settings = require "settings.core.lazy"
+local plugins = {}
+local lazy_settings = require "settings.core.lazy"
 
-core = require "settings.core"
+local core = require "settings.core"
 table.insert(plugins, core)
 
-visual = require "settings.visual"
+local visual = require "settings.visual"
 table.insert(plugins, visual)
 
-terminal = require "settings.terminal"
+local terminal = require "settings.terminal"
 table.insert(plugins, terminal)
 
-code = require "settings.code"
+local code = require "settings.code"
 table.insert(plugins, code)
 
-navigation = require "settings.navigation"
+local debbug = require "settings.debug"
+table.insert(plugins, debbug)
+
+local navigation = require "settings.navigation"
 table.insert(plugins, navigation)
 
-extra = require "settings.extra"
+local extra = require "settings.extra"
 table.insert(plugins, extra)
 
 require("lazy").setup(plugins, lazy_settings)

@@ -48,7 +48,7 @@ table.insert(M, { "EdenEast/nightfox.nvim",
     vim.cmd[[
       hi WhichKeyFloat blend=15
     ]]
-    vim.opt.guicursor = "n-v-c-sm:ver25,i-ci-ve:ver25,r-cr-o:hor20]"
+    -- vim.opt.guicursor = "n-v-c-sm:ver25,i-ci-ve:ver25,r-cr-o:hor20"
   end
 })
 

@@ -1,11 +1,11 @@
 local diagnostics = {
-  "diagnostics",
-  sources = { "nvim_diagnostic" },
-  sections = { "error", "warn" },
-  symbols = { error = " ", warn = " " },
-  colored = false,
-  update_in_insert = false,
-  always_visible = true,
+"diagnostics",
+sources = { "nvim_diagnostic" },
+sections = { "error", "warn" },
+symbols = { error = " ", warn = " " },
+colored = false,
+update_in_insert = false,
+always_visible = true,
 }
 
 local diff = {
@@ -57,7 +57,7 @@ local M =  { 'nvim-lualine/lualine.nvim',
         },
         lualine_x = {},
         lualine_y = { filetype },
-        lualine_z = {'os.date("%I:%M:%S", os.time())'},
+        lualine_z = {},
       },
       disabled_filetypes = { "", "NvimTree", "Outline", "terminal" },
       disabled_buftypes = { "", "terminal", "quickfix", "prompt", "terminal" },

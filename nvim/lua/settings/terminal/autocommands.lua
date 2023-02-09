@@ -6,6 +6,17 @@ vim.api.nvim_create_autocmd({"FileType"}, {
   command = "setlocal bufhidden=wipe"
 })
 
+vim.api.nvim_create_autocmd("TermLeave", {
+  callback = function ()
+    vim.cmd("set laststatus=2")
+  end
+})
+vim.api.nvim_create_autocmd("TermEnter", {
+  callback = function ()
+    vim.cmd("set laststatus=0")
+  end
+})
+
 vim.api.nvim_create_autocmd({"TermOpen"}, {
   callback = function ()
     vim.opt_local.title = true
@@ -20,10 +31,7 @@ vim.api.nvim_create_autocmd({"TermOpen"}, {
     vim.cmd [[
       setlocal ft=terminal
       au BufEnter <buffer> :startinsert
-      au BufEnter <buffer> :set laststatus=0
-      au BufLeave <buffer> :set laststatus=3
     ]]
-    -- laststatus is to hide the Lua line
   end
 })
 

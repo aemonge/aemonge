@@ -27,9 +27,16 @@ function StartTerm(first)
   vim.api.nvim_command("terminal")
   vim.cmd("setlocal bufhidden=delete")
   if first == 1 then
-    vim.cmd[[set laststatus=0]]
-    -- NOTE: when only the term tab remains, clear all. To give the impression of closing vim.
+    vim.api.nvim_create_autocmd("TermLeave", {
+      callback = function ()
+      end
+    })
     vim.api.nvim_create_autocmd("TermEnter", {
+      callback = function ()
+      end
+    })
+    -- NOTE: when only the term tab remains, clear all. To give the impression of closing vim.
+    vim.api.nvim_create_autocmd("TermOpen", {
       callback = function()
         if vim.fn.tabpagenr('$') == 1 and #vim.fn.tabpagebuflist() == 1 then
           vim.cmd [[silent! BWipeout! other]]
