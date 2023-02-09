@@ -35,9 +35,13 @@ table.insert(M, { "akinsho/toggleterm.nvim", -- version = "*",
         },
       },
       float_opts = {
-        border = 'curved',
-        width = 85,
-        height = 45
+        border = 'rounded',
+        width = function()
+          return math.floor(vim.o.columns * 0.85)
+        end,
+        height = function()
+          return math.floor(vim.o.lines * 0.85)
+        end,
       }
     })
 

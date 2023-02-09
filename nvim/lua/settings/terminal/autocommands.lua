@@ -20,7 +20,10 @@ vim.api.nvim_create_autocmd({"TermOpen"}, {
     vim.cmd [[
       setlocal ft=terminal
       au BufEnter <buffer> :startinsert
+      au BufEnter <buffer> :set laststatus=0
+      au BufLeave <buffer> :set laststatus=3
     ]]
+    -- laststatus is to hide the Lua line
   end
 })
 

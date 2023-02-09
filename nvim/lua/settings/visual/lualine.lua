@@ -60,7 +60,7 @@ local M =  { 'nvim-lualine/lualine.nvim',
         lualine_z = {'os.date("%I:%M:%S", os.time())'},
       },
       disabled_filetypes = { "", "NvimTree", "Outline", "terminal" },
-      disabled_buftypes = { "", "terminal", "quickfix", "prompt" },
+      disabled_buftypes = { "", "terminal", "quickfix", "prompt", "terminal" },
     }
   end
 }
