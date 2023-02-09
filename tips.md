@@ -437,6 +437,31 @@ gem install --no-user-install --install-dir=./mason/packages --bindir=./mason/bi
 
 # 🐍 Python
 
+## Typing and abstract classes
+> https://stackoverflow.com/questions/23831510/abstract-attribute-not-property
+
+`pip install better-abc`
+
+```python
+from abc import abstractmethod
+from better_abc import abstract_attribute, ABCMeta
+class Animal(metaclass=ABCMeta):
+  @abstractmethod
+  def eat(self) -> None :
+    pass
+
+  @abstract_attribute
+  def edible(self) -> list[str]|None :
+    pass
+
+class Cat(Animal):
+  def __init__(self, foods): # Typing foods not supported
+    self.edible = foods
+
+  def eat(self):
+    self.edible = self.edible[:-1]
+```
+
 ## Debug
 
 ### pdb / ipdb | Python (intelligent) DeBugger
@@ -472,12 +497,16 @@ s = { key for key,val in b.items() if val == 2 }.pop() # 'six'
 ```
 
 ## Print and remove the last line in the console, for a waiting/done behavior
+
 ```python
 def test():
   print('waiting...', end='\r')
   time.sleep(2)
   print(end='\x1b[2K')
   print('done')
+
+  print('\033[F\033[K') # Too specific
+  print('\r', end='\r') # I would guess this is more global
 
 test()
 ```
