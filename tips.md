@@ -437,6 +437,72 @@ gem install --no-user-install --install-dir=./mason/packages --bindir=./mason/bi
 
 # 🐍 Python
 
+## Assign keyword arguments without default values
+
+```python
+def my_function(my_arg, *, keyword_arg):
+```
+
+Note the asterisk (*) before the `keyword_arg` parameter name.
+This indicates that the parameter is a keyword-only argument, meaning it can only be passed by keyword and not by position.
+Since there is no default value assigned to keyword_arg, it must be provided by the caller of the function.
+
+## Meta Programming, call a module or method dynamically
+
+```python
+self.__dataset = getattr(torchvision.datasets, self.dataset_name)(**self.dataset_kwargs)
+```
+
+Would be like doing the following in the loosely typed JavaScript
+
+```javascript
+this.__dataset = torchvision.datasets[this.dataset_name].call(this.dataset_kwargs)
+```
+
+## Torch vision - Dataset - Where are the labels in each dataset
+
+You can get the labels of torchvision datasets using the targets or classes attribute.
+
+For example, to get the labels of the CIFAR-10 dataset:
+```python
+import torchvision.datasets as datasets
+
+# Load CIFAR-10 dataset
+cifar10 = datasets.CIFAR10(root='path/to/dataset', train=True, download=True)
+
+# Get the labels using the 'targets' attribute
+labels = cifar10.targets
+
+# Get the class names using the 'classes' attribute
+class_names = cifar10.classes
+```
+The `targets` attribute returns a list of integers representing the class labels for each data point in the dataset.
+The `classes` attribute returns a list of strings representing the class names corresponding to the integer labels.
+
+## Pytest - Unit testing suite
+
+> [realpython](https://realpython.com/pytest-python-testing/)
+> [pytest](https://docs.pytest.org/en/7.1.x/how-to/unittest.html)
+> [MagicMock](https://docs.python.org/3/library/unittest.mock.html)
+
+* [pytest-randomly](https://github.com/pytest-dev/pytest-randomly)
+* [pytest-cov](https://pytest-cov.readthedocs.io/en/latest/)
+* [pytest-bdd](https://pytest-bdd.readthedocs.io/en/latest/)
+
+### Skip focus and more on tests
+
+Options: parametrize, xfail, skipif, skip, focus
+
+```python
+import pytest
+@pytest.mark.skip(reason="Not implemented yet")
+```
+
+For `@pytest.mark.focus` support you need to run it like this
+```bash
+pytest -v -m focus
+```
+
 ## Typing and abstract classes
 > https://stackoverflow.com/questions/23831510/abstract-attribute-not-property
 
@@ -460,6 +526,11 @@ class Cat(Animal):
 
   def eat(self):
     self.edible = self.edible[:-1]
+```
+
+### Get the type and instances of an object
+```python
+type(type(torch.nn.CrossEntropyLoss()))
 ```
 
 ## Debug

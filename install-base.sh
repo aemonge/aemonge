@@ -170,3 +170,4 @@ yajl 2.1.0-5
 zenity-light 3.32.0+55+gd7bedff6-1
 zip 3.0-10
 zsh 5.9-1
+sudo pacman -Syu ctags
