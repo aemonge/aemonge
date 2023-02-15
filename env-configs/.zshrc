@@ -113,6 +113,7 @@ CONDA() {
 
 THEME() {
   # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
+  export ZLE_RPROMPT_INDENT=0
   [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
   zinit load romkatv/powerlevel10k
 }

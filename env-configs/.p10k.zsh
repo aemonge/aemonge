@@ -972,7 +972,8 @@
   #
   # CONDA_PROMPT_MODIFIER can be configured with the following command:
   #
-  #   conda config --set env_prompt '({default_env}) '
+  # conda config --set env_prompt '({name})'
+  # typeset -g CONDA_PROMPT_MODIFIER=' '
   #
   # The last argument is a Python format string that can use the following variables:
   #
@@ -987,10 +988,12 @@
   # The default value of POWERLEVEL9K_ANACONDA_CONTENT_EXPANSION expands to $CONDA_PROMPT_MODIFIER
   # without the surrounding parentheses, or to the last path component of CONDA_PREFIX if the former
   # is empty.
-  typeset -g POWERLEVEL9K_ANACONDA_CONTENT_EXPANSION='${${${${CONDA_PROMPT_MODIFIER#\(}% }%\)}:-${CONDA_PREFIX:t}}'
+  # typeset -g CONDA_PROMPT_MODIFIER="$CONDA_DEFAULT_ENV"
+  MY_ANACOND='${CONDA_DEFAULT_ENV#"base"}'
+  typeset -g POWERLEVEL9K_ANACONDA_CONTENT_EXPANSION=$MY_ANACOND
 
   # Custom icon.
-  # typeset -g POWERLEVEL9K_ANACONDA_VISUAL_IDENTIFIER_EXPANSION='⭐'
+  typeset -g POWERLEVEL9K_ANACONDA_VISUAL_IDENTIFIER_EXPANSION=''
 
   ################[ pyenv: python environment (https://github.com/pyenv/pyenv) ]################
   # Pyenv color.
