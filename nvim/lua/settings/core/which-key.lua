@@ -42,9 +42,14 @@ table.insert(M, { "folke/which-key.nvim",
       },
     })
 
-    wk.register(smart_maps, {
-      mode = "n", prefix = "<leader>", buffer = nil,
-      silent = true, noremap = true, nowait = true
+    wk.register(my_mappings.normal, {
+      mode = 'n', prefix = nil, buffer = nil, silent = true, noremap = true, nowait = true
+    })
+    wk.register(my_mappings.visual, {
+      mode = 'v', prefix = nil, buffer = nil, silent = true, noremap = true, nowait = true
+    })
+    wk.register(my_mappings.leader_normal, {
+      mode = 'n', prefix = '<leader>', buffer = nil, silent = true, noremap = true, nowait = true
     })
   end,
 })

@@ -6,8 +6,11 @@ table.insert(M, cycle)
 local scratch = require("settings.extra.scratch")
 table.insert(M, scratch)
 
-local grammar = require("settings.extra.grammar-guard")
-table.insert(M, grammar)
+local ufo = require("settings.extra.nvim-ufo")
+table.insert(M, ufo)
+
+-- local grammar = require("settings.extra.grammar-guard")
+-- table.insert(M, grammar)
 
 local glow = require("settings.extra.glow")
 table.insert(M, glow)

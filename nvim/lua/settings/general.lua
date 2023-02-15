@@ -15,6 +15,7 @@ vim.opt.equalalways = false            -- Not set the split to equal sizes
 vim.opt.errorbells = false             -- No sound on errors
 vim.opt.expandtab = true               -- convert tabs to spaces
 vim.opt.foldenable = true              -- More than often I want to start with things folded
+vim.opt.foldlevel = 99                 -- Support for nvim-ufo
 vim.opt.hidden = true                  -- Keep buffers alive and hidden, until wipe out
 vim.opt.history = 10000                -- Increase the lines of history
 vim.opt.hlsearch = true                -- highlight all matches on previous search pattern
@@ -57,5 +58,6 @@ vim.opt.wildignorecase = true          -- As it reads, ignoring case on wild men
 vim.opt.wrap = true                    -- keep inits easy to read
 vim.opt.writebackup = false            -- if a file is being edited by another program, it is not allowed to be e
 vim.opt.linebreak = false              -- Don't break my lines, just warn me with over-length
+vim.opt.incsearch = true
 
 vim.g.markdown_fenced_languages = {'html', 'python', 'ruby', 'vim', 'python', 'bash', 'javascript'}

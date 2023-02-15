@@ -1,6 +1,7 @@
 local M = {}
+local D = {}
 
-table.insert(M, { "brymer-meneses/grammar-guard.nvim",
+table.insert(D, { "brymer-meneses/grammar-guard.nvim",
   dependencies = {
     "neovim/nvim-lspconfig"
   },
@@ -9,7 +10,7 @@ table.insert(M, { "brymer-meneses/grammar-guard.nvim",
   end,
   config = function ()
     require("lspconfig").grammar_guard.setup({
-      cmd = { '~/u/bin/ltex-ls' }, -- https://github.com/valentjn/ltex-ls/releases/tag/15.2.0
+      cmd = { '/home/aemonge/u/bin/ltex-ls' }, -- https://github.com/valentjn/ltex-ls/releases/tag/15.2.0
       settings = {
         ltex = {
           enabled = { "latex", "tex", "bib", "markdown", "html", "" },
@@ -27,6 +28,29 @@ table.insert(M, { "brymer-meneses/grammar-guard.nvim",
         },
       },
     })
+    require("grammar-guard").init()
+  end
+})
+
+table.insert(M, { "vigoux/ltex-ls.nvim",
+  config = function()
+    require 'ltex-ls'.setup {
+      use_spellfile = false,
+      window_border = "rounded",
+      filetypes = { "latex", "tex", "bib", "markdown", "gitcommit", "text", "html", "" },
+      settings = {
+        ltex = {
+          enabled = { "latex", "tex", "bib", "markdown", },
+          language = "auto",
+          diagnosticSeverity = "information",
+          sentenceCacheSize = 2000,
+          additionalRules = {
+            enablePickyRules = true,
+            motherTongue = "es,en",
+          },
+        },
+      },
+    }
   end
 })
 

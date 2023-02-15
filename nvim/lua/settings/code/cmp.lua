@@ -1,6 +1,6 @@
---------------------------------------------------------------------------------------------------------------------------
---                                                         CMP                                                           |
---------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------
+--                                                    CMP                                                        |
+------------------------------------------------------------------------------------------------------------------
 local M = {}
 
 vim.opt.wildmode = { "longest:full", "full" }
@@ -29,12 +29,12 @@ table.insert(M, { "tzachar/cmp-tabnine",
 -------------------------------------------------------
 -- Plugins
 -------------------------------------------------------
-table.insert(M, { "davidsierradz/cmp-conventionalcommits", ft = "gitcommit" })
+-- table.insert(M, { "davidsierradz/cmp-conventionalcommits", ft = "gitcommit" })
 table.insert(M, { "f3fora/cmp-spell"})
 table.insert(M, { "saadparwaiz1/cmp_luasnip", event = "InsertEnter" })
 table.insert(M, { "rafamadriz/friendly-snippets", event = "InsertEnter" })
 table.insert(M, { "onsails/lspkind.nvim", event = "InsertEnter" })
-table.insert(M, { "L3MON4D3/LuaSnip", event = "InsertEnter" })
+-- table.insert(M, { "L3MON4D3/LuaSnip", event = "InsertEnter" })
 table.insert(M, { "hrsh7th/cmp-nvim-lsp", event = "InsertEnter" })
 table.insert(M, { 'tzachar/fuzzy.nvim',
   dependencies = {'nvim-telescope/telescope-fzf-native.nvim'}
@@ -46,7 +46,7 @@ table.insert(M, { 'tzachar/fuzzy.nvim',
 --   dependencies = {'hrsh7th/nvim-cmp', 'tzachar/fuzzy.nvim'}
 -- })
 table.insert(M, {"hrsh7th/cmp-path"})
-table.insert(M, { "ray-x/cmp-treesitter", event = "InsertEnter" })
+-- table.insert(M, { "ray-x/cmp-treesitter", event = "InsertEnter" })
 -------------------------------------------------------
 -- Disabled
 -------------------------------------------------------
@@ -76,11 +76,11 @@ table.insert(M, { "hrsh7th/nvim-cmp",
 
     local source_mapping = {
       nvim_lsp = "[LSP]",
-      buffer = "[Buffer]",
-      nvim_lua = "[Snip]",
-      treesitter = "[TrStr]",
       cmp_tabnine = "[T9]",
+      -- treesitter = "[TrStr]",
+      nvim_lua = "[Snip]",
       path = "[Path]",
+      buffer = "[Buffer]",
       spell = "[Spell]",
     }
 
@@ -162,31 +162,41 @@ table.insert(M, { "hrsh7th/nvim-cmp",
       },
       sources = {
         { name = "cmp_tabnine",
-          keyword_length = 3
+          priority = 100,
+          keyword_length = 3,
+          max_item_count = 3,
         },
         { name = "nvim_lsp",
+          priority = 80,
           keyword_length = 1,
-          entry_filter = function(entry, ctx)
-            local kind = require("cmp.types").lsp.CompletionItemKind[entry:get_kind()]
-            if kind == "Snippet" and ctx.prev_context.filetype == "java" then
-              return false
-            end
-            if kind == "Text" then
-              return false
-            end
-            return true
-          end,
-          keyword_pattern = [[^\s]]
+          -- entry_filter = function(entry, ctx)
+          --   local kind = require("cmp.types").lsp.CompletionItemKind[entry:get_kind()]
+          --   if kind == "Snippet" and ctx.prev_context.filetype == "java" then
+          --     return false
+          --   end
+          --   if kind == "Text" then
+          --     return false
+          --   end
+          --   return true
+          -- end,
+          -- keyword_pattern = [[^\s]]
         },
-        { name = 'treesitter',
-          keyword_length = 1,
-          keyword_pattern = [[^\s]]
-        },
+        -- { name = 'treesitter',
+        --   priority = 50,
+        --   max_item_count = 5,
+        --   keyword_length = 2,
+        --   -- keyword_pattern = [[^\s]]
+        -- },
         { name = "luasnip",
+          priority = 30,
           keyword_length = 2,
-          keyword_pattern = [[^\s]]
+          max_item_count = 2,
+          -- keyword_pattern = [[^\s]]
         },
         { name = 'buffer',
+          priority = 10,
+          keyword_length = 3,
+          max_item_count = 5,
           option = {
             -- keyword_pattern = [[\k\+]],
             get_bufnrs = function()
@@ -199,10 +209,14 @@ table.insert(M, { "hrsh7th/nvim-cmp",
           }
         },
         { name = 'path',
+          priority = 150,
+          max_item_count = 10,
           keyword_length = 1,
         },
         { name = 'spell',
-          keyword_length = 5,
+          priority = 5,
+          keyword_length = 3,
+          max_item_count = 3,
           option = {
             keep_all_entries = false,
             enable_in_context = function()

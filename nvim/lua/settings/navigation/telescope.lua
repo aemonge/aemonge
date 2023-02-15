@@ -1,15 +1,6 @@
 ---- Telescope
 local M = {}
 
-local whichkey_opts = {
-  mode = "n",
-  prefix = nil,
-  buffer = nil,
-  silent = true,
-  noremap = true,
-  nowait = true,
-}
-
 table.insert(M, { 'nvim-telescope/telescope.nvim',
   dependencies = {
     "nvim-telescope/telescope.nvim",
@@ -46,6 +37,7 @@ table.insert(M, { 'nvim-telescope/telescope.nvim',
         }
       },
       defaults = {
+        layout_strategy = 'vertical',
         prompt_prefix = " ",
         selection_caret = " ",
         path_display = { "smart" },

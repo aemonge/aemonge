@@ -1,41 +1,19 @@
 local M = {}
 
 ---------------------------------------------------------------------------
--- Clear the search highlight when changing mode until next search
+-- Clear the search highlight when changing into insert
 ---------------------------------------------------------------------------
-vim.api.nvim_create_autocmd({"ModeChanged"}, {
-  command = ':let @/=""'
+vim.api.nvim_create_autocmd({"InsertEnter"}, {
+  command = [[:let @/ ='󱌌']]
+})
+table.insert(M, {
+  c = { [[:let @/ ='󱌌']], " Clear search 󱌌 "}
 })
 
 ---------------------------------------------------------------------------
 -- Make the past keep the clipboard, and don't replace it
 ---------------------------------------------------------------------------
 vim.keymap.set("v", "p", '"_dP', { silent = true, noremap = true, nowait = true })
-
----------------------------------------------------------------------------
---  Copy and Toggler
----------------------------------------------------------------------------
-table.insert(M, {
-  y = {
-    name = "File operations",
-    F = { ":let @+=fnamemodify(expand('%'), ':~:.')<CR>", "Yank file-path" },
-    f = { ":let @+=fnamemodify(expand('%:t'), ':~:.')<CR>", "Yank file-name" },
-    a = { "ggVGyg;", "Yank file contents" },
-    p = { "ggVGpg;", "Replace file contents with clipboard" },
-    c = { "ggVGdg;", "Clear file contents" }
-  },
-  t = {
-    name = "Toggler",
-    e = {":setlocal foldenable!<cr>", "Fold"},
-    w = {":setlocal wrap!<cr>", "Wrap"},
-    f = {":lua vim.lsp.buf.format()<cr>", "Format with lsp"},
-    -- t = {":TroubleToggle document_diagnostics<cr>", "Trouble diagnostics"},
-    -- p = {":TodoLocList<cr>", "Todo location list"},
-    h = {":set nohlsearch!<cr>", "Search highlight"},
-    -- l = {":Limelight!!<cr>", "Limelight"},
-  },
-})
-
 
 ---------------------------------------------------------------------------
 -- Strip all trailing white-space in the current file and a maximum
