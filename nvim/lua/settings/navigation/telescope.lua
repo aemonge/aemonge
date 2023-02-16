@@ -17,12 +17,6 @@ table.insert(M, { 'nvim-telescope/telescope.nvim',
     local telescope = require("telescope")
     local actions = require "telescope.actions"
 
-    telescope.load_extension("zf-native")
-    telescope.load_extension("emoji")
-    telescope.load_extension("glyph")
-    telescope.load_extension("ag")
-    telescope.load_extension("undo")
-
     telescope.setup {
       extensions = {
         glyph = {
@@ -92,6 +86,12 @@ table.insert(M, { 'nvim-telescope/telescope.nvim',
         },
       },
     }
+
+    telescope.load_extension("zf-native")
+    telescope.load_extension("emoji")
+    telescope.load_extension("glyph")
+    telescope.load_extension("ag")
+    telescope.load_extension("undo")
 
     require "which-key".register({
       ["<c-p>"] = { ":Telescope find_files <cr>", "Files search in CWD" },
