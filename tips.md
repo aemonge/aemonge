@@ -437,6 +437,108 @@ gem install --no-user-install --install-dir=./mason/packages --bindir=./mason/bi
 
 # 🐍 Python
 
+## Pypi Python pip pacakge repository
+
+* (https://packaging.python.org/en/latest/guides/distributing-packages-using-setuptools/)
+* (https://github.com/pypa/setuptools_scm)
+* (https://setuptools.pypa.io/en/latest/userguide/declarative_config.html)
+* (https://packaging.python.org/en/latest/specifications/core-metadata/)
+
+### How to deploy my packages
+
+#### Using Flit, simpler version
+
+[flit](https://flit.pypa.io/)
+
+```bash
+flit build
+```
+
+
+#### Standard build-tools and setup.py
+
+For alicia `rm -rf dist/* && python setup.py sdist && twine upload dist/* -r testpypi`
+
+With a `setup.py`:
+
+```python
+from setuptools import setup
+
+setup(
+    name='your_package_name',
+    version='0.0.1',
+    packages=['your_package_name'],
+    url='http://your_package_url.com',
+    license='LICENSE.txt',
+    description='Your package description',
+    long_description=open('README.md').read(),
+    install_requires=[
+        'numpy',
+        'pandas'
+    ],
+)
+```
+
+
+If you have a setup.cfg file in your project, you can specify the version number in that file instead of the setup.py file.
+
+To set the version number in setup.cfg, you can add the following section:
+
+```
+[metadata]
+version = 0.0.1
+```
+
+Make sure to replace 0.0.1 with the version number you want to use.
+
+Here's an example of what the setup.cfg file might look like with the version set to 0.0.1:
+
+```
+[metadata]
+name = your_package_name
+version = 0.0.1
+description = Your package description
+long_description = file: README.md
+long_description_content_type = text/markdown
+author = Your Name
+author_email = your_email@example.com
+url = https://github.com/your_username/your_package_name
+license = MIT
+classifiers =
+    Programming Language :: Python :: 3
+    License :: OSI Approved :: MIT License
+    Operating System :: OS Independent
+
+[options]
+packages = find:
+python_requires = >=3.6
+install_requires =
+    numpy
+    pandas
+
+```
+
+Once you've updated the version field in setup.cfg, you can run the same commands to create a source distribution of your package and upload it to PyPI:
+
+```bash
+python setup.py sdist
+twine upload dist/*
+```
+
+This will create a .tar.gz file of your package in the dist folder, and upload it to PyPI.
+
+
+## Pyright
+
+### Ignore rules by line
+
+```python
+# pyright: reportUndefinedVariable=false, reportGeneralTypeIssues=false
+foo: int = "123"  # type: ignore
+foo: int = "123"  # pyright: ignore
+foo: int = "123"  # pyright: ignore [reportPrivateUsage, reportGeneralTypeIssues]
+```
+
 ## Assign keyword arguments without default values
 
 ```python
