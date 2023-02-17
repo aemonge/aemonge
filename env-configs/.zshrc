@@ -139,6 +139,7 @@ ZSH_HISTORY() {
 
 ZINIT_PLUGINS(){
   ZSH_HISTORY
+  ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 
   # zinit load zdharma-continuum/history-search-multi-word
   zinit light zsh-users/zsh-completions
@@ -147,10 +148,12 @@ ZINIT_PLUGINS(){
 
   # zsh-autosuggestions
   zinit light zsh-users/zsh-autosuggestions
-  bindkey '^g' autosuggest-execute
-  bindkey '^n' autosuggest-accept
-  bindkey '^o' autosuggest-fetch
-  bindkey '^e' autosuggest-clear
+  bindkey '^b' history-search-backward
+  bindkey '^f' history-search-forward
+  bindkey '^e' autosuggest-execute
+  bindkey '^n' forward-word
+  bindkey '^g' autosuggest-toggle
+  bindkey '^y' autosuggest-clear
 
   autoload compinit
   compinit
