@@ -1,19 +1,9 @@
 local M = {}
 
 ---------------------------------------------------------------------------
--- Clear the search highlight when changing into insert
----------------------------------------------------------------------------
-vim.api.nvim_create_autocmd({"InsertEnter"}, {
-  command = [[:let @/ ='󱌌']]
-})
-table.insert(M, {
-  c = { [[:let @/ ='󱌌']], " Clear search 󱌌 "}
-})
-
----------------------------------------------------------------------------
 -- Make the past keep the clipboard, and don't replace it
 ---------------------------------------------------------------------------
-vim.keymap.set("v", "p", '"_dP', { silent = true, noremap = true, nowait = true })
+-- vim.keymap.set("v", "p", '"_dP', { silent = true, noremap = true, nowait = true })
 
 ---------------------------------------------------------------------------
 -- Strip all trailing white-space in the current file and a maximum

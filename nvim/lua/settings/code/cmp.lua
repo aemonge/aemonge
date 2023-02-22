@@ -20,7 +20,7 @@ table.insert(M, { "tzachar/cmp-tabnine",
       max_num_results = 20,
       sort = true,
       run_on_every_keystroke = true,
-      snippet_placeholder = '..',
+      snippet_placeholder = '...',
       show_prediction_strength = true
     })
   end
@@ -169,6 +169,7 @@ table.insert(M, { "hrsh7th/nvim-cmp",
         { name = "nvim_lsp",
           priority = 80,
           keyword_length = 1,
+          max_item_count = 15,
           -- entry_filter = function(entry, ctx)
           --   local kind = require("cmp.types").lsp.CompletionItemKind[entry:get_kind()]
           --   if kind == "Snippet" and ctx.prev_context.filetype == "java" then

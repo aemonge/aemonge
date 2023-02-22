@@ -15,7 +15,7 @@ table.insert(M, { "nvim-tree/nvim-tree.lua",
           custom_only = true,
           list = {
             -- IO.File operations
-            { key = "c", action = "copy.node" },
+            { key = "c", action = "copy_node" },
             { key = "D", action = "remove" },
             { key = "a", action = "create" },
             { key = "d", action = "trash" },

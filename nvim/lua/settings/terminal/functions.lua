@@ -18,47 +18,13 @@ function Tapi_Cd(cwd)
   vim.cmd(string.format("cd %s", cwd))
 end
 
-function NewTermTab(active)
+function NewTermTab()
   vim.api.nvim_command(":tabnew")
   StartTerm(0)
 end
 
-function StartTerm(first)
+function StartTerm()
   vim.api.nvim_command("terminal")
   vim.cmd("setlocal bufhidden=delete")
-  if first == 1 then
-    vim.api.nvim_create_autocmd("TermLeave", {
-      callback = function ()
-      end
-    })
-    vim.api.nvim_create_autocmd("TermEnter", {
-      callback = function ()
-      end
-    })
-    -- NOTE: when only the term tab remains, clear all. To give the impression of closing vim.
-    vim.api.nvim_create_autocmd("TermOpen", {
-      callback = function()
-        if vim.fn.tabpagenr('$') == 1 and #vim.fn.tabpagebuflist() == 1 then
-          vim.cmd [[silent! BWipeout! other]]
-        end
-      end
-    })
-    vim.api.nvim_create_autocmd("TermClose", {
-      callback = function()
-        if vim.v.event.status == 0 then
-          vim.cmd [[ q ]]
-        end
-      end
-    })
-  else
-    vim.api.nvim_create_autocmd("TermClose", {
-      callback = function()
-        if vim.v.event.status == 0 then
-          vim.cmd [[ exe 'silent! bdelete! '..expand('<abuf>')]]
-        end
-      end
-    })
-  end
-
   vim.api.nvim_command("startinsert")
 end

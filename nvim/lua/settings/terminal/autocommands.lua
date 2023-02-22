@@ -11,10 +11,24 @@ vim.api.nvim_create_autocmd("TermLeave", {
     vim.cmd("set laststatus=2")
   end
 })
+
 vim.api.nvim_create_autocmd("TermEnter", {
   callback = function ()
     vim.cmd("set laststatus=0")
   end
+})
+
+vim.api.nvim_create_autocmd("TermEnter", {
+  callback = function ()
+    -- NOTE: when only the term tab remains, clear all. To give the impression of closing vim.
+    if vim.fn.tabpagenr('$') == 1 then
+      vim.cmd [[silent! BWipeout! other]]
+    end
+  end
+})
+
+vim.api.nvim_create_autocmd("TermClose", {
+  command = "if len(getbufinfo({'buflisted':1})) == 1 | qall | endif"
 })
 
 vim.api.nvim_create_autocmd({"TermOpen"}, {
@@ -34,4 +48,3 @@ vim.api.nvim_create_autocmd({"TermOpen"}, {
     ]]
   end
 })
-
