@@ -149,12 +149,12 @@ ZINIT_PLUGINS(){
 
   # zsh-autosuggestions
   zinit light zsh-users/zsh-autosuggestions
-  bindkey '^b' history-search-backward
-  bindkey '^f' history-search-forward
+  bindkey '^p' history-search-backward
+  bindkey '^n' history-search-forward
   bindkey '^e' autosuggest-execute
-  bindkey '^n' forward-word
-  bindkey '^g' autosuggest-toggle
-  bindkey '^y' autosuggest-clear
+  bindkey '^o' forward-word
+  bindkey '^a' autosuggest-toggle
+  bindkey '^s' autosuggest-clear
 
   autoload compinit
   compinit
