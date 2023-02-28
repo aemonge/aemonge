@@ -17,7 +17,7 @@ table.insert(M, { "AckslD/swenv.nvim",
         name = "Lsp Extended Actions",
         e = { require('swenv.api').pick_venv, "Pick conda environment"},
         r = { ":LspRestart<cr>", "Restart"},
-        f = { ":LspZeroFormat<cr>", "Format"},
+        f = { ":lua vim.lsp.buf.format()<cr>", "Format"},
         i = { ":LspInfo<cr>", "Info"},
         m = { ":Mason<cr>", "Mason"},
         l = { ":Lazy<cr>", "Lazy"}
