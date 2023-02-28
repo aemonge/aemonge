@@ -713,11 +713,57 @@ plt.image_plot(tmp_path, fast=True)
 plt.show()
 ```
 
+### Modify hidden layers (features and classifier)
+
 ## Regex in Python
 ```python
 import re
 re.sub(r'blue', 'yellow', 'hello blue world')
 re.sub(r'(.*):, (\w*) (\w*)', r'\2 \1 \3', 'blue:, hello world')
+```
+
+## Parse function name, arguments and kwargs from string
+
+```python
+import ast
+
+def get_args_kwargs_from_string(string):
+    args = []
+    kwargs = {}
+
+    # Split the string into the function name and argument string
+    parts = string.strip().split("(")
+    if len(parts) != 2 or not parts[1].endswith(")"):
+        return args, kwargs
+
+    func_name = parts[0]
+    arg_str = parts[1][:-1]
+
+    # Parse the argument string using ast.parse()
+    try:
+        parsed = ast.parse(f"dummy({arg_str})", mode="eval")
+    except SyntaxError:
+        return args, kwargs
+
+    # Extract the positional arguments
+    for arg_node in parsed.body.args:
+        try:
+            arg_value = ast.literal_eval(arg_node)
+        except (ValueError, SyntaxError):
+            arg_value = arg_node
+        args.append(arg_value)
+
+    # Extract the keyword arguments
+    for kwarg_node in parsed.body.keywords:
+        key = kwarg_node.arg
+        try:
+            value = ast.literal_eval(kwarg_node.value)
+        except (ValueError, SyntaxError):
+            value = kwarg_node.value
+        kwargs[key] = value
+
+    return func_name, args, kwargs
+
 ```
 
 ## Jupiter

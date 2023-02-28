@@ -15,6 +15,7 @@ ENABLE_TVIM=1
 START() {
   if [ $ENABLE_TVIM -eq "1" ]; then
     if [ -z $NVIM ]; then
+      PROFILE
       nvim +':lua StartTerm(1)'
       exit
     else
