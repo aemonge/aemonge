@@ -25,8 +25,6 @@ local t_mappings = {
   ['<c-p>'] = { t 'nvr -cc "cd $(pwd) | Telescope find_files" <CR>', "Open files in CWD" },
   ['<c-t>'] = { t '<C-\\><C-n>:lua NewTermTab(0)<cr>', "New term tab" },
 
-  ["<C-x>"] = { t '<C-\\><C-N>:ToggleTerm<Cr>', "Go to normal mode" },
-
   ["<c-w>"] = {
     name = "Split Terminals",
 

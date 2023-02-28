@@ -49,13 +49,13 @@ table.insert(M, { "akinsho/toggleterm.nvim", -- version = "*",
       mode = "t", prefix = nil, buffer = nil, silent = true, noremap = true, nowait = true
     })
     require "which-key".register({
-      ['<C-x>'] = { ":ToggleTerm direction=float<cr>", "Toggle float term" },
+      x = { ":ToggleTerm direction=float<cr>", "Toggle float term" },
     }, {
-      mode = "n", prefix = nil, buffer = nil, silent = true, noremap = true, nowait = true,
+      mode = "n", prefix = '<leader>', buffer = nil, silent = true, noremap = true, nowait = true,
     })
     require "which-key".register({
-      ['<C-x>'] = { ":ToggleTermSendVisualSelection<cr>", "Send Visual selection to toggled term" },
-    }, { mode = "v", prefix = nil, buffer = nil, silent = true, noremap = true, nowait = true,})
+      x = { ":ToggleTerm direction=float<cr>", "Toggle float term" },
+    }, { mode = "v", prefix = '<leader>', buffer = nil, silent = true, noremap = true, nowait = true,})
   end
 })
 

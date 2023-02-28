@@ -36,11 +36,17 @@ table.insert(plugins, terminal)
 local code = require "settings.code"
 table.insert(plugins, code)
 
+local bots = require "settings.bots"
+table.insert(plugins, bots)
+
 -- local debbug = require "settings.debug"
 -- table.insert(plugins, debbug)
 
 local navigation = require "settings.navigation"
 table.insert(plugins, navigation)
+
+local search = require "settings.search"
+table.insert(plugins, search)
 
 local extra = require "settings.extra"
 table.insert(plugins, extra)
