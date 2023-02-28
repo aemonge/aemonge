@@ -9,8 +9,10 @@ table.insert(M, { "nvim-tree/nvim-tree.lua",
     require("nvim-tree").setup({
       sort_by = "case_sensitive",
       view = {
-        -- adaptive_size = true,
-        width = 20,
+        adaptive_size = true,
+        width = {
+          max = 40
+        },
         mappings = {
           custom_only = true,
           list = {

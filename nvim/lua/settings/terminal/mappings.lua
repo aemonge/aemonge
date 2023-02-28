@@ -4,7 +4,6 @@ end
 
 local t_mappings = {
   ["<ESC><ESC>"] = { t '<C-\\><C-N>', "Go to normal mode" },
-  ['<c-t>'] = { t '<C-\\><C-n>:lua NewTermTab(0)<cr>', "New term tab" },
 
   ["<c-h>"] = { t '<C-\\><C-n><c-w>h' , "Go right"} ,
   ["<c-l>"] = {
@@ -22,7 +21,7 @@ local t_mappings = {
     ["<c-j>"] = { t '<C-\\><C-n>gT<cr>', "Previous tab" },
   },
 
-  ['<c-p>'] = { t 'nvr -cc "cd $(pwd) | Telescope find_files" <CR>', "Open files in CWD" },
+  -- ['<c-p>'] = { t 'nvr -cc "cd $(pwd) | Telescope find_files" <CR>', "Open files in CWD" },
   ['<c-t>'] = { t '<C-\\><C-n>:lua NewTermTab(0)<cr>', "New term tab" },
 
   ["<c-w>"] = {

@@ -7,24 +7,6 @@ vim.opt.wildmode = { "longest:full", "full" }
 vim.opt.completeopt = "longest,menuone,noselect,preview"
 
 disabled = {}
--------------------------------------------------------
--- TabNine
--------------------------------------------------------
-table.insert(M, { "tzachar/cmp-tabnine",
-  build = "./install.sh",
-  dependencies = "hrsh7th/nvim-cmp",
-  event = "InsertEnter",
-  config = function()
-    require('cmp_tabnine.config'):setup({
-      max_lines = 1000,
-      max_num_results = 20,
-      sort = true,
-      run_on_every_keystroke = true,
-      snippet_placeholder = '...',
-      show_prediction_strength = true
-    })
-  end
-})
 
 -------------------------------------------------------
 -- Plugins
@@ -60,10 +42,7 @@ table.insert(M, { "hrsh7th/nvim-cmp",
     "hrsh7th/cmp-buffer",
     "hrsh7th/cmp-path",
     "saadparwaiz1/cmp_luasnip",
-
-    -- "hrsh7th/cmp-nvim-lsp",
-    "tzachar/cmp-tabnine",
-
+    "hrsh7th/cmp-nvim-lsp",
     'nvim-tree/nvim-web-devicons',
     "L3MON4D3/LuaSnip",
     "rafamadriz/friendly-snippets",
@@ -77,7 +56,6 @@ table.insert(M, { "hrsh7th/nvim-cmp",
     local source_mapping = {
       nvim_lsp = "[LSP]",
       cmp_tabnine = "[T9]",
-      -- treesitter = "[TrStr]",
       nvim_lua = "[Snip]",
       path = "[Path]",
       buffer = "[Buffer]",
@@ -161,11 +139,11 @@ table.insert(M, { "hrsh7th/nvim-cmp",
         end
       },
       sources = {
-        { name = "cmp_tabnine",
-          priority = 100,
-          keyword_length = 3,
-          max_item_count = 5,
-        },
+        -- { name = "cmp_tabnine",
+        --   priority = 100,
+        --   keyword_length = 3,
+        --   max_item_count = 5,
+        -- },
         { name = "nvim_lsp",
           priority = 80,
           keyword_length = 1,
