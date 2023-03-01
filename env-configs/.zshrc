@@ -77,6 +77,7 @@ PATH() {
   export PATH=$PATH:/usr/sbin
 
   export PATH=$PATH:$HOME/u/bin/
+  export PATH=$PATH:$HOME/bin/
 }
 
 PROFILE() {
@@ -149,8 +150,8 @@ ZINIT_PLUGINS(){
 
   # zsh-autosuggestions
   zinit light zsh-users/zsh-autosuggestions
-  bindkey '^p' history-search-backward
-  bindkey '^n' history-search-forward
+  bindkey '^n' history-search-backward
+  bindkey '^p' history-search-forward
   bindkey '^e' autosuggest-execute
   bindkey '^o' forward-word
   bindkey '^a' autosuggest-toggle

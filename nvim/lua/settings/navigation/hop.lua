@@ -1,7 +1,7 @@
 local M = {}
 
 table.insert(M, { "phaazon/hop.nvim",
-  event = "BufRead",
+  -- event = "BufRead",
   config = function()
     require("hop").setup()
     require "which-key".register({

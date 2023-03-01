@@ -28,7 +28,7 @@ vim.api.nvim_create_autocmd("TermEnter", {
 })
 
 vim.api.nvim_create_autocmd("TermClose", {
-  command = "if len(getbufinfo({'buflisted':1})) == 1 | qall | endif"
+  command = "if len(getbufinfo({'buflisted':1})) == 1 | qall | else | q | endif"
 })
 
 vim.api.nvim_create_autocmd({"TermOpen"}, {

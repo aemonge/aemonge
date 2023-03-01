@@ -42,6 +42,9 @@ table.insert(plugins, bots)
 local lsp = require "settings.lsp"
 table.insert(plugins, lsp)
 
+local frameworks = require "settings.frameworks"
+table.insert(plugins, frameworks)
+
 -- local debbug = require "settings.debug"
 -- table.insert(plugins, debbug)
 

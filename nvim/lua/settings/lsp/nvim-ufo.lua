@@ -18,8 +18,11 @@ table.insert(M, { "kevinhwang91/nvim-ufo",
         })
     end
     require('ufo').setup({})
-  end
 
+    vim.api.nvim_create_autocmd({ "BufNew" }, {
+      callback = require('ufo').closeAllFolds
+    })
+  end
 })
 
 return M
