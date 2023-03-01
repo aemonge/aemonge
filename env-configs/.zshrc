@@ -78,6 +78,7 @@ PATH() {
 
   export PATH=$PATH:$HOME/u/bin/
   export PATH=$PATH:$HOME/bin/
+  export PATH=$PATH:$HOME/.local/bin/
 }
 
 PROFILE() {
@@ -96,17 +97,18 @@ VENVS() {
 
 
 CONDA() {
-  export PATH=$PATH:/home/deck/.anaconda3/bin/
+  CONDA_PATH="/opt/anaconda/"
+  export PATH=$PATH:$CONDA_P"bin/"
   # >>> conda initialize >>>
   # !! Contents within this block are managed by 'conda init' !!
-  __conda_setup="$('/home/deck/.anaconda3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
+  __conda_setup="$("$CONDA_PATH/bin/conda" 'shell.zsh' 'hook' 2> /dev/null)"
   if [ $? -eq 0 ]; then
       eval "$__conda_setup"
   else
-      if [ -f "/home/deck/.anaconda3/etc/profile.d/conda.sh" ]; then
-          . "/home/deck/.anaconda3/etc/profile.d/conda.sh"
+      if [ -f "$CONDA_PATH/etc/profile.d/conda.sh" ]; then
+          . "$CONDA_PATH/etc/profile.d/conda.sh"
       else
-          export PATH="/home/deck/.anaconda3/bin:$PATH"
+          export PATH="$CONDA_PATH/bin:$PATH"
       fi
   fi
   unset __conda_setup

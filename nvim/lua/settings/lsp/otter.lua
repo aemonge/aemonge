@@ -5,7 +5,7 @@ table.insert(M, { "jmbuhr/otter.nvim",
     local otter = require'otter'
 
     vim.api.nvim_create_autocmd({ "BufEnter" }, {
-      pattern = { "*.md", "*.qmd" },
+      pattern = { "*.qmd" },
       callback = function()
         -- otter.activate({ 'r', 'python', 'lua' }, true)
         otter.activate({ 'python', 'lua' }, true)

@@ -89,8 +89,7 @@
  * Permanent background image, for the sake of having background images.
  */
 stack.browserStack {
-  background: url('file:///~/.firefox-bg.jpg');
-  background: url('file:///~/.firefox-bg.png');
+  background-image: url('file:///home/deck/.firefox-bg.jpg'), url('file:///home/deck/.firefox-bg.png');
   background-size: cover;
 }
 
