@@ -13,15 +13,6 @@ table.insert(M, { "tzachar/cmp-tabnine",
       snippet_placeholder = '...',
       show_prediction_strength = true
     })
-    require'cmp'.setup {
-     sources = {
-      { name = "cmp_tabnine",
-        priority = 100,
-        keyword_length = 3,
-        max_item_count = 5,
-      }
-     },
-    }
   end
 })
 
