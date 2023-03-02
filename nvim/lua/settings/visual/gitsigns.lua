@@ -42,13 +42,13 @@ table.insert(M, { "lewis6991/gitsigns.nvim",
       yadm = {
         enable = false
       },
-    }  
+    }
 
     local wk = require("which-key")
     wk.register({
-      ['gb'] = { ":Gitsigns blame_line<cr>", "Git blame" }
-    }, { mode = "n", prefix = "<leader>", buffer = nil, 
-      silent = true, noremap = true, nowait = true, 
+      ['lb'] = { ":Gitsigns blame_line<cr>", "Git blame" }
+    }, { mode = "n", prefix = "<leader>", buffer = nil,
+      silent = true, noremap = true, nowait = true,
     })
   end
 })

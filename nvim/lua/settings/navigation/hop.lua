@@ -7,7 +7,7 @@ table.insert(M, { "phaazon/hop.nvim",
     require "which-key".register({
       s = { ":HopChar2<cr>", "Hop to first two chars"},
       S = { ":HopPattern<cr>", "Hop to patter" }
-    }, whichkey_opts)
+    }, { prefix = nil, buffer = nil, silent = true, noremap = true, nowait = true})
   end,
 })
 
