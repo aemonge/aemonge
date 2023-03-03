@@ -1,9 +1,11 @@
 local M = {}
 
-vim.api.nvim_create_autocmd({ 'BufRead', 'BufNewFile' }, {
-  pattern = "*.qmd",
-  command = 'set filetype=markdown'
-})
+-- table.insert(M, {"tpope/vim-markdown"})
+
+-- vim.api.nvim_create_autocmd({ 'BufRead', 'BufNewFile' }, {
+--   pattern = "*.qmd",
+--   command = 'set filetype=markdown'
+-- })
 
 -- local pyLsp = require "settings.frameworks.pylsp"
 -- table.insert(M, pyLsp)
