@@ -11,27 +11,16 @@ disabled = {}
 -------------------------------------------------------
 -- Plugins
 -------------------------------------------------------
--- table.insert(M, { "davidsierradz/cmp-conventionalcommits", ft = "gitcommit" })
 table.insert(M, { "f3fora/cmp-spell"})
 table.insert(M, { "saadparwaiz1/cmp_luasnip", event = "InsertEnter" })
 table.insert(M, { "rafamadriz/friendly-snippets", event = "InsertEnter" })
 table.insert(M, { "onsails/lspkind.nvim", event = "InsertEnter" })
--- table.insert(M, { "L3MON4D3/LuaSnip", event = "InsertEnter" })
 table.insert(M, { "hrsh7th/cmp-nvim-lsp", event = "InsertEnter" })
 table.insert(M, { 'tzachar/fuzzy.nvim',
   dependencies = {'nvim-telescope/telescope-fzf-native.nvim'}
 })
--- table.insert(M, { 'tzachar/cmp-fuzzy-buffer', event = "InsertEnter",
---   dependencies = {'hrsh7th/nvim-cmp', 'tzachar/fuzzy.nvim'}
--- })
--- table.insert(M, { 'tzachar/cmp-fuzzy-path',  event = "InsertEnter",
---   dependencies = {'hrsh7th/nvim-cmp', 'tzachar/fuzzy.nvim'}
--- })
 table.insert(M, {"hrsh7th/cmp-path"})
 -- table.insert(M, { "ray-x/cmp-treesitter", event = "InsertEnter" })
--------------------------------------------------------
--- Disabled
--------------------------------------------------------
 
 -------------------------------------------------------
 -- Load CMP
@@ -108,7 +97,13 @@ table.insert(M, { "hrsh7th/nvim-cmp",
         },
 
         ["<C-o>"] = cmp.mapping(cmp.mapping.complete(), { "i", "c" }), -- Start the autocomplete emtpy
-        ["<C-k>"] = cmp.mapping.confirm { select = true },
+        ["<C-k>"] = function(fallback) -- cmp.mapping.confirm { select = true },
+          if cmp.visible() then
+            cmp.confirm({select = true})
+          else
+            fallback() -- If you use vim-endwise, this fallback will behave the same as vim-endwise.
+          end
+        end,
 
         ["<Tab>"] = cmp.mapping(next_sel, { "i", "s", }),
         ["<C-n>"] = cmp.mapping(next_sel, { "i", "s", }),

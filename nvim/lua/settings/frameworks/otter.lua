@@ -1,6 +1,7 @@
 local M = {}
 
 table.insert(M, { "jmbuhr/otter.nvim",
+  ft = { "quarto" },
   config = function ()
     local otter = require'otter'
 

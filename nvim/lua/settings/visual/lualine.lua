@@ -1,11 +1,27 @@
+local function split(input, delimiter)
+  local arr = {}
+  string.gsub(input, '[^' .. delimiter .. ']+', function(w) table.insert(arr, w) end)
+  return arr
+end
+
+local function get_venv()
+  local venv = vim.env.VIRTUAL_ENV
+  if venv then
+    local params = split(venv, '/')
+    return ' ' .. params[table.getn(params) - 1] .. ''
+  else
+    return ''
+  end
+end
+
 local diagnostics = {
-"diagnostics",
-sources = { "nvim_diagnostic" },
-sections = { "error", "warn" },
-symbols = { error = " ", warn = " " },
-colored = false,
-update_in_insert = false,
-always_visible = true,
+  "diagnostics",
+  sources = { "nvim_diagnostic" },
+  sections = { "error", "warn" },
+  symbols = { error = " ", warn = " " },
+  colored = false,
+  update_in_insert = false,
+  always_visible = true,
 }
 
 local diff = {
@@ -27,8 +43,9 @@ local branch = {
   icon = "",
 }
 
-local M =  { 'nvim-lualine/lualine.nvim',
-  config = function ()
+local M = {
+  'nvim-lualine/lualine.nvim',
+  config = function()
     require('lualine').setup {
       options = {
         icons_enabled = true,
@@ -46,8 +63,12 @@ local M =  { 'nvim-lualine/lualine.nvim',
           { "filename", path = 1, shorting_target = 80 }
         },
         lualine_x = { diff },
-        lualine_y = { filetype },
-        lualine_z = {'os.date("%I:%M:%S", os.time())'},
+        lualine_y = {
+          get_venv,
+          "require'lsp-status'.status()",
+          filetype
+        },
+        lualine_z = { 'os.date("%I:%M:%S", os.time())' },
       },
       inactive_sections = {
         lualine_a = { branch },

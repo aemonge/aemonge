@@ -908,6 +908,12 @@ A proxy (revese proxy), is like an having nGinx , configured through a YAML file
 
 # 🤖 Artificial Intelligence
 
+## Basic concepts
+
+### Output functions
+
+Using a Softmax as the output function will return vector of probabilities of our classes.
+
 ## AWS | Data Warehouse
 > for 10 years ago, within 10 different data schemas
 
