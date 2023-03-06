@@ -438,6 +438,16 @@ gem install --no-user-install --install-dir=./mason/packages --bindir=./mason/bi
 
 # 🐍 Python
 
+## Functional
+
+### Map
+
+```python
+a = list(range(10))
+b = list(map(lambda x: x*2, b))
+print(b)
+```
+
 ## Pypi Python pip pacakge repository
 
 * (https://packaging.python.org/en/latest/guides/distributing-packages-using-setuptools/)
@@ -716,6 +726,68 @@ plt.image_plot(tmp_path, fast=True)
 plt.show()
 ```
 
+### Transforms for the use of Conv2d from 2D to 4D
+
+I want a lambda transform, to convert a 2D tensor to 4D with the following:
+```python
+
+transform = transforms.Compose([
+  transforms.ToTensor(),
+  lambda x: x.reshape(1, x.size(0), x.size(1), 1)
+])
+# Given that the input size is 3072
+
+transform = transforms.Compose([
+    transforms.ToTensor(),
+    lambda x: x.view(-1, 3, 32, 32)
+])
+```
+
+### Get all possible shapes for a given input size:
+Is a mathematical problem of calculating the factors like:
+```python
+import math
+
+def get_input_shapes(input_size):
+    factors = set()
+    for i in range(1, int(math.sqrt(input_size)) + 1):
+        if input_size % i == 0:
+            factors.add(i)
+            factors.add(input_size // i)
+    shapes = []
+    for h in sorted(factors, reverse=True):
+        if input_size % h == 0:
+            w = input_size // h
+            shapes.append((h, w))
+    return shapes
+
+input_size = 3072
+input_shapes = get_input_shapes(input_size)
+print(input_shapes)
+```
+
+### Mix a Conv2d with Linear by shaping and reshaping with flatten and un-flatten
+
+```python
+import torch.nn as nn
+
+model = nn.Sequential(
+    nn.Linear(28*28, 128),
+    nn.ReLU(),
+    nn.Linear(128, 16*28*28),
+    nn.ReLU(),
+    nn.Unflatten(1, (16, 28, 28)),
+    nn.Conv2d(16, 16, kernel_size=3, stride=1, padding=1),
+    nn.ReLU(),
+    nn.MaxPool2d(kernel_size=2, stride=2),
+    nn.Flatten(),
+    nn.Linear(16*14*14, 64),
+    nn.ReLU(),
+    nn.Linear(64, 10),
+    nn.LogSoftmax(dim=1)
+)
+```
+
 ## Regex in Python
 
 ```python
@@ -913,6 +985,26 @@ A proxy (revese proxy), is like an having nGinx , configured through a YAML file
 ### Output functions
 
 Using a Softmax as the output function will return vector of probabilities of our classes.
+
+#### Table of common output function per requirement:
+
+| Activation FN | Loss Function             |
+| ---           |  ---                      |
+| Sigmoid       |  Binary Cross Entropy     |
+| Softmax       |  Multiclass Cross Entropy |
+| Identity      |  Mean Squared Error       |
+
+### Regularization L1 vs L2
+
+#### L1 Regularization on our error function
+> +λ(∣w1∣+…+∣wn∣)
+
+For feature selection, since it return sparse vectors [0, 1, 0, 1]
+
+#### L2 Regularization on our error function
+> +λ(w1^2+…+wn^2)
+
+For training models, since it will not favor sparse vectors resulting [0.25, 0.5, 0.33, 0.5]
 
 ## AWS | Data Warehouse
 > for 10 years ago, within 10 different data schemas
