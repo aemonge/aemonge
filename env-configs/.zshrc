@@ -155,7 +155,7 @@ ZINIT_PLUGINS(){
   bindkey '^p' history-search-backward
   bindkey '^o' history-search-forward
   bindkey '^n' autosuggest-accept
-  bindkey '^g' autosuggest-execute
+  bindkey '^e' autosuggest-execute
   bindkey '^a' autosuggest-toggle
   bindkey '^s' autosuggest-clear
 

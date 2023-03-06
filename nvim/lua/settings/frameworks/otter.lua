@@ -4,7 +4,6 @@ table.insert(M, { "jmbuhr/otter.nvim",
   ft = { "quarto" },
   config = function ()
     local otter = require'otter'
-
     vim.api.nvim_create_autocmd({ "BufEnter" }, {
       pattern = { "*.qmd" },
       callback = function()
