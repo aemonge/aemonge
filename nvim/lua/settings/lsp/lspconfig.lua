@@ -1,7 +1,8 @@
 local M = {}
 
 table.insert(M, { "neovim/nvim-lspconfig",
-  dependencies = { "wbthomason/packer.nvim", "neovim/nvim-lspconfig" },
+  -- dependencies = { "wbthomason/packer.nvim", "neovim/nvim-lspconfig" },
+  dependencies = { "neovim/nvim-lspconfig" },
 
   config = function ()
     -- Mappings.

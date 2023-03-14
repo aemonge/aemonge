@@ -1,7 +1,7 @@
 [Appearance]
 ColorScheme=nightfox_konsole
 DimmValue=89
-Font=MesloLGM Nerd Font,11,-1,5,50,0,0,0,0,0
+Font=MesloLGMDZ NF,11,-1,5,50,0,0,0,0,0
 
 [General]
 Command=/bin/zsh

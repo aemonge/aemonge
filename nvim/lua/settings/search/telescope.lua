@@ -118,9 +118,9 @@ table.insert(M, { 'nvim-telescope/telescope.nvim',
   end
 })
 
-table.insert(M, { 'nvim-telescope/telescope-fzf-native.nvim',
-  build = 'make'
-})
+-- table.insert(M, { 'nvim-telescope/telescope-fzf-native.nvim',
+  -- build = 'make'
+-- })
 
 ---------------------------------------------------------------------------
 -- Telescope Search on visual selection

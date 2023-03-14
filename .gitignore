@@ -2,3 +2,5 @@
 **/.jukit
 .DS_Store
 nvim/lazy-lock.json
+app-configs/firefox/*
+!app-configs/firefox/chrome

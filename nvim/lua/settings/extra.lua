@@ -12,8 +12,8 @@ table.insert(M, scratch)
 local glow = require("settings.extra.glow")
 table.insert(M, glow)
 
-local ghost = require("settings.extra.ghost")
-table.insert(M, ghost)
+-- local ghost = require("settings.extra.ghost")
+-- table.insert(M, ghost)
 
 table.insert(M, { "tpope/vim-repeat" })
 

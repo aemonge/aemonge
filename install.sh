@@ -1,4 +1,12 @@
-#!/bin/sh
+#!/bin/bash
+
+system() {
+  ./env-configs/pacman.sh
+}
+
+fonts() {
+  ./env-configs/font.sh
+}
 
 kde() {
   pip install konsave
@@ -16,6 +24,7 @@ devConfig() {
 }
 
 envConfig() {
+  ln -s ~/u/env-configs/pikaur.conf ~/.config/pikaur.conf
   P="$HOME/u/env-configs"
   for f in $(ls -a $P); do
     if [[ -f "$P/$f"  ]]; then
@@ -26,7 +35,7 @@ envConfig() {
 }
 
 firefox() {
-  cd /home/deck/.mozilla/firefox/*.dev-edition-default/
+  cd /home/deck/.mozilla/firefox/avosv1da.deck
   mkdir -p chrome 2> /dev/null
   cd chrome
   rm userChrome.css 2> /dev/null
@@ -38,8 +47,10 @@ nvim() {
   ln -s ~/u/nvim ~/.config/.
 }
 
+system
+fonts
 devConfig
 envConfig
 nvim
 kde
-firefox
+# firefox

@@ -13,13 +13,18 @@ INITS() {
 ENABLE_TVIM=1
 
 START() {
+  PATH
+  INITS
+  PROFILE
   if [ $ENABLE_TVIM -eq "1" ]; then
     if [ -z $NVIM ]; then
-      PROFILE
-      nvim +':lua StartTerm(1)'
-      exit
+      VENVS
+      SSH
+      nvim +':lua StartTerm(1)' && exit || $(ZINIT_PLUGINS && THEME)
     else
-      ALL
+      ZINIT_PLUGINS
+      THEME
+      alias vim=~/u/bin/vim
     fi
   else
     ALL
@@ -33,40 +38,6 @@ ALL() {
   INITS
   ZINIT_PLUGINS
   THEME
-
-  alias vim=~/u/bin/vim
-}
-
-START_OLD() {
-  BEFORE_ALL
-
-  if [ $ENABLE_TVIM -eq "1" ]; then
-    if [ -z $NVIM ]; then
-      BEFORE_NVIM
-      set -e
-      nvim +':lua StartTerm(1)' && exit || exit
-    elif then
-      AFTER_NVIM
-    fi
-  else
-    AFTER_NVIM
-  fi
-}
-
-BEFORE_NVIM() {
-  VENVS
-}
-
-AFTER_NVIM() {
-  alias vim=~/u/bin/vim
-  THEME
-}
-
-BEFORE_ALL() {
-  PATH
-  PROFILE
-  ZINIT
-  ZINIT_PLUGINS
 }
 
 PATH() {
@@ -161,6 +132,11 @@ ZINIT_PLUGINS(){
 
   autoload compinit
   compinit
+}
+
+SSH() {
+  eval "$(ssh-agent -s)"
+  ssh-add ~/.ssh/git_aemonge
 }
 
 ZINIT() {
