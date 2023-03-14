@@ -97,13 +97,13 @@ table.insert(M, { "hrsh7th/nvim-cmp",
         },
 
         ["<C-o>"] = cmp.mapping(cmp.mapping.complete(), { "i", "c" }), -- Start the autocomplete emtpy
-        ["<C-k>"] = function(fallback) -- cmp.mapping.confirm { select = true },
-          if cmp.visible() then
-            cmp.confirm({select = true})
-          else
-            fallback() -- If you use vim-endwise, this fallback will behave the same as vim-endwise.
-          end
-        end,
+        -- ["<C-k>"] = function(fallback) -- cmp.mapping.confirm { select = true },
+        --   if cmp.visible() then
+        --     cmp.confirm({select = true})
+        --   else
+        --     fallback() -- If you use vim-endwise, this fallback will behave the same as vim-endwise.
+        --   end
+        -- end,
 
         ["<Tab>"] = cmp.mapping(next_sel, { "i", "s", }),
         ["<C-n>"] = cmp.mapping(next_sel, { "i", "s", }),
@@ -139,7 +139,7 @@ table.insert(M, { "hrsh7th/nvim-cmp",
           keyword_length = 3,
           max_item_count = 5,
         },
-        { name = "cmp-openai-codex",
+        { name = "cmp_openai_codex",
           priority = 90,
           keyword_length = 3,
           max_item_count = 5,

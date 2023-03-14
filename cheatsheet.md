@@ -437,6 +437,50 @@ gem install --no-user-install --install-dir=./mason/packages --bindir=./mason/bi
 ```
 
 # 🐍 Python
+## F-String
+
+To create a padded output using f-strings in Python, you can specify the field width using the syntax {variable:width}, where variable is the variable you want to format, and width is the minimum number of characters you want the field to take up. You can also specify the alignment using the < (left-align), ^ (center-align), or > (right-align) characters.
+
+```python
+print(f"{'pad this':>10}") # Output: "   pad this"
+print(f"{'pad this':^10}") # Output: " pad this "
+```
+
+You can add a delimiter to the padded output by using the syntax {variable:alignmentwidthdelimiter}. The delimiter is the character that will be used to fill in the space between the variable and the padding characters.
+
+```python
+print(f"{'pad this':->10}") # Output: "--pad this"
+print(f"{'pad this':-^10}") # Output: "-pad this-"
+```
+
+### Working with dictionary dict {}
+```python
+s = {"foo": "bar", "baz": "qux"}
+for key, value in s.items():
+    padded_output = f"{key:10}: {value:>10}"
+    print(padded_output)
+```
+
+### Working with object-like sequential function `torchvision.transforms.transforms.Compose`
+```python
+from torchvision.transforms import Compose, Resize, ToTensor
+
+s = Compose([Resize((224, 224)), ToTensor()])
+for transform in s.transforms:
+    padded_output = f"{str(transform):>30}"
+    print(padded_output)
+```
+
+## Typing
+
+To use typing as helpers in python, you must use a version greater than 3.8
+
+```python
+from typing import List, Tuple, Type
+import numpy as np
+
+several : List[Tuple[int, np.ndarray]] = [(0, np.array([1,2,3]))]
+```
 
 ## Functional
 
@@ -537,6 +581,20 @@ twine upload dist/*
 ```
 
 This will create a .tar.gz file of your package in the dist folder, and upload it to PyPI.
+
+#### Using poetry with the master pyproject.toml
+
+Make sure you set up you token:
+```bash
+poetry config pypi-token.pypi $(cat ~/.ssh/poetry)
+```
+
+Now build and deploy 😉
+
+```bash
+poetry build
+poetry publish
+```
 
 ## Pyright
 
@@ -925,6 +983,7 @@ OR on a html cell:
            [-0.1382643 ],
            [ 0.64768854]])
 
+
 # 🔣 Regex
 > The notion that regex doesn't support inverse matching is not entirely true.
 
@@ -970,6 +1029,20 @@ serve as an API Gateway.
 ### Ingress Controller
 A proxy (revese proxy), is like an having nGinx , configured through a YAML file.
 
+# 🎨 Design Rules
+
+## Common image sizes
+> Given the convention (height, width)
+
+| Name       | Pixels    |
+| ---        | ---       |
+| small      | 320x240   |
+| medium     | 720x576   |
+| large      | 1024x768  |
+| horizontal | 1280x720  |
+| full       | 1280x1024 |
+| 4k         | 1920x1080 |
+
 # 💡 Thoughts
 
 ## AI
@@ -979,8 +1052,34 @@ A proxy (revese proxy), is like an having nGinx , configured through a YAML file
 > full of doubts.
 
 # 🤖 Artificial Intelligence
+## Convolutional networks (CNN)
+
+This network use the convolution matrix to extract information from the input.
+They accept any size as input, and work with a matrix (kernel) that applies a dynamic filter
+to each pixel (cell).
+
+You can define the size (`kernel_size`) of the  Matrix, but the configuration of such will be adjusted during
+training and back-step propagation.
+
+* `stride` how many pixels to activate at a time, usually 1.
+
+* `padding` controls the amount of padding applied to the input. It can be either a string {‘valid’, ‘same’} or a tuple of ints giving the amount of implicit padding applied on both sides.
+
+* `dilation` controls the spacing between the kernel points; also known as the à trous algorithm. It is harder to describe, but this link has a nice visualization of what dilation does.
+
+The padding and
 
 ## Basic concepts
+### Networks fro good image classification ranks
+Ranked from least accurate and old, to newer and more accurate.
+
+1. LetNet5
+2. AlexNet
+3. VGG
+4. ResNet-101
+5. EfficinetNet-B7
+6. ViT (Transforms)
+7. CoAtNet (Transforms)
 
 ### Output functions
 
@@ -1068,4 +1167,15 @@ gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/ebook \
 ## Fix Crackling or Garbled Sound By Killing Core Audio
 ```bash
 sudo killall coreaudiod`
+```
+# 🐧 Arch Linux and KDE Plasma 5
+## Restart the plasma and KDE
+
+```bash
+# For KDE 4
+killall plasma-desktop && kstart plasma-desktop
+# For KDE 5 < 5.10
+killall plasmashell && kstart plasma-desktop
+# For KDE > 5.10
+kquitapp5 plasmashell || killall plasmashell && kstart5 plasmashell
 ```
