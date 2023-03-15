@@ -4,13 +4,13 @@ _rwfux() {
   git clone https://github.com/ValShaped/rwfus.git /tmp/rwfux
   cd /tmp/rwfux
   ./rwfus -iI
+  ./rwfus -e
 }
 
 _pacman() {
   pacman-key --init
   pacman-key --populate
-  pacman -S --needed base-devel git
-  pacman -S linux-headers
+  pacman -S linux-headers gcc base-devel git
   pacman -S python-pip zsh git tig \
    flameshot glow xclip onboard \
    nodejs npm the_silver_searcher neovim
@@ -25,7 +25,7 @@ _pickaur() {
 }
 
 steamos-readonly disable
-# _rwfux
+_rwfux
 _pacman
 _pikaur
 steamos-readonly enable

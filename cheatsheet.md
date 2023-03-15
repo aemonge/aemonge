@@ -1050,8 +1050,18 @@ trainloader = DataLoader(trainset, batch_size=32, shuffle=True)
 # Download and load the test data
 testset = datasets.FashionMNIST('./.F_MNIST_data/', download=True, train=False, transform=transform)
 testloader = DataLoader(testset, batch_size=32, shuffle=True)
-
 ```
+
+## Convolution Conv2D or Conv3D
+> Edge detection, use "MaxPooling" or "AvgPooling" to remove noise and make the output of the convolution more
+> focused on the data so zooming in the meaningful data and removing zeros.
+
+The output tensor formula is  `((W + 2P − K)/ S)+1.`
+
+    - W is the input volume - The NxM matrix or tensor input.
+    - P is the padding - The amount of tolerance and padding added for bigger kernels or strides
+    - K is the Kernel size - The size of the filter kernel, the view if you want.
+    - S is the stride - The amount of pixels to move, use S=2 to half the output size.
 
 # 📄 PDF `gs` ghost script
 

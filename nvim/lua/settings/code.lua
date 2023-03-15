@@ -6,8 +6,8 @@ table.insert(M, { "gpanders/editorconfig.nvim" })
 local cmp = require "settings.code.cmp"
 table.insert(M, cmp)
 
-local treesitter = require "settings.code.treesitter"
-table.insert(M, treesitter)
+-- local treesitter = require "settings.code.treesitter"
+-- table.insert(M, treesitter)
 
 local comment = require "settings.code.comment"
 table.insert(M, comment)
