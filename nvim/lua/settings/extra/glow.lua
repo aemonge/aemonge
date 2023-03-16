@@ -1,4 +1,5 @@
 local M = { "npxbr/glow.nvim",
+  ft = { "markdown" },
   config = function ()
     require('glow').setup({
       pager=true,

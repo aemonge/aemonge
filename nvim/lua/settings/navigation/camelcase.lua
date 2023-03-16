@@ -4,9 +4,10 @@
 local M = {}
 
 table.insert(M, { "bkad/CamelCaseMotion",
+  event = "InsertEnter",
   dependencies =  "folke/which-key.nvim" ,
   config = function ()
-    local mapping_opts ={ buffer = nil, silent = true, noremap = true, nowait = true } 
+    local mapping_opts ={ buffer = nil, silent = true, noremap = true, nowait = true }
     vim.keymap.set('', 'w', '<Plug>CamelCaseMotion_w', mapping_opts)
     vim.keymap.set('', 'b', '<Plug>CamelCaseMotion_b', mapping_opts)
     vim.keymap.set('', 'e', '<Plug>CamelCaseMotion_e', mapping_opts)

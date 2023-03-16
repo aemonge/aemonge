@@ -13,13 +13,13 @@ table.insert(M, { "numToStr/Comment.nvim",
 
     wk.register({
       ['/'] = { "<Plug>(comment_toggle_linewise_current)<cr>", "Comment" }
-    }, { mode = "n", prefix = "<leader>", buffer = nil, 
-      silent = true, noremap = true, nowait = true, 
+    }, { mode = "n", prefix = "<leader>", buffer = nil,
+      silent = true, noremap = true, nowait = true,
     })
     wk.register({
       ['/'] = { "<Plug>(comment_toggle_linewise_visual)<cr>", "Comment" }
-    }, { mode = "v", prefix = "<leader>", buffer = nil, 
-      silent = true, noremap = true, nowait = true, 
+    }, { mode = "v", prefix = "<leader>", buffer = nil,
+      silent = true, noremap = true, nowait = true,
     })
   end
 })

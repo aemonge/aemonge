@@ -2,7 +2,7 @@ local M = {}
 
 table.insert(M, {
   'HallerPatrick/py_lsp.nvim',
-  ft = {"markdown", "python"},
+  ft = {"quarto", "python"},
   config = function()
     require("py_lsp").setup({
       -- language_server = "jedi_language_server",

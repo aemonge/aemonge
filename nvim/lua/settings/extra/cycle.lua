@@ -1,6 +1,7 @@
 local M = {}
 
 table.insert(M, { "bootleq/vim-cycle",
+  event = "InsertEnter",
   config = function ()
     vim.g.cycle_no_mappings = 1
     vim.cmd [[ nmap <silent> <C-a> <Plug>CycleNext ]]

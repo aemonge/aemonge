@@ -11,15 +11,15 @@ disabled = {}
 -------------------------------------------------------
 -- Plugins
 -------------------------------------------------------
-table.insert(M, { "f3fora/cmp-spell"})
+-- table.insert(M, { "f3fora/cmp-spell"})
 table.insert(M, { "saadparwaiz1/cmp_luasnip", event = "InsertEnter" })
 table.insert(M, { "rafamadriz/friendly-snippets", event = "InsertEnter" })
 table.insert(M, { "onsails/lspkind.nvim", event = "InsertEnter" })
 table.insert(M, { "hrsh7th/cmp-nvim-lsp", event = "InsertEnter" })
-table.insert(M, { 'tzachar/fuzzy.nvim',
+table.insert(M, { 'tzachar/fuzzy.nvim', event = "InsertEnter",
   dependencies = {'nvim-telescope/telescope-fzf-native.nvim'}
 })
-table.insert(M, {"hrsh7th/cmp-path"})
+table.insert(M, {"hrsh7th/cmp-path", event = "InsertEnter"})
 -- table.insert(M, { "ray-x/cmp-treesitter", event = "InsertEnter" })
 
 -------------------------------------------------------

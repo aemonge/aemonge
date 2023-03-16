@@ -1,10 +1,15 @@
 local M = {}
 
-table.insert(M, { "RRethy/nvim-align" })
 table.insert(M, { "gpanders/editorconfig.nvim" })
 
 local cmp = require "settings.code.cmp"
 table.insert(M, cmp)
+
+local nullls = require("settings.code.null-ls")
+table.insert(M, nullls)
+
+local alignment = require "settings.code.align"
+table.insert(M, alignment)
 
 -- local treesitter = require "settings.code.treesitter"
 -- table.insert(M, treesitter)

@@ -2,6 +2,7 @@ local M = {}
 
 table.insert(M, {
   "lewis6991/hover.nvim",
+  event = "InsertEnter",
   config = function()
     require("hover").setup {
       init = function()

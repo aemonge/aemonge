@@ -2,6 +2,7 @@ local M = {}
 local D = {}
 
 table.insert(D, { "brymer-meneses/grammar-guard.nvim",
+  event = "InsertEnter",
   dependencies = {
     "neovim/nvim-lspconfig"
   },
