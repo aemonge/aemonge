@@ -1,43 +1,23 @@
-# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
-# Initialization code that may require console input (password prompts, [y/n]
-# confirmations, etc.) must go above this block; everything else may go below.
-
-INITS() {
-  if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-    source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
-  fi
-
-  ZINIT
-}
-
 ENABLE_TVIM=1
 
-START() {
+BEFORE(){
   PATH
-  INITS
   PROFILE
-  if [ $ENABLE_TVIM -eq "1" ]; then
-    if [ -z $NVIM ]; then
-      SSH
-      nvim +':lua StartTerm(1)' && exit || $(ZINIT_PLUGINS && THEME)
-    else
-      ZINIT_PLUGINS
-      THEME
-      VENVS
-      alias vim=~/u/bin/vim
-    fi
-  else
-    ALL
-  fi
 }
 
-ALL() {
-  PATH
-  PROFILE
-  VENVS
-  INITS
+AFTER(){
+}
+
+BEFORE_NVIM(){
+  SSH
+}
+
+AFTER_NVIM(){
+  P10K_ZINIT
   ZINIT_PLUGINS
   THEME
+  CONDA
+  alias vim=~/u/bin/vim
 }
 
 PATH() {
@@ -60,12 +40,10 @@ PROFILE() {
   source ~/.aliases
 }
 
-VENVS() {
-  CONDA
-  # eval "$(rbenv init - zsh)"
-  # eval "$(nodenv init -)"
+SSH() {
+  eval "$(ssh-agent -s)" > /dev/null
+  ssh-add ~/.ssh/git_aemonge > /dev/null
 }
-
 
 CONDA() {
   # >>> conda initialize >>>
@@ -84,11 +62,24 @@ CONDA() {
   # <<< conda initialize <<<
 }
 
+P10K_ZINIT() {
+  # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
+  # Initialization code that may require console input (password prompts, [y/n]
+  # confirmations, etc.) must go above this block; everything else may go below.
+
+  if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+    source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+  fi
+
+  ZINIT
+}
+
 THEME() {
   # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
   export ZLE_RPROMPT_INDENT=0
   [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
-  zinit load romkatv/powerlevel10k
+  # zinit ice wait lucid # Turbo mode is verbose, so you need an option for quiet.
+  zinit light romkatv/powerlevel10k
 }
 
 ZSH_HISTORY() {
@@ -115,11 +106,14 @@ ZINIT_PLUGINS(){
   ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 
   # zinit load zdharma-continuum/history-search-multi-word
+  zinit ice wait lucid # Turbo mode is verbose, so you need an option for quiet.
   zinit light zsh-users/zsh-completions
+
   zinit light zdharma-continuum/fast-syntax-highlighting
   zinit snippet OMZP::dotenv
 
   # zsh-autosuggestions
+  zinit ice wait lucid # Turbo mode is verbose, so you need an option for quiet.
   zinit light zsh-users/zsh-autosuggestions
   bindkey '^p' history-search-backward
   bindkey '^o' history-search-forward
@@ -130,11 +124,6 @@ ZINIT_PLUGINS(){
 
   autoload compinit
   compinit
-}
-
-SSH() {
-  eval "$(ssh-agent -s)"
-  ssh-add ~/.ssh/git_aemonge
 }
 
 ZINIT() {
@@ -162,4 +151,21 @@ ZINIT() {
   ### End of Zinit's installer chunk
 }
 
+START() {
+  BEFORE
+
+  if [ $ENABLE_TVIM -eq "1" ]; then
+    if [ -z $NVIM ]; then
+      BEFORE_NVIM
+      nvim +':lua StartTerm(1)' && exit || $(ZINIT_PLUGINS && THEME)
+    else
+      AFTER_NVIM
+    fi
+  else
+    BEFORE_NVIM
+    AFTER_NVIM
+  fi
+
+  AFTER
+}
 START
