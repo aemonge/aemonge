@@ -438,6 +438,86 @@ gem install --no-user-install --install-dir=./mason/packages --bindir=./mason/bi
 
 # 🐍 Python
 
+## PEP8 Rules, the standard way of python
+> get used to 4 four spaces, instead of 2 two.
+
+### Documentation on the files, classes, methods, and functions.
+**a.py**:
+```python
+"""
+The module.
+
+Of fantastic documentation
+"""
+
+import random
+
+
+def standard_deviations(data) -> float:
+    """
+    Return the standard deviation of the data.
+
+    Returns
+    -------
+        float():
+            The standard deviation
+    """
+    return (data - data.mean()) / data.std()
+
+
+class Super():
+    """
+    My Super Class.
+
+    Attributes
+    ----------
+        color : string
+            The color of the class
+
+    Methods
+    -------
+        change_color():
+            Change the color of the class
+        randomize_color():
+            Randomize the color of the class
+    """
+
+    COLORS = ["red", "green", "blue", "yellow", "orange", "purple"]
+
+    def __init__(self, color: str) -> None:
+        """
+        Initialize the class.
+
+        Parameters
+        ----------
+            color : str
+                The initial color of the class.
+        """
+        # super().__init__()
+        self.color = color
+
+    def change_color(self, color: str) -> None:
+        """
+        Change the color of the class.
+
+        Returns
+        -------
+            None
+        """
+        self.color = color
+
+    def randomize_color(self) -> str:
+        """
+        Randomize the color of the class.
+
+        Returns
+        -------
+            str():
+                The new color of the class
+        """
+        return random.choice(self.COLORS)
+```
+
 ## Functional
 
 ### Map
@@ -1012,10 +1092,11 @@ For training models, since it will not favor sparse vectors resulting [0.25, 0.5
 Amazon *RedShift*, supports exabytes for a single query
 
 ## Libraries
-I ❤️  the `pandas` library, but note that 🔥 `torch` and `numpy` are lovers
+I ❤️ the `pandas` library, but note that 🔥 `torch` and `numpy` are lovers
 
 ### Pytorch 🔥 🕶️  torch-vision
-> Don't forget to clear your gradients, before staring to train your network with `optimizer.zero_grad()`
+
+> Remember to clear your gradients, before staring to train your network with `optimizer.zero_grad()`
 
 #### Save your trained model
 > Make sure the architecture of the saved are respected, aka the matrix definition.
@@ -1027,7 +1108,13 @@ checkpoint = {
   'hidden_layers': [ l.out_features for e in model.hidden_layers],
   'state': model.state_dict()
 } # Use this Structure to save and load, better. Since it contains a simple description of the architecture.
+
 ```
+
+#### Transformation for images classification
+> `RandAugment`: Practical automated data augmentation with a reduced search space
+
+Use  `torchvision.transforms.RandAugment` which is a random Transformation policies that have been optimized by the community for image classification.
 
 ### 🪐 Jupiter
 Untill the real refresh is done, just `jupyter notebook --autoreload  --no-browser -y 4-Fashion-MNIST-_Exercises_.ipynb`
@@ -1056,12 +1143,30 @@ testloader = DataLoader(testset, batch_size=32, shuffle=True)
 > Edge detection, use "MaxPooling" or "AvgPooling" to remove noise and make the output of the convolution more
 > focused on the data so zooming in the meaningful data and removing zeros.
 
-The output tensor formula is  `((W + 2P − K)/ S)+1.`
+The output tensor formula is  `((W + 2P − K) / S)+1.`
 
     - W is the input volume - The NxM matrix or tensor input.
     - P is the padding - The amount of tolerance and padding added for bigger kernels or strides
     - K is the Kernel size - The size of the filter kernel, the view if you want.
     - S is the stride - The amount of pixels to move, use S=2 to half the output size.
+
+### Pooling layer
+
+The output tensor formula is `((W - K) / S) + 1`
+
+- Kernel size is basically the matrix where to apply the operation (max, avg, etc..)
+
+### 💡 Thoughts
+
+Hey Chat, so Convolutional Neural Networks are great detecting features in images. So if we want to create a network for flower classification, we should use some Convolutional layer, so that it can learn to distinguish features that make any flower a specific kind. But this got me thinking, shouldn't I initially train the network simply to recognize or not ( binary classification ) and one is trained, add convolutional layer to such a network and freezing the initial layer which have already distinguish the features that make a flower.
+
+> The frozen layers act as a feature extractor, and the new layers are trained to learn to classify the flower types based on the extracted features. This approach can help speed up the training process and improve the performance of your network.
+
+```python
+# Freeze the first two convolutional layers
+for layer in model[:2]:
+    layer.requires_grad = False
+```
 
 # 📄 PDF `gs` ghost script
 
