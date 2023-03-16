@@ -1,25 +1,32 @@
+<!-- markdownlint-configure-file { "line-length": false } -->
+
 # 💻 Command line
 
 ## Iterate over strings of words with a for loop
+
 ```bash
 STRS=("hola" "mundo" "bonito y azul"); for s in $STRS; do echo $s; done
 ```
 
-## Clear the screen and run a query after the SQL script is updated:
+## Clear the screen and run a query after the SQL script has updated
 
 `echo my.sql | entr -cp psql -f /_`
 
-## Remove lines form command, multiple
+## Remove lines from command
+
 > egrep -v 'word|other-word'
+
 ```bash
 rspec spec/lib/demo_workspaces/bookings_creator_spec.rb | egrep --color=always -v 'Sidekiq|WARN: Job|^$'
 rspec spec/lib/demo_workspaces/bookings_creator_spec.rb | awk '/^[^(Sidekiq|2022)].*$/{print'
 ```
 
 ## Bash here-document, here-string
-> (https://en.wikipedia.org/wiki/Here_document#Unix_shells)
+
+> [Unix_shells: https://en.wikipedia.org/wiki/Here_document#Unix_shells]
 
 * `<<<DELIMITER` is a here string, where `<<DELIMITER` is a here-document.
+
 ```bash
 heredoc = <<DOC
   the end keyword must be at the beginning of the line
@@ -41,6 +48,7 @@ squiggly = <<~DOC
 ```
 
 ### Using variables from bash
+
 ```bash
 WORLD="hello world"
 (cat <<-SQL
@@ -49,6 +57,7 @@ SQL
 ```
 
 ## Contatenate arguments with a delimiter
+
 ```bash
 IFS='|'
 NAMES=$*
@@ -56,37 +65,44 @@ echo $NAME # hola mundo|azul
 ```
 
 ## View all active colors
+
 ```bash
 msgcat --color=test
 ```
 
 ## Ls of ports
+
 ```bash
 lsof -i :631
 ```
 
-## To remove m lines from the beginning and n from the end (print only N first lines or M last lines):
+## To remove m lines from the beginning and n from the end (print the first N lines or last M lines)
 
-> (https://unix.stackexchange.com/questions/169079/negative-arguments-to-head-tail)
+> [https://unix.stackexchange.com/questions/169079/negative-arguments-to-head-tail]
+
 ```bash
 awk -v m=6 -v n=12 'NR<=m{next};NR>n+m{print line[NR%n]};{line[NR%n]=$0}'
 ```
 
 ## Search and replace with `sed`
+
 ```bash
 sed -e 's/ /.*/'
 ```
 
 # 💎 Ruby
 
-### Iterate over objects
+## Iterate over objects
+
 ```ruby
 @object.attributes.each { |n| puts n }
 @object.attribute_names.each { |n| puts n }
 ```
 
-### Conditional Assigment
-> Note the indentation, seams unreadable but just do it like this
+## Conditional Assigment
+
+> Note the indentation, seams unreadable but do it like this
+
 ```ruby
 very_very_very_very_very_lengthy_foo = if bar?
                                          'true'
@@ -95,7 +111,7 @@ very_very_very_very_very_lengthy_foo = if bar?
                                        end
 ```
 
-### Debugger console
+## Debugger console
 
 `byebug` but this is better `binding.pry`
 
@@ -103,36 +119,42 @@ very_very_very_very_very_lengthy_foo = if bar?
 * c: continue
 
 ### binding.pry
+
 > [pry](https://github.com/pry/pry#commands)
 > [cheetsheet](https://gist.github.com/lfender6445/9919357)
 
 [cheat sheet](https://gist.github.com/lfender6445/9919357)
 
-### Check all the command-line tasks
+## Check all the command-line tasks
 
 `bundle exec rake --tasks`
 
-### Show/Get property from an array
-> (https://www.fastruby.io/blog/performance/rails/writing-fast-rails.html)
+## Show/Get property from an array
 
-- **pluck**. Does not load each property_calendar into memory.
-- **map**. Loads each property_calendar into memory then access the date.
+> [https://www.fastruby.io/blog/performance/rails/writing-fast-rails.html]
+
+* **pluck**. Does not load each property_calendar into memory.
+* **map**. Loads each property_calendar into memory then access the date.
+
 ```ruby
 array.map(&:property)
 array.pluck(:property) # If it's a ActiveRecord Collection
 array.map { |x| x.first_level_iterator rs.map(&:property) }
 ```
 
-### Array and funcional
+## Array and functional paradigm
 
 ### Sum, map, zip-ish
+
 ```ruby
 chunks.map(&:count).inject(0, :+)
 chunks.sum(&:count)
 ```
 
-### Private lies
+## Private lies
+
 > Honey-badger, don't care
+
 ```ruby
 .send('private_attribute')
 ```
@@ -140,10 +162,11 @@ chunks.sum(&:count)
 ## Rails
 
 ### Object Relationship Model :ORM
-#### Cascasde destruction/elimination of
 
-* `:destroy` : The associated objects are destroyed alongside this object by calling their destroy method. Instantiates all the records and destroys them one at a time, so with a large dataset, this could be slow
-* `:delete_all` : All associated objects are destroyed immediately without calling their destroy method. Callbacks are not called.
+#### Cascade destruction/elimination of
+
+* `:destroy` : The associated objects get destroyed alongside this object by calling their destroy method. Instantiates all the records and destroys them one at a time, so with a large dataset, this could be slow
+* `:delete_all` : All associated objects get (immediately) destroyed without calling their destroy method. Callbacks are not called.
 * `nullify`: Simply make the filed null.
 
 ```ruby
@@ -151,7 +174,9 @@ chunks.sum(&:count)
   has_many :site_publishing_operators, dependent: :destroy
   has_many :site_publishing_operators, dependent: :nullify
 ```
+
 Do the destruction in code or console:
+
 ```ruby
 workspace.properties.find_each do |property|
   property.destroy!
@@ -160,8 +185,9 @@ end
 workspace.properties.destroy_all
 ```
 
-#### ERB nested attributes
-```html:erb
+#### ERB nested attributes (html:erb)
+
+```html
 <%= ft.fields_for :multifamily do |ftm| %>
   <div class="row fluid-container">
     <div class="col-md-6">
@@ -177,24 +203,30 @@ workspace.properties.destroy_all
 ```
 
 ### Console
+
 #### Execute a query in the consoles
+
 ```bash
 echo "Chameleon::GetBrands.call" | bundle exec rails c
 bundle exec  rails runner 'puts Chameleon::GetBrands.call'
 ```
 
 #### Execute a query in **production**/**heroku** console
+
 ```bash
 cat hard-booking-cancelation.rb | heroku run -a lvdam-staging rails runner -
 ```
 
 #### Concatenate tasks
+
 ```bash
 ENV=test bundle exec rails db:create db:migrate
 ```
 
 ### Create a `0:1` relationship with the command-line
+
 > where workspace is a Model
+
 ```bash
 rails generate model demo_workspaces_settings \
   workspace:belongs_to occupancy:float stay_length_41_weeks:boolean \
@@ -203,46 +235,57 @@ rails generate model demo_workspaces_settings \
 ```
 
 ### Add a field to a Model
+
 > to the **workspace** model
+
 ```bash
 rails generate migration AddDemoTypeToWorkspaces demo_type:string
 ```
 
 ### Add a gem to a Gemfile
+
 ```bash
 bundle add <gem-name> <version> --group "development, test"
 ```
 
 ### View form helper for checkbox/boolean values
-> They just work as expected, trust it when generating the `Model.new(controller_params)`
 
-## *random* fuck it, to test it correly
-In order to rightfully test a method with a random generation, we should lock the seed by with `srand(873459)`. Check
+> They work as expected, trust it when generating the `Model.new(controller_params)`
+
+## *random* Dang it, to test done right
+
+To properly test a method with a random generation, we should lock the seed by with `srand(873459)`. Check
 out this example:
+
 ```ruby
 100.times { srand(23413); puts rand(10) }
 ```
 
 ## Safe open files
-> (https://www.rubydoc.info/gems/rubocop/RuboCop/Cop/Security/Open)
 
-    # bad
-    open(something)
-    open("| #{something}")
-    URI.open(something)
+> [https://www.rubydoc.info/gems/rubocop/RuboCop/Cop/Security/Open]
 
-    # good
-    File.open(something)
-    IO.popen(something)
-    URI.parse(something).open
+```ruby
+# bad
+open(something)
+open("| #{something}")
+URI.open(something)
 
-    # good (literal strings)
-    open("foo.text")
-    open("| foo")
-    URI.open("http://example.com")
+# good
+File.open(something)
+IO.popen(something)
+URI.parse(something).open
+
+# good (literal strings)
+open("foo.text")
+open("| foo")
+URI.open("http://example.com")
+```
 
 ### Assign to a variable last execution
+
 > like in bash `A=!!`
+
 ```ruby
 a = _
 ```
@@ -250,11 +293,13 @@ a = _
 # 🎁 SQL
 
 ## Replicate a database (no user connected)
+
 ```SQL
 CREATE DATABASE my_new_database TEMPLATE my_old_database;
 ```
 
-### If users are connected
+### If users connected
+
 ```bash
 pg_dump -Fc -f olddb.pgdump -d olddb &&\
 createdb newdb &&\
@@ -262,11 +307,13 @@ pg_restore -d newdb olddb.pgdump
 ```
 
 ## Send a script.sql
+
 ```bash
 psql -dpostgres -f readOnly.sql
 ```
 
-## Create a user with super powers
+## Create a user with root privileges
+
 ```SQL
 CREATE USER postgres SUPERUSER;
 CREATE ROLE
@@ -277,6 +324,7 @@ CREATE ROLE
 CREATE DATABASE my_new_database TEMPLATE my_old_database;
 
 ## Create a special user
+
 ```SQL
 CREATE USER postgres_read;
 GRANT SELECT, SHOW VIEW ON myapp_development.* TO postgres_read;
@@ -284,19 +332,23 @@ FLUSH PRIVILEGES;
 ```
 
 ## Delete a user
+
 ```SQL
 DROP USER postgres_read
 ```
 
 ## SQL Explorer / Navigator
+
 ```bash
 pgcli -dmyapp_development -U postgres
 ```
 
 ## Check for Objects of role for deleting a role :user
-Just login to the pscli and try to `DROP [USER|ROLE] <name>` and follow
 
-## Search using regex for multiple word matches
+Login to the `pscli` and try to `DROP [USER|ROLE] <name>` and follow
+
+## Search using regex for multi-line words matches
+
 ```SQL
 SELECT id, name
   FROM  workspaces
@@ -309,6 +361,7 @@ SELECT id, name
 ## Git workflow
 
 ### Update local branch with main, re-basing
+
 ```bash
 git checkout main
 git pull
@@ -317,43 +370,50 @@ git rebase main
 ```
 
 ### Clean **main** history
+
 #### start
+
 ```bash
-  git checkout main
-  git pull origin main --rebase
-  git checkout -b feat/BAC-###/name
+git checkout main
+git pull origin main --rebase
+git checkout -b feat/BAC-###/name
 ```
 
 #### develop
+
 ```bash
-  git add [files]
-  git commit -m 'feat/docs/refactor/fix(module): text'
-  git push origin feat/BAC-###/name
+git add [files]
+git commit -m 'feat/docs/refactor/fix(module): text'
+git push origin feat/BAC-###/name
 ```
 
 #### review
+
 ```bash
-  git commit --fixup HEAD~1
+git commit --fixup HEAD~1
 ```
 
 #### submit, done
+
 ```bash
-  git rebase main --interactive --autosquash
+git rebase main --interactive --autosquash
 ```
 
-
 ## Better pushing to other remotes
+
 ```bash
 git push other-remote local-branch:target-branch
 ```
 
 ## Show last commit files and messages
+
 ```bash
 git log -1 --name-status # Display the files
 git show # Display the diff
 ```
 
-## Undo the commit of a file in (last) a commit:
+## Undo the commit of a file in (last) a commit
+
 ```bash
 git rebase -i HEAD~1
 # pick the commit to `e` edit
@@ -363,27 +423,35 @@ git rebase --continue
 ```
 
 ## Remove / Clear 🔨 Hard a sub-module
+
 > Note: a/submodule (no trailing slash)
+
 1. git submodule deinit -f -- a/submodule
 2. rm -rf .git/modules/a/submodule
 3. git rm -f a/submodule
 
 > Or, if you want to leave it in your working tree and have done step 0
-3. git rm --cached a/submodule
-3. (bis)  mv a/submodule_tmp a/submodule
+
+* git rm --cached a/submodule
+* (bis)  mv a/submodule_tmp a/submodule
 
 ## Add Specific Lines With Git Patch
+
 ```bash
 git add -p {file} # --patch
 ```
 
 ## Commit staged `git add` to other commit, not the last
-#### Not so elegant version of `--fixup`
+
+### Not so elegant version of `--fixup`
+
 ```bash
 git add file # or git add -p file
 git commit --fixup {commitHashID}
 ```
-#### Elegant version with `rebase`
+
+### Elegant version with `rebase`
+
 ```bash
 git stash
 git rebase HEAD~5 # and mark the target commit to `edit`
@@ -396,28 +464,34 @@ git stash pop
 ```
 
 ## Undo a `rebase`
+
 ```bash
 git reflog
 git reset --hard {123456}
 ```
 
-## Stack checkouts pop/push/etc...
+## Stack checkouts pop/push/etc
+
 ```bash
 git checkout -
 ```
 
 ## Remove file from commit on rebase interactive mode, to clean the commit.
+
 ```bash
 git reset HEAD^ <file>
 ```
-Or but make sure you copy the file outside the repository before doing this.
+
+Or make sure you copy the file outside the repository before doing this.
+
 ```bash
 git ch HEAD~1 <file>
 ```
 
-# ⚙️  Dev-Ops: Heroku
+# ⚙️ Dev-Ops: Heroku
 
 ## Push to custom Heroku app
+
 ```bash
 # git remote add test-app1 https://git@heroku.com:test-app1.git
 heroku git:remote -a test-app
@@ -426,10 +500,14 @@ heroku git:remote -a test-app
 # 🗒️ Vim
 
 ## Pipe from/to file
-:%!<command>
-gem install --no-user-install --install-dir=./mason/packages --bindir=./mason/bin --no-document rubocop-rails rubocop-rspec
+
+```bash
+gem install --no-user-install --install-dir=./mason/packages \
+  --bindir=./mason/bin --no-document rubocop-rails rubocop-rspec
+```
 
 ## Auto sending keys, to auto-accept
+
 ```vim
 :help execute()
 :execute ":call jukit#convert#notebook_convert()\n y" " Almost here, just the Y isn't getting there
@@ -439,10 +517,13 @@ gem install --no-user-install --install-dir=./mason/packages --bindir=./mason/bi
 # 🐍 Python
 
 ## PEP8 Rules, the standard way of python
+
 > get used to 4 four spaces, instead of 2 two.
 
-### Documentation on the files, classes, methods, and functions.
+### Documentation on the files, classes, methods, and functions
+
 **a.py**:
+
 ```python
 """
 The module.
@@ -530,10 +611,10 @@ print(b)
 
 ## Pypi Python pip pacakge repository
 
-* (https://packaging.python.org/en/latest/guides/distributing-packages-using-setuptools/)
-* (https://github.com/pypa/setuptools_scm)
-* (https://setuptools.pypa.io/en/latest/userguide/declarative_config.html)
-* (https://packaging.python.org/en/latest/specifications/core-metadata/)
+* [https://packaging.python.org/en/latest/guides/distributing-packages-using-setuptools/]
+* [https://github.com/pypa/setuptools_scm]
+* [https://setuptools.pypa.io/en/latest/userguide/declarative_config.html]
+* [https://packaging.python.org/en/latest/specifications/core-metadata/]
 
 ### How to deploy my packages
 
@@ -545,8 +626,7 @@ print(b)
 flit build
 ```
 
-
-#### Standard build-tools and setup.py
+### Standard build-tools and setup.py
 
 For alicia `rm -rf dist/* && python setup.py sdist && twine upload dist/* -r testpypi`
 
@@ -569,7 +649,6 @@ setup(
     ],
 )
 ```
-
 
 If you have a setup.cfg file in your project, you can specify the version number in that file instead of the setup.py file.
 
@@ -656,6 +735,7 @@ this.__dataset = torchvision.datasets[this.dataset_name].call(this.dataset_kwarg
 You can get the labels of torchvision datasets using the targets or classes attribute.
 
 For example, to get the labels of the CIFAR-10 dataset:
+
 ```python
 import torchvision.datasets as datasets
 
@@ -692,14 +772,18 @@ import pytest
 ```
 
 For `@pytest.mark.focus` support you need to run it like this
+
 ```bash
 pytest -v -m focus
 ```
 
 ## Typing and abstract classes
-> https://stackoverflow.com/questions/23831510/abstract-attribute-not-property
 
-`pip install better-abc`
+[https://stackoverflow.com/questions/23831510/abstract-attribute-not-property]
+
+```bash
+pip install better-abc
+```
 
 ```python
 from abc import abstractmethod
@@ -722,6 +806,7 @@ class Cat(Animal):
 ```
 
 ### Get the type and instances of an object
+
 ```python
 type(type(torch.nn.CrossEntropyLoss()))
 ```
@@ -754,6 +839,7 @@ import ipdb; ipdb.set_trace()
 * q   Quit the debugger and exit.
 
 ## From dictionary to list and sets and back to track ids
+
 ```python
 a = {'eight', 'zero', 'six', 'three', 'one', 'nine', 'seven', 'two', 'four', 'five'}
 b = { x:i for i,x in enumerate(list(a)) } # {'two': 0, 'four': 1, 'six': 2, .....
@@ -775,7 +861,7 @@ def test():
 test()
 ```
 
-## Null or empty variables which are going to be ignored, but fetch through pair
+## Null or empty variables which get ignored, but fetch through pair
 
 ```python
 def pair():
@@ -785,7 +871,7 @@ _, bar = pair()
 
 ## 🔥 PyTorch
 
-### Save from tensor image to a file, without any axis just the content
+### Save from tensor image to a file, without any axis the content
 
 ```python
 import matplotlib.pyplot as pyplot
@@ -809,8 +895,8 @@ plt.show()
 ### Transforms for the use of Conv2d from 2D to 4D
 
 I want a lambda transform, to convert a 2D tensor to 4D with the following:
-```python
 
+```python
 transform = transforms.Compose([
   transforms.ToTensor(),
   lambda x: x.reshape(1, x.size(0), x.size(1), 1)
@@ -823,8 +909,10 @@ transform = transforms.Compose([
 ])
 ```
 
-### Get all possible shapes for a given input size:
+### Get all possible shapes for a given input size
+
 Is a mathematical problem of calculating the factors like:
+
 ```python
 import math
 
@@ -937,17 +1025,21 @@ def get_args_kwargs_from_string(string):
 ```
 
 ## Jupiter
+
 > `jupiter notebook *.ipynb`
 > `jupyter lab --watch --autoreload`
 
 Develop and render your notebooks in NeoVim directly [NeoVim|vim-jukit](https://github.com/luk400/vim-jukit)
 
 #### Jupyter Extensions
+
 > To auto reload the notebook, and to install more useful extensions.
+
 ```bash
 jupyter labextension install jupyterlab-autoplay
 jupyter labextension install jupyterlab-autoplay
 ```
+
 ##### Jupyter Extensions: [jupyterlab-autoplay](https://github.com/remborg/autoplay)
 
 ```json
@@ -982,30 +1074,36 @@ OR on a html cell:
 ```
 
 ## 🐼 Matrix and vectors
+
 ### Transposing tips for a simple row-vector to column-vector
 
-    print(features)
-    > array([ 0.49671415, -0.1382643 ,  0.64768854])
+```python
+print(features)
+> array([ 0.49671415, -0.1382643 ,  0.64768854])
 
-    print(features.T)
-    > array([ 0.49671415, -0.1382643 ,  0.64768854])
+print(features.T)
+> array([ 0.49671415, -0.1382643 ,  0.64768854])
 
-    print(features[:, None])
-    > array([[ 0.49671415],
-           [-0.1382643 ],
-           [ 0.64768854]])
+print(features[:, None])
+> array([[ 0.49671415],
+       [-0.1382643 ],
+       [ 0.64768854]])
+```
 
-#### Alternatively
+As an alternative
 
-    np.array(features, ndmin=2)
-    > array([[ 0.49671415, -0.1382643 ,  0.64768854]])
+```python
+np.array(features, ndmin=2)
+> array([[ 0.49671415, -0.1382643 ,  0.64768854]])
 
-    np.array(features, ndmin=2).T
-    > array([[ 0.49671415],
-           [-0.1382643 ],
-           [ 0.64768854]])
+np.array(features, ndmin=2).T
+> array([[ 0.49671415],
+       [-0.1382643 ],
+       [ 0.64768854]])
+```
 
 # 🔣 Regex
+
 > The notion that regex doesn't support inverse matching is not entirely true.
 
 * `^((?!notWord).)*$`
@@ -1013,27 +1111,33 @@ OR on a html cell:
 * `^((?!(notWord|norWord)).)*$`
 
 ## To see messages per file and line
+
 **nvim** `'<,'>s/\(:[^ ]*\)/\1/g`
 
 # 🏢 AWS | Amazon Web Services
 
 ## Relationship databases done better
+
 > Amazon Neptune
-* Alternatively they have amazon block chain
+
+* Either have amazon block chain
 * Or Amazon Quantum Ledger Database, for financial purposes.
 
 ## AWS Interfaces (GUI, CLI, SDK, and beans)
-> You can simply use the CLI or SDK tools, instead of the Bean/CF
+
+> Use the CLI or SDK tools, instead of the Bean/CF
 
 ### Elastic Beanstalk
+
 > To manage all the infrastructure as a code, duplicate rinse repeat delete...
 
 * Alternatively CloudFormatiion, which is a bit more technical since its declarative.
 
 ## Lambda Functions
-> They are meant for servies that take less that 15mins to work.
 
-Alternatively you can have either a A-ECS (elastic container service) A-EKS (elastic kubernetes service)
+> They meant for services that take less that 15mins to work.
+
+You can have either a A-ECS (elastic container service) A-EKS (elastic kubernetes service)
 
 Even more business oriented, use server-less *Fargate* to complete forget the underline of ECS/EKC rather than instances.
 
@@ -1042,12 +1146,13 @@ Even more business oriented, use server-less *Fargate* to complete forget the un
 Big folders are namespaces.
 
 ## Ingress
-They are all about serving traffic to the outside world. To avoid having every service with an public IP, the Ingress's
-serve as an API Gateway.
 
-- And POD's talk by using services.
+They are all about serving traffic to the outside world. To avoid having every service with an public IP, the Ingress's serve as an API Gateway.
+
+* And POD's talk by using services.
 
 ### Ingress Controller
+
 A proxy (revese proxy), is like an having nGinx , configured through a YAML file.
 
 # 💡 Thoughts
@@ -1055,8 +1160,8 @@ A proxy (revese proxy), is like an having nGinx , configured through a YAML file
 ## AI
 
 ### BartrAIND Russell
-> The whole problem with Artificial Intelligence is that bad models are so certain of themselves, and good models so
-> full of doubts.
+
+> The whole problem with Artificial Intelligence is that bad models are so certain of themselves, and good models so full of doubts.
 
 # 🤖 Artificial Intelligence
 
@@ -1066,7 +1171,7 @@ A proxy (revese proxy), is like an having nGinx , configured through a YAML file
 
 Using a Softmax as the output function will return vector of probabilities of our classes.
 
-#### Table of common output function per requirement:
+#### Table of common output function per activation function
 
 | Activation FN | Loss Function             |
 | ---           |  ---                      |
@@ -1077,21 +1182,29 @@ Using a Softmax as the output function will return vector of probabilities of ou
 ### Regularization L1 vs L2
 
 #### L1 Regularization on our error function
-> +λ(∣w1∣+…+∣wn∣)
+
+```math
++λ(∣w1∣+…+∣wn∣)
+```
 
 For feature selection, since it return sparse vectors [0, 1, 0, 1]
 
 #### L2 Regularization on our error function
-> +λ(w1^2+…+wn^2)
+
+```math
++λ(w1^2+…+wn^2)``
+```
 
 For training models, since it will not favor sparse vectors resulting [0.25, 0.5, 0.33, 0.5]
 
 ## AWS | Data Warehouse
+
 > for 10 years ago, within 10 different data schemas
 
 Amazon *RedShift*, supports exabytes for a single query
 
 ## Libraries
+
 I ❤️ the `pandas` library, but note that 🔥 `torch` and `numpy` are lovers
 
 ### Pytorch 🔥 🕶️  torch-vision
@@ -1099,7 +1212,9 @@ I ❤️ the `pandas` library, but note that 🔥 `torch` and `numpy` are lovers
 > Remember to clear your gradients, before staring to train your network with `optimizer.zero_grad()`
 
 #### Save your trained model
-> Make sure the architecture of the saved are respected, aka the matrix definition.
+
+> Make sure the architecture of the saved respect, aka the matrix definition.
+
 ```python
 torch.save(model.state_dict(), 'checkpoint.pth')
 model.load_state_dict(torch.load('checkpoint.pth'))
@@ -1112,20 +1227,26 @@ checkpoint = {
 ```
 
 #### Transformation for images classification
+
 > `RandAugment`: Practical automated data augmentation with a reduced search space
 
-Use  `torchvision.transforms.RandAugment` which is a random Transformation policies that have been optimized by the community for image classification.
+Use  `torchvision.transforms.RandAugment` which is a random Transformation policies that are optimized by the community for image classification.
 
 ### 🪐 Jupiter
-Untill the real refresh is done, just `jupyter notebook --autoreload  --no-browser -y 4-Fashion-MNIST-_Exercises_.ipynb`
 
-#### Error loading the dependencies.
+Just `jupyter notebook --autoreload  --no-browser -y 4-Fashion-MNIST-_Exercises_.ipynb`
+
+#### Error loading the dependencies
+
 In your *notebook.ipynb*:
+
 ```python
 # Jupiter needs me to manually re-install the dependencies from pip
 !pip install torch torchvision helper
 ```
+
 #### Data images to play and train
+
 ```python
 # Define a transform to normalize the data
 transform = transforms.Compose([transforms.ToTensor(),
@@ -1140,23 +1261,24 @@ testloader = DataLoader(testset, batch_size=32, shuffle=True)
 ```
 
 ## Convolution Conv2D or Conv3D
+
 > Edge detection, use "MaxPooling" or "AvgPooling" to remove noise and make the output of the convolution more
 > focused on the data so zooming in the meaningful data and removing zeros.
 
 The output tensor formula is  `((W + 2P − K) / S)+1.`
 
-    - W is the input volume - The NxM matrix or tensor input.
-    - P is the padding - The amount of tolerance and padding added for bigger kernels or strides
-    - K is the Kernel size - The size of the filter kernel, the view if you want.
-    - S is the stride - The amount of pixels to move, use S=2 to half the output size.
+* W is the input volume - The NxM matrix or tensor input.
+* P is the padding - The amount of tolerance and padding added for bigger kernels or strides
+* K is the Kernel size - The size of the filter kernel, the view if you want.
+* S is the stride - The amount of pixels to move, use S=2 to half the output size.
 
 ### Pooling layer
 
 The output tensor formula is `((W - K) / S) + 1`
 
-- Kernel size is basically the matrix where to apply the operation (max, avg, etc..)
+* Kernel size is basically the matrix where to apply the operation (max, avg, etc..)
 
-### 💡 Thoughts
+### 💡Neural networks thoughts
 
 Hey Chat, so Convolutional Neural Networks are great detecting features in images. So if we want to create a network for flower classification, we should use some Convolutional layer, so that it can learn to distinguish features that make any flower a specific kind. But this got me thinking, shouldn't I initially train the network simply to recognize or not ( binary classification ) and one is trained, add convolutional layer to such a network and freezing the initial layer which have already distinguish the features that make a flower.
 
@@ -1171,7 +1293,9 @@ for layer in model[:2]:
 # 📄 PDF `gs` ghost script
 
 ## Compress a pdf file
-> (https://opensource.com/article/20/8/reduce-pdf)
+
+[https://opensource.com/article/20/8/reduce-pdf]
+
 ```bash
 gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/ebook \
 -dNOPAUSE -dBATCH -dColorImageResolution=150 \
@@ -1181,6 +1305,7 @@ gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/ebook \
 # Mac 🍎
 
 ## Fix Crackling or Garbled Sound By Killing Core Audio
+
 ```bash
 sudo killall coreaudiod`
 ```
