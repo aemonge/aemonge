@@ -516,6 +516,73 @@ gem install --no-user-install --install-dir=./mason/packages \
 
 # 🐍 Python
 
+## Float, Integers and Scientific notation representation
+
+```python
+print(3e-3) # 0.003
+print(3e3)  # 3000
+```
+
+## F-String format string representation
+
+### Precision and type
+
+```python
+print(f"Pi is approximately {3.14159:.2f}.")  # Pi is approximately 3.14.
+print(f"The answer is {42:e}.")               # The answer is 4.200000e+01.
+```
+
+### Nesting
+
+```python
+name = "Alice"
+age = 30
+gender = "female"
+print(f"{f'Mr. {name}' if age >= 18 and gender == 'male' else f'Ms. {name}'} is {age} years old.")
+# Ms. Alice is 30 years old.
+```
+
+### Padding
+
+Left Padding:
+```python
+s = "pad this"
+padded_output = f"{s:>10}"
+print(padded_output)  # Output: "   pad this"
+```
+
+Center Padding:
+```python
+s = "pad this"
+padded_output = f"{s:^10}"
+print(padded_output)  # Output: " pad this "
+```
+
+Delimiter change:
+```python
+s = "pad this"
+padded_output = f"{s:-<10}"
+print(padded_output)  # Output: "pad this--"
+```
+
+Dictionary Padding:
+```python
+s = {"foo": "bar", "baz": "qux"}
+for key, value in s.items():
+    padded_output = f"{key:10}: {value:>10}"
+    print(padded_output)
+```
+
+Functions (or custom types) Padding:
+```python
+from torchvision.transforms import Compose, Resize, ToTensor
+
+s = Compose([Resize((224, 224)), ToTensor()])
+for transform in s.transforms:
+    padded_output = f"{str(transform):>30}"
+    print(padded_output)
+```
+
 ## PEP8 Rules, the standard way of python
 
 > get used to 4 four spaces, instead of 2 two.
@@ -1167,6 +1234,71 @@ A proxy (revese proxy), is like an having nGinx , configured through a YAML file
 
 ## Basic concepts
 
+### Learning Rate - Scheduler
+
+[https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate]
+How to adjust the learning on each epoch, to start with a big LR and get smaller over time.
+
+```python
+from torch.optim.lr_scheduler import StepLR
+
+scheduler = StepLR(optimizer, step_size=5, gamma=0.5)
+
+# Training loop
+for ...
+    ...
+    # Update the weights
+    optimizer.step()
+
+    # Update the learning rate in the
+    # optimizer according to the schedule
+    scheduler.step()
+```
+
+#### StepLR
+
+This scheduler decreases the learning rate by a factor after a fixed number of epochs.
+
+* step_size: *Eons inside the epochs.* determines the number of epochs after which the learning rate will be multiplied by the `gamma` parameter.
+* gamma: [0.1] The factor to reduce the learning rate `lr = initial_lr * gamma^(epoch // step_size)`
+
+
+#### ReduceLROnPlateau
+
+This scheduler monitors the validation loss and decreases the learning rate if the validation loss does not improve for a fixed number of epochs.
+
+```python
+optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min')
+
+for training_loop ......
+    for batch_loop .......
+        loss = criterion(outputs.flatten(), images.flatten())
+        scheuler_loss = loss.item() # loss.detach() if loss tensor(0.1167, grad_fn=<MseLossBackward0>)
+        loss.backward()
+        optimizer.step()
+    scheuler(scheuler_loss)
+```
+
+NOTE: `tensor(0.1167, grad_fn=<MseLossBackward0>)` To print the loss during training
+
+#### CosineAnnealingLR
+
+```python
+optimizer = torch.optim.SGD(model.parameters(), lr=0.1, momentum=0.9)
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs)
+```
+
+This scheduler gradually reduces the learning rate to a minimum value over a fixed number of epochs using a cosine function.
+
+#### MultiStepLR
+
+This scheduler decreases the learning rate at specific milestones defined by the user.
+
+#### CyclicLR
+
+This scheduler varies the learning rate cyclically between minimum and maximum values.
+
 ### Output functions
 
 Using a Softmax as the output function will return vector of probabilities of our classes.
@@ -1196,6 +1328,56 @@ For feature selection, since it return sparse vectors [0, 1, 0, 1]
 ```
 
 For training models, since it will not favor sparse vectors resulting [0.25, 0.5, 0.33, 0.5]
+
+## Deep Networks, the breakthrough of vanishing gradients
+
+> This is the main reason why Resnet implements a custom `forward` function.
+
+[Resnet](https://pytorch.org/vision/stable/_modules/torchvision/models/resnet.html)
+
+Microsoft implemented a simple and cleaver trick to avoid the gradients becoming too week to impact the backward weight calculation (vanishing gradient).
+
+To understand the idea, imagine having sum function that aggregates layers allowing a **skip connection** for the gradient. On the above code, what would happen if the gradient becomes zero and `F = self.conv_block(x) => 0`, this slight fix avoid the gradient from vanishing.
+
+```python
+class ResidualBlock(nn.Module):
+    def __init__(self, inp, out1, out2):
+        super().__init__()
+
+        self.conv_block = nn.Sequential(
+            nn.Conv2d(inp, out1, 3),
+            nn.ReLU(),
+            nn.Conv2d(out1, out2, 3)
+        )
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        # F(x)
+        F = self.conv_block(x)
+        # IMPORTANT BIT: we sum the result of the
+        # convolutions to the input image
+        H = F + x
+        # Now we apply ReLU and return
+        return self.relu(H)
+```
+
+## Transfer learning, by freezing parameters and adding classifier
+
+To transfer learning, you choose from a pre-trained data network like resnet18 with it weights and biases downloaded. And you can either simply change the `classifier` or got deeper in fine tuning, and freeze some layer of your choosing.
+
+>  You will need to use a learning rate small enough so you do not destroy the filters that the network has learned on ImageNet.
+
+So If I want my network to know beforehand what's a flower, I can use a pre-trained network on ImageNet (1000 classes) which can tell a animal from a plant and object. And starting from there I can freeze 0 to N of the features weights, and start my own training setting own features in convolutional layers for distinguishing the classes of a flower (pre knowing that's is a flower)
+
+```python
+# Freeze the first two convolutional layers
+for layer in model[:2]:
+    layer.requires_grad = False
+```
+
+### Libraries
+
+* `pip install `[timm](https://github.com/huggingface/pytorch-image-models)
 
 ## AWS | Data Warehouse
 
@@ -1267,10 +1449,10 @@ testloader = DataLoader(testset, batch_size=32, shuffle=True)
 
 The output tensor formula is  `((W + 2P − K) / S)+1.`
 
-* W is the input volume - The NxM matrix or tensor input.
-* P is the padding - The amount of tolerance and padding added for bigger kernels or strides
-* K is the Kernel size - The size of the filter kernel, the view if you want.
-* S is the stride - The amount of pixels to move, use S=2 to half the output size.
+* **W** is the input volume - The NxM matrix or tensor input.
+* **P** is the padding - The amount of tolerance and padding added for bigger kernels or strides
+* **K** is the Kernel size - The size of the filter kernel, the view if you want.
+* **S** is the stride - The amount of pixels to move, use S=2 to half the output size.
 
 ### Pooling layer
 
@@ -1278,9 +1460,89 @@ The output tensor formula is `((W - K) / S) + 1`
 
 * Kernel size is basically the matrix where to apply the operation (max, avg, etc..)
 
+## Auto Encoders
+
+Basically we define two functions a decoder and a encoder, which one should aim to make the data slimmer and more narrowed while the other should take the smaller data and expand it. Visually we shrink the data, and we later enlarge it.
+
+**Neural Network**
+```python
+def __init__(self):
+    self.encoder = nn.Sequential() # As you wish
+    self.decoder = nn.Sequential() # As you wish
+    self.auto_encoder = nn.Sequential(
+        nn.Flatten(),  # Flatten the input image
+        self.encoder,
+        self.decoder
+    )
+def forward(self, x):
+    encoded = self.auto_encoder(x)
+    # Reshape the output as an image
+    # remember that the shape should be (batch_size, channel_count, height, width)
+    return encoded.reshape((x.shape[0], 1, 28, 28))
+```
+
+**Training loop**
+```python
+loss = criterion(outputs.flatten(), images.flatten())
+# loss = criterion(outputs.flatten(), labels) Against the images again
+```
+### Convolutional Auto Encoders (decoding)
+
+The encoding part we already know (look above), so for the decoding we will use the inverse of *pooling*, **un-pooling** 😮
+
+* Nearest Neighbors, copy existing values `nn.Upsample(scale_factor = 2, mode='nearest')`
+
+#### Transposed Convolutional Layer (de-convolutional layer)
+
+`nn.ConvTranspose2d`
+
+This is applies the convolution by increasing the padding and stride to have it increase the output.
+
+Instead of using the kernel to add/multiply all of it into a single number, it uses the kernel as the main output for each pixel with the input of the first pixel. *Note* that the paddings and striding, must be bigger to avoid heavy overlaps and keep in mind overlaps are resolved by adding:
+
+The formula is `S * (W - 1) + K - 2P` or `output = stride * (input - 1) + kernel - 2 * padding`:
+
+* **output** The spatial size of the output tensor
+* **input** The spatial size of the input tensor
+* **kernel** The spatial size of the kernel
+* **padding** The number of zero-valued pixels
+
+##### Example
+
+```python
+class Autoencoder(nn.Module):
+    def __init__(self, encoding_dim):
+        super(Autoencoder, self).__init__()
+        self.encoder = nn.Sequential(
+            nn.Conv2d(1, 3, 3, padding=1), # Same size
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2)  # Half the size
+        )
+        self.decoder = nn.Sequential(
+            nn.ConvTranspose2d(3, 1, 2, stride=2), # Undo the Max Pooling
+            nn.Sigmoid()
+        )
+        self.auto_encoder = nn.Sequential( self.encoder, self.decoder)
+
+    def forward(self, x):
+        return self.auto_encoder(x)
+```
+
+##### NOTE: That `nn.Unsample` performs better
+
+Eventually `ConvTranspose2d` would learn to perform better, but initially the "hard-coded" `mode="nearset"` is better.
+
+For some tasks, such as image super-resolution, nearest neighbor interpolation can be a more effective method for scaling up an image.
+
+In practice, it is often beneficial to use a combination of different upsampling methods, such as nearest neighbor interpolation, bilinear interpolation, and transposed convolutional layers, in order to achieve the best performance.
+
 ### 💡Neural networks thoughts
 
-Hey Chat, so Convolutional Neural Networks are great detecting features in images. So if we want to create a network for flower classification, we should use some Convolutional layer, so that it can learn to distinguish features that make any flower a specific kind. But this got me thinking, shouldn't I initially train the network simply to recognize or not ( binary classification ) and one is trained, add convolutional layer to such a network and freezing the initial layer which have already distinguish the features that make a flower.
+#### AeMonge
+
+> Hey Chat, so Convolutional Neural Networks are great detecting features in images. So if we want to create a network for flower classification, we should use some Convolutional layer, so that it can learn to distinguish features that make any flower a specific kind. But this got me thinking, shouldn't I initially train the network simply to recognize or not ( binary classification ) and one is trained, add convolutional layer to such a network and freezing the initial layer which have already distinguish the features that make a flower.
+
+#### ChatGPT
 
 > The frozen layers act as a feature extractor, and the new layers are trained to learn to classify the flower types based on the extracted features. This approach can help speed up the training process and improve the performance of your network.
 
@@ -1289,6 +1551,26 @@ Hey Chat, so Convolutional Neural Networks are great detecting features in image
 for layer in model[:2]:
     layer.requires_grad = False
 ```
+
+#### AeMonge
+
+Aha! That's basically transfer knowledge in a fine tune way. Okey, that start to click with me.
+
+But now I'm wondering, can I challenge two different networks against each other. Having a network trained to distinguish between flower types given a colored images and other network trained for the same but with greyscale images. The purpose would be to make them train and validate each other, as the color of a flower won't affect the type of it; they network that has trained with the colored images has to adjust it's weights on the convolutional layer to drop colored features. While the greyscale network will learn to understand depth better, since that better understand with colors, and will also adjust it's features on the convolutional layer.
+
+Is this a common practice? If so, how is it called and can you provide a better explanation of such with references?
+
+#### ChatGPT - Adversarial Training CycleGAN
+
+What you are describing is a form of **adversarial training**, where two neural networks are pitted against each other to improve their performance. In your case, you want to train two networks to classify flower types, one using color images and the other using greyscale images, and force them to learn features that are complementary to each other.
+
+This approach is similar to the concept of domain adaptation, where a model trained on one domain is adapted to perform well on a different but related domain. In your case, the two domains are color images and greyscale images, and you want to train a model that can generalize well across both domains.
+
+One way to achieve this is to use a technique called **CycleGAN**, which is a type of generative adversarial network (`GAN`) that can learn to translate between two different domains without the need for paired training data. In your case, you could use `CycleGAN` to generate greyscale versions of the color images and vice versa, and then use the resulting images to train your two networks.
+
+Another approach is to use a technique called domain adversarial training, where a domain classifier is added to the network, and the network is trained to simultaneously minimize the classification loss and maximize the confusion of the domain classifier. In your case, the domain classifier could be trained to distinguish between color and greyscale images, and the two networks could be trained to confuse the domain classifier by producing features that are common across both domains.
+
+Overall, this approach is not very common, but it has been shown to be effective in certain scenarios. However, it requires careful design and tuning of the networks and training procedures, and it may not always be necessary or beneficial depending on the specific problem and data at hand.
 
 # 📄 PDF `gs` ghost script
 
@@ -1308,4 +1590,36 @@ gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/ebook \
 
 ```bash
 sudo killall coreaudiod`
+```
+
+#  Arch Linux
+
+## Re Install with pacman (re build)
+
+```bash
+pacman -S --needed -f <package>
+```
+
+## Clean the Overlay from 戮 SteamOS and pacman
+
+Check the journal logs, and clean them
+
+```bash
+sudo journalctl --disk-usage
+sudo journalctl --vacuum-size=10M
+```
+
+SteamOS. Check my usage of the /var and /etc overlay System
+
+```bash
+sudo du -hs /{var,etc}/* | sort -h
+```
+
+## Pacman
+
+### Clean cache
+
+```bash
+pacman -Sc
+pacman -Scc
 ```
