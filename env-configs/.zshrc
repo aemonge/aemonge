@@ -41,8 +41,8 @@ PROFILE() {
 }
 
 SSH() {
-  eval "$(ssh-agent -s)" > /dev/null
-  ssh-add ~/.ssh/git_aemonge > /dev/null
+  eval "$(ssh-agent -s)" > /dev/null 2>&1
+  ssh-add ~/.ssh/git_aemonge > /dev/null 2>&1
 }
 
 CONDA() {

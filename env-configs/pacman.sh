@@ -13,7 +13,8 @@ _pacman() {
   pacman -S linux-headers gcc base-devel git
   pacman -S python-pip zsh git tig \
    flameshot glow xclip onboard \
-   nodejs npm the_silver_searcher neovim
+   nodejs npm the_silver_searcher neovim \
+   entr
 }
 
 _pickaur() {

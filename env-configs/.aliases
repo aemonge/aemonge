@@ -5,3 +5,4 @@ alias vim=~/u/bin/vim
 alias vcd=~/u/bin/vcd
 alias open=xdg-open
 alias ll='tree -Chal -L 3 --dirsfirst'
+alias fvim='vim $(fzf)'
