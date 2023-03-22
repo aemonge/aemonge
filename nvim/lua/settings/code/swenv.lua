@@ -6,7 +6,7 @@ table.insert(M, { "AckslD/swenv.nvim",
       get_venvs = function(venvs_path)
         return require('swenv.api').get_venvs(venvs_path)
       end,
-      venvs_path = vim.fn.expand('~/.conda/envs'),
+      venvs_path = vim.fn.expand('~/.miniconda/envs'),
       post_set_venv = function ()
         vim.cmd(":LspRestart<cr>")
       end

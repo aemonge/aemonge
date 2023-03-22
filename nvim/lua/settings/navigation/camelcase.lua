@@ -4,7 +4,6 @@
 local M = {}
 
 table.insert(M, { "bkad/CamelCaseMotion",
-  event = "InsertEnter",
   dependencies =  "folke/which-key.nvim" ,
   config = function ()
     local mapping_opts ={ buffer = nil, silent = true, noremap = true, nowait = true }

@@ -5,8 +5,8 @@ local M = {}
 local hover = require("settings.lsp.hover")
 table.insert(M, hover)
 
--- local ufo = require("settings.lsp.nvim-ufo")
--- table.insert(M, ufo)
+local ufo = require("settings.lsp.nvim-ufo")
+table.insert(M, ufo)
 
 local lspzero = require "settings.lsp.lsp-zero"
 table.insert(M, lspzero)
