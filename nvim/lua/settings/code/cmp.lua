@@ -20,7 +20,7 @@ table.insert(M, { 'tzachar/fuzzy.nvim', event = "InsertEnter",
   dependencies = {'nvim-telescope/telescope-fzf-native.nvim'}
 })
 table.insert(M, {"hrsh7th/cmp-path", event = "InsertEnter"})
--- table.insert(M, { "ray-x/cmp-treesitter", event = "InsertEnter" })
+table.insert(M, { "ray-x/cmp-treesitter", event = "InsertEnter" })
 
 -------------------------------------------------------
 -- Load CMP
@@ -160,12 +160,12 @@ table.insert(M, { "hrsh7th/nvim-cmp",
           -- end,
           -- keyword_pattern = [[^\s]]
         },
-        -- { name = 'treesitter',
-        --   priority = 50,
-        --   max_item_count = 5,
-        --   keyword_length = 2,
-        --   -- keyword_pattern = [[^\s]]
-        -- },
+        { name = 'treesitter',
+          priority = 50,
+          max_item_count = 5,
+          keyword_length = 2,
+          -- keyword_pattern = [[^\s]]
+        },
         { name = "luasnip",
           priority = 30,
           keyword_length = 2,
