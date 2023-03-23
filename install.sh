@@ -26,7 +26,8 @@ devConfig() {
 }
 
 envConfig() {
-  rm ~/.config/pikaur.conf && ln -s ~/usr/env-configs/pikaur.conf ~/.config/pikaur.conf
+  rm ~/.config/pikaur.conf
+  ln -s ~/usr/env-configs/pikaur.conf ~/.config/pikaur.conf
   P="$HOME/usr/env-configs"
   for f in $(ls -a $P); do
     if [[ -f "$P/$f"  ]]; then
@@ -37,7 +38,7 @@ envConfig() {
 }
 
 firefox() {
-  cd /home/deck/.mozilla/firefox/*.deck
+  cd /home/deck/.mozilla/firefox/40f5zrsq.deck*
   mkdir -p chrome 2> /dev/null
   cd chrome
   rm userChrome.css 2> /dev/null
@@ -54,10 +55,10 @@ nvim() {
   ln -s ~/usr/nvim ~/.config/.
 }
 
-# sudo system
-# fonts
+sudo system
+fonts
 devConfig
 envConfig
 nvim
-# kde
+kde
 firefox

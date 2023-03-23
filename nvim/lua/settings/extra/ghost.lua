@@ -18,8 +18,10 @@ local M = { "subnut/nvim-ghost.nvim",
       t = {
         g = { function ()
             vim.cmd[[
+              silent! call nvim_ghost#disable()
               silent! call nvim_ghost#kill_server()<cr>
               silent! call nvim_ghost#start_server()
+              silent! call nvim_ghost#enable()
             ]]
           end, "Re-Start Ghost server"
         }

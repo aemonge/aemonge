@@ -488,7 +488,7 @@ Or make sure you copy the file outside the repository before doing this.
 git ch HEAD~1 <file>
 ```
 
-# ⚙️ Dev-Ops: Heroku
+# ️ Dev-Ops: Heroku
 
 ## Push to custom Heroku app
 
@@ -1584,7 +1584,7 @@ gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/ebook \
 -sOutputFile=output.pdf someBigFile.pdf
 ```
 
-# Mac 🍎
+#  Mac
 
 ## Fix Crackling or Garbled Sound By Killing Core Audio
 
@@ -1593,6 +1593,22 @@ sudo killall coreaudiod`
 ```
 
 #  Arch Linux
+
+## KDE Plasma
+
+### Send notifications
+
+```bash
+notify-send "Title" "Message" -a "Application"
+```
+
+Send it to your phone to with KDE Connect
+
+```bash
+kdeconnect-cli --send-notification "My Notification" "This is a test"
+# kdeconnect-cli -d 34414e905154e6d7 --execute-command="notify-send 'My Notification' 'This is a test'"
+
+```
 
 ## Re Install with pacman (re build)
 
