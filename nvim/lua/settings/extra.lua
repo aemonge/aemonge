@@ -6,8 +6,8 @@ table.insert(M, cycle)
 -- local scratch = require("settings.extra.scratch")
 -- table.insert(M, scratch)
 
--- local grammar = require("settings.extra.grammar-guard")
--- table.insert(M, grammar)
+local grammar = require("settings.extra.grammar-guard")
+table.insert(M, grammar)
 
 local glow = require("settings.extra.glow")
 table.insert(M, glow)

@@ -1,4 +1,4 @@
-<!-- markdownlint-configure-file { "line-length": false } -->
+<!-- markdownlint-configure-file { "line-length": 110 } -->
 
 # 💻 Command line
 

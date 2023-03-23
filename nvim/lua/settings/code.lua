@@ -11,8 +11,8 @@ table.insert(M, nullls)
 local alignment = require "settings.code.align"
 table.insert(M, alignment)
 
--- local treesitter = require "settings.code.treesitter"
--- table.insert(M, treesitter)
+local treesitter = require "settings.code.treesitter"
+table.insert(M, treesitter)
 
 local comment = require "settings.code.comment"
 table.insert(M, comment)

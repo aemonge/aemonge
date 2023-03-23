@@ -1,7 +1,7 @@
 [Appearance]
 ColorScheme=nightfox_konsole
 DimmValue=89
-Font=MesloLGS NF,11,-1,5,50,0,0,0,0,0
+Font=MesloLGSDZ NF,11,-1,5,50,0,0,0,0,0
 
 [General]
 Command=/bin/zsh
@@ -11,8 +11,8 @@ Name=konsole
 Parent=FALLBACK/
 StartInCurrentSessionDir=false
 TerminalCenter=true
-TerminalColumns=110
-TerminalRows=30
+TerminalColumns=105
+TerminalRows=35
 
 [Scrolling]
 HighlightScrolledLines=false

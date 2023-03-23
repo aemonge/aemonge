@@ -17,7 +17,7 @@ AFTER_NVIM(){
   ZINIT_PLUGINS
   THEME
   CONDA
-  alias vim=~/u/bin/vim
+  alias vim=~/usr/bin/vim
 }
 
 PATH() {

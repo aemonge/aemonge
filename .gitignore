@@ -4,3 +4,4 @@
 nvim/lazy-lock.json
 app-configs/firefox/*
 !app-configs/firefox/chrome
+app-configs/customization

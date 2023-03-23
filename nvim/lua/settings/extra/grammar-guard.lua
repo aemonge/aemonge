@@ -11,7 +11,7 @@ table.insert(D, { "brymer-meneses/grammar-guard.nvim",
   end,
   config = function ()
     require("lspconfig").grammar_guard.setup({
-      cmd = { '/home/aemonge/u/bin/ltex-ls' }, -- https://github.com/valentjn/ltex-ls/releases/tag/15.2.0
+      cmd = { '/home/aemonge/usr/bin/ltex-ls' }, -- https://github.com/valentjn/ltex-ls/releases/tag/15.2.0
       settings = {
         ltex = {
           enabled = { "latex", "tex", "bib", "markdown", "html", "" },
