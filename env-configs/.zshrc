@@ -121,7 +121,6 @@ ZINIT_PLUGINS_COMPLETIONS(){
 ZINIT_PLUGINS(){
     ZSH_HISTORY
     ZSH_AUTOSUGGEST_STRATEGY=(history completion)
-    ZINIT_PLUGINS_COMPLETIONS
 
     # zinit load zdharma-continuum/history-search-multi-word
     zinit ice wait lucid # Turbo mode is verbose, so you need an option for quiet.
@@ -129,6 +128,8 @@ ZINIT_PLUGINS(){
 
     zinit light zdharma-continuum/fast-syntax-highlighting
     zinit snippet OMZP::dotenv
+
+    ZINIT_PLUGINS_COMPLETIONS
 
     # zsh-autosuggestions
     zinit ice wait lucid # Turbo mode is verbose, so you need an option for quiet.
@@ -175,7 +176,7 @@ START() {
     if [ $ENABLE_TVIM -eq "1" ]; then
         if [ -z $NVIM ]; then
             BEFORE_NVIM
-            nvim +':lua StartTerm(1)' && exit || $(ZINIT_PLUGINS && THEME)
+            nvim +':lua StartTerm(1)' && exit || AFTER_NVIM
         else
             AFTER_NVIM
         fi

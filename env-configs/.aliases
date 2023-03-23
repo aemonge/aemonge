@@ -2,6 +2,7 @@
 # alias open='xdg-open'
 # alias xclip=pbcopy
 alias vim=~/usr/bin/vim
+alias nvim-mux="nvim +':lua StartTerm(1)'"
 alias vcd=~/usr/bin/vcd
 alias open=xdg-open
 alias ll='tree -Chal -L 3 --dirsfirst'
