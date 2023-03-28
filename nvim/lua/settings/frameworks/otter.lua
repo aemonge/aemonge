@@ -1,9 +1,15 @@
 local M = {}
 
-table.insert(M, { "jmbuhr/otter.nvim",
+table.insert(M, {
+  "jmbuhr/otter.nvim",
   ft = { "quarto" },
-  config = function ()
-    local otter = require'otter'
+  dependencies = {
+    'hrsh7th/nvim-cmp',
+    'neovim/nvim-lspconfig',
+    'nvim-treesitter/nvim-treesitter'
+  },
+  config = function()
+    local otter = require 'otter'
     vim.api.nvim_create_autocmd({ "BufEnter" }, {
       pattern = { "*.qmd" },
       callback = function()

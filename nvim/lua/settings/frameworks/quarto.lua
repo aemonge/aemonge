@@ -4,7 +4,9 @@ table.insert(M, { 'quarto-dev/quarto-nvim',
   ft = { "quarto" },
   dependencies = {
     'jmbuhr/otter.nvim',
-    'neovim/nvim-lspconfig'
+    'hrsh7th/nvim-cmp',
+    'neovim/nvim-lspconfig',
+    'nvim-treesitter/nvim-treesitter'
   },
   config = function()
     require 'quarto'.setup {

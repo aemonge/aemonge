@@ -33,8 +33,11 @@ table.insert(plugins, visual)
 local terminal = require "settings.terminal"
 table.insert(plugins, terminal)
 
-local code = require "settings.code"
-table.insert(plugins, code)
+local format = require "settings.format"
+table.insert(plugins, format)
+
+local languages = require "settings.languages"
+table.insert(plugins, languages)
 
 local bots = require "settings.bots"
 table.insert(plugins, bots)
@@ -45,8 +48,8 @@ table.insert(plugins, lsp)
 local frameworks = require "settings.frameworks"
 table.insert(plugins, frameworks)
 
--- local debbug = require "settings.debug"
--- table.insert(plugins, debbug)
+local debbug = require "settings.debug"
+table.insert(plugins, debbug)
 
 local navigation = require "settings.navigation"
 table.insert(plugins, navigation)
