@@ -10,6 +10,8 @@ table.insert(M, { "mfussenegger/nvim-dap",
     require("neodev").setup({
       library = { plugins = { "nvim-dap-ui" }, types = true },
     })
+    require('dap-python').setup('~/.virtualenvs/debugpy/bin/python')
+    require('dap-python').test_runner = 'pytest'
     require "which-key".register({
       d = {
         name = "Debugging tools",
@@ -19,9 +21,22 @@ table.insert(M, { "mfussenegger/nvim-dap",
         i = { ":DapStepInto<cr>", "Step into" },
         o = { ":DapStepOut<cr>", "Step out" },
         n = { ":DapStepOver<cr>", "Step Over" },
-        t = { require"dapui".toggle, "Toggle" }
+        t = { require"dapui".toggle, "Toggle" },
+        s = { require"dapui".setup, "Setup DAP" },
+        M = { require('dap-python').test_method, "Test method"},
+        C = { require('dap-python').test_class, "Test class"}
       },
-      v = { -- Python only, later on I should relay only on setting breakpoints and the DAP
+    }, {
+      mode = "n",
+      prefix = "<leader>",
+      buffer = nil,
+      silent = true,
+      noremap = true,
+      nowait = true,
+    })
+    require "which-key".register({
+      d = { [[<Esc>:lua require('dap-python').debug_selection()]], "Debug Selection "},
+      D = { -- Python only, later on I should relay only on setting breakpoints and the DAP
         function()
           vim.fn.feedkeys('o', 'n')
           vim.fn.feedkeys("oprint('',)", 'i')
@@ -29,7 +44,7 @@ table.insert(M, { "mfussenegger/nvim-dap",
         "Debugging print",
       }
     }, {
-      mode = "n",
+      mode = "v",
       prefix = "<leader>",
       buffer = nil,
       silent = true,

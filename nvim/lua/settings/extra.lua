@@ -15,6 +15,7 @@ table.insert(M, glow)
 local ghost = require("settings.extra.ghost")
 table.insert(M, ghost)
 
+table.insert(M, { "lewis6991/impatient.nvim" })
 table.insert(M, { "tpope/vim-repeat" })
 
 table.insert(M, { "rcarriga/nvim-notify",
