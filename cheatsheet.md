@@ -880,6 +880,25 @@ type(type(torch.nn.CrossEntropyLoss()))
 
 ## Debug
 
+### Pprint, dir, help and inspect
+
+Use `pprint` or `inspect` to get more information about the variable. and `dir` to
+inspect the methods, attributes, and variables. Or `help` which displays the docstring.
+
+```python
+import inspect
+from pprint import pprint
+
+def example_function():
+    print("Hello, world!")
+
+# Get the source code of the example_function
+source_code = inspect.getsource(example_function)
+
+# Print the source code using pprint
+pprint(source_code)
+```
+
 ### pdb / ipdb | Python (intelligent) DeBugger
 
 ```python
@@ -936,7 +955,141 @@ def pair():
 _, bar = pair()
 ```
 
+##  SciPy - Fundamental algorithms for scientific computing in Python
+
+### Sub-modules
+
+* **optimize**: optimization and root finding.
+* **linalg**: linear algebra.
+* **interpolate**: interpolation.
+* **integrate**: integration and ODE solvers.
+* **signal**: signal processing.
+* **special**: special functions.
+* **stats**: statistics and random numbers.
+* **spatial**: spatial algorithms and data structures.
+* **ndimage**: n-dimensional image processing.
+* **constants**: physical and mathematical constants.
+
+### Optimization and Root Finding (scipy.optimize)
+
+Optimization of scalar and multivariate functions, as well as root finding.
+
+```python
+from scipy.optimize import minimize, root
+# Minimize a scalar function
+result = minimize(fun, x0, method='BFGS', options={'disp': True})
+# Find a root of a scalar function
+solution = root(fun, x0, method='hybr', options={'xtol': 1e-8, 'disp': True})
+```
+
+### SciPy vs NumPy
+
+| Feature                       | NumPy                       | SciPy |
+|---                            |---                          |---    |
+| Purpose                       | General-purpose numerical computing              | Scientific and technical computing                            |
+| Focus                         | N-dimensional arrays (ndarrays), basic operations| Advanced functionality built on top of NumPy                  |
+| Linear Algebra                | Basic linear algebra support                     | Advanced linear algebra, including decompositions and solvers |
+| Interpolation                 | N/A                                              | Interpolation functions for 1D, 2D, and ND data               |
+| Optimization and Root-finding | N/A                                              | Optimization and root-finding algorithms                      |
+| Signal Processing             | N/A
+
 ## 🔥 PyTorch
+
+###  🔥 PyTorch vs  🌊 TensorFlow
+
+| Feature                   | TensorFlow                                             | PyTorch                                                    |
+|---------------------------|--------------------------------------------------------|-------------------------------------------------------------|
+| Origin                    | Developed by Google Brain                              | Developed by Facebook's AI Research Lab (FAIR)             |
+| Release Date              | November 2015                                          | October 2016                                                |
+| Computational Graph       | Static graph (Eager execution available)               | Dynamic computational graph                                |
+| Debugging                 | More challenging due to static graph                   | Easier due to dynamic graph and native Python support      |
+| APIs                      | High-level (Keras) and low-level APIs available        | Native Pythonic APIs, PyTorch Lightning for high-level     |
+| Deployment                | TensorFlow Serving, TensorFlow Lite, TensorFlow.js     | TorchScript, ONNX, and third-party tools                   |
+| Popularity & Community    | Widely adopted, large community and resources          | Rapidly growing community, increasing research adoption    |
+| Performance               | Highly optimized for both CPU and GPU                  | Highly optimized for both CPU and GPU, slightly faster    |
+| Distributed Training      | Built-in support with `tf.distribute`                 | Built-in support with `torch.distributed`                  |
+
+#### LeNet-5 In 🔥 PyTorch
+
+```python
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+class LeNet5(nn.Module):
+    def __init__(self):
+        super(LeNet5, self).__init__()
+        self.conv1 = nn.Conv2d(1, 6, 5)
+        self.pool = nn.MaxPool2d(2, 2)
+        self.conv2 = nn.Conv2d(6, 16, 5)
+        self.fc1 = nn.Linear(16 * 5 * 5, 120)
+        self.fc2 = nn.Linear(120, 84)
+        self.fc3 = nn.Linear(84, 10)
+
+    def forward(self, x):
+        x = self.pool(F.relu(self.conv1(x)))
+        x = self.pool(F.relu(self.conv2(x)))
+        x = x.view(-1, 16 * 5 * 5)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+lenet5 = LeNet5()
+```
+
+#### LeNet-5 In 🌊 PyTorch
+
+```python
+import tensorflow as tf
+from tensorflow.keras import layers, models
+
+class LeNet5(models.Model):
+    def __init__(self):
+        super(LeNet5, self).__init__()
+        self.conv1 = layers.Conv2D(6, (5, 5), activation='relu', input_shape=(32, 32, 1))
+        self.pool1 = layers.MaxPooling2D((2, 2))
+        self.conv2 = layers.Conv2D(16, (5, 5), activation='relu')
+        self.pool2 = layers.MaxPooling2D((2, 2))
+        self.flatten = layers.Flatten()
+        self.fc1 = layers.Dense(120, activation='relu')
+        self.fc2 = layers.Dense(84, activation='relu')
+        self.fc3 = layers.Dense(10, activation='softmax')
+
+    def call(self, x):
+        x = self.conv1(x)
+        x = self.pool1(x)
+        x = self.conv2(x)
+        x = self.pool2(x)
+        x = self.flatten(x)
+        x = self.fc1(x)
+        x = self.fc2(x)
+        x = self.fc3(x)
+        return x
+
+lenet5 = LeNet5()
+```
+Alternatively, use the `nn.Sequential()` like method:
+
+```python
+import tensorflow as tf
+from tensorflow.keras import layers, models
+
+def create_lenet5_sequential():
+    model = models.Sequential([
+        layers.Conv2D(6, (5, 5), activation='relu', input_shape=(32, 32, 1)),
+        layers.MaxPooling2D((2, 2)),
+        layers.Conv2D(16, (5, 5), activation='relu'),
+        layers.MaxPooling2D((2, 2)),
+        layers.Flatten(),
+        layers.Dense(120, activation='relu'),
+        layers.Dense(84, activation='relu'),
+        layers.Dense(10, activation='softmax')
+    ])
+    return model
+
+lenet5_sequential = create_lenet5_sequential()
+```
 
 ### Save from tensor image to a file, without any axis the content
 
@@ -947,6 +1100,25 @@ img = img.view(1, 28, 28).permute(1, 2, 0) # where img is a tensor of [1, 784]
 pyplot.imshow(img)
 pyplot.axis('off')
 pyplot.savefig(tmp_path, bbox_inches='tight', pad_inches=0, transparent=True)
+```
+
+### Linear Algebra (scipy.linalg)
+
+Linear algebra functions, including matrix operations, decompositions, and solvers.
+```python
+from scipy.linalg import det, inv, eig, solve
+
+# Determinant of a square matrix
+det_A = det(A)
+
+# Inverse of a square matrix
+inv_A = inv(A)
+
+# Eigenvalues and eigenvectors of a square matrix
+eigvals, eigvecs = eig(A)
+
+# Solve a linear system of equations
+x = solve
 ```
 
 #### And render the above image in the terminal
@@ -1385,10 +1557,6 @@ for layer in model[:2]:
 
 Amazon *RedShift*, supports exabytes for a single query
 
-## Libraries
-
-I ❤️ the `pandas` library, but note that 🔥 `torch` and `numpy` are lovers
-
 ### Pytorch 🔥 🕶️  torch-vision
 
 > Remember to clear your gradients, before staring to train your network with `optimizer.zero_grad()`
@@ -1571,6 +1739,33 @@ One way to achieve this is to use a technique called **CycleGAN**, which is a ty
 Another approach is to use a technique called domain adversarial training, where a domain classifier is added to the network, and the network is trained to simultaneously minimize the classification loss and maximize the confusion of the domain classifier. In your case, the domain classifier could be trained to distinguish between color and greyscale images, and the two networks could be trained to confuse the domain classifier by producing features that are common across both domains.
 
 Overall, this approach is not very common, but it has been shown to be effective in certain scenarios. However, it requires careful design and tuning of the networks and training procedures, and it may not always be necessary or beneficial depending on the specific problem and data at hand.
+
+## Predictor class wrapper
+
+Designed as a wrapper around a pre-trained neural network model (convolutional neural network)
+for image classification.
+
+By encapsulating the pre-trained model and the necessary data preprocessing and post-processing steps
+within the Predictor class, it simplifies the process of using the model for image classification tasks.
+
+1. Model wrapper: The Predictor class acts as a wrapper around the pre-trained neural network model,
+    making it more convenient to use.
+
+2. Preprocessing pipeline: The class contains a sequence of data preprocessing steps,
+    such as resizing, center cropping, and normalization, which are applied to input images before
+    they are fed to the model.
+
+3. Forward method: The main functionality of the Predictor class is implemented in its forward method,
+    which processes the input image through the preprocessing pipeline, the pre-trained model,
+    and the softmax function to obtain class probabilities.
+
+4. Simplifying image classification: By encapsulating the pre-trained model and data processing steps,
+    the Predictor class makes it easy for users to perform image classification tasks with minimal
+    additional code.
+
+5. User-friendly interface: The class provides a user-friendly interface for working with a
+    pre-trained model, requiring only the model, class names, and normalization parameters
+    during initialization.
 
 # 📄 PDF `gs` ghost script
 
