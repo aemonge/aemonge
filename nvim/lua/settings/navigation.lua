@@ -1,6 +1,6 @@
 local M = {}
 
-local camelcase = require "settings.navigation.camelcase" -- require "settings.navigation.mappings"
+local camelcase = require "settings.navigation.camelcase"
 table.insert(M, camelcase)
 
 local hop = require "settings.navigation.hop"

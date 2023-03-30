@@ -17,10 +17,6 @@ if not vim.loop.fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
-require "settings.extra.smart-mappings"
-
-my_mappings = require "settings.mappings"
-
 local plugins = {}
 local lazy_settings = require "settings.core.lazy"
 
@@ -59,5 +55,7 @@ table.insert(plugins, search)
 
 local extra = require "settings.extra"
 table.insert(plugins, extra)
+
+require "settings.autocommands"
 
 require("lazy").setup(plugins, lazy_settings)

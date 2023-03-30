@@ -2,6 +2,9 @@ local M = {}
 
 table.insert(M, {
     "andrewferrier/debugprint.nvim",
+    ft = require("file-types")({
+        "languages",
+    }),
     config = function()
         local opts = {
             create_keymaps = false,
@@ -11,7 +14,10 @@ table.insert(M, {
         local fn = function()
             -- Note: setting `expr=true` and returning the value are essential
             -- It's also important to use motion = true for operator-pending motions
-            return require("debugprint").debugprint({ motion = true, variable = true })
+            return require("debugprint").debugprint({
+                motion = true,
+                variable = true,
+            })
         end
 
         require("which-key").register({

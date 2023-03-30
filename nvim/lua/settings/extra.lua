@@ -16,19 +16,31 @@ local ghost = require("settings.extra.ghost")
 table.insert(M, ghost)
 
 table.insert(M, { "lewis6991/impatient.nvim" })
-table.insert(M, { "tpope/vim-repeat" })
 
-table.insert(M, { "rcarriga/nvim-notify",
-  priority = 99999,
-  config = function ()
-    require "notify".setup({
-      background_colour = "#000000",
-      max_width = 70,
-      stages = "slide",
-      timeout = 2000,
-    })
-    vim.notify = require("notify")
-  end
+table.insert(M, {
+    "tpope/vim-repeat",
+    ft = require("file-types")({
+        "text",
+        "markup",
+        "languages",
+        "frameworks",
+        "data",
+        "versionControl",
+    }),
+})
+
+table.insert(M, {
+    "rcarriga/nvim-notify",
+    priority = 99999,
+    config = function()
+        require("notify").setup({
+            background_colour = "#000000",
+            max_width = 70,
+            stages = "slide",
+            timeout = 2000,
+        })
+        vim.notify = require("notify")
+    end,
 })
 
 return M

@@ -2,7 +2,8 @@ ENABLE_TVIM=1
 
 BEFORE(){
     PATH
-    PROFILE
+    # CONDA
+    # PROFILE
 }
 
 AFTER(){
@@ -10,13 +11,16 @@ AFTER(){
 
 BEFORE_NVIM(){
     SSH
+    CONDA # TODO: Put it back to BEFORE if failing
+    # PROFILE
 }
 
 AFTER_NVIM(){
     P10K_ZINIT
     ZINIT_PLUGINS
     THEME
-    CONDA
+    CONDA # TODO: Put it back to BEFORE if failing
+    PROFILE
     alias vim=~/usr/bin/vim
 }
 
@@ -27,8 +31,8 @@ PATH() {
     export PATH=$PATH:/usr/local/bin
     export PATH=$PATH:/usr/sbin
 
-    export PATH=$PATH:$HOME/u/bin/
     export PATH=$PATH:$HOME/bin/
+    export PATH=$PATH:$HOME/usr/bin/
     export PATH=$PATH:$HOME/.local/bin/
 }
 
@@ -103,7 +107,7 @@ ZSH_HISTORY() {
 
 ZINIT_PLUGINS_COMPLETIONS(){
     zinit light conda-incubator/conda-zsh-completion
-    zinit light  srijanshetty/zsh-pip-completion
+    zinit light srijanshetty/zsh-pip-completion
 
     # Replace `light` with `load` if you want some more debugging
     zinit ice depth=1 # optional, but avoids downloading the full history
@@ -116,6 +120,7 @@ ZINIT_PLUGINS_COMPLETIONS(){
     # Even more completion bro
     zinit ice lucid nocompile wait'0e' nocompletions
     zinit load MenkeTechnologies/zsh-more-completions
+    zinit light Dabz/kafka-zsh-completions
 }
 
 ZINIT_PLUGINS(){
@@ -129,6 +134,7 @@ ZINIT_PLUGINS(){
     zinit light zdharma-continuum/fast-syntax-highlighting
     zinit snippet OMZP::dotenv
 
+    zinit light 0b10/cheatsheet
     ZINIT_PLUGINS_COMPLETIONS
 
     # zsh-autosuggestions
@@ -176,13 +182,14 @@ START() {
     if [ $ENABLE_TVIM -eq "1" ]; then
         if [ -z $NVIM ]; then
             BEFORE_NVIM
-            nvim +':lua StartTerm(1)' && exit || AFTER_NVIM
+            nvim +':terminal' && exit || AFTER_NVIM
         else
             AFTER_NVIM
         fi
     else
         BEFORE_NVIM
         AFTER_NVIM
+        alias vim='nvr -s'
     fi
 
     AFTER

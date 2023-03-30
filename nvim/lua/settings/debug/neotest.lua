@@ -14,6 +14,9 @@ end
 
 table.insert(M, {
     "nvim-neotest/neotest",
+    ft = require("file-types")({
+        "languages",
+    }),
     dependencies = {
         "nvim-lua/plenary.nvim",
         "nvim-treesitter/nvim-treesitter",
@@ -42,7 +45,10 @@ table.insert(M, {
         end
 
         local open = function()
-            return require("neotest").output.open({ enter = true, auto_close = true })
+            return require("neotest").output.open({
+                enter = true,
+                auto_close = true,
+            })
         end
 
         local run = function()
@@ -50,7 +56,10 @@ table.insert(M, {
         end
 
         local current = function()
-            return require("neotest").run.run(vim.fn.expand("%"), { strategy = "integrated" })
+            return require("neotest").run.run(
+                vim.fn.expand("%"),
+                { strategy = "integrated" }
+            )
         end
 
         require("which-key").register({
