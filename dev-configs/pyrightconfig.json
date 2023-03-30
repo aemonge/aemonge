@@ -1,4 +1,3 @@
 {
-  "venv": "udacity",
-  "venvPath": "~/.anaconda3/envs/udacity"
+  "venvPath": "~/.conda/envs/"
 }

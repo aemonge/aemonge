@@ -5,5 +5,12 @@
     "param-type-mismatch",
     "missing-parameter"
   ],
-  "diagnostics.libraryFiles": "Disable"
+  "diagnostics.libraryFiles": "Disable",
+    "workspace.library": [
+        "/home/deck/.local/share/nvim/lazy/neodev.nvim/types/stable",
+        "/usr/share/nvim/runtime/lua",
+        "/home/deck/.local/share/nvim/lazy/nvim-dap-ui/lua",
+        "/home/deck/usr/nvim/lua",
+        "${3rd}/luv/library"
+    ]
 }
