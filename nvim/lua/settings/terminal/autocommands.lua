@@ -54,7 +54,6 @@ vim.api.nvim_create_autocmd({ "TermOpen" }, {
           setlocal ft=terminal
           setlocal bufhidden=delete
           au BufEnter <buffer> :startinsert
-          startinsert
         ]])
     end,
 })

@@ -25,4 +25,5 @@ end
 function NewTermTab()
     vim.api.nvim_command(":tabnew")
     vim.api.nvim_command("terminal")
+    vim.api.nvim_command("startinsert")
 end

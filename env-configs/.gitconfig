@@ -4,8 +4,8 @@
 [merge]
   tool = vimd -d
 
-[core]
-  editor = "nvr --remote-tab-wait"
+; [core]
+;   editor = "nvr --remote-tab-wait"
 
 [fetch]
   prune = true
@@ -105,3 +105,5 @@
 ; git rebase -i HEAD~11
 ; A="01-16-2023 21:17:11 +0100"; LC_ALL=C GIT_COMMITTER_DATE=$A git ca --date $A
 ; Don't make me the author on rebase, keep the blame on them bro 🤙 `git -c rebase.instructionFormat='%s%nexec GIT_COMMITTER_DATE="%cD" git commit --amend --no-edit' rebase -i`
+[init]
+    defaultBranch = main

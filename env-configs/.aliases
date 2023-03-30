@@ -1,9 +1,6 @@
 # alias docker-clean="docker kill $(docker ps -q | xargs); docker volume rm $(docker volume ls -q | xargs);  docker image rm -f $(docker image ls -q | xargs)"
-# alias open='xdg-open'
 # alias xclip=pbcopy
-alias vim=~/usr/bin/vim
-alias nvim-mux="nvim +':lua StartTerm(1)'"
 alias vcd=~/usr/bin/vcd
 alias open=xdg-open
 alias ll='tree -Chal -L 3 --dirsfirst'
-alias fvim='vim $(fzf)'
+alias f='vim $(fzf)'

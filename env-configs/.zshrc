@@ -1,9 +1,8 @@
-ENABLE_TVIM=1
+AUTO_VIM=0 # virtual-env requires us to start with this off
 
 BEFORE(){
+    OPTS
     PATH
-    # CONDA
-    # PROFILE
 }
 
 AFTER(){
@@ -11,17 +10,26 @@ AFTER(){
 
 BEFORE_NVIM(){
     SSH
-    CONDA # TODO: Put it back to BEFORE if failing
-    # PROFILE
+    CONDA
+    PROFILE
+}
+
+BEFORE_NVIM_NO_AUTO(){
+    PROFILE
+}
+
+AFTER_NVIM_NO_AUTO(){
+    P10K_ZINIT
+    ZINIT
+    ZINIT_PLUGINS
+    THEME
 }
 
 AFTER_NVIM(){
     P10K_ZINIT
+    ZINIT
     ZINIT_PLUGINS
     THEME
-    CONDA # TODO: Put it back to BEFORE if failing
-    PROFILE
-    alias vim=~/usr/bin/vim
 }
 
 PATH() {
@@ -36,10 +44,18 @@ PATH() {
     export PATH=$PATH:$HOME/.local/bin/
 }
 
-PROFILE() {
+OPTS() {
     export LANG=en_US.UTF-8
     export EDITOR='nvr --remote-tab'
     set -o vi
+}
+
+_vmux() {
+  vmux "$@" && exit
+}
+
+
+PROFILE() {
     source ~/.profile
     source ~/.aliases
 }
@@ -74,8 +90,6 @@ P10K_ZINIT() {
     if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
         source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
     fi
-
-    ZINIT
 }
 
 THEME() {
@@ -179,17 +193,24 @@ ZINIT() {
 START() {
     BEFORE
 
-    if [ $ENABLE_TVIM -eq "1" ]; then
+    if [ $AUTO_VIM -eq "1" ]; then
         if [ -z $NVIM ]; then
             BEFORE_NVIM
             nvim +':terminal' && exit || AFTER_NVIM
         else
             AFTER_NVIM
+            alias vim=~/usr/bin/vim
         fi
     else
-        BEFORE_NVIM
-        AFTER_NVIM
-        alias vim='nvr -s'
+        if [ -z $NVIM ]; then
+            BEFORE_NVIM
+            AFTER_NVIM
+            export EDITOR='_vmux'
+        else
+            BEFORE_NVIM_NO_AUTO
+            AFTER_NVIM_NO_AUTO
+        fi
+        alias vim="$EDITOR"
     fi
 
     AFTER

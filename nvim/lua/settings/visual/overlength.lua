@@ -15,7 +15,7 @@ table.insert(M, {
             bg = "#692f2c",
             textwidth_mode = 1,
             default_overlength = 72, -- PEP8 way, get used to it !
-            grace_length = 5,
+            grace_length = 8,
             disable_ft = {
                 "",
                 "terminal",
@@ -28,7 +28,6 @@ table.insert(M, {
                 "Telescope",
                 "WhichKey",
                 "html",
-                "markdown",
                 "text",
             },
         })

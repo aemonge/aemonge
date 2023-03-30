@@ -53,6 +53,8 @@ local markupFileTypes = {
 }
 
 local languageFileTypes = {
+    "bash",
+    "zsh",
     "javascript",
     "python",
     "coffee",

@@ -11,6 +11,7 @@ _pacman() {
   sudo pacman-key --init
   sudo pacman-key --populate
   sudo pacman -S --needed base-devel git
+  sudo pacman -S linux-neptune-headers
   sudo pacman -S base-devel linux-headers gcc glibc gcc-libs
   sudo pacman -S python-pip zsh git tig \
    flameshot glow xclip onboard \

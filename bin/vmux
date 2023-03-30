@@ -1,0 +1,13 @@
+#!/bin/bash
+
+set -e
+
+cmd=(nvim +':terminal')
+if [ $# -eq 0 ]; then
+    cmd+=("+startinsert")
+else
+    for file in "$@"; do
+        cmd+=("+tabe $file")
+    done
+fi
+"${cmd[@]}" && exit

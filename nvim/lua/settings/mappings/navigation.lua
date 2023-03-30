@@ -29,7 +29,7 @@ local M = {
   ["<c-h>"] = { "<c-w><Left>" , "Go left"},
   ["<c-l>"] = { "<c-w><Right>" , "Go right"},
 
-  ["<c-t>"] = { ":lua NewTermTab(0)<cr>", "New term tab" },
+  ["<c-t>"] = { ":lua NewTermTab()<cr>", "New term tab" },
 
   ["<c-k>"] = {
     [''] = { "<c-w><Up>" , "Go up"},

@@ -52,7 +52,7 @@ table.insert(M, {
             nowait = true,
         })
 
-        wk.register("settings.mappings.toggler", {
+        wk.register(require("settings.mappings.toggler"), {
             mode = "n",
             prefix = "<leader>",
             buffer = nil,
@@ -61,7 +61,7 @@ table.insert(M, {
             nowait = true,
         })
 
-        wk.register("settings.mappings.current_file_ops", {
+        wk.register(require("settings.mappings.current_file_ops"), {
             mode = "n",
             prefix = "<leader>",
             buffer = nil,

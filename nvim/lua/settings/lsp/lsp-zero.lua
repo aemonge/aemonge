@@ -22,6 +22,7 @@ table.insert(M, {
         { "rafamadriz/friendly-snippets" }, -- Optional
     },
     ft = require("file-types")({
+        "markup",
         "languages",
         "frameworks",
     }),

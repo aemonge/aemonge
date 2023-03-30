@@ -18,7 +18,7 @@ local t_mappings = {
         ["<c-j>"] = { t("<C-\\><C-n>gT<cr>"), "Previous tab" },
     },
     -- ['<c-p>'] = { t 'nvr -cc "cd $(pwd) | Telescope find_files" <CR>', "Open files in CWD" },
-    ["<c-t>"] = { t("<C-\\><C-n>:tabnew | terminal<cr>"), "New term tab" },
+    ["<c-t>"] = { t("<C-\\><C-n>:lua NewTermTab()<cr>"), "New term tab" },
     ["<c-w>"] = {
         name = "Split new Terminals",
 

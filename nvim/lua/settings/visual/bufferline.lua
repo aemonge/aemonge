@@ -11,19 +11,24 @@ table.insert(M, {
                 numbers = "none", -- | "ordinal" | "buffer_id" | "both" | function({ ordinal, id, lower, raise }): string,
                 close_command = "Bdelete! %d", -- can be a string | function, see "Mouse actions"
                 indicator = {
-                    style = {
-                        icon = "▎",
-                    },
+                    style = "padded_slant",
+                    --     {
+                    --     icon = "▎",
+                    -- },
                 },
                 buffer_close_icon = "",
                 modified_icon = "●",
                 close_icon = "",
-                left_trunc_marker = "",
-                right_trunc_marker = "",
+                left_trunc_marker = "寧",
+                right_trunc_marker = "嶺",
                 max_name_length = 30,
                 max_prefix_length = 30, -- prefix used when a buffer is de-duplicated
                 tab_size = 21,
-                diagnostics = false, -- | "nvim_lsp" | "coc",
+                diagnostics = "nvim_lsp", -- | "nvim_lsp" | "coc",
+                diagnostics_indicator = function(count, level)
+                    local icon = level:match("error") and " " or ""
+                    return " " .. icon .. count
+                end,
                 diagnostics_update_in_insert = false,
                 offsets = { { filetype = "NvimTree", text = "", padding = 1 } },
                 show_buffer_icons = false,

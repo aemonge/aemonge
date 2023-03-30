@@ -135,7 +135,7 @@ table.insert(M, {
 ---------------------------------------------------------------------------
 vim.keymap.set(
     "v",
-    "<leader>f",
+    "<c-f>",
     "y<esc>q:pITelescope grep_string search=<cr>",
     mapping_opts
 )
@@ -157,7 +157,7 @@ vim.cmd([[
 
 vim.keymap.set(
     "v",
-    "<leader>f",
+    "<c-f>",
     ':<C-u>lua require("telescope.builtin.__files").grep_string({search="<C-R>=GetVisualSelection()<CR>"})<CR>',
     { buffer = nil, silent = true, noremap = true, nowait = true }
 )
