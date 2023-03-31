@@ -764,6 +764,23 @@ twine upload dist/*
 
 This will create a .tar.gz file of your package in the dist folder, and upload it to PyPI.
 
+### List the current top-level packages to generate a virtual enviroment
+
+Pip by default will generate a comprehensive list of all packages,
+to curate the list use `pip-chill`. So instead of:
+
+```bash
+pip freeze > requirements.txt
+# pip install -r requirements.txt
+```
+
+Use the Chill
+
+```bash
+pip install pip-chill
+pip-chill --no-version > requirements.txt
+```
+
 ## Pyright
 
 ### Ignore rules by line
