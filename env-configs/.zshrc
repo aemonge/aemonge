@@ -163,6 +163,8 @@ ZINIT_PLUGINS(){
 
     autoload compinit
     compinit
+
+    compdef _vmux=nvim
 }
 
 ZINIT() {
@@ -205,12 +207,13 @@ START() {
         if [ -z $NVIM ]; then
             BEFORE_NVIM
             AFTER_NVIM
-            export EDITOR='_vmux'
+            export EDITOR='vmux'
+            alias vim="_vmux"
         else
             BEFORE_NVIM_NO_AUTO
             AFTER_NVIM_NO_AUTO
+            alias vim="$EDITOR"
         fi
-        alias vim="$EDITOR"
     fi
 
     AFTER

@@ -10,4 +10,9 @@ else
         cmd+=("+tabe $file")
     done
 fi
-"${cmd[@]}" && exit
+
+if [ -z $NVIM ]; then
+  "${cmd[@]}"
+else
+  nvr -s --remote-tab-wait "$@"
+fi
