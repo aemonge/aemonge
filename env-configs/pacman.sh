@@ -16,7 +16,7 @@ _pacman() {
   sudo pacman -S python-pip zsh git tig \
    flameshot glow xclip onboard \
    nodejs npm the_silver_searcher neovim \
-   entr
+   entr clamav
 }
 
 _pikaur() {
