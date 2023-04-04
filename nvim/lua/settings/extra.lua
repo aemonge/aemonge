@@ -3,6 +3,9 @@ local M = {}
 local cycle = require("settings.extra.cycle")
 table.insert(M, cycle)
 
+-- local distant = require("settings.extra.distant")
+-- table.insert(M, distant)
+
 -- local scratch = require("settings.extra.scratch")
 -- table.insert(M, scratch)
 

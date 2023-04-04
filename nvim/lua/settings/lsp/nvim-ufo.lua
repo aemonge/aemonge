@@ -53,7 +53,8 @@ table.insert(M, {
 
         -- Option 3: treesitter as a main provider instead
         -- Only depend on `nvim-treesitter/queries/filetype/folds.scm`,
-        -- performance and stability are better than `foldmethod=nvim_treesitter#foldexpr()`
+        -- performance and stability are better than
+        --      `foldmethod=nvim_treesitter#foldexpr()`
         require("ufo").setup({
             provider_selector = function()
                 return { "treesitter", "indent" }
@@ -61,7 +62,7 @@ table.insert(M, {
         })
 
         -- vim.api.nvim_create_autocmd({ "BufNew" }, {
-        --   callback = require('ufo').closeAllFolds
+        --     callback = require("ufo").closeAllFolds,
         -- })
     end,
 })

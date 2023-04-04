@@ -24,6 +24,29 @@ table.insert(M, {
                 upgrade_pip = true,
             },
         })
+        require("which-key").register(
+            {
+                l = {
+                    name = "Lsp Extended Actions",
+                    e = {
+                        require("swenv.api").pick_venv,
+                        "Pick conda environment",
+                    },
+                    r = { ":LspRestart<cr>", "Restart" },
+                    f = { ":lua vim.lsp.buf.format()<cr>", "Format" },
+                    i = { ":LspInfo<cr>", "Info" },
+                    m = { ":Mason<cr>", "Mason" },
+                    l = { ":Lazy<cr>", "Lazy" },
+                },
+            },
+            {
+                prefix = "<leader>",
+                buffer = nil,
+                silent = true,
+                noremap = true,
+                nowait = true,
+            }
+        )
     end,
 })
 
