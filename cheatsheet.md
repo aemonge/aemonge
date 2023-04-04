@@ -2,6 +2,15 @@
 
 # 💻 Command line
 
+## Reset CUDA memory
+
+> For Torch with a GPU
+
+```bash
+nvidia-smi # Find the process ID
+kill -9
+```
+
 ## Iterate over strings of words with a for loop
 
 ```bash
@@ -17,8 +26,10 @@ STRS=("hola" "mundo" "bonito y azul"); for s in $STRS; do echo $s; done
 > egrep -v 'word|other-word'
 
 ```bash
-rspec spec/lib/demo_workspaces/bookings_creator_spec.rb | egrep --color=always -v 'Sidekiq|WARN: Job|^$'
-rspec spec/lib/demo_workspaces/bookings_creator_spec.rb | awk '/^[^(Sidekiq|2022)].*$/{print'
+rspec spec/lib/demo_workspaces/bookings_creator_spec.rb \
+  | egrep --color=always -v 'Sidekiq|WARN: Job|^$'
+rspec spec/lib/demo_workspaces/bookings_creator_spec.rb \
+  | awk '/^[^(Sidekiq|2022)].*$/{print'
 ```
 
 ## Bash here-document, here-string
@@ -76,8 +87,9 @@ msgcat --color=test
 lsof -i :631
 ```
 
-## To remove m lines from the beginning and n from the end (print the first N lines or last M lines)
+## To remove m lines from the beginning and n from the end
 
+> (print the first N lines or last M lines)
 > [https://unix.stackexchange.com/questions/169079/negative-arguments-to-head-tail]
 
 ```bash
@@ -88,6 +100,12 @@ awk -v m=6 -v n=12 'NR<=m{next};NR>n+m{print line[NR%n]};{line[NR%n]=$0}'
 
 ```bash
 sed -e 's/ /.*/'
+```
+
+## rsync copy a directory into a server
+
+```bash
+rsync -harPz local-folder username@host:/remote/directory
 ```
 
 # 💎 Ruby
