@@ -2,13 +2,37 @@
 
 # 💻 Command line
 
+## Screen for server connection and reconnect
+
+To keep a server with logs on a session, that can be re-attached later use
+`screen` or `tmux`. In case of emergency use `reptyr`.
+
+```bash
+screen -S name # create session
+# Exit session <Ctrl-a>d
+screen -ls # show sessions
+screen -r name # re-attach session
+```
+
+Kill a session with screen:
+
+```bash
+screen -X -S pts-2.genesis quit
+```
+
+If you forgot to start with screen, then use `reptyr`:
+
+```bash
+ps -aux # get the PID
+reptyr PID
+```
+
 ## Reset CUDA memory
 
 > For Torch with a GPU
 
 ```bash
-nvidia-smi # Find the process ID
-kill -9
+nvidia-smi
 ```
 
 ## Iterate over strings of words with a for loop
@@ -533,6 +557,21 @@ gem install --no-user-install --install-dir=./mason/packages \
 ```
 
 # 🐍 Python
+
+## Simple Arguments parser for extra simple scritps
+
+If you want to use a more advanced use of arguments parsing, please refer to
+[click](https://click.palletsprojects.com/en/8.1.x/) package for python
+
+```python
+import sys
+if __name__ == "__main__":
+    if len(sys.argv) > 1 \
+    and (sys.argv[1] == "1" or sys.argv[1].lower() == "true"):
+      print('Got an argument bro 🤙')
+    else:
+      print('No args...')
+```
 
 ## Float, Integers and Scientific notation representation
 
