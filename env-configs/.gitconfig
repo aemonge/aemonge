@@ -4,8 +4,9 @@
 [merge]
   tool = vimd -d
 
-; [core]
-;   editor = "$(nvr -s --remote-tab-wait || vmux)"
+
+[core]
+  editor = "nvr -s --remote-tab-wait"
 
 [fetch]
   prune = true

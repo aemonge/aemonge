@@ -3,6 +3,7 @@ AUTO_VIM=0 # virtual-env requires us to start with this off
 BEFORE(){
     OPTS
     PATH
+    PROFILE
 }
 
 AFTER(){
@@ -11,11 +12,10 @@ AFTER(){
 BEFORE_NVIM(){
     SSH
     CONDA
-    PROFILE
+    source ~/.profile.before-nvim
 }
 
 BEFORE_NVIM_NO_AUTO(){
-    PROFILE
 }
 
 AFTER_NVIM_NO_AUTO(){
@@ -198,7 +198,7 @@ START() {
     if [ $AUTO_VIM -eq "1" ]; then
         if [ -z $NVIM ]; then
             BEFORE_NVIM
-            nvim +':terminal' && exit || AFTER_NVIM
+            nvim +':terminal' +':startinsert' && exit || AFTER_NVIM
         else
             AFTER_NVIM
             alias vim=~/usr/bin/vim
