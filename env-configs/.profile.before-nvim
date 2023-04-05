@@ -1,3 +1,6 @@
 #!/bin/bash
-
-conda activate udacity
+#
+if [ $AUTO_VIM -eq "1" ]; then
+  conda activate udacity
+  cd ~/learnings/204-landmark-tag-classifier || return
+fi
