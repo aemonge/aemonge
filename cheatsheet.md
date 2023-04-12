@@ -132,6 +132,8 @@ sed -e 's/ /.*/'
 rsync -harPz local-folder username@host:/remote/directory
 ```
 
+Use `--info=progress2`  to show the total progress, instead of individual.
+
 # 💎 Ruby
 
 ## Iterate over objects
@@ -558,6 +560,17 @@ gem install --no-user-install --install-dir=./mason/packages \
 
 # 🐍 Python
 
+## Libraries
+
+* [sktim](https://github.com/sktime/sktime). A unified interface for machine
+  learning with time series
+* [huggingface](https://huggingface.co/). We are on a mission to democratize
+  good machine learning, one commit at a time.
+* [alpaca](https://github.com/tatsu-lab/stanford_alpaca). Build and share an
+  instruction-following LLaMA model.
+* [transformers](https://github.com/huggingface/transformers). State-of-the-art
+  Machine Learning for JAX, PyTorch and TensorFlow.
+
 ## Simple Arguments parser for extra simple scritps
 
 If you want to use a more advanced use of arguments parsing, please refer to
@@ -944,6 +957,17 @@ class Cat(Animal):
 
   def eat(self):
     self.edible = self.edible[:-1]
+```
+
+### Check for number is NaN
+
+```python
+foo = 0.0
+import np
+np.isnan(foo)
+
+import math
+math.isnan(foo)
 ```
 
 ### Get the type and instances of an object
@@ -1609,11 +1633,20 @@ class ResidualBlock(nn.Module):
 
 ## Transfer learning, by freezing parameters and adding classifier
 
-To transfer learning, you choose from a pre-trained data network like resnet18 with it weights and biases downloaded. And you can either simply change the `classifier` or got deeper in fine tuning, and freeze some layer of your choosing.
+To transfer learning, you choose from a pre-trained data network like resnet18
+with it weights and biases downloaded. And you can either simply change the
+`classifier` or got deeper in fine tuning, and freeze some layer of your
+choosing.
 
->  You will need to use a learning rate small enough so you do not destroy the filters that the network has learned on ImageNet.
+> You will need to use a learning rate small enough so you do not destroy the
+> filters that the network has learned on ImageNet.
 
-So If I want my network to know beforehand what's a flower, I can use a pre-trained network on ImageNet (1000 classes) which can tell a animal from a plant and object. And starting from there I can freeze 0 to N of the features weights, and start my own training setting own features in convolutional layers for distinguishing the classes of a flower (pre knowing that's is a flower)
+So If I want my network to know beforehand what's a flower, I can use a
+pre-trained network on ImageNet (1000 classes) which can tell a animal from a
+plant and object. And starting from there I can freeze 0 to N of the
+features weights, and start my own training setting own features in
+convolutional layers for distinguishing the classes of a flower
+(pre knowing that's is a flower)
 
 ```python
 # Freeze the first two convolutional layers
@@ -1634,6 +1667,108 @@ Amazon *RedShift*, supports exabytes for a single query
 ### Pytorch 🔥 🕶️  torch-vision
 
 > Remember to clear your gradients, before staring to train your network with `optimizer.zero_grad()`
+
+#### My own Fire Layer with Convolutional layers
+
+```python
+class Fire(nn.Module):
+    """
+    Inspired by SqueezeNet Fire layer.
+
+    Fire module is composed of a squeeze
+    convolution layer, followed by an expansion layer that has both 1x1
+    and 3x3 convolution layers. The purpose of the squeeze layer is to
+    reduce the number of input channels before feeding them to the more
+    computationally expensive 3x3 convolution layer in the expansion layer.
+
+    Usage example:
+
+    Fire(in_channels, squeeze_channels, expand1x1_channels, expand3x3_channels)
+
+    To create a sequence of Fire modules, you can use the following
+    template:
+
+    nn.Sequential(
+        Fire(x, y, a, b),
+        Fire(a + b, y1, a1, b1),
+        Fire(a1 + b1, y2, a2, b2),
+        ...
+    )
+
+    Parameters
+    ----------
+    in_channels: int
+        Number of input channels.
+    squeeze_channels: int
+        Number of output channels for the squeeze convolution layer.
+    expand1x1_channels: int
+        Number of output channels for the 1x1 convolution in the expansion
+        layer.
+    expand3x3_channels: int
+        Number of output channels for the 3x3 convolution in the expansion
+        layer.
+    use_maxpool: bool, optional, default=True
+        Whether to apply max pooling after the expansion layer. Max pooling
+        reduces the spatial dimensions (height and width) of the input but
+        does not change the number of channels.
+    dropout: float, optional, default=0.0
+        Dropout probability to apply after max pooling (if enabled).
+
+    Example
+    -------
+    model = nn.Sequential(
+        Fire(3, 32, 16, 16),
+        Fire(16 + 16, 64, 64, 64, dropout=dropout),
+        Fire(64 + 64, 32, 32, 32, use_maxpool=False, dropout=dropout),
+        Fire(32 + 32, 16, 16, 16, dropout=dropout),
+        Fire(16 + 16, 96, 48, 48),
+    )
+    """
+
+    def __init__(
+        self, in_channels, squeeze_channels,
+        expand1x1_channels, expand3x3_channels,
+        use_maxpool = True, dropout = 0.0
+    ):
+        """Contstructor."""
+        super().__init__()
+        self.squeeze = nn.Sequential(
+            nn.Conv2d(in_channels, squeeze_channels, kernel_size=1),
+            nn.BatchNorm2d(squeeze_channels),
+            nn.Tanh()
+        )
+        self.expand1x1 = nn.Sequential(
+            nn.Conv2d(squeeze_channels, expand1x1_channels, kernel_size=1),
+            nn.BatchNorm2d(expand1x1_channels),
+            nn.ReLU(inplace=True),
+        )
+        self.expand3x3 = nn.Sequential(
+            nn.Conv2d(
+                squeeze_channels, expand3x3_channels, kernel_size=3, padding=1
+            ),
+            nn.BatchNorm2d(expand3x3_channels),
+            nn.ReLU(inplace=True),
+        )
+        if use_maxpool:
+            self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+        else:
+            self.pool = None
+
+        if dropout > 0.0:
+            self.dropout = nn.Dropout(p=dropout)
+        else:
+            self.dropout = None
+
+    def forward(self, x_t):
+        """Call the forward method to back propagate through the model."""
+        x_t = self.squeeze(x_t)
+        x_t = torch.cat([self.expand1x1(x_t), self.expand3x3(x_t)], 1)
+        if self.pool is not None:
+            x_t = self.pool(x_t)
+        if self.dropout is not None:
+            x_t = self.dropout(x_t)
+        return x_t
+```
 
 #### Save your trained model
 
@@ -1696,15 +1831,114 @@ The output tensor formula is  `((W + 2P − K) / S)+1.`
 * **K** is the Kernel size - The size of the filter kernel, the view if you want.
 * **S** is the stride - The amount of pixels to move, use S=2 to half the output size.
 
+
+### The `group` parameter explanation
+
+The groups parameter essentially splits the input and output channels into
+multiple groups, and each output channel is only allowed to have connections
+within its group. This reduces the number of connections between input and
+output channels, which in turn reduces the computational cost and the number of
+parameters in the model.
+
+Here's a brief explanation of the three main scenarios when using the groups
+parameter:
+
+    1. groups=1: This is the default setting, which corresponds to the standard
+      convolution where each output channel is connected to all input channels.
+      In this case, there are no restrictions on the connectivity pattern.
+
+    2. groups > 1: When groups is greater than 1, the input and output channels
+      are divided into groups number of groups, and each output channel is only
+      connected to the input channels within its group. This is also known as
+      "grouped convolution." This reduces the number of connections and can
+      lead to better computational and parameter efficiency, as well as
+      improved model performance in some cases.
+
+    3. groups = number of input channels (also known as depthwise convolution):
+      In this case, each output channel is connected to exactly one input
+      channel. This is an extreme case of grouped convolution, where the number
+      of groups is equal to the number of input channels. Depthwise
+      convolutions significantly reduce the number of connections and are widely
+      used in lightweight models, such as MobileNet.
+
+Using the groups parameter, you can create more efficient convolutional neural
+networks, which can be beneficial for large-scale models or models running on
+resource-constrained devices. The ConvNeXt architecture, for example, leverages
+grouped convolutions to achieve better computational efficiency and improved
+parameter efficiency compared to standard convolutional neural networks.
+
 ### Pooling layer
 
 The output tensor formula is `((W - K) / S) + 1`
 
 * Kernel size is basically the matrix where to apply the operation (max, avg, etc..)
 
+### Neural Network Weight Initialization Cheatsheet
+
+#### Xavier (Glorot) Initialization
+
+- **When to use**: Primarily for networks with `tanh`, `sigmoid`, or other
+  _symmetric_ activation functions.
+- **How it works**: Sets the initial weights to have a variance that depends on
+  the number of input and output neurons.
+- **Formula**: `sqrt(6 / (number of input neurons + number of output neurons))`
+- **Benefits**:
+  - Helps prevent gradients from vanishing or exploding during backpropagation.
+  - Speeds up convergence by providing a better starting point for optimization.
+
+#### He (Kaiming) Initialization
+
+- **When to use**: Primarily for networks with `ReLU` or other _asymmetric_
+  activation functions (e.g., Leaky ReLU, PReLU).
+- **How it works**: Sets the initial weights to have a variance that depends on
+  the number of input neurons, adjusted for the non-linearity introduced by ReLU.
+- **Formula**: `sqrt(2 / number of input neurons)`
+- **Benefits**:
+  - Helps prevent gradients from vanishing or exploding during backpropagation.
+  - Speeds up convergence by providing a better starting point for optimization,
+    specifically for ReLU-based networks.
+
+### Mixing `tanh` and `ReLU` Activation Functions
+
+- In general, it's best to stick to a single type of activation function
+  throughout the network, as mixing them can make it harder to choose a suitable
+  weight initialization strategy.
+- `tanh` and `ReLU` have different properties:
+  - `tanh`: Symmetric around zero, outputs values between -1 and 1, and has
+    non-zero gradients for both positive and negative inputs.
+  - `ReLU`: Asymmetric, outputs values between 0 and infinity, and has zero
+    gradients for negative inputs.
+- Mixing these activation functions can lead to issues during training, such as:
+  - Slower convergence due to inappropriate weight initialization.
+  - Vanishing or exploding gradients, which may be exacerbated by having mixed
+    activation functions in the network.
+  - Difficulties in optimizing hyperparameters or designing the network
+    architecture.
+
+It's generally recommended to use a consistent activation function throughout
+the network, such as ReLU, which has become popular due to its simplicity and
+effectiveness in deep learning models.
+
+### Recommended order for a mix of MaxPool, BatchNorm2d, ReLU and Dropout
+
+Convolution -> Activation -> Batch Normalization -> Pooling -> Dropout.
+
+Conv2d -> BatchNorm2d -> ReLU
+[Conv2d -> BatchNorm2d -> ReLU]
+MaxPool -> Dropout
+
+Conv2d -> BatchNorm2d -> ReLU
+MaxPool -> Dropout
+[MaxPool -> Dropout]
+
+Flatten -> Linear -> ReLU
+Dropout -> Linear
+
 ## Auto Encoders
 
-Basically we define two functions a decoder and a encoder, which one should aim to make the data slimmer and more narrowed while the other should take the smaller data and expand it. Visually we shrink the data, and we later enlarge it.
+Basically we define two functions a decoder and a encoder, which one should aim
+to make the data slimmer and more narrowed while the other should take the
+smaller data and expand it. Visually we shrink the data, and we later enlarge it.
 
 **Neural Network**
 ```python
