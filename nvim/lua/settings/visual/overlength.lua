@@ -14,6 +14,7 @@ table.insert(M, {
             "versionControl",
             "plugings",
         })
+        table.insert(disable_ft, "terminal")
         require("overlength").setup({
             bg = "#692f2c",
             textwidth_mode = 1,

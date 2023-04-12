@@ -7,9 +7,7 @@ table.insert(M, {
     "jay-babu/mason-null-ls.nvim",
     event = { "BufReadPre", "BufNewFile" },
     ft = require("file-types")({
-        "markup",
         "languages",
-        "frameworks",
     }),
     dependencies = {
         "williamboman/mason.nvim",
@@ -19,12 +17,11 @@ table.insert(M, {
         require("mason").setup()
         require("mason-null-ls").setup({
             automatic_installation = false,
-            automatic_setup = true, -- Recommended, but optional
+            automatic_setup = true,
         })
         require("null-ls").setup({
             sources = get_python_sources(),
         })
-        require("mason-null-ls").setup_handlers() -- If `automatic_setup` is true.
     end,
 })
 

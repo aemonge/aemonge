@@ -1,35 +1,34 @@
 local pluginsFileTypes = {
-    "qf",           -- Quickfix
-    "help",         -- Help
-    "man",          -- Manpage
-    "scratch",      -- Scratch buffer
-    "packer",       -- Packer.nvim
     "NvimTree",     -- NvimTree
     "Telescope",    -- Telescope.nvim
     "WhichKey",     -- WhichKey.nvim
-    "fugitive",     -- vim-fugitive
-    "nerdtree",     -- NERDTree
-    "netrw",        -- netrw
-    "undotree",     -- undotree
-    "startify",     -- vim-startify
-    "db_ui",        -- DBUI
+    "ale",          -- ALE
+    "coc-explorer", -- coc-explorer
+    "colorscheme",  -- Colorscheme
     "dashboard",    -- dashboard-nvim
-    "term",         -- Terminal
+    "db_ui",        -- DBUI
+    "defx",         -- Defx
     "floaterm",     -- vim-floaterm
-    "neoterm",      -- neoterm
+    "fugitive",     -- vim-fugitive
+    "fzf",          -- FZF
+    "help",         -- Help
+    "lspconfig",    -- LSPConfig
     "lspinfo",      -- LSP Info
     "lspinstall",   -- LSP Install
-    "colorscheme",  -- Colorscheme
+    "man",          -- Manpage
+    "neoterm",      -- neoterm
+    "nerdtree",     -- NERDTree
+    "netrw",        -- netrw
+    "packer",       -- Packer.nvim
+    "qf",           -- Quickfix
+    "scratch",      -- Scratch buffer
+    "startify",     -- vim-startify
+    "symbols",      -- symbols-outline
+    "tagbar",       -- Tagbar
+    "tsplayground", -- Treesitter Playground
+    "undotree",     -- undotree
     "vim-plug",     -- vim-plug
     "vista",        -- vista.vim
-    "tagbar",       -- Tagbar
-    "coc-explorer", -- coc-explorer
-    "defx",         -- Defx
-    "fzf",          -- FZF
-    "symbols",      -- symbols-outline
-    "tsplayground", -- Treesitter Playground
-    "lspconfig",    -- LSPConfig
-    "ale",          -- ALE
 }
 
 local textFileTypes = {

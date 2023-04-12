@@ -1,4 +1,4 @@
-AUTO_VIM=0 # virtual-env requires us to start with this off
+AUTO_VIM=1 # virtual-env requires us to start with this off
 
 BEFORE(){
     OPTS
