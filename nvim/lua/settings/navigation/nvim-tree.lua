@@ -46,8 +46,8 @@ table.insert(M, {
             -- File navigation
             vim.keymap.set('n', '/', api.tree.search_node, opts('Search'))
             vim.keymap.set('n', 'o', api.node.open.edit, opts('Open'))
-            vim.keymap.set('n', 'O', api.node.open.no_window_picker, opts('Open: No Window Picker'))
-            vim.keymap.set('n', '<CR>', api.node.open.replace_tree_buffer, opts('Open: In Place'))
+            vim.keymap.set('n', '<CR>', api.node.open.no_window_picker, opts('Open: No Window Picker'))
+            vim.keymap.set('n', 't', api.node.open.tab, opts('Open: Tab'))
             vim.keymap.set('n', 's', api.node.open.vertical, opts('Open: Vertical Split'))
             vim.keymap.set('n', 'S', api.node.open.horizontal, opts('Open: Horizontal Split'))
 

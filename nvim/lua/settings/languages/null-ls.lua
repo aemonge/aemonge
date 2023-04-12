@@ -1,7 +1,10 @@
 local M = {}
+local D = {}
 
 -- Helper function to get the path to the specified executable from the virtual environment
+-- local null_ls_python = require("settings.languages.null-ls-python")
 local get_python_sources = require("settings.languages.null-ls-python")
+-- local get_python_formatters = null_ls_python.get_python_formatters
 
 table.insert(M, {
     "jay-babu/mason-null-ls.nvim",

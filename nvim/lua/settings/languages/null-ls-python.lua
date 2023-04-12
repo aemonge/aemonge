@@ -14,29 +14,42 @@ local function get_python_sources()
   local null_ls = require("null-ls")
   local sources = {}
 
-  local pylint_path = get_virtual_path("pylint")
-  if pylint_path then
-    table.insert(sources, null_ls.builtins.diagnostics.pylint.with({ command = pylint_path }))
-  end
+  local builtins_and_executables = {
+    {
+      builtin = null_ls.builtins.formatting.autopep8,
+      executable = "autopep8"
+    },
+    {
+      builtin = null_ls.builtins.formatting.black,
+      executable = "black"
+    },
+    {
+      builtin = null_ls.builtins.diagnostics.pylint,
+      executable = "pylint"
+    },
+    {
+      builtin = null_ls.builtins.diagnostics.pydocstyle,
+      executable = "pydocstyle"
+    },
+    {
+      builtin = null_ls.builtins.diagnostics.flake8,
+      executable = "flake8"
+    },
+    {
+      builtin = null_ls.builtins.diagnostics.flake8,
+      executable = "pyproject-flake8"
+    },
+    {
+      builtin = null_ls.builtins.diagnostics.vulture,
+      executable = "vulture"
+    },
+  }
 
-  local pydocstyle_path = get_virtual_path("pydocstyle")
-  if pydocstyle_path then
-    table.insert(sources, null_ls.builtins.diagnostics.pydocstyle.with({ command = pydocstyle_path }))
-  end
-
-  local flake8_path = get_virtual_path("flake8")
-  if flake8_path then
-    table.insert(sources, null_ls.builtins.diagnostics.flake8.with({ command = flake8_path }))
-  end
-
-  local pyproject_flake8_path = get_virtual_path("pyproject-flake8")
-  if pyproject_flake8_path then
-    table.insert(sources, null_ls.builtins.diagnostics.flake8.with({ command = pyproject_flake8_path }))
-  end
-
-  local vulture_path = get_virtual_path("vulture")
-  if vulture_path then
-    table.insert(sources, null_ls.builtins.diagnostics.vulture.with({ command = vulture_path }))
+  for _, item in ipairs(builtins_and_executables) do
+    local path = get_virtual_path(item.executable)
+    if path then
+      table.insert(sources, item.builtin.with({ command = path }))
+    end
   end
 
   return sources
