@@ -3,33 +3,23 @@ local M = {}
 table.insert(M, {
     "lcheylus/overlength.nvim",
     ft = require("file-types")({
-        "text",
         "markup",
         "languages",
         "frameworks",
-        "data",
-        "versionControl",
     }),
     config = function()
+        local disable_ft = require("file-types")({
+            "text",
+            "data",
+            "versionControl",
+            "plugings",
+        })
         require("overlength").setup({
             bg = "#692f2c",
             textwidth_mode = 1,
             default_overlength = 72, -- PEP8 way, get used to it !
             grace_length = 8,
-            disable_ft = {
-                "",
-                "terminal",
-                "qf",
-                "help",
-                "man",
-                "scratch",
-                "packer",
-                "NvimTree",
-                "Telescope",
-                "WhichKey",
-                "html",
-                "text",
-            },
+            disable_ft = disable_ft,
         })
     end,
 })

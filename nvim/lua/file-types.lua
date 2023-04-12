@@ -1,3 +1,37 @@
+local pluginsFileTypes = {
+    "qf",           -- Quickfix
+    "help",         -- Help
+    "man",          -- Manpage
+    "scratch",      -- Scratch buffer
+    "packer",       -- Packer.nvim
+    "NvimTree",     -- NvimTree
+    "Telescope",    -- Telescope.nvim
+    "WhichKey",     -- WhichKey.nvim
+    "fugitive",     -- vim-fugitive
+    "nerdtree",     -- NERDTree
+    "netrw",        -- netrw
+    "undotree",     -- undotree
+    "startify",     -- vim-startify
+    "db_ui",        -- DBUI
+    "dashboard",    -- dashboard-nvim
+    "term",         -- Terminal
+    "floaterm",     -- vim-floaterm
+    "neoterm",      -- neoterm
+    "lspinfo",      -- LSP Info
+    "lspinstall",   -- LSP Install
+    "colorscheme",  -- Colorscheme
+    "vim-plug",     -- vim-plug
+    "vista",        -- vista.vim
+    "tagbar",       -- Tagbar
+    "coc-explorer", -- coc-explorer
+    "defx",         -- Defx
+    "fzf",          -- FZF
+    "symbols",      -- symbols-outline
+    "tsplayground", -- Treesitter Playground
+    "lspconfig",    -- LSPConfig
+    "ale",          -- ALE
+}
+
 local textFileTypes = {
     "txt",
     "text",
@@ -54,6 +88,7 @@ local markupFileTypes = {
 
 local languageFileTypes = {
     "bash",
+    "sh",
     "zsh",
     "javascript",
     "python",
@@ -178,6 +213,7 @@ local allFileTypes = {
     frameworks = frameworkFileTypes,
     data = dataFileTypes,
     versionControl = versionControlFileTypes,
+    plugings = plugingsFileTypes
 }
 
 local function getFileTypes(categories)
@@ -194,3 +230,11 @@ local function getFileTypes(categories)
 end
 
 return getFileTypes
+
+-- "text",
+-- "markup",
+-- "languages",
+-- "frameworks",
+-- "data",
+-- "versionControl",
+-- "plugings",
