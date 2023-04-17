@@ -25,9 +25,10 @@ _pikaur() {
    cd /tmp/pikaur
    makepkg -fsri
 
+   pikaur -S --noconfirm linux-steamos
    pikaur -S --noconfirm fzf firefox-pwa-bin konsave firefox-developer-edition \
      telegram-desktop
-   pikaur -S --noconfirm spotify
+   pikaur -S --noconfirm spotify grip
 }
 
 # steamos-readonly disable
