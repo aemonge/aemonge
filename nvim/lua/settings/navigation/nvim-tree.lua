@@ -26,8 +26,8 @@ table.insert(M, {
             vim.keymap.set('n', 'd', api.fs.trash, opts('Trash'))
             vim.keymap.set('n', 'a', api.fs.create, opts('Create'))
             -- vim.keymap.set('n', 'e', api.fs.rename_node, opts('Rename: Basename')) -- TODO: Verify
-            vim.keymap.set('n', 'e', api.fs.rename_sub, opts('Rename: Absolute Path'))
-            -- vim.keymap.set('n', 'e', api.fs.rename, opts('Rename'))
+            -- vim.keymap.set('n', 'e', api.fs.rename_sub, opts('Rename: Absolute Path'))
+            vim.keymap.set('n', 'e', api.fs.rename, opts('Rename'))
             vim.keymap.set('n', 'x', api.fs.cut, opts('Cut'))
             vim.keymap.set('n', 'p', api.fs.paste, opts('Paste'))
             vim.keymap.set('n', 'Y', api.fs.copy.absolute_path, opts('Copy Absolute Path'))

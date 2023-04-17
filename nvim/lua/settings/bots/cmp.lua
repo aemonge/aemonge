@@ -222,6 +222,18 @@ table.insert(M, {
                 ghost_text = false,
             },
         })
+
+        local wk = require("which-key")
+        wk.register({
+            ["<c-s>"] = { "<c-x><c-s>", "Spell complete" },
+        }, {
+            mode = "i",
+            prefix = nil,
+            buffer = nil,
+            silent = true,
+            noremap = true,
+            nowait = true,
+        })
     end,
 })
 

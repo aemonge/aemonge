@@ -3,6 +3,7 @@ local pluginsFileTypes = {
     "Telescope",    -- Telescope.nvim
     "WhichKey",     -- WhichKey.nvim
     "ale",          -- ALE
+    "checkhealth",  -- Health Check
     "coc-explorer", -- coc-explorer
     "colorscheme",  -- Colorscheme
     "dashboard",    -- dashboard-nvim

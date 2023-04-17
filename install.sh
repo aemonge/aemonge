@@ -47,6 +47,8 @@ firefox() {
 
 nvim() {
   pip install neovim-remote
+  mkdir -p ~/.config/nvim/spell
+
   rm -rf ~/.config/nvim 2> /dev/null
   rm -rf ~/.cache/nvim 2> /dev/null
   rm -rf ~/.local/share/nvim 2> /dev/null

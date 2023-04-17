@@ -41,7 +41,6 @@ vim.opt.sidescrolloff = 8              -- Minimal number of columns to scroll ho
 vim.opt.signcolumn = "yes"             -- always show the sign column, otherwise it would shift the text each time
 vim.opt.smartcase = true               -- smart case
 vim.opt.smartindent = false            -- Just keep the indentation form previous line, smart is dumb
-vim.opt.spell = true                   -- Activate spelling
 vim.opt.splitbelow = true              -- force all horizontal splits to go below current window
 vim.opt.splitright = true              -- force all vertical splits to go to the right of current window
 vim.opt.swapfile = false               -- Don't use a .~ swap file
@@ -62,3 +61,10 @@ vim.opt.linebreak = false              -- Don't break my lines, just warn me wit
 vim.opt.incsearch = true
 
 vim.g.markdown_fenced_languages = {'html', 'python', 'ruby', 'vim', 'python', 'bash', 'javascript'}
+
+-- Spelling
+
+-- Set custom directory for the spellfile
+vim.opt.runtimepath:append("~/.config/nvim/spell")
+vim.opt.spell = true                   -- Activate spelling
+vim.opt.spelllang = {"es_es", "en_us"}

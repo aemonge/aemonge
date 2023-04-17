@@ -1,4 +1,4 @@
-AUTO_VIM=1 # virtual-env requires us to start with this off
+AUTO_VIM=0 # virtual-env requires us to start with this off
 
 BEFORE(){
     OPTS
@@ -7,22 +7,12 @@ BEFORE(){
 }
 
 AFTER(){
+  alias vim="$EDITOR"
 }
 
 BEFORE_NVIM(){
     SSH
     CONDA
-    source ~/.profile.before-nvim
-}
-
-BEFORE_NVIM_NO_AUTO(){
-}
-
-AFTER_NVIM_NO_AUTO(){
-    P10K_ZINIT
-    ZINIT
-    ZINIT_PLUGINS
-    THEME
 }
 
 AFTER_NVIM(){
@@ -46,12 +36,8 @@ PATH() {
 
 OPTS() {
     export LANG=en_US.UTF-8
-    export EDITOR='nvr --remote-tab'
+    export EDITOR='vmux'
     set -o vi
-}
-
-_vmux() {
-  vmux "$@" && exit
 }
 
 
@@ -163,8 +149,6 @@ ZINIT_PLUGINS(){
 
     autoload compinit
     compinit
-
-    compdef _vmux=nvim
 }
 
 ZINIT() {
@@ -195,24 +179,19 @@ ZINIT() {
 START() {
     BEFORE
 
-    if [ $AUTO_VIM -eq "1" ]; then
+    if [ -v $AUTO_VIM ]; then
+        if [ -z $NVIM ]; then
+            BEFORE_NVIM
+            AFTER_NVIM
+        else
+            AFTER_NVIM
+        fi
+    else
         if [ -z $NVIM ]; then
             BEFORE_NVIM
             nvim +':terminal' +':startinsert' && exit || AFTER_NVIM
         else
             AFTER_NVIM
-            alias vim=~/usr/bin/vim
-        fi
-    else
-        if [ -z $NVIM ]; then
-            BEFORE_NVIM
-            AFTER_NVIM
-            export EDITOR='vmux'
-            alias vim="_vmux"
-        else
-            BEFORE_NVIM_NO_AUTO
-            AFTER_NVIM_NO_AUTO
-            alias vim="$EDITOR"
         fi
     fi
 
