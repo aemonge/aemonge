@@ -12,6 +12,7 @@ screen -S name # create session
 # Exit session <Ctrl-a>d
 screen -ls # show sessions
 screen -r name # re-attach session
+screen -Rqx name # create and attach to a session, always
 ```
 
 Kill a session with screen:
@@ -1573,6 +1574,99 @@ This scheduler varies the learning rate cyclically between minimum and maximum v
 
 Using a Softmax as the output function will return vector of probabilities of our classes.
 
+### Activation Function Alternatives
+
+There are several other activation functions you can try as alternatives to ReLU,
+ELU, and TanH. Here are a few popular ones:
+
+0. **TanH**: The hyperbolic tangent (TanH) function is an activation function that
+   maps input values to the range (-1, 1). It is similar to the sigmoid function,
+   but with an output range that is centered around zero. TanH can provide better
+   performance in certain cases when compared to the sigmoid function due to its
+   symmetric output range. However, it can still suffer from vanishing gradients
+   for large positive or negative input values.
+
+   ```python
+   nn.Tanh()
+   ```
+
+   Recommended weight initialization:
+
+   ```python
+   nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='leaky_relu')
+   ```
+
+1. **Leaky ReLU (LReLU)**: Leaky ReLU is an improved version of ReLU that allows a
+   small, non-zero gradient for negative input values. This can help prevent dead
+   neurons during training.
+
+   ```python
+   nn.LeakyReLU(negative_slope=0.01)
+   ```
+
+   Recommended weight initialization:
+
+   ```python
+   nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='leaky_relu')
+   ```
+
+2. **Parametric ReLU (PReLU)**: Parametric ReLU is similar to Leaky ReLU, but it
+   learns the negative slope during training, making it adaptive.
+
+   ```python
+   nn.PReLU()
+   ```
+
+   Recommended weight initialization:
+
+   ```python
+   nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='leaky_relu')
+   ```
+
+3. **Sigmoid**: The sigmoid function maps input values to the range (0, 1) and is
+   widely used in binary classification problems. However, it can suffer from
+   vanishing gradients for large positive or negative input values.
+
+   ```python
+   nn.Sigmoid()
+   ```
+
+   Recommended weight initialization:
+
+   ```python
+   nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='sigmoid')
+   ```
+
+4. **Swish (also known as SiLU)**: Swish is a smooth, self-gated activation
+   function that has been found to work well in deep networks.
+
+   ```python
+   nn.SiLU()
+   ```
+
+   Recommended weight initialization:
+
+   ```python
+   nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='swish')
+   ```
+
+5. **Softplus**: The softplus function is a smooth approximation of the ReLU
+   function.
+
+   ```python
+   nn.Softplus()
+   ```
+
+   Recommended weight initialization:
+
+   ```python
+   nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='softplus')
+   ```
+
+Remember that when using a different activation function, you should also adjust
+the weight initialization method accordingly.
+
+
 #### Table of common output function per activation function
 
 | Activation FN | Loss Function             |
@@ -1734,20 +1828,20 @@ class Fire(nn.Module):
         super().__init__()
         self.squeeze = nn.Sequential(
             nn.Conv2d(in_channels, squeeze_channels, kernel_size=1),
+            nn.Tanh(),
             nn.BatchNorm2d(squeeze_channels),
-            nn.Tanh()
         )
         self.expand1x1 = nn.Sequential(
             nn.Conv2d(squeeze_channels, expand1x1_channels, kernel_size=1),
-            nn.BatchNorm2d(expand1x1_channels),
             nn.ReLU(inplace=True),
+            nn.BatchNorm2d(expand1x1_channels),
         )
         self.expand3x3 = nn.Sequential(
             nn.Conv2d(
                 squeeze_channels, expand3x3_channels, kernel_size=3, padding=1
             ),
-            nn.BatchNorm2d(expand3x3_channels),
             nn.ReLU(inplace=True),
+            nn.BatchNorm2d(expand3x3_channels),
         )
         if use_maxpool:
             self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
@@ -1923,16 +2017,16 @@ effectiveness in deep learning models.
 
 Convolution -> Activation -> Batch Normalization -> Pooling -> Dropout.
 
-Conv2d -> BatchNorm2d -> ReLU
-[Conv2d -> BatchNorm2d -> ReLU]
+Conv2d -> ReLU -> BatchNorm2d
+[Conv2d -> ReLU -> BatchNorm2d]
 MaxPool -> Dropout
 
-Conv2d -> BatchNorm2d -> ReLU
+Conv2d -> ReLU -> BatchNorm2d
 MaxPool -> Dropout
 [MaxPool -> Dropout]
 
-Flatten -> Linear -> ReLU
-Dropout -> Linear
+Flatten -> Linear -> ReLU [ -> Dropout ]
+Softmax.
 
 ## Auto Encoders
 
