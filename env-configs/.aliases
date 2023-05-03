@@ -2,5 +2,5 @@
 # alias xclip=pbcopy
 alias vcd=~/usr/bin/vcd
 alias open=xdg-open
-alias ll='tree -Chal -L 3 --dirsfirst'
+alias ll='tree -Chl -L 3 --dirsfirst'
 alias f='vim $(fzf)'

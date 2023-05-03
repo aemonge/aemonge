@@ -127,6 +127,9 @@ ZINIT_PLUGINS(){
     ZSH_HISTORY
     ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 
+    # noden
+    # zinit light mattberther/zsh-nodenv
+
     # zinit load zdharma-continuum/history-search-multi-word
     zinit ice wait lucid # Turbo mode is verbose, so you need an option for quiet.
     zinit light zsh-users/zsh-completions
