@@ -2,8 +2,8 @@ local M = {}
 
 -- https://github.com/VonHeikemen/lsp-zero.nvim/blob/v1.x/advance-usage.md#intergrate-with-null-ls
 
-local hover = require("settings.lsp.hover")
-table.insert(M, hover)
+-- local hover = require("settings.lsp.hover")
+-- table.insert(M, hover)
 
 local troble = require("settings.lsp.trouble")
 table.insert(M, troble)

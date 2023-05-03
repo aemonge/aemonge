@@ -8,7 +8,7 @@ return {
     "nvim-notify",
     "nvim-web-devicons",
     "project.nvim",
-    "swenv.nvim",
+    -- "swenv.nvim",
     "toggleterm.nvim",
     "which-key.nvim",
 }

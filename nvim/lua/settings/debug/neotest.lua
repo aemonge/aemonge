@@ -37,9 +37,14 @@ table.insert(M, {
             local filetype = vim.bo.filetype
             if filetype == "python" then
                 vim.api.nvim_feedkeys(
-                    "Ofrom pprint import pprint; import sys; import ipdb; ipdb.set_trace()<esc>",
+                    "Ofrom pprint import pprint; import sys; import ipdb; ipdb.set_trace()",
                     "n",
                     false
+                )
+                vim.api.nvim_feedkeys(
+                    vim.api.nvim_replace_termcodes(
+                        "<ESC>", true, true, true
+                    ), "n", false
                 )
             end
         end

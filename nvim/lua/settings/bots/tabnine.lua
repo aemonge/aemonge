@@ -9,6 +9,7 @@ table.insert(M, {
     ft = require("file-types")({
         "languages",
         "frameworks",
+        "markup"
     }),
     config = function()
         require("cmp_tabnine.config"):setup({
@@ -22,11 +23,12 @@ table.insert(M, {
     end,
 })
 
-table.insert(D, {
+table.insert(M, {
     'codota/tabnine-nvim',
     ft = require("file-types")({
         "languages",
         "frameworks",
+        "markup"
     }),
     build = "./dl_binaries.sh",
     config = function()

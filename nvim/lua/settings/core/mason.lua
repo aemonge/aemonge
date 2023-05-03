@@ -28,10 +28,10 @@ table.insert(M, {
             {
                 l = {
                     name = "Lsp Extended Actions",
-                    e = {
-                        require("swenv.api").pick_venv,
-                        "Pick conda environment",
-                    },
+                    -- e = {
+                    --     require("swenv.api").pick_venv,
+                    --     "Pick conda environment",
+                    -- },
                     r = { ":LspRestart<cr>", "Restart" },
                     f = { ":lua vim.lsp.buf.format()<cr>", "Format" },
                     i = { ":LspInfo<cr>", "Info" },
