@@ -401,6 +401,40 @@ SELECT id, name
   WHERE  name ~* ANY('{word one|wordTwo| third word }');
 ```
 
+# 🎁 Mongo
+
+General dependencies
+
+```bash
+pikaur -S mongosh-bin
+```
+
+## Perform a CRUD from the mongosh
+
+```bash
+mongosh dataBase
+```
+
+
+### Create
+
+```python
+db.events.insertOne({name: "Jhon"})
+```
+
+### List
+
+```python
+db.events.find()
+```
+
+### Remove all
+
+```python
+db.events.deleteMany({})
+```
+
+
 # 📚 GIT
 
 ## Git workflow
@@ -443,6 +477,7 @@ git commit --fixup HEAD~1
 ```bash
 git rebase main --interactive --autosquash
 ```
+
 
 ## Better pushing to other remotes
 
@@ -2236,3 +2271,15 @@ sudo du -hs /{var,etc}/* | sort -h
 pacman -Sc
 pacman -Scc
 ```
+## Webcam
+
+### Fix the webcam
+
+If the webcam is not loading, you should execute the following command:
+
+1. **Restart webcam driver:**
+   - `sudo modprobe -r uvcvideo`.
+   - Reload the kernel module: `sudo modprobe uvcvideo`.
+
+2. **Test with different applications and device paths:**
+   - `cheese -d /dev/video0` or `cheese -d /dev/video1`.
