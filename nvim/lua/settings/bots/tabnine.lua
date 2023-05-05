@@ -37,7 +37,7 @@ table.insert(M, {
             accept_keymap = "<C-l>",
             dismiss_keymap = "<C-c>",
             debounce_ms = 300,
-            suggestion_color = { gui = "#916690" },
+            suggestion_color = { gui = "#8787D7" }, -- color104
             exclude_filetypes = { "TelescopePrompt" },
             plugins = {
                 cmp = true
