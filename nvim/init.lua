@@ -2,6 +2,12 @@ vim.keymap.set("", ",", "<Nop>", { silent = true, noremap = true, nowait = true 
 vim.g.mapleader = ","
 vim.g.maplocalleader = ","
 
+-- DEBUG
+-- vim.opt.cmdheight = 2
+-- vim.cmd[[set shortmess-=F]]
+-- vim.opt.verbose = 3
+-- vim.cmd[[set verbosefile=~/nvim.log]]
+
 require "settings.general"
 
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"

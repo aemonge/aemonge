@@ -1,15 +1,3 @@
-local function find_pyproject_toml()
-  local handle = io.popen("find . -type f -name 'pyproject.toml' -print -quit 2> /dev/null")
-  local result = handle:read("*a")
-  handle:close()
-  local path = result:match("^%s*(.-)%s*$")
-  if path and #path > 0 then
-    return path
-  else
-    return nil
-  end
-end
-
 local function get_virtual_path(executable)
   local handle = io.popen("which " .. executable .. " 2> /dev/null ")
   local result = handle:read("*a")

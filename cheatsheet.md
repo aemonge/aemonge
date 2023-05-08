@@ -693,7 +693,7 @@ for transform in s.transforms:
 
 > get used to 4 four spaces, instead of 2 two.
 
-### Documentation on the files, classes, methods, and functions
+### Documentation on the files, classes, methods and functions
 
 **a.py**:
 
@@ -705,6 +705,31 @@ Of fantastic documentation
 """
 
 import random
+
+
+def add(a, b):
+    """
+    Add two numbers together and return their sum.
+
+    Arguments
+    ---------
+        a (int): The first number to add.
+        b (int): The second number to add.
+
+    Returns
+    -------
+        int: The sum of the two numbers.
+
+    Example
+    -------
+        >>> add(-1, 1)
+        0
+        >>> x = 2
+        >>> y = 3
+        >>> add(x, y)
+        5
+    """
+    return a + b
 
 
 def standard_deviations(data) -> float:
@@ -2223,6 +2248,19 @@ gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/ebook \
 ```bash
 sudo killall coreaudiod`
 ```
+
+#  Bash Command line tooling
+## Boxes
+
+To draw nice boxes around an input:
+
+```
+echo "hola mundo" | boxes -d columns
+# Pipe it with entr
+ls file | entr -rcs 'echo "hola mundo" | boxes -d columns'
+```
+
+Favorites are: [boxquote, ada-cmt, columns jstone parchment] but get all with `boxes -l`
 
 #  Arch Linux
 

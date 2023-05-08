@@ -3,7 +3,7 @@ local M = {}
 table.insert(M, {
     "neovim/nvim-lspconfig",
     -- dependencies = { "wbthomason/packer.nvim", "neovim/nvim-lspconfig" },
-    -- dependencies = { "neovim/nvim-lspconfig" },
+    dependencies = { "neovim/nvim-lspconfig" },
     ft = require("file-types")({
         "languages",
         "frameworks",
@@ -22,6 +22,11 @@ table.insert(M, {
             -- This is the default in Nvim 0.7+
             debounce_text_changes = 150,
         }
+        -- require("lspconfig").pyre.setup {}
+        -- require("lspconfig")["pylyzer"].setup({
+        --     on_attach = on_attach,
+        --     flags = lsp_flags,
+        -- })
         require("lspconfig")["pyright"].setup({
             on_attach = on_attach,
             flags = lsp_flags,
