@@ -1,4 +1,4 @@
-AUTO_VIM=0 # virtual-env requires us to start with this off
+# AUTO_VIM=0  # virtual-env requires us to start with this off
 
 BEFORE(){
     OPTS
@@ -48,7 +48,6 @@ PROFILE() {
 
 SSH() {
     eval "$(ssh-agent -s)" > /dev/null 2>&1
-    ssh-add ~/.ssh/git_aemonge > /dev/null 2>&1
 }
 
 CONDA() {
@@ -127,8 +126,8 @@ ZINIT_PLUGINS(){
     ZSH_HISTORY
     ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 
-    # noden
-    # zinit light mattberther/zsh-nodenv
+    # nodenv
+    zinit light mattberther/zsh-nodenv
 
     # zinit load zdharma-continuum/history-search-multi-word
     zinit ice wait lucid # Turbo mode is verbose, so you need an option for quiet.
@@ -141,8 +140,8 @@ ZINIT_PLUGINS(){
     ZINIT_PLUGINS_COMPLETIONS
 
     # zsh-autosuggestions
-    zinit ice wait lucid # Turbo mode is verbose, so you need an option for quiet.
-    zinit light zsh-users/zsh-autosuggestions
+    # zinit light zsh-users/zsh-autosuggestions
+    zinit load zsh-users/zsh-autosuggestions  # Load it instantly, no "light"
     bindkey '^p' history-search-backward
     bindkey '^o' history-search-forward
     bindkey '^n' autosuggest-accept
@@ -192,6 +191,7 @@ START() {
     else
         if [ -z $NVIM ]; then
             BEFORE_NVIM
+            source ~/.profile.before-nvim
             nvim +':terminal' +':startinsert' && exit || AFTER_NVIM
         else
             AFTER_NVIM

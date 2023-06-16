@@ -31,7 +31,7 @@ _pikaur() {
    pikaur -S --noconfirm linux-steamos libxcrypt-compat
    pikaur -S --noconfirm fzf firefox-pwa-bin konsave firefox-developer-edition \
      telegram-desktop
-   pikaur -S --noconfirm spotify grip boxes
+   pikaur -S --noconfirm spotify grip boxes marktext-bin
 }
 
 # steamos-readonly disable

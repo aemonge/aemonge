@@ -1,5 +1,12 @@
 local M = {}
 
+local function get_jedi_language_server_path()
+    local handle = io.popen("which jedi-language-server")
+    local result = handle:read("*a")
+    handle:close()
+    return result:match("^%s*(.-)%s*$")
+end
+
 table.insert(M, {
     "neovim/nvim-lspconfig",
     -- dependencies = { "wbthomason/packer.nvim", "neovim/nvim-lspconfig" },
@@ -22,15 +29,15 @@ table.insert(M, {
             -- This is the default in Nvim 0.7+
             debounce_text_changes = 150,
         }
-        -- require("lspconfig").pyre.setup {}
-        -- require("lspconfig")["pylyzer"].setup({
-        --     on_attach = on_attach,
-        --     flags = lsp_flags,
-        -- })
-        require("lspconfig")["pyright"].setup({
-            on_attach = on_attach,
-            flags = lsp_flags,
-        })
+
+        local jedi_path = get_jedi_language_server_path()
+        if jedi_path then
+            require("lspconfig")["jedi_language_server"].setup({
+                cmd = { jedi_path },
+                on_attach = on_attach,
+                flags = lsp_flags,
+            })
+        end
     end,
 })
 

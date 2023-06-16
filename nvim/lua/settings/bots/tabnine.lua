@@ -23,7 +23,7 @@ table.insert(M, {
     end,
 })
 
-table.insert(M, {
+table.insert(D, {
     'codota/tabnine-nvim',
     ft = require("file-types")({
         "languages",

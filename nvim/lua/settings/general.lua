@@ -3,7 +3,9 @@ vim.opt.autoindent = true              -- Copy indent from current line when sta
 vim.opt.autoread = true                -- Set autoread when a file is changed outside
 vim.opt.autowrite = true               -- FileChangedShell * echo Warning: File changed on disk
 vim.opt.backup = false                 -- creates a backup file
-vim.opt.clipboard = "unnamedplus"      -- allows neovim to access the system clipboard
+vim.opt.clipboard = {                  -- allows neovim to access the system clipboard
+    "unnamed", "unnamedplus"
+}
 vim.opt.cmdheight = 0                  -- Hyper focused, hidden cmd bar
 vim.opt.concealcursor = "v"            -- Mostly invisible, but when acting on it `vi` display it
 vim.opt.conceallevel = 0               -- so that `` is visible in markdown files
@@ -59,6 +61,7 @@ vim.opt.wrap = false                   -- keep inits easy to read
 vim.opt.writebackup = false            -- if a file is being edited by another program, it is not allowed to be e
 vim.opt.linebreak = false              -- Don't break my lines, just warn me with over-length
 vim.opt.incsearch = true
+vim.opt.gdefault = true                -- Make the `s/` have the 'g' flag as default.
 
 vim.g.markdown_fenced_languages = {'html', 'python', 'ruby', 'vim', 'python', 'bash', 'javascript'}
 

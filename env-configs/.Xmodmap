@@ -1,23 +1,23 @@
 ! !!!!!!!!!!! Swap Esc Caps !!!!!!!!!!!!!!!
-remove Lock = Caps_Lock
-keysym Escape = Caps_Lock
-keysym Caps_Lock = Escape
-add Lock = Caps_Lock
+! remove Lock = Caps_Lock
+! keysym Escape = Caps_Lock
+! keysym Caps_Lock = Escape
+! add Lock = Caps_Lock
 
 ! !!!!!!!!!!! Super binding !!!!!!!!!!!!!!!
-keycode 133 = Mode_switch
-keycode 134 = Mode_switch
+!  keycode 133 = Mode_switch
+!  keycode 134 = Mode_switch
 
 ! !!!!! Navigation: Arrows && Regex !!!!!!!
-keysym y = y Y asciicircum Home
-keysym u = u U percent Prior
-keysym i = i I ampersand Next
-keysym o = o O dollar End
-
-keysym h = h H Left
-keysym l = l L Right
-keysym k = k K Up
-keysym j = j J Down
+! keysym y = y Y asciicircum Home
+! keysym u = u U percent Prior
+! keysym i = i I ampersand Next
+! keysym o = o O dollar End
+!
+! keysym h = h H Left
+! keysym l = l L Right
+! keysym k = k K Up
+! keysym j = j J Down
 
 ! !!!!!!!!!!!! Latin Keys !!!!!!!!!!!!!!!!!
 keysym apostrophe = apostrophe quotedbl dead_acute

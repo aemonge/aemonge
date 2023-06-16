@@ -1,6 +1,14 @@
 #!/bin/bash
 
-if [ -v AUTO_VIM ] && [ "$AUTO_VIM" -eq 1 ]; then
-  conda activate udacity
-  cd ~/learnings/204-landmark-tag-classifier || return
-fi
+# Celonis Profile
+# cd ~/desktop/challenge-frontend-master
+# nodenv local "18.16.0"
+
+# Work Profile
+ssh-add ~/.ssh/babio_gitlab > /dev/null 2>&1
+cd ~/projects/babio-docs/projects/calculator/epic-1/spikes/arcgis
+conda activate arcgis
+
+# Studying profile
+# ssh-add ~/.ssh/git_aemonge > /dev/null 2>&1
+# conda activate rnn && cd ~/learnings/205-RNN

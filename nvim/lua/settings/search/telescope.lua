@@ -3,6 +3,7 @@ local M = {}
 
 table.insert(M, {
     "nvim-telescope/telescope.nvim",
+    tag = "0.1.1",
     dependencies = {
         "nvim-telescope/telescope.nvim",
         "nvim-lua/plenary.nvim",

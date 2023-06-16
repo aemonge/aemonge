@@ -12,6 +12,9 @@ table.insert(M, gitsigns)
 local bufferline = require "settings.visual.bufferline"
 table.insert(M, bufferline)
 
+local tint = require "settings.visual.tint"
+table.insert(M, tint)
+
 -- local limelight = require "settings.visual.limelight"
 -- table.insert(M, limelight)
 

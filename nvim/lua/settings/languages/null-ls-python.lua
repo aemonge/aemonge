@@ -32,7 +32,7 @@ local function get_python_sources()
     --   executable = "pylint",
     --   -- args = { "--rcfile", find_pyproject_toml() or "" }
     -- },
-    {
+    { -- pyright runs mypy
       builtin = null_ls.builtins.diagnostics.mypy,
       executable = "mypy",
     },

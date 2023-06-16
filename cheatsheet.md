@@ -598,12 +598,25 @@ gem install --no-user-install --install-dir=./mason/packages \
 
 ## Libraries
 
+* stubgen: It's a tool provided with mypy. stubgen can create stubs from python source
+  files. Note that the stubs generated are just a starting point, you will need to
+  manually curate them for better typing.
+
+* MonkeyType: MonkeyType is a tool developed by Instagram that generates stub files
+  based on runtime types.
+
+* pyright: Pyright is a static type checker for Python developed by Microsoft.
+  It includes a tool for creating stubs that's a bit more sophisticated than stubgen.
+
 * [sktim](https://github.com/sktime/sktime). A unified interface for machine
   learning with time series
+
 * [huggingface](https://huggingface.co/). We are on a mission to democratize
   good machine learning, one commit at a time.
+
 * [alpaca](https://github.com/tatsu-lab/stanford_alpaca). Build and share an
   instruction-following LLaMA model.
+
 * [transformers](https://github.com/huggingface/transformers). State-of-the-art
   Machine Learning for JAX, PyTorch and TensorFlow.
 
