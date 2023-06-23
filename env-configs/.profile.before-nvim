@@ -2,12 +2,13 @@
 
 # Celonis Profile
 # cd ~/desktop/challenge-frontend-master
-# nodenv local "18.16.0"
 
 # Work Profile
 ssh-add ~/.ssh/babio_gitlab > /dev/null 2>&1
-cd ~/projects/babio-docs/projects/calculator/epic-1/spikes/arcgis
-conda activate arcgis
+cd ~/projects/babio-calc
+nodenv local "18.16.0"
+# cd ~/projects/babio-docs/projects/calculator/epic-1/spikes/getRoofImg/nearmap
+# conda activate nearmap
 
 # Studying profile
 # ssh-add ~/.ssh/git_aemonge > /dev/null 2>&1

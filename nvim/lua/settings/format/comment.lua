@@ -5,6 +5,7 @@ table.insert(M, {
     ft = require("file-types")({
         "languages",
         "frameworks",
+        "markup"
     }),
     config = function()
         local wk = require("which-key")
