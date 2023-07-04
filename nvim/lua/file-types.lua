@@ -213,7 +213,7 @@ local allFileTypes = {
     frameworks = frameworkFileTypes,
     data = dataFileTypes,
     versionControl = versionControlFileTypes,
-    plugings = plugingsFileTypes
+    plugings = pluginsFileTypes
 }
 
 local function getFileTypes(categories)

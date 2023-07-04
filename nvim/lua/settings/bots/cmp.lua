@@ -125,7 +125,6 @@ table.insert(M, {
                     )
                     vim_item.menu = source_mapping[entry.source.name]
                     if entry.source.name == "cmp_tabnine" then
-                        local detail = (entry.completion_item.data or {}).detail
                         vim_item.kind = ""
                     end
                     return vim_item
@@ -135,12 +134,6 @@ table.insert(M, {
                 {
                     name = "cmp_tabnine",
                     priority = 100,
-                    keyword_length = 3,
-                    max_item_count = 5,
-                },
-                {
-                    name = "cmp-openai-codex",
-                    priority = 90,
                     keyword_length = 3,
                     max_item_count = 5,
                 },

@@ -1,7 +1,7 @@
 local M = {}
 
 table.insert(M, {
-    "RRethy/nvim-align",
+    "junegunn/vim-easy-align",
     ft = require("file-types")({
         "text",
         "markup",
@@ -12,14 +12,14 @@ table.insert(M, {
         local wk = require("which-key")
 
         wk.register({
-            t = { ":Align ", "Align" },
+            t = { "<Plug>(LiveEasyAlign)", "Align (<c-p> to accept)" },
         }, {
-            mode = "v",
-            prefix = "<leader>",
-            buffer = nil,
-            silent = true,
+            mode    = "v",
+            prefix  = "<leader>",
+            buffer  = nil,
+            silent  = true,
             noremap = true,
-            nowait = true,
+            nowait  = true,
         })
     end,
 })
