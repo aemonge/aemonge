@@ -18,7 +18,8 @@ while read -r line; do
 done <<< "$SCREEN_STATUS"
 
 if [ $CONNECTED -ge 1 ]; then
-  xrandr --output eDP --scale 0.7
+  # KDE Will be first, sleep 3s make us second
+  sleep 3s && xrandr --output eDP --scale 0.7
 else
   echo "Listed $CONNECTED with $SCREEN_STATUS"
 fi
