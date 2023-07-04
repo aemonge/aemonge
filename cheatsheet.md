@@ -426,6 +426,8 @@ db.events.insertOne({name: "Jhon"})
 
 ```python
 db.events.find()
+db.events.find({"zip_codes": 12345}) # Get even if they returned value has more zipcodes
+db.events.find({"zip_codes": [12345]}) # Just exactly that list of zipcodes
 ```
 
 ### Remove all
@@ -434,6 +436,11 @@ db.events.find()
 db.events.deleteMany({})
 ```
 
+### Rename (dyslexic friend)
+
+```python
+db.events.updateMany({}, { $rename: {"nmae": "name"}})
+```
 
 # 📚 GIT
 
