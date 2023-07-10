@@ -12,12 +12,13 @@ table.insert(M, {
         local wk = require("which-key")
 
         wk.register({
-            t = { "<Plug>(LiveEasyAlign)", "Align (<c-p> to accept)" },
+            a = { "<Enter> <Plug>(EasyAlign)", "Align" },
+            A = { "<Enter> <Plug>(LiveEasyAlign)", "Live Align (<c-p> to accept)" },
         }, {
-            mode    = "v",
-            prefix  = "<leader>",
-            buffer  = nil,
-            silent  = true,
+            mode   = "v",
+            prefix = "g",
+            buffer = nil,
+            silent = true,
             noremap = true,
             nowait  = true,
         })

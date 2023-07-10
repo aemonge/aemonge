@@ -207,13 +207,13 @@ local versionControlFileTypes = {
 }
 
 local allFileTypes = {
-    text = textFileTypes,
-    markup = markupFileTypes,
-    languages = languageFileTypes,
-    frameworks = frameworkFileTypes,
-    data = dataFileTypes,
+    text           = textFileTypes,
+    markup         = markupFileTypes,
+    languages      = languageFileTypes,
+    frameworks     = frameworkFileTypes,
+    data           = dataFileTypes,
     versionControl = versionControlFileTypes,
-    plugings = pluginsFileTypes
+    plugings       = pluginsFileTypes
 }
 
 local function getFileTypes(categories)

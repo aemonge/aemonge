@@ -7,28 +7,32 @@ local get_python_sources = require("settings.languages.null-ls-python")
 -- local get_python_formatters = null_ls_python.get_python_formatters
 
 table.insert(M, {
-  "jay-babu/mason-null-ls.nvim",
-  event = { "BufReadPre", "BufNewFile" },
-  ft = require("file-types")({
-    "languages",
-  }),
-  dependencies = {
-    "williamboman/mason.nvim",
-    "jose-elias-alvarez/null-ls.nvim",
-  },
-  config = function()
-    require("mason").setup()
-    require("mason-null-ls").setup({
-      automatic_installation = false,
-      automatic_setup = true,
-    })
-    require("null-ls").setup({
-      sources = get_python_sources(),
-      on_idle = function()
-        vim.cmd("doautocmd User LspDiagnosticsChanged")
-      end
-    })
-  end,
+    "jay-babu/mason-null-ls.nvim",
+    event = { "BufReadPre", "BufNewFile" },
+    ft = require("file-types")({
+        "text",
+        "markup",
+        "languages",
+        "frameworks",
+        "versionControl",
+    }),
+    dependencies = {
+        "williamboman/mason.nvim",
+        "jose-elias-alvarez/null-ls.nvim",
+    },
+    config = function()
+        require("mason").setup()
+        require("mason-null-ls").setup({
+            automatic_installation = false,
+            automatic_setup = true,
+        })
+        require("null-ls").setup({
+            sources = get_python_sources(),
+            on_idle = function()
+                vim.cmd("doautocmd User LspDiagnosticsChanged")
+            end
+        })
+    end,
 })
 
 return M
