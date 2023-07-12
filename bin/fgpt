@@ -1,0 +1,62 @@
+#!/bin/bash
+
+F_PATH="/tmp"
+OUT_FILE=$F_PATH"/gpt-deamon.out"
+IN_FILE=$F_PATH"/gpt-deamon.in.md"
+IN_FILE_COMPILED=$F_PATH"/gpt-deamon.compiled-input.md"
+SEPARATOR="\n--------------------------------------------------------------\n"
+DEAMON_SH="finclude $IN_FILE $IN_FILE_COMPILED && cat $IN_FILE_COMPILED"
+DEAMON_SH=$DEAMON_SH"| gpt -p - >> $OUT_FILE && echo -e '$SEPARATOR' >> $OUT_FILE"
+SIMPLE_SH="finclude $IN_FILE $IN_FILE_COMPILED && cat $IN_FILE_COMPILED | gpt -p -"
+
+# Function to open $IN_FILE with $EDITOR
+open_editor() {
+ $EDITOR "$IN_FILE"
+}
+
+# Function to run the gpt command
+run_gpt() {
+  if [[ ! -f "$IN_FILE" ]]; then
+   touch "$IN_FILE"
+  fi
+  if [[ $1 == "log" ]]; then
+   echo "$IN_FILE" | entr -cr sh -c "$DEAMON_SH"
+   tail -f "$OUT_FILE"
+  else
+   echo "$IN_FILE" | entr -cr sh -c "$SIMPLE_SH"
+  fi
+}
+
+# Process command line arguments
+while [[ $# -gt 0 ]]
+do
+ key="$1"
+
+ case $key in
+   -d|--dir)
+     F_PATH="$2"
+     OUT_FILE=$F_PATH"/gpt-deamon.out"
+     IN_FILE=$F_PATH"/gpt-deamon.in.md"
+     IN_FILE_COMPILED=$F_PATH"/gpt-deamon.compiled-input.md"
+     shift # past argument
+     shift # past value
+     ;;
+   -l|--log)
+     run_gpt "log"
+     exit 0
+     ;;
+   -o|--open-edit)
+     open_editor
+     exit 0
+     ;;
+   *)
+     echo "Invalid option: $key"
+     exit 1
+     ;;
+ esac
+done
+
+# Run the gpt command
+run_gpt
+
+exit 0

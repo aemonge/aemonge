@@ -1,0 +1,41 @@
+#!/bin/env python
+
+
+import re
+import sys
+from typing import List
+
+def replace_include_tags(input_file: str, output_file: str) -> None:
+ with open(input_file, 'r') as f:
+     content = f.readlines()
+
+ include_pattern = r'( *)(<!-- include: .* -->)'
+ for i, line in enumerate(content):
+    if (match := re.search(include_pattern, line)):
+         padding = match[1]
+         include_tag = match[2]
+         include_file = include_tag.strip().replace('<!-- include: ', '')\
+                                           .replace(' -->', '')
+         with open(include_file, 'r') as f:
+             include_content = f.readlines()
+
+         include_content = [
+                f"{padding}{include_line}"
+                if include_line.strip()
+                else include_line
+                for include_line in include_content
+            ]
+         content[i] = ''.join(include_content)
+
+ with open(output_file, 'w') as f:
+     f.write(''.join(content))
+
+if __name__ == "__main__":
+ if len(sys.argv) < 3:
+     print("Usage: python finclude.py <input_file> <output_file>")
+     sys.exit(1)
+
+ input_file = sys.argv[1]
+ output_file = sys.argv[2]
+
+ replace_include_tags(input_file, output_file)
