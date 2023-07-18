@@ -50,6 +50,9 @@ SSH() {
     eval "$(ssh-agent -s)" > /dev/null 2>&1
 }
 
+_CONDA() {
+  . "/home/deck/.conda/etc/profile.d/conda.sh"
+}
 CONDA() {
     # >>> conda initialize >>>
     # !! Contents within this block are managed by 'conda init' !!
@@ -58,7 +61,7 @@ CONDA() {
         eval "$__conda_setup"
     else
         if [ -f "/home/deck/.conda/etc/profile.d/conda.sh" ]; then
-            . "/home/deck/.conda/etc/profile.d/conda.sh"
+            _CONDA
         else
             export PATH="/home/deck/.conda/bin:$PATH"
         fi
@@ -186,6 +189,7 @@ START() {
             BEFORE_NVIM
             AFTER_NVIM
         else
+            _CONDA
             AFTER_NVIM
         fi
     else

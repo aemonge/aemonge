@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Work
-# ssh-add ~/.ssh/babio_gitlab > /dev/null 2>&1
+ssh-add ~/.ssh/babio_gitlab > /dev/null 2>&1
 ## Work Profile on Helios
-# conda activate helios && cd ~/projects/helios
+conda activate helios && cd ~/projects/helios
 
 ## Work Profile on Calculator "Surya" [helios in Hinduism]
 ## nodenv local "18.16.0" &&  cd ~/projects/babio-calc
@@ -13,5 +13,5 @@
 # conda activate nearmap
 
 # Studying profile
-ssh-add ~/.ssh/git_aemonge > /dev/null 2>&1
-conda activate lstm-chatbot && cd ~/learnings/207-lstm-chatbot
+# ssh-add ~/.ssh/git_aemonge > /dev/null 2>&1
+# conda activate lstm-chatbot && cd ~/learnings/207-lstm-chatbot

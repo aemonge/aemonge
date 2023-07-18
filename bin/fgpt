@@ -5,9 +5,9 @@ OUT_FILE=$F_PATH"/gpt-deamon.out"
 IN_FILE=$F_PATH"/gpt-deamon.in.md"
 IN_FILE_COMPILED=$F_PATH"/gpt-deamon.compiled-input.md"
 SEPARATOR="\n--------------------------------------------------------------\n"
-DEAMON_SH="finclude $IN_FILE $IN_FILE_COMPILED && cat $IN_FILE_COMPILED"
+DEAMON_SH="finclude $IN_FILE $IN_FILE_COMPILED && clear && cat $IN_FILE_COMPILED"
 DEAMON_SH=$DEAMON_SH"| gpt -p - >> $OUT_FILE && echo -e '$SEPARATOR' >> $OUT_FILE"
-SIMPLE_SH="finclude $IN_FILE $IN_FILE_COMPILED && cat $IN_FILE_COMPILED | gpt -p -"
+SIMPLE_SH="finclude $IN_FILE $IN_FILE_COMPILED && clear && cat $IN_FILE_COMPILED | gpt -p -"
 
 # Function to open $IN_FILE with $EDITOR
 open_editor() {

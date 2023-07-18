@@ -1,0 +1,93 @@
+[tool.poetry]
+name = ""
+version = "0.0.1"
+description = ""
+authors = ["aemonge <andres@aemonge.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{include = "<package>"}]
+
+
+[tool.poetry.group.dev.dependencies]
+# poetry add -G dev autopep8 black flake8 flake8-docstrings flake8-picky-parentheses
+# poetry add -G dev flake8-quotes isort mypy pep8-naming
+
+[tool.poetry.group.test.dependencies]
+# poetry add -G test pytest pynguin pytest-cov mongomock pytest-lineno pytest-describe
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+# ################################################################################### #
+# ## Linting and Code Standards
+# ################################################################################### #
+
+# [tool.flake8] @SEE: ./.flake8
+
+[tool.mypy]
+files = "**/*.py"
+strict = true
+exclude = "(.*fixtures.py|.*_test.py)"
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+line_length = 88
+
+[tool.black]
+line-length = 88
+target-version = ['py36', 'py37', 'py38']
+include = '\.pyi?$'
+exclude = '''
+(
+/(
+    \.eggs         # exclude a few common directories in the
+  | \.git          # root of the project
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+| foo.py           # also separately exclude a file named foo.py in
+                   # the root of the project
+)
+'''
+string-normalization = false
+
+# ################################################################################### #
+# ## Testing and Coverage
+# ################################################################################### #
+
+[tool.pytest.ini_options]
+console_output_style = "progress"
+python_files = ['**/*.py']
+python_functions = ['*_test', 'should_*', 'test_*']
+testpaths = ["**/*_test.py"]
+
+[tool.coverage.run]
+branch = true
+source = ["app"]
+omit = ["**/__init__.py", "**/*_test.py", "**/*_fixtures.py", "app/shared/db/*"]
+
+[tool.coverage.report]
+fail_under = 98
+exclude_lines = [
+  # Have to re-enable the standard pragma
+  "pragma: no cover",
+
+  # Don't complain about missing debug-only code:
+  "def __repr__",
+  "if self\\.debug",
+
+  # Don't complain if non-runnable code isn't run:
+  "if 0:",
+  "if __name__ == .__main__.:",
+]
