@@ -131,9 +131,11 @@ sed -e 's/ /.*/'
 
 ```bash
 rsync -harPz local-folder username@host:/remote/directory
+rsync -az --info=progress2  --exclude=".git" --exclude-from='.gitignore' ./ user@host:/directory
 ```
 
 Use `--info=progress2`  to show the total progress, instead of individual.
+Use `--exclude-from`  to avoid copying repository ignored files
 
 # 💎 Ruby
 
@@ -409,6 +411,16 @@ General dependencies
 pikaur -S mongosh-bin
 ```
 
+## Admin create user specific to a database
+```python
+use helios
+db.createUser({
+    user: "user",
+    pwd: "your_password",  // Replace with the password for helios user
+    roles: [{ role: "readWrite", db: "database" }]
+})
+db.getUser("user")
+```
 ## Perform a CRUD from the mongosh
 
 ```bash
@@ -441,6 +453,75 @@ db.events.deleteMany({})
 ```python
 db.events.updateMany({}, { $rename: {"nmae": "name"}})
 ```
+
+### Find sub-string or regex
+
+```
+db.utilities.find({name: {$regex: "Los Angeles"}})
+```
+
+### Find and insert, append or push into an array like property
+
+```
+db.utilities.updateOne({name: {$regex: "Los Angeles"}}, { $push: {zip_codes: 90401 }})
+db.utilities.updateOne(
+  {name: {$regex: "Los Angeles"}}, {
+    $push: {zip_codes: {$each: [90401, 90402, 90403, 90404,90405] }}
+  }
+)
+```
+
+## Supports geo-spatial queries
+
+You can use the $near operator for this. However, you'll need to make sure your
+database is set up to handle geo-spatial coordinates first.
+
+1. Store your coordinates as GeoJSON: MongoDB can understand this format natively,
+and it's easy to work with in Python. Each document's coordinates would look something
+like this:
+
+```python
+"coordinates": {
+  "type": "Point",
+  "coordinates": [long, lat]
+}
+```
+
+2. Create a 2dsphere index: This is the MongoDB index type that allows for geospatial
+queries. In Python using PyMongo, it would look something like this:
+
+```python
+db.roof.create_index([("coordinates", pymongo.GEOSPHERE)])
+```
+> Note that MongoDB's geospatial features expect coordinates in [longitude, latitude]
+> order, contrary to the usual convention.
+
+3. Query with $near: Once you've got your database set up correctly, you can query for
+nearby documents using the $near operator. Here's what it might look like in your case:
+
+```python
+threshold_in_meters = 1000  # adjust as needed
+
+query = {
+  "coordinates": {
+    "$near": {
+      "$geometry": {
+        "type": "Point",
+        "coordinates": [long, lat]
+      },
+      "$maxDistance": threshold_in_meters
+    }
+  }
+}
+
+if (roofs := db.roof.find(query)):
+    return [Roof.parse_obj(roof) for roof in roofs]
+```
+
+> Remember, MongoDB's $near operator requires that documents contain a 2dsphere index
+> field, and the operation returns an error if the queried field isn't indexed with
+> 2dsphere index. Also, remember to handle any exceptions that may occur during the
+> execution of these operations, especially when dealing with real-world data.
 
 # 📚 GIT
 
@@ -501,13 +582,41 @@ git show # Display the diff
 
 ## Undo the commit of a file in (last) a commit
 
-```bash
-git rebase -i HEAD~1
-# pick the commit to `e` edit
-git reset HEAD package-lock.json
-# git restore package-lock.json
-git rebase --continue
-```
+1. Start an interactive rebase to the commit before the one you want to edit
+   or two before if you want to edit the last one:
+
+    ```bash
+    git rebase -i <commit-hash>^
+    # git rebase -i HEAD~2
+    ```
+
+2. In the text editor that opens, change `pick` to `edit` for the commit you want to
+   modify. Save and close the file.
+
+3. Unstage the commit:
+
+    ```bash
+    git reset HEAD^
+    ```
+
+4. Checkout (remove changes) the files you do not want to include in the commit:
+
+    ```bash
+    git checkout -- <files-path>
+    ```
+
+5. Commit the remaining changes:
+
+    ```bash
+    git add <files-to-include>
+    git commit --reuse-message=HEAD
+    ```
+
+6. Continue the rebase:
+
+    ```bash
+    git rebase --continue
+    ```
 
 ## Remove / Clear 🔨 Hard a sub-module
 
@@ -602,6 +711,16 @@ gem install --no-user-install --install-dir=./mason/packages \
 ```
 
 # 🐍 Python
+
+## Typing and useful lint and code checks
+
+```bash
+poetry add -G dev autopep8 black flake8 flake8-docstrings \
+  flake8-picky-parentheses flake8-quotes isort mypy pep8-naming
+
+poetry add -G test ipdb mongomock pynguin pytest pytest-cov \
+  pytest-describe pytest-lineno python-githooks toml
+```
 
 ## Libraries
 
