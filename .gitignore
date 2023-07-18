@@ -1,7 +1,1 @@
-.jukit
-**/.jukit
-.DS_Store
-nvim/lazy-lock.json
-app-configs/firefox/*
-!app-configs/firefox/chrome
-app-configs/customization
+../env-configs/.profile.before-nvim

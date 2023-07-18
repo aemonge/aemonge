@@ -695,6 +695,17 @@ heroku git:remote -a test-app
 
 # 🗒️ Vim
 
+## Regex
+### Remove multi-lines expression like doc-strings
+
+Remember that `\_.*` is non-greedy, meaning that it will match the shortest possible
+sequence of characters between """ and """. If you have multiple triple-quoted strings
+on the same line, this command will remove them separately
+
+```
+%s/"""\_[^"""]*"""//g
+```
+
 ## Pipe from/to file
 
 ```bash
