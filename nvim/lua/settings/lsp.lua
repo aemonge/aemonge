@@ -5,19 +5,19 @@ local M = {}
 -- local hover = require("settings.lsp.hover")
 -- table.insert(M, hover)
 
-local troble = require("settings.lsp.trouble")
-table.insert(M, troble)
+-- local troble = require("settings.lsp.trouble")
+-- table.insert(M, troble)
 
-local ufo = require("settings.lsp.nvim-ufo")
-table.insert(M, ufo)
+-- local ufo = require("settings.lsp.nvim-ufo")
+-- table.insert(M, ufo)
 
-local lspzero = require "settings.lsp.lsp-zero"
-table.insert(M, lspzero)
+-- local lspzero = require "settings.lsp.lsp-zero"
+-- table.insert(M, lspzero)
 
-local signature = require "settings.lsp.signature"
-table.insert(M, signature)
+-- local signature = require "settings.lsp.signature"
+-- table.insert(M, signature)
 
-local lspconfig = require "settings.lsp.lspconfig"
-table.insert(M, lspconfig)
+-- local lspconfig = require "settings.lsp.lspconfig"
+-- table.insert(M, lspconfig)
 
 return M

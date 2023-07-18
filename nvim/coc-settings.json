@@ -1,0 +1,78 @@
+{
+  "diagnostic.errorSign": "戀",
+  "diagnostic.warningSign": "⚠",
+  "diagnostic.hintSign": "♥",
+  "diagnostic.infoSign": "כֿ",
+  "hover.floatConfig": {
+    "border": true,
+    "rounded": true
+  },
+  "diagnostic.floatConfig": {
+    "border": true,
+    "rounded": true,
+  },
+  "suggest.virtualText": true,
+  "suggest.removeDuplicateItems": true,
+  "suggest.floatConfig": {
+    "border": true,
+    "rounded": true,
+  },
+  "codeLens.enable": true,
+  "colors.enable": true,
+  "suggest.selection": "first",
+  "suggest.autoTrigger": "always",
+  "suggest.insertMode": "replace",
+  "languageserver": {
+    "sourcery": {
+      "command": "sourcery",
+      "args": [ "lsp" ],
+      "filetypes": [ "python" ],
+      "initializationOptions": {
+        "extension_version": "coc.nvim",
+        "editor_version": "neovim"
+      },
+      "settings": {
+        "sourcery": {
+          "metricsEnabled": true
+        }
+      }
+    }
+  },
+  "cSpell.enabledLanguageIds": [
+    "asciidoc",
+    "c",
+    "cpp",
+    "csharp",
+    "css",
+    "es",
+    "git-commit",
+    "gitcommit",
+    "go",
+    "handlebars",
+    "haskell",
+    "html",
+    "jade",
+    "java",
+    "javascript",
+    "javascriptreact",
+    "json",
+    "jsonc",
+    "latex",
+    "less",
+    "markdown",
+    "php",
+    "plaintext",
+    "pug",
+    "python",
+    "restructuredtext",
+    "rust",
+    "scala",
+    "scss",
+    "text",
+    "typescript",
+    "typescriptreact",
+    "vim",
+    "yaml",
+    "yml"
+  ]
+}

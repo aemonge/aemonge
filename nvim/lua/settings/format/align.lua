@@ -12,8 +12,8 @@ table.insert(M, {
         local wk = require("which-key")
 
         wk.register({
-            a = { "<Enter> <Plug>(EasyAlign)", "Align" },
-            A = { "<Enter> <Plug>(LiveEasyAlign)", "Live Align (<c-p> to accept)" },
+            a = { "<Plug>(EasyAlign)*", "Align" },
+            A = { "<Plug>(LiveEasyAlign)*", "Live Align (<c-p> to accept)" },
         }, {
             mode   = "v",
             prefix = "g",

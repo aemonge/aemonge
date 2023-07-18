@@ -16,7 +16,7 @@ local M = {}
 -- local quarto = require("settings.frameworks.quarto")
 -- table.insert(M, quarto)
 
-local quartoSyn = require("settings.frameworks.quarto-syntax")
-table.insert(M, quartoSyn)
+-- local quartoSyn = require("settings.frameworks.quarto-syntax")
+-- table.insert(M, quartoSyn)
 
 return M

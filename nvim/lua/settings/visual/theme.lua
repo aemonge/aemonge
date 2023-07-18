@@ -22,7 +22,7 @@ table.insert(M, {
         },
         modules = {
           -- List of various plugins and additional options
-          cmp = true,
+          coc = true,
           diagnostic = true,
           gitgutter = true,
           gitsigns = true,
