@@ -725,6 +725,12 @@ gem install --no-user-install --install-dir=./mason/packages \
 
 ## Typing and useful lint and code checks
 
+Recommendations and Tweaks:
+
+    You don't need to have both autopep8 and black as formatters. While autopep8 adheres to PEP 8 and can automatically format code, black is an opinionated formatter that can sometimes produce results that differ from autopep8. I'd recommend sticking with just black if you're setting it as your primary formatter.
+        You can remove the "python.formatting.autopep8Args" line since you're not setting autopep8 as your primary formatter.
+    Ensure you have the coc.nvim settings for pyright correctly set up. For instance, if you're using a virtual environment or a specific Python interpreter, you might need to specify that.
+
 ```bash
 poetry add -G dev autopep8 black flake8 flake8-docstrings \
   flake8-picky-parentheses flake8-quotes isort mypy pep8-naming
