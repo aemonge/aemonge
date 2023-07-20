@@ -21,7 +21,7 @@ table.insert(M, tint)
 local lualine = require "settings.visual.lualine"
 table.insert(M, lualine)
 
-local overlength = require "settings.visual.overlength"
-table.insert(M, overlength)
+-- local overlength = require "settings.visual.overlength"
+-- table.insert(M, overlength)
 
 return M

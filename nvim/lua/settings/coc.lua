@@ -22,11 +22,7 @@ function _G.show_docs()
     if vim.fn.index({ 'vim', 'help' }, vim.bo.filetype) >= 0 then
         vim.api.nvim_command('h ' .. cw)
     elseif vim.api.nvim_eval('coc#rpc#ready()') then
-        vim.fn.CocActionAsync('doHover')
-        vim.cmd('sleep 200m') -- Give some time for the hover window to open
-        if _G.is_hover_open() then
-            vim.api.nvim_command('wincmd w')
-        end
+        vim.fn.CocAction('doHover')
     else
         vim.api.nvim_command('!' .. vim.o.keywordprg .. ' ' .. cw)
     end
@@ -39,32 +35,42 @@ table.insert(M, {
     build = function()
         vim.cmd [[:CocInstall @yaegassy/coc-black-formatter]]
         vim.cmd [[:CocInstall @yaegassy/coc-mypy]]
-        vim.cmd [[:CocInstall @yaegassy/coc-nginx]]
-        vim.cmd [[:CocInstall @yaegassy/coc-pylsp]]
-        vim.cmd [[:CocInstall coc-cl]]
+        vim.cmd [[:CocInstall coc-python]]
+        vim.cmd [[:CocInstall coc-jedi]]
+        vim.cmd [[:CocInstall coc-pyright]]
+        vim.cmd [[:CocInstall coc-pydocstring]]
+
         vim.cmd [[:CocInstall coc-css]]
-        vim.cmd [[:CocInstall coc-diagnostic]]
-        vim.cmd [[:CocInstall coc-docker]]
         vim.cmd [[:CocInstall coc-eslint]]
-        vim.cmd [[:CocInstall coc-git[]]
         vim.cmd [[:CocInstall coc-html]]
         vim.cmd [[:CocInstall coc-htmlhint]]
-        vim.cmd [[:CocInstall coc-jedi]]
+        vim.cmd [[:CocInstall coc-prettier]]
+        vim.cmd [[:CocInstall coc-stylelint]]
+        vim.cmd [[:CocInstall tsserver]]
+
+        vim.cmd [[:CocInstall coc-sql]]
+
+        vim.cmd [[:CocInstall coc-sumneko-lua]]
+        vim.cmd [[:CocInstall coc-lua]]
+        vim.cmd [[:CocInstall coc-vimlsp]]
+
+
+        vim.cmd [[:CocInstall coc-yaml]]
+        vim.cmd [[:CocInstall coc-markdownlint]]
         vim.cmd [[:CocInstall coc-json]]
         vim.cmd [[:CocInstall coc-markdown-preview-enhanced]]
-        vim.cmd [[:CocInstall coc-markdownlint]]
-        vim.cmd [[:CocInstall coc-prettier]]
-        vim.cmd [[:CocInstall coc-pydocstring]]
+
         vim.cmd [[:CocInstall coc-sh]]
+        vim.cmd [[:CocInstall coc-git[]]
+        vim.cmd [[:CocInstall coc-docker]]
+        vim.cmd [[:CocInstall @yaegassy/coc-nginx]]
+
         vim.cmd [[:CocInstall coc-snippets]]
-        vim.cmd [[:CocInstall coc-spell-checker]]
-        vim.cmd [[:CocInstall coc-sql]]
-        vim.cmd [[:CocInstall coc-stylelint]]
-        vim.cmd [[:CocInstall coc-stylua]]
         vim.cmd [[:CocInstall coc-tabnine]]
-        vim.cmd [[:CocInstall coc-vimlsp]]
-        vim.cmd [[:CocInstall coc-yaml]]
-        vim.cmd [[:CocInstall tsserver]]
+        vim.cmd [[:CocInstall coc-pairs]]
+        vim.cmd [[:CocInstall coc-spell-checker]]
+        vim.cmd [[:CocInstall coc-diagnostic]]
+        vim.cmd [[:CocInstall coc-cl]]
     end,
     config = function()
         local wk = require("which-key")
@@ -151,7 +157,6 @@ table.insert(M, {
 
         wk.register( {
           A = { "<Plug>(coc-codeaction-source)", "More actions source" },
-          F = { "<Plug>(coc-fix-current)", "Fix current" },
           a = { "<Plug>(coc-codeaction-selected)", "More actions" },
           c = { ":<C-u>CocList commands<cr>", "Show CoC Commands" },
           F = { "<Plug>(coc-format-selected)", "Format selected" },
@@ -159,6 +164,7 @@ table.insert(M, {
           l = { "<Plug>(coc-codelens-action)", "Code Lens" },
           m = { "<Plug>(coc-rename)", "Symbol renaming" },
           r = { "<Plug>(coc-fix-refactor-selected)", "Refactor selected" },
+          R = { ":CocRestart<CR>", "Restart CoC" },
           ['.'] = { ":CocConfig<CR>", "Configuration" },
         }, {
           mode = {"n", "x" },
@@ -193,24 +199,20 @@ table.insert(M, {
         -- Map function and class text objects.  Requires 'textDocument.documentSymbol' support from the language server
         wk.register({
             ["if"] = { "<Plug>(coc-funcobj-i)"  },
-            ["if"] = { "<Plug>(coc-funcobj-i)"  },
-            ["af"] = { "<Plug>(coc-funcobj-a)"  },
             ["af"] = { "<Plug>(coc-funcobj-a)"  },
             ["ic"] = { "<Plug>(coc-classobj-i)" },
-            ["ic"] = { "<Plug>(coc-classobj-i)" },
-            ["ac"] = { "<Plug>(coc-classobj-a)" },
             ["ac"] = { "<Plug>(coc-classobj-a)" }
         }, { silent = true, nowait = true, expr = true, mode = {"x", "o"} })
 
         -- Remap <C-s> and <C-d> to scroll float windows/popups
-        wk.register({
-            ["<c-s>"] = { 'coc#float#has_scroll() ? coc#float#scroll(1) : "<C-s>"'  },
-            ["<c-d>"] = { 'coc#float#has_scroll() ? coc#float#scroll(0) : "<C-d>"' },
-        }, { silent = true, nowait = true, expr = true, mode = {"n", "v"} })
-        wk.register({
-            ["<c-s>"] = { 'coc#float#has_scroll() ? "<c-r>=coc#float#scroll(1)<cr>" : "<Right>"'  },
-            ["<c-d>"] = { 'coc#float#has_scroll() ? "<c-r>=coc#float#scroll(0)<cr>" : "<Left>"' },
-        }, { silent = true, nowait = true, expr = true, mode = "i" })
+        -- wk.register({
+        --     ["<c-s>"] = { 'coc#float#has_scroll() ? coc#float#scroll(1) : "<C-s>"'  },
+        --     ["<c-d>"] = { 'coc#float#has_scroll() ? coc#float#scroll(0) : "<C-d>"' },
+        -- }, { silent = true, nowait = true, expr = true, mode = {"n", "v"} })
+        -- wk.register({
+        --     ["<c-s>"] = { 'coc#float#has_scroll() ? "<c-r>=coc#float#scroll(1)<cr>" : "<Right>"'  },
+        --     ["<c-d>"] = { 'coc#float#has_scroll() ? "<c-r>=coc#float#scroll(0)<cr>" : "<Left>"' },
+        -- }, { silent = true, nowait = true, expr = true, mode = "i" })
 
         -- Add `:Format`, `:Fold`, `:OR` command to format current buffer
         vim.api.nvim_create_user_command("Format", "call CocAction('format')", {})
@@ -219,17 +221,6 @@ table.insert(M, {
 
         -- Add (Neo)Vim's native statusline support
         vim.opt.statusline:prepend("%{coc#status()}%{get(b:,'coc_current_function','')}")
-
-        -- Sourcery
-        -- vim.cmd[[
-        --     nnoremap <silent> <leader>cl :CocDiagnostics<cr>
-        --     nnoremap <silent> <leader>ch :call CocAction('doHover')<cr>
-        --     nnoremap <silent> <leader>cf <plug>(coc-codeaction-cursor)
-        --     nnoremap <silent> <leader>ca <plug>(coc-fix-current)
-        --
-        --     nmap <silent> [c <plug>(coc-diagnostic-prev)
-        --     nmap <silent> ]c <plug>(coc-diagnostic-next)
-        -- ]]
     end
 
 })
