@@ -81,6 +81,10 @@ table.insert(M, {
 
         -- Autocomplete
         wk.register({
+            ["<c-s>"] = { 'i<C-X><C-S>', "Trigger spelling completion." },
+            -- ["<c-f>"] = { 'i<C-X><C-F>', "Trigger file completion." },
+        }, { mode = "i", noremap = true, silent = true, nowait = true, })
+        wk.register({
             ["<c-o>"] = { "coc#refresh()", "Trigger Completion" },
             ["<c-j>"] = { "<Plug>(coc-snippets-expand-jump)", "Trigger Snippets" },
             ["<c-k>"] = {
