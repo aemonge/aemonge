@@ -1,12 +1,21 @@
 {
+  // PYTHON SETTINGS AND EXTENSIONS
+  "python.formatting.provider": "black",
+  "python.sortImports.path": "isort",
+  "python.linting.enabled": true,
+  "python.linting.flake8Enabled": true,
+  "python.linting.mypyEnabled": true,
+  "python.linting.flake8Args": ["--config=/path/to/your/flake8/config"],
+  "python.linting.mypyArgs": ["--config=/path/to/your/mypy/config"],
+
+  // NAVIGATION & UI
   "tree.key.selectNext": "<c-n>",
   "tree.key.selectPrevious": "<c-p>",
   "list.nextKeymap": "<c-n>",
   "list.previousKeymap": "<c-p>",
-  "diagnostic.checkCurrentLine": true,
-  "python.linting.flake8Enabled": true,
-  "python.linting.mypyEnabled": true,
-  "python.linting.pep8Enabled": true,
+  "codeLens.enable": true,
+  "codeLens.position": "right_align",
+  "colors.enable": true,
   "workspace.rootPatterns": [
     ".env",
     ".git",
@@ -16,7 +25,6 @@
     "Makefile",
     "package.json",
     "requirements.txt",
-    "package.json",
     "Gemfile",
     "environment.yml",
     "README.rst",
@@ -24,6 +32,9 @@
     "pyproject.toml",
     "tox.ini"
   ],
+
+  // NAVIGATION & UI (Diagnostic)
+  "diagnostic.checkCurrentLine": true,
   "diagnostic.refreshOnInsertMode": true,
   "diagnostic.errorSign": "戀",
   "diagnostic.warningSign": "⚠",
@@ -38,6 +49,8 @@
     "border": true,
     "rounded": true
   },
+
+  // NAVIGATION & UI (Suggestions)
   "suggest.virtualText": true,
   "suggest.noselect": true,
   "suggest.enablePreselect": false,
@@ -47,47 +60,31 @@
     "border": true,
     "rounded": true
   },
-  "codeLens.enable": true,
-  "colors.enable": true,
   "suggest.selection": "first",
   "suggest.autoTrigger": "always",
   "suggest.insertMode": "replace",
 
-  "tabnine.priority": 80,
+  // Completion priorities
+  "tabnine.limit": 3,
+  "tabnine.shortcut": "ﮧ",
   "snippets.priority": 90,
   "coc.source.file.priority": 10,
-  "codeLens.position": "right_align",
 
-  "languageserver": {
-    "sourcery": {
-      "command": "sourcery",
-      "args": ["lsp"],
-      "filetypes": ["python"],
-      "initializationOptions": {
-        "extension_version": "coc.nvim",
-        "editor_version": "neovim"
-      },
-      "settings": {
-        "sourcery": {
-          "metricsEnabled": true
-        }
-      }
-    }
-  },
+  // LANGUAGE & SPELL
   "cSpell.import": ["@cspell/dict-es-es/cspell-ext.json"],
   "cSpell.dictionaries": [
-      "es_US",
-      "softwareTerms",
-      "companies",
-      "python",
-      "html",
-      "css",
-      "bash",
-      "latex",
-      "node",
-      "filetypes"
+    "es_US",
+    "softwareTerms",
+    "companies",
+    "python",
+    "html",
+    "css",
+    "bash",
+    "latex",
+    "node",
+    "filetypes"
   ],
-  "Spell.enabledLanguageIds": [
+  "cSpell.enabledLanguageIds": [
     "es_es",
     "asciidoc",
     "c",
@@ -124,5 +121,28 @@
     "vim",
     "yaml",
     "yml"
-  ]
+  ],
+  "cSpell.logLevel": "Error",
+  "cSpell.showStatus": false,
+  "cSpell.includeRegExpList": [
+    "/from\\s+(['\"]).*\\1/"
+  ],
+
+  // LANGUAGESERVER
+  "languageserver": {
+    "sourcery": {
+      "command": "sourcery",
+      "args": ["lsp"],
+      "filetypes": ["python"],
+      "initializationOptions": {
+        "extension_version": "coc.nvim",
+        "editor_version": "neovim"
+      },
+      "settings": {
+        "sourcery": {
+          "metricsEnabled": true
+        }
+      }
+    }
+  }
 }

@@ -43,6 +43,12 @@ table.insert(M, {
                 "css",
                 "ruby",
             },
+            fold = {
+                enable = true
+            },
+            highlight = {
+                enable = true
+            },
             auto_install = true,
             context_commentstring = {
                 enable = true,

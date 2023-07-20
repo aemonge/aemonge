@@ -33,44 +33,39 @@ table.insert(M, {
     branch = 'release',
     dependencies = { "ms-jpq/coq.artifacts", "ms-jpq/coq.thirdparty" },
     build = function()
-        vim.cmd [[:CocInstall @yaegassy/coc-black-formatter]]
-        vim.cmd [[:CocInstall @yaegassy/coc-mypy]]
-        vim.cmd [[:CocInstall coc-python]]
-        vim.cmd [[:CocInstall coc-jedi]]
-        vim.cmd [[:CocInstall coc-pyright]]
-        vim.cmd [[:CocInstall coc-pydocstring]]
+        -- PYTHON
+        vim.cmd[[:CocInstall coc-pyright]]
+        vim.cmd[[:CocInstall vscode-mypy]]
 
-        vim.cmd [[:CocInstall coc-css]]
-        vim.cmd [[:CocInstall coc-eslint]]
-        vim.cmd [[:CocInstall coc-html]]
-        vim.cmd [[:CocInstall coc-htmlhint]]
-        vim.cmd [[:CocInstall coc-prettier]]
-        vim.cmd [[:CocInstall coc-stylelint]]
-        vim.cmd [[:CocInstall tsserver]]
+        -- FRONTEND
+        vim.cmd[[:CocInstall coc-css]]
+        vim.cmd[[:CocInstall coc-html]]
+        vim.cmd[[:CocInstall coc-prettier]]
+        vim.cmd[[:CocInstall coc-stylelint]]
+        vim.cmd[[:CocInstall coc-tsserver]]
 
-        vim.cmd [[:CocInstall coc-sql]]
+        -- DATABASES
+        vim.cmd[[:CocInstall coc-sql]]
 
-        vim.cmd [[:CocInstall coc-sumneko-lua]]
-        vim.cmd [[:CocInstall coc-lua]]
-        vim.cmd [[:CocInstall coc-vimlsp]]
+        -- DEVOPS
+        vim.cmd[[:CocInstall coc-sh]]
+        vim.cmd[[:CocInstall coc-docker]]
+        vim.cmd[[:CocInstall @yaegassy/coc-nginx]]
 
+        -- TEXT-MARKDOWNS
+        vim.cmd[[:CocInstall coc-yaml]]
+        vim.cmd[[:CocInstall coc-markdownlint]]
+        vim.cmd[[:CocInstall coc-json]]
+        vim.cmd[[:CocInstall coc-markdown-preview-enhanced]]
 
-        vim.cmd [[:CocInstall coc-yaml]]
-        vim.cmd [[:CocInstall coc-markdownlint]]
-        vim.cmd [[:CocInstall coc-json]]
-        vim.cmd [[:CocInstall coc-markdown-preview-enhanced]]
-
-        vim.cmd [[:CocInstall coc-sh]]
-        vim.cmd [[:CocInstall coc-git[]]
-        vim.cmd [[:CocInstall coc-docker]]
-        vim.cmd [[:CocInstall @yaegassy/coc-nginx]]
-
-        vim.cmd [[:CocInstall coc-snippets]]
-        vim.cmd [[:CocInstall coc-tabnine]]
-        vim.cmd [[:CocInstall coc-pairs]]
-        vim.cmd [[:CocInstall coc-spell-checker]]
-        vim.cmd [[:CocInstall coc-diagnostic]]
-        vim.cmd [[:CocInstall coc-cl]]
+        -- TOOLS-EXTENSIONS
+        vim.cmd[[:CocInstall coc-snippets]]
+        vim.cmd[[:CocInstall coc-tabnine]]
+        vim.cmd[[:CocInstall coc-pairs]]
+        vim.cmd[[:CocInstall coc-spell-checker]]
+        vim.cmd[[:CocInstall coc-diagnostic]]
+        vim.cmd[[:CocInstall coc-git]]
+        vim.cmd[[:CocInstall coc-vimlsp]]
     end,
     config = function()
         local wk = require("which-key")
