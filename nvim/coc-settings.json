@@ -58,6 +58,7 @@
     "border": true,
     "rounded": true
   },
+  "diagnostic.format": "(%source:%code) %message.",
 
   // NAVIGATION & UI (Suggestions)
   "suggest.virtualText": true,
