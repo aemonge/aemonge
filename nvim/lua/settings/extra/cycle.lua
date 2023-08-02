@@ -11,6 +11,18 @@ table.insert(M, {
     }),
     config = function()
         vim.g.cycle_no_mappings = 1
+        local wk = require("which-key")
+        wk.register({
+            ['<c-a>'] = { "<Plug>CycleNext", "CycleNext" },
+            ['<c-x>'] = { "<Plug>CyclePrev", "CyclePrev" }
+        },{
+          mode = "n",
+          prefix = nil,
+          buffer = nil,
+          silent = true,
+          noremap = true,
+          nowait = true,
+        })
         vim.cmd([[ nmap <silent> <C-a> <Plug>CycleNext ]])
         vim.cmd([[ nmap <silent> <C-A> <Plug>CyclePrev ]])
         vim.cmd([[ noremap <silent> <Plug>CycleFallbackNext <C-a> ]])

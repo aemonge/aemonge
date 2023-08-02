@@ -8,8 +8,8 @@ local M = {}
 -- local troble = require("settings.lsp.trouble")
 -- table.insert(M, troble)
 
--- local ufo = require("settings.lsp.nvim-ufo")
--- table.insert(M, ufo)
+local ufo = require("settings.lsp.nvim-ufo")
+table.insert(M, ufo)
 
 -- local lspzero = require "settings.lsp.lsp-zero"
 -- table.insert(M, lspzero)

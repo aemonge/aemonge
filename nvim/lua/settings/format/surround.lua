@@ -1,8 +1,15 @@
 local M = {}
 
 table.insert(M, {
-    "kylechui/nvim-surround",
-    event = "VeryLazy",
+    "tpope/vim-surround",
+    ft = require("file-types")({
+        "text",
+        "markup",
+        "languages",
+        "frameworks",
+        "data",
+        "versionControl",
+    }),
 })
 
 return M

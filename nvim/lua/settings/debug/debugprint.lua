@@ -21,15 +21,11 @@ table.insert(M, {
         end
 
         require("which-key").register({
-            d = {
-                name = "Debugger",
-                {
-                    p = { fn, "Debug Print" },
-                },
-            },
+            v = { fn, "Debug Print" },
         }, {
             mode = "n",
-            prefix = "<leader>",
+            name = "Debugger",
+            prefix = "<leader>v",
             buffer = nil,
             expr = true,
             silent = true,

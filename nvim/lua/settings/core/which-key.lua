@@ -19,7 +19,7 @@ table.insert(M, {
                     windows = false, -- default bindings on <c-w>
                     nav = false, -- misc bindings to work with windows
                     z = true, -- bindings for folds, spelling and others prefixed with z
-                    g = true, -- bindings for prefixed with g
+                    g = false, -- bindings for prefixed with g
                 },
             },
             -- add operators that will trigger motion and text object completion
@@ -41,15 +41,6 @@ table.insert(M, {
                 buftypes = {},
                 filetypes = { "TelescopePrompt" },
             },
-        })
-
-        wk.register(require("settings.mappings.goto"), {
-            mode = "n",
-            prefix = nil,
-            buffer = nil,
-            silent = true,
-            noremap = true,
-            nowait = true,
         })
 
         wk.register(require("settings.mappings.toggler"), {

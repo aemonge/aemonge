@@ -56,6 +56,10 @@ table.insert(M, {
           Terminal           = { bg = "NONE" },
           lualine_b_normal   = { bg = "#232831" },
           lualine_c_normal   = { bg = "#232831" },
+          DiffAdd            = { bg = "NONE"},
+          DiffDelete         = { bg = "NONE"},
+          DiffChange         = { bg = "NONE"},
+          DiffText           = { bg = "NONE"},
         }
       }
     })

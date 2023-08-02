@@ -9,6 +9,7 @@ table.insert(M, {
             max_width = 70,
             stages = "slide",
             timeout = 2000,
+            top_down = false,
         })
         vim.notify = require("notify")
 
@@ -32,7 +33,7 @@ table.insert(M, {
         vim.cmd [[
             function! s:StatusNotify() abort
               let l:status = get(g:, 'coc_status', '')
-              let l:level = 'info'
+              let l:level = 'warning'
               if empty(l:status) | return '' | endif
               call v:lua.coc_status_notify(l:status, l:level)
             endfunction

@@ -42,13 +42,11 @@ table.insert(plugins, format)
 -- local languages = require "settings.languages"
 -- table.insert(plugins, languages)
 
--- Favor CoC
--- local bots = require "settings.bots"
--- table.insert(plugins, bots)
+local bots = require "settings.bots"
+table.insert(plugins, bots)
 
--- Favor CoC
--- local lsp = require "settings.lsp"
--- table.insert(plugins, lsp)
+local lsp = require "settings.lsp"
+table.insert(plugins, lsp)
 
 -- Favor CoC
 -- local frameworks = require "settings.frameworks"

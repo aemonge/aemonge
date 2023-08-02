@@ -1,19 +1,27 @@
 {
   // PYTHON SETTINGS AND EXTENSIONS
+  // Python formatting: black
   "python.formatting.provider": "black",
   "python.sortImports.path": "isort",
+
+  // Python linting: flake8:
+  //    flake8-quotes, pep8-naming, flake8-picky-parentheses, flake8-docstrings
   "python.linting.enabled": true,
   "python.linting.flake8Enabled": true,
-  "python.linting.mypyEnabled": true,
-  "python.linting.flake8Args": ["--config=/path/to/your/flake8/config"],
-  "python.linting.mypyArgs": ["--config=/path/to/your/mypy/config"],
+
+  // Python type checking: pyright (or mypy, but pyright integrates better)
+  "pyright.enable": true,
+
+  // Security checks
+  "python.linting.banditEnabled": true,
+
 
   // NAVIGATION & UI
   "tree.key.selectNext": "<c-n>",
   "tree.key.selectPrevious": "<c-p>",
   "list.nextKeymap": "<c-n>",
   "list.previousKeymap": "<c-p>",
-  "codeLens.enable": true,
+  "codeLens.enable": false,
   "codeLens.position": "right_align",
   "colors.enable": true,
   "workspace.rootPatterns": [
@@ -34,17 +42,18 @@
   ],
 
   // NAVIGATION & UI (Diagnostic)
+  "diagnostic.enableMessage": "jump", // Use this to never to not show the on hover
   "diagnostic.checkCurrentLine": true,
   "diagnostic.refreshOnInsertMode": true,
-  "diagnostic.errorSign": "戀",
-  "diagnostic.warningSign": "⚠",
-  "diagnostic.hintSign": "♥",
+  "diagnostic.errorSign": "",
+  "diagnostic.warningSign": "",
+  "diagnostic.hintSign": "✎",
   "diagnostic.infoSign": "כֿ",
   "hover.floatConfig": {
     "border": true,
     "rounded": true
   },
-  "diagnostic.enableHighlightLineNumber": false,
+  "diagnostic.enableHighlightLineNumber": true,
   "diagnostic.floatConfig": {
     "border": true,
     "rounded": true

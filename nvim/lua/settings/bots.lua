@@ -9,10 +9,10 @@ local M = {}
 -- local cmp = require "settings.bots.cmp"
 -- table.insert(M, cmp)
 
-local coc = require("settings.bots.coc")
-table.insert(M, coc)
+-- local coc = require("settings.bots.coc")
+-- table.insert(M, coc)
 
--- local cmptabnine = require("settings.bots.tabnine")
--- table.insert(M, cmptabnine)
+local cmptabnine = require("settings.bots.tabnine")
+table.insert(M, cmptabnine)
 
 return M

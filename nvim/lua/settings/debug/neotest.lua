@@ -68,15 +68,16 @@ table.insert(M, {
         end
 
         require("which-key").register({
-            ["dn"] = { run, "Nearest Test" },
-            ["dc"] = { current, "Test Current file" },
-            ["ds"] = { require("neotest").run.stop, "Stop Test" },
-            ["do"] = { open, "Output Open" },
-            ["da"] = { require("neotest").run.attach, "Attach Test" },
-            ["db"] = { info, "Start Breakpoint" },
+            n = { run, "Nearest Test" },
+            c = { current, "Test Current file" },
+            s = { require("neotest").run.stop, "Stop Test" },
+            o = { open, "Output Open" },
+            a = { require("neotest").run.attach, "Attach Test" },
+            b = { info, "Start Breakpoint" },
         }, {
             mode = "n",
-            prefix = "<leader>",
+            name = "Debugger",
+            prefix = "<leader>v",
             buffer = nil,
             silent = true,
             noremap = true,

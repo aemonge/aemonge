@@ -15,6 +15,7 @@ table.insert(M, {
             a = { "<Plug>(EasyAlign)*", "Align" },
             A = { "<Plug>(LiveEasyAlign)*", "Live Align (<c-p> to accept)" },
         }, {
+            name = "Go to ...",
             mode   = "v",
             prefix = "g",
             buffer = nil,

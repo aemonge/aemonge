@@ -1,7 +1,10 @@
 local M = {}
 
-local cycle = require("settings.extra.cycle")
-table.insert(M, cycle)
+-- local cycle = require("settings.extra.cycle")
+-- table.insert(M, cycle)
+
+local dial = require("settings.extra.dial")
+table.insert(M, dial)
 
 -- local distant = require("settings.extra.distant")
 -- table.insert(M, distant)

@@ -1,27 +1,27 @@
 local M = {}
 local D = {}
 
-table.insert(M, {
-    "tzachar/cmp-tabnine",
-    build = "./install.sh",
-    dependencies = "hrsh7th/nvim-cmp",
-    event = "InsertEnter",
-    ft = require("file-types")({
-        "languages",
-        "frameworks",
-        "markup"
-    }),
-    config = function()
-        require("cmp_tabnine.config"):setup({
-            max_lines = 1000,
-            max_num_results = 20,
-            sort = true,
-            run_on_every_keystroke = true,
-            snippet_placeholder = "...",
-            show_prediction_strength = true,
-        })
-    end,
-})
+-- table.insert(M, {
+--     "tzachar/cmp-tabnine",
+--     build = "./install.sh",
+--     dependencies = "hrsh7th/nvim-cmp",
+--     event = "InsertEnter",
+--     ft = require("file-types")({
+--         "languages",
+--         "frameworks",
+--         "markup"
+--     }),
+--     config = function()
+--         require("cmp_tabnine.config"):setup({
+--             max_lines = 1000,
+--             max_num_results = 20,
+--             sort = true,
+--             run_on_every_keystroke = true,
+--             snippet_placeholder = "...",
+--             show_prediction_strength = true,
+--         })
+--     end,
+-- })
 
 table.insert(M, {
     'codota/tabnine-nvim',
@@ -38,10 +38,18 @@ table.insert(M, {
             dismiss_keymap = "<C-c>",
             debounce_ms = 300,
             suggestion_color = { gui = "#916690" }, -- #8787D7" }, -- color104
-            exclude_filetypes = { "TelescopePrompt" },
-            plugins = {
-                cmp = true
-            }
+            exclude_filetypes = { "TelescopePrompt" }
+        })
+
+        require("which-key").register({
+            c = { require("tabnine.chat").open, "Chat with tabnine"}
+        }, {
+          mode = {"n"},
+          prefix = "<leader>",
+          buffer = nil,
+          silent = true,
+          noremap = true,
+          nowait = true,
         })
     end
 })

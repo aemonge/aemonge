@@ -5,26 +5,77 @@ function _G.check_back_space()
     return col == 0 or vim.fn.getline('.'):sub(col, col):match('%s') ~= nil
 end
 
-function _G.is_hover_open()
-  local is_open = false
-  for _, win in ipairs(vim.api.nvim_list_wins()) do
-    local buf = vim.api.nvim_win_get_buf(win)
-    if vim.api.nvim_buf_get_option(buf, 'buftype') == 'nofile' then
-      is_open = true
-      break
+function _G.goto_priority()
+    if vim.fn.CocHasProvider('definition') then
+        vim.fn.CocAction('jumpDefinition')
+    elseif vim.fn.CocHasProvider('typeDefinition') then
+        vim.fn.CocAction('jumpTypeDefinition')
+    elseif vim.fn.CocHasProvider('implementation') then
+        vim.fn.CocAction('jumpImplementation')
+    elseif vim.fn.CocHasProvider('references') then
+        vim.fn.CocAction('findReferences')
     end
-  end
-  return is_open
+end
+
+function _G.goto_file()
+    if vim.fn.CocHasProvider('definition') then
+        vim.fn.CocAction('jumpDefinition')
+    else
+        vim.cmd("normal gf")
+    end
+end
+
+function _G.code_action_priority()
+    if vim.fn.CocHasProvider('codeAction') then
+        vim.fn.CocAction('codeAction')
+    elseif vim.fn.CocHasProvider('codeLens') then
+        vim.fn.CocAction('codeLensAction')
+    end
+end
+
+function _G.show_hover_line()
+    local win_id = vim.api.nvim_eval('g:coc_last_float_win')
+
+    -- Check if the window is valid and listed (i.e., visible)
+    if win_id and vim.api.nvim_win_is_valid(win_id) then
+        if vim.fn.CocHasProvider('hover') then
+          vim.fn.CocAction('doHover')
+        else
+          vim.api.nvim_set_current_win(win_id)
+        end
+    else
+        -- Check if there's diagnostic information for the current line
+        local has_diagnostics = vim.fn.CocAction('diagnosticInfo')
+
+        if not has_diagnostics or has_diagnostics == 0 then
+            -- If there are no diagnostics, try to show hover info
+            if vim.fn.CocHasProvider('hover') then
+                vim.fn.CocAction('showLineHover')
+            end
+        end
+    end
 end
 
 function _G.show_docs()
     local cw = vim.fn.expand('<cword>')
+
     if vim.fn.index({ 'vim', 'help' }, vim.bo.filetype) >= 0 then
         vim.api.nvim_command('h ' .. cw)
     elseif vim.api.nvim_eval('coc#rpc#ready()') then
-        vim.fn.CocAction('doHover')
+        if vim.fn.CocHasProvider('hover') then
+            local win_id = vim.api.nvim_eval('g:coc_last_float_win')
+
+            -- Check if the window is valid and listed (i.e., visible)
+            if win_id and vim.api.nvim_win_is_valid(win_id) then
+                vim.api.nvim_set_current_win(win_id)
+            else
+                vim.fn.CocAction('doHover')
+            end
+        else
+            vim.api.nvim_command('!' .. vim.o.keywordprg .. ' ' .. cw)
+        end
     else
-        vim.api.nvim_command('!' .. vim.o.keywordprg .. ' ' .. cw)
+        vim.api.nvim_command('K')
     end
 end
 
@@ -35,7 +86,14 @@ table.insert(M, {
     build = function()
         -- PYTHON
         vim.cmd[[:CocInstall coc-pyright]]
-        vim.cmd[[:CocInstall vscode-mypy]]
+        -- vim.cmd[[:CocInstall coc-black-formatter]]
+        -- vim.cmd[[:CocInstall coc-mypy]]
+
+        -- BACKEND
+        vim.cmd[[:CocInstall coc-lua]]
+        -- vim.cmd[[:CocInstall coc-stylua]]
+        vim.cmd[[:CocInstall coc-sumneko-lua]]
+        vim.cmd[[:CocInstall coc-clangd]]
 
         -- FRONTEND
         vim.cmd[[:CocInstall coc-css]]
@@ -55,8 +113,11 @@ table.insert(M, {
         -- TEXT-MARKDOWNS
         vim.cmd[[:CocInstall coc-yaml]]
         vim.cmd[[:CocInstall coc-markdownlint]]
+        vim.cmd[[:CocInstall coc-eslint]]
         vim.cmd[[:CocInstall coc-json]]
+        vim.cmd[[:CocInstall coc-toml]]
         vim.cmd[[:CocInstall coc-markdown-preview-enhanced]]
+        vim.cmd[[:CocInstall coc-esbonio]]
 
         -- TOOLS-EXTENSIONS
         vim.cmd[[:CocInstall coc-snippets]]
@@ -64,7 +125,6 @@ table.insert(M, {
         vim.cmd[[:CocInstall coc-pairs]]
         vim.cmd[[:CocInstall coc-spell-checker]]
         vim.cmd[[:CocInstall coc-diagnostic]]
-        vim.cmd[[:CocInstall coc-git]]
         vim.cmd[[:CocInstall coc-vimlsp]]
     end,
     config = function()
@@ -120,7 +180,7 @@ table.insert(M, {
 
         -- Diagnostics
         wk.register({
-            K = { "<CMD>lua _G.show_docs()<CR>", "Show Diagnostic"},
+            K = { "<CMD>lua _G.show_docs()<CR>", "Show Documentation" }
         }, {
           mode = "n",
           prefix = nil,
@@ -132,20 +192,16 @@ table.insert(M, {
 
 
         -- GoTos
-        keyset("n", "gd", "<Plug>(coc-definition)", { silent = true })
-        keyset("n", "gy", "<Plug>(coc-type-definition)", { silent = true })
-        keyset("n", "gi", "<Plug>(coc-implementation)", { silent = true })
-        keyset("n", "gr", "<Plug>(coc-references)", { silent = true })
         wk.register( {
-            d = { "<Plug>(coc-definition)", "Definition"},
-            D = { "<Plug>(coc-type-definition)", "Type Definition"},
-            i = { "<Plug>(coc-implementation)", "Implementation"},
-            r = { "<Plug>(coc-references)", "References"},
+            d = { "<CMD>lua _G.goto_priority()<CR>", "Definition, type, implementation, references"},
+            f = { "<CMD>lua _G.goto_file()<CR>", "File"},
 
             n = { "<Plug>(coc-diagnostic-next)", "Next Diagnostic"},
             p = { "<Plug>(coc-diagnostic-prev)", "Previous Diagnostic"},
           },
           {
+              mode = "n",
+              name = "Go to ...",
               prefix = "g",
               buffer = nil,
               silent = true,
@@ -154,37 +210,47 @@ table.insert(M, {
           }
         )
 
-        wk.register( {
-          A = { "<Plug>(coc-codeaction-source)", "More actions source" },
-          a = { "<Plug>(coc-codeaction-selected)", "More actions" },
-          c = { ":<C-u>CocList commands<cr>", "Show CoC Commands" },
-          F = { "<Plug>(coc-format-selected)", "Format selected" },
-          f = { "<Plug>(coc-format)", "Format file" },
-          l = { "<Plug>(coc-codelens-action)", "Code Lens" },
-          m = { "<Plug>(coc-rename)", "Symbol renaming" },
-          r = { "<Plug>(coc-fix-refactor-selected)", "Refactor selected" },
-          R = { ":CocRestart<CR>", "Restart CoC" },
-          ['.'] = { ":CocConfig<CR>", "Configuration" },
+        wk.register({
+            d = { "<CMD>lua _G.show_hover_line()<CR>", "Diagnostic hover" },
         }, {
-          mode = {"n", "x" },
-          prefix = "<leader>l",
-          name = "LSP and COC actions",
-          buffer = nil,
-          silent = true,
-          noremap = true,
-          nowait = true,
+            mode = "n",
+            prefix = "<leader>",
+            buffer = nil,
+            silent = true,
+            noremap = true,
+            nowait = true,
         })
 
         wk.register( {
-          t = { ":<C-u>CocList diagnostics<cr>", "Show Diagnostics" },
-          s = { ":<C-u>CocList -I symbols<cr>", "Show CoC Symbols" },
+            a = { "<CMD>lua _G.code_action_priority()<CR>", "Code actions" },
+            f = { "<Plug>(coc-format)", "Format file" },
+
+            ['.'] = { ":<C-u>CocList commands<cr>", "Show CoC Commands" },
+            r = { ":CocRestart<CR>", "Restart CoC" },
+            C = { ":CocConfig<CR>", "Configuration" },
+            c = { ":CocLocalConfig<CR>", "Local Configuration" },
+            l = { ":lua require('lazy').update({show = false})<CR>", "Lazy and CoC Update"}
         }, {
-          mode = {"n", "x" },
-          prefix = "<leader>t",
-          buffer = nil,
-          silent = true,
-          noremap = true,
-          nowait = true,
+            mode = "n",
+            prefix = "<leader>l",
+            name = "LSP and COC actions",
+            buffer = nil,
+            silent = true,
+            noremap = true,
+            nowait = true,
+        })
+
+        wk.register( {
+            a = { "<CMD>lua _G.code_action_priority()<CR>", "Code actions" },
+            f = { "<Plug>(coc-format-selected)", "Format" },
+        }, {
+            mode = "v",
+            prefix = "<leader>l",
+            name = "LSP and COC actions",
+            buffer = nil,
+            silent = true,
+            noremap = true,
+            nowait = true,
         })
 
         -- Update signature help on jump placeholder
@@ -195,6 +261,12 @@ table.insert(M, {
             desc = "Update signature help on jump placeholder"
         })
 
+        vim.api.nvim_create_autocmd("User", {
+            pattern = "LazyUpdate",
+            command = "CocUpdate",
+            desc = "Run CocUpdate after LazyUpdate"
+        })
+
         -- Map function and class text objects.  Requires 'textDocument.documentSymbol' support from the language server
         wk.register({
             ["if"] = { "<Plug>(coc-funcobj-i)"  },
@@ -203,17 +275,6 @@ table.insert(M, {
             ["ac"] = { "<Plug>(coc-classobj-a)" }
         }, { silent = true, nowait = true, expr = true, mode = {"x", "o"} })
 
-        -- Remap <C-s> and <C-d> to scroll float windows/popups
-        -- wk.register({
-        --     ["<c-s>"] = { 'coc#float#has_scroll() ? coc#float#scroll(1) : "<C-s>"'  },
-        --     ["<c-d>"] = { 'coc#float#has_scroll() ? coc#float#scroll(0) : "<C-d>"' },
-        -- }, { silent = true, nowait = true, expr = true, mode = {"n", "v"} })
-        -- wk.register({
-        --     ["<c-s>"] = { 'coc#float#has_scroll() ? "<c-r>=coc#float#scroll(1)<cr>" : "<Right>"'  },
-        --     ["<c-d>"] = { 'coc#float#has_scroll() ? "<c-r>=coc#float#scroll(0)<cr>" : "<Left>"' },
-        -- }, { silent = true, nowait = true, expr = true, mode = "i" })
-
-        -- Add `:Format`, `:Fold`, `:OR` command to format current buffer
         vim.api.nvim_create_user_command("Format", "call CocAction('format')", {})
         vim.api.nvim_create_user_command("Fold", "call CocAction('fold', <f-args>)", { nargs = '?' })
         vim.api.nvim_create_user_command("OR", "call CocActionAsync('runCommand', 'editor.action.organizeImport')", {})

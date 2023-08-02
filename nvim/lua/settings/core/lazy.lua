@@ -5,6 +5,9 @@ local M = {
   ui = {
     border = "rounded",
   },
+  checker = {
+    enabled = true
+  }
 }
 
 return M
