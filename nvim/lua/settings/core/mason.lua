@@ -2,6 +2,7 @@ local M = {}
 
 table.insert(M, {
     "williamboman/mason.nvim",
+    dependencies = { "RubixDev/mason-update-all" },
     ft = require("file-types")({
         "text",
         "markup",
@@ -11,6 +12,7 @@ table.insert(M, {
         "versionControl",
     }),
     config = function()
+        require('mason-update-all').setup()
         require("mason").setup({
             ui = {
                 border = "rounded",
