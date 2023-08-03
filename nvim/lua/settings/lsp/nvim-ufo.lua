@@ -57,7 +57,7 @@ table.insert(M, {
         --      `foldmethod=nvim_treesitter#foldexpr()`
         require("ufo").setup({
             provider_selector = function()
-                return { "treesitter", "indent" }
+                return { "lsp", "indent" }
             end,
         })
 

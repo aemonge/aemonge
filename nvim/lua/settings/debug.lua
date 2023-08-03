@@ -6,7 +6,7 @@ local M = {}
 local debugprint = require("settings.debug.debugprint")
 table.insert(M, debugprint)
 
-local neotest = require("settings.debug.neotest")
-table.insert(M, neotest)
+-- local neotest = require("settings.debug.neotest")
+-- table.insert(M, neotest)
 
 return M

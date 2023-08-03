@@ -236,7 +236,8 @@ table.insert(M, {
       r = { ":CocRestart<CR>", "Restart CoC" },
       C = { ":CocConfig<CR>", "Configuration" },
       c = { ":CocLocalConfig<CR>", "Local Configuration" },
-      l = { ":lua require('lazy').update({show = false})<CR>", "Lazy and CoC Update" }
+      l = { ":lua require('lazy').update({show = false})<CR>", "Lazy and CoC Update" },
+      L = { ":Lazy<CR>", "Lazy" }
     }, {
       mode = "n",
       prefix = "<leader>l",
