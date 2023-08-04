@@ -27,7 +27,7 @@ M.v = {
     f = { "<Plug>(coc-format-selected)", "Format" },
 }
 
-M.vOpt = {
+M.vOpts = {
     mode = "v",
     prefix = "<leader>l",
     name = "LSP and COC actions",

@@ -17,9 +17,14 @@ end
 
 function _G.goto_file()
     if vim.fn.CocHasProvider('definition') then
-        vim.fn.CocAction('jumpDefinition')
+        vim .api.nvim_command([[
+          try
+            silent! call vim.fn.CocAction('jumpDefinition')
+          catch
+            execute "normal! gf"
+        ]])
     else
-        vim.cmd("normal gf")
+        vim.cmd("normal! gf")
     end
 end
 

@@ -1,158 +1,161 @@
 {
-  // PYTHON SETTINGS AND EXTENSIONS
-  // Python formatting: black
-  "python.formatting.provider": "black",
-  "python.sortImports.path": "isort",
+    "markdownlint.config": {
+        "MD013": {
+            "line_length": 88
+        },
+        "MD030": false
+    },
+    // PYTHON SETTINGS AND EXTENSIONS
+    // Python formatting: black
+    "python.formatting.provider": "black",
+    "python.sortImports.path": "isort",
 
-  // Python linting: flake8:
-  //    flake8-quotes, pep8-naming, flake8-picky-parentheses, flake8-docstrings
-  "python.linting.enabled": true,
-  "python.linting.flake8Enabled": true,
+    // Python linting: flake8:
+    //    flake8-quotes, pep8-naming, flake8-picky-parentheses, flake8-docstrings
+    "python.linting.enabled": true,
+    "python.linting.flake8Enabled": true,
 
-  // Python type checking: pyright (or mypy, but pyright integrates better)
-  "pyright.enable": true,
+    // Python type checking: pyright (or mypy, but pyright integrates better)
+    "pyright.enable": true,
 
-  // Security checks
-  "python.linting.banditEnabled": true,
+    // Security checks
+    "python.linting.banditEnabled": true,
 
+    // NAVIGATION & UI
+    "tree.key.selectNext": "<c-n>",
+    "tree.key.selectPrevious": "<c-p>",
+    "list.nextKeymap": "<c-n>",
+    "list.previousKeymap": "<c-p>",
+    "codeLens.enable": false,
+    "codeLens.position": "right_align",
+    "colors.enable": true,
+    "workspace.rootPatterns": [
+        ".env",
+        ".git",
+        ".hg",
+        ".bzr",
+        ".svn",
+        "Makefile",
+        "package.json",
+        "requirements.txt",
+        "Gemfile",
+        "environment.yml",
+        "README.rst",
+        "README.md",
+        "pyproject.toml",
+        "tox.ini"
+    ],
 
-  // NAVIGATION & UI
-  "tree.key.selectNext": "<c-n>",
-  "tree.key.selectPrevious": "<c-p>",
-  "list.nextKeymap": "<c-n>",
-  "list.previousKeymap": "<c-p>",
-  "codeLens.enable": false,
-  "codeLens.position": "right_align",
-  "colors.enable": true,
-  "workspace.rootPatterns": [
-    ".env",
-    ".git",
-    ".hg",
-    ".bzr",
-    ".svn",
-    "Makefile",
-    "package.json",
-    "requirements.txt",
-    "Gemfile",
-    "environment.yml",
-    "README.rst",
-    "README.md",
-    "pyproject.toml",
-    "tox.ini"
-  ],
+    // NAVIGATION & UI (Diagnostic)
+    "diagnostic.enableMessage": "jump", // Use this to never to not show the on hover
+    "diagnostic.checkCurrentLine": true,
+    "diagnostic.refreshOnInsertMode": false,
+    "diagnostic.errorSign": "",
+    "diagnostic.warningSign": "",
+    "diagnostic.hintSign": "✎",
+    "diagnostic.infoSign": "כֿ",
+    "hover.floatConfig": {
+        "border": true,
+        "rounded": true
+    },
+    "diagnostic.enableHighlightLineNumber": true,
+    "diagnostic.floatConfig": {
+        "border": true,
+        "rounded": true
+    },
+    "diagnostic.format": "(%source:%code) %message.",
 
-  // NAVIGATION & UI (Diagnostic)
-  "diagnostic.enableMessage": "jump", // Use this to never to not show the on hover
-  "diagnostic.checkCurrentLine": true,
-  "diagnostic.refreshOnInsertMode": true,
-  "diagnostic.errorSign": "",
-  "diagnostic.warningSign": "",
-  "diagnostic.hintSign": "✎",
-  "diagnostic.infoSign": "כֿ",
-  "hover.floatConfig": {
-    "border": true,
-    "rounded": true
-  },
-  "diagnostic.enableHighlightLineNumber": true,
-  "diagnostic.floatConfig": {
-    "border": true,
-    "rounded": true
-  },
-  "diagnostic.format": "(%source:%code) %message.",
+    // NAVIGATION & UI (Suggestions)
+    "suggest.virtualText": true,
+    "suggest.noselect": true,
+    "suggest.enablePreselect": false,
+    "suggest.preferCompleteThanJumpPlaceholder": true,
+    "suggest.removeDuplicateItems": true,
+    "suggest.floatConfig": {
+        "border": true,
+        "rounded": true
+    },
+    "suggest.selection": "first",
+    "suggest.autoTrigger": "always",
+    "suggest.insertMode": "replace",
 
-  // NAVIGATION & UI (Suggestions)
-  "suggest.virtualText": true,
-  "suggest.noselect": true,
-  "suggest.enablePreselect": false,
-  "suggest.preferCompleteThanJumpPlaceholder": true,
-  "suggest.removeDuplicateItems": true,
-  "suggest.floatConfig": {
-    "border": true,
-    "rounded": true
-  },
-  "suggest.selection": "first",
-  "suggest.autoTrigger": "always",
-  "suggest.insertMode": "replace",
+    // Completion priorities
+    "tabnine.limit": 3,
+    "tabnine.shortcut": "ﮧ",
+    "snippets.priority": 90,
+    "coc.source.file.priority": 10,
 
-  // Completion priorities
-  "tabnine.limit": 3,
-  "tabnine.shortcut": "ﮧ",
-  "snippets.priority": 90,
-  "coc.source.file.priority": 10,
+    // LANGUAGE & SPELL
+    "cSpell.import": ["@cspell/dict-es-es/cspell-ext.json"],
+    "cSpell.dictionaries": [
+        "es_US",
+        "softwareTerms",
+        "companies",
+        "python",
+        "html",
+        "css",
+        "bash",
+        "latex",
+        "node",
+        "filetypes"
+    ],
+    "cSpell.enabledLanguageIds": [
+        "es_es",
+        "asciidoc",
+        "c",
+        "cpp",
+        "csharp",
+        "css",
+        "es",
+        "git-commit",
+        "gitcommit",
+        "go",
+        "handlebars",
+        "haskell",
+        "html",
+        "jade",
+        "java",
+        "javascript",
+        "javascriptreact",
+        "json",
+        "jsonc",
+        "latex",
+        "less",
+        "markdown",
+        "php",
+        "plaintext",
+        "pug",
+        "python",
+        "restructuredtext",
+        "rust",
+        "scala",
+        "scss",
+        "text",
+        "typescript",
+        "typescriptreact",
+        "vim",
+        "yaml",
+        "yml"
+    ],
+    "cSpell.logLevel": "Error",
+    "cSpell.showStatus": false,
+    "cSpell.includeRegExpList": ["/from\\s+(['\"]).*\\1/"],
 
-  // LANGUAGE & SPELL
-  "cSpell.import": ["@cspell/dict-es-es/cspell-ext.json"],
-  "cSpell.dictionaries": [
-    "es_US",
-    "softwareTerms",
-    "companies",
-    "python",
-    "html",
-    "css",
-    "bash",
-    "latex",
-    "node",
-    "filetypes"
-  ],
-  "cSpell.enabledLanguageIds": [
-    "es_es",
-    "asciidoc",
-    "c",
-    "cpp",
-    "csharp",
-    "css",
-    "es",
-    "git-commit",
-    "gitcommit",
-    "go",
-    "handlebars",
-    "haskell",
-    "html",
-    "jade",
-    "java",
-    "javascript",
-    "javascriptreact",
-    "json",
-    "jsonc",
-    "latex",
-    "less",
-    "markdown",
-    "php",
-    "plaintext",
-    "pug",
-    "python",
-    "restructuredtext",
-    "rust",
-    "scala",
-    "scss",
-    "text",
-    "typescript",
-    "typescriptreact",
-    "vim",
-    "yaml",
-    "yml"
-  ],
-  "cSpell.logLevel": "Error",
-  "cSpell.showStatus": false,
-  "cSpell.includeRegExpList": [
-    "/from\\s+(['\"]).*\\1/"
-  ],
-
-  // LANGUAGESERVER
-  "languageserver": {
-    "sourcery": {
-      "command": "sourcery",
-      "args": ["lsp"],
-      "filetypes": ["python"],
-      "initializationOptions": {
-        "extension_version": "coc.nvim",
-        "editor_version": "neovim"
-      },
-      "settings": {
+    // LANGUAGESERVER
+    "languageserver": {
         "sourcery": {
-          "metricsEnabled": true
+            "command": "sourcery",
+            "args": ["lsp"],
+            "filetypes": ["python"],
+            "initializationOptions": {
+                "extension_version": "coc.nvim",
+                "editor_version": "neovim"
+            },
+            "settings": {
+                "sourcery": {
+                    "metricsEnabled": true
+                }
+            }
         }
-      }
     }
-  }
 }

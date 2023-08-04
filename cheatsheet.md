@@ -732,11 +732,12 @@ Recommendations and Tweaks:
     Ensure you have the coc.nvim settings for pyright correctly set up. For instance, if you're using a virtual environment or a specific Python interpreter, you might need to specify that.
 
 ```bash
-poetry add -G dev autopep8 black flake8 flake8-docstrings \
-  flake8-picky-parentheses flake8-quotes isort mypy pep8-naming
+poetry add -G dev black flake8 flake8-docstrings \
+  flake8-picky-parentheses flake8-quotes isort pyright pep8-naming \
+  darglint bandit
 
 poetry add -G test ipdb mongomock pynguin pytest pytest-cov \
-  pytest-describe pytest-lineno python-githooks toml
+  pytest-describe pytest-lineno python-githooks toml vcrpy
 ```
 
 ## Libraries
@@ -1175,6 +1176,28 @@ class Cat(Animal):
   def eat(self):
     self.edible = self.edible[:-1]
 ```
+
+### Pyright and pydantic attributes for class
+
+Adding a default with Field¶
+
+Pylance/pyright requires default to be a keyword argument to
+Field in order to infer that the field is optional.
+
+from pydantic import BaseModel, Field
+
+```python
+class Knight(BaseModel):
+    title: str = Field(default='Sir Lancelot')  # this is okay
+    age: int = Field(
+        23
+    )  # this works fine at runtime but will case an error for pyright
+
+
+lance = Knight()  # error: Argument missing for parameter "age"
+```
+
+This is a limitation of dataclass transforms and cannot be fixed in pydantic.
 
 ### Check for number is NaN
 
