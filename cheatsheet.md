@@ -4,8 +4,8 @@
 
 ## Screen for server connection and reconnect
 
-To keep a server with logs on a session, that can be re-attached later use
-`screen` or `tmux`. In case of emergency use `reptyr`.
+To keep a server with logs on a session, that can be re-attached later use `screen` or
+`tmux`. In case of emergency use `reptyr`.
 
 ```bash
 screen -S name # create session
@@ -61,7 +61,7 @@ rspec spec/lib/demo_workspaces/bookings_creator_spec.rb \
 
 > [Unix_shells: https://en.wikipedia.org/wiki/Here_document#Unix_shells]
 
-* `<<<DELIMITER` is a here string, where `<<DELIMITER` is a here-document.
+-   `<<<DELIMITER` is a here string, where `<<DELIMITER` is a here-document.
 
 ```bash
 heredoc = <<DOC
@@ -134,8 +134,8 @@ rsync -harPz local-folder username@host:/remote/directory
 rsync -az --info=progress2  --exclude=".git" --exclude-from='.gitignore' ./ user@host:/directory
 ```
 
-Use `--info=progress2`  to show the total progress, instead of individual.
-Use `--exclude-from`  to avoid copying repository ignored files
+Use `--info=progress2` to show the total progress, instead of individual. Use
+`--exclude-from` to avoid copying repository ignored files
 
 # 💎 Ruby
 
@@ -162,12 +162,12 @@ very_very_very_very_very_lengthy_foo = if bar?
 
 `byebug` but this is better `binding.pry`
 
-* n: Next
-* c: continue
+-   n: Next
+-   c: continue
 
 ### binding.pry
 
-> [pry](https://github.com/pry/pry#commands)
+> [pry](https://github.com/pry/pry#commands) >
 > [cheetsheet](https://gist.github.com/lfender6445/9919357)
 
 [cheat sheet](https://gist.github.com/lfender6445/9919357)
@@ -180,8 +180,8 @@ very_very_very_very_very_lengthy_foo = if bar?
 
 > [https://www.fastruby.io/blog/performance/rails/writing-fast-rails.html]
 
-* **pluck**. Does not load each property_calendar into memory.
-* **map**. Loads each property_calendar into memory then access the date.
+-   **pluck**. Does not load each property_calendar into memory.
+-   **map**. Loads each property_calendar into memory then access the date.
 
 ```ruby
 array.map(&:property)
@@ -212,9 +212,12 @@ chunks.sum(&:count)
 
 #### Cascade destruction/elimination of
 
-* `:destroy` : The associated objects get destroyed alongside this object by calling their destroy method. Instantiates all the records and destroys them one at a time, so with a large dataset, this could be slow
-* `:delete_all` : All associated objects get (immediately) destroyed without calling their destroy method. Callbacks are not called.
-* `nullify`: Simply make the filed null.
+-   `:destroy` : The associated objects get destroyed alongside this object by calling
+    their destroy method. Instantiates all the records and destroys them one at a time,
+    so with a large dataset, this could be slow
+-   `:delete_all` : All associated objects get (immediately) destroyed without calling
+    their destroy method. Callbacks are not called.
+-   `nullify`: Simply make the filed null.
 
 ```ruby
   has_many :site_publishing_operators, dependent: :delete_all
@@ -236,16 +239,14 @@ workspace.properties.destroy_all
 
 ```html
 <%= ft.fields_for :multifamily do |ftm| %>
-  <div class="row fluid-container">
+<div class="row fluid-container">
     <div class="col-md-6">
-      <%= ftm.check_box :short, {}, true, false %>
-      <%= ftm.label "Short Stays" %>
+        <%= ftm.check_box :short, {}, true, false %> <%= ftm.label "Short Stays" %>
     </div>
     <div class="col-md-6">
-      <%= ftm.check_box :long, {}, true, false %>
-      <%= ftm.label "Long Stays" %>
+        <%= ftm.check_box :long, {}, true, false %> <%= ftm.label "Long Stays" %>
     </div>
-  </div>
+</div>
 <% end %>
 ```
 
@@ -299,10 +300,10 @@ bundle add <gem-name> <version> --group "development, test"
 
 > They work as expected, trust it when generating the `Model.new(controller_params)`
 
-## *random* Dang it, to test done right
+## _random_ Dang it, to test done right
 
-To properly test a method with a random generation, we should lock the seed by with `srand(873459)`. Check
-out this example:
+To properly test a method with a random generation, we should lock the seed by with
+`srand(873459)`. Check out this example:
 
 ```ruby
 100.times { srand(23413); puts rand(10) }
@@ -412,6 +413,7 @@ pikaur -S mongosh-bin
 ```
 
 ## Admin create user specific to a database
+
 ```python
 use helios
 db.createUser({
@@ -421,12 +423,12 @@ db.createUser({
 })
 db.getUser("user")
 ```
+
 ## Perform a CRUD from the mongosh
 
 ```bash
 mongosh dataBase
 ```
-
 
 ### Create
 
@@ -473,12 +475,12 @@ db.utilities.updateOne(
 
 ## Supports geo-spatial queries
 
-You can use the $near operator for this. However, you'll need to make sure your
-database is set up to handle geo-spatial coordinates first.
+You can use the $near operator for this. However, you'll need to make sure your database
+is set up to handle geo-spatial coordinates first.
 
-1. Store your coordinates as GeoJSON: MongoDB can understand this format natively,
-and it's easy to work with in Python. Each document's coordinates would look something
-like this:
+1. Store your coordinates as GeoJSON: MongoDB can understand this format natively, and
+   it's easy to work with in Python. Each document's coordinates would look something
+   like this:
 
 ```python
 "coordinates": {
@@ -488,16 +490,18 @@ like this:
 ```
 
 2. Create a 2dsphere index: This is the MongoDB index type that allows for geospatial
-queries. In Python using PyMongo, it would look something like this:
+   queries. In Python using PyMongo, it would look something like this:
 
 ```python
 db.roof.create_index([("coordinates", pymongo.GEOSPHERE)])
 ```
+
 > Note that MongoDB's geospatial features expect coordinates in [longitude, latitude]
 > order, contrary to the usual convention.
 
 3. Query with $near: Once you've got your database set up correctly, you can query for
-nearby documents using the $near operator. Here's what it might look like in your case:
+   nearby documents using the $near operator. Here's what it might look like in your
+   case:
 
 ```python
 threshold_in_meters = 1000  # adjust as needed
@@ -566,7 +570,6 @@ git commit --fixup HEAD~1
 git rebase main --interactive --autosquash
 ```
 
-
 ## Better pushing to other remotes
 
 ```bash
@@ -582,8 +585,8 @@ git show # Display the diff
 
 ## Undo the commit of a file in (last) a commit
 
-1. Start an interactive rebase to the commit before the one you want to edit
-   or two before if you want to edit the last one:
+1. Start an interactive rebase to the commit before the one you want to edit or two
+   before if you want to edit the last one:
 
     ```bash
     git rebase -i <commit-hash>^
@@ -609,7 +612,7 @@ git show # Display the diff
 
     ```bash
     git add <files-to-include>
-    git commit --reuse-message=HEAD
+    git commit --reuse-message=HEAD # Using the message form the previous
     ```
 
 6. Continue the rebase:
@@ -628,8 +631,8 @@ git show # Display the diff
 
 > Or, if you want to leave it in your working tree and have done step 0
 
-* git rm --cached a/submodule
-* (bis)  mv a/submodule_tmp a/submodule
+-   git rm --cached a/submodule
+-   (bis) mv a/submodule_tmp a/submodule
 
 ## Add Specific Lines With Git Patch
 
@@ -684,6 +687,11 @@ Or make sure you copy the file outside the repository before doing this.
 git ch HEAD~1 <file>
 ```
 
+## Reset author
+```bash
+git commit --amend --author="Author Name <email@address.com>" --no-edit
+```
+
 # ️ Dev-Ops: Heroku
 
 ## Push to custom Heroku app
@@ -696,6 +704,7 @@ heroku git:remote -a test-app
 # 🗒️ Vim
 
 ## Regex
+
 ### Remove multi-lines expression like doc-strings
 
 Remember that `\_.*` is non-greedy, meaning that it will match the shortest possible
@@ -742,27 +751,27 @@ poetry add -G test ipdb mongomock pynguin pytest pytest-cov \
 
 ## Libraries
 
-* stubgen: It's a tool provided with mypy. stubgen can create stubs from python source
-  files. Note that the stubs generated are just a starting point, you will need to
-  manually curate them for better typing.
+-   stubgen: It's a tool provided with mypy. stubgen can create stubs from python source
+    files. Note that the stubs generated are just a starting point, you will need to
+    manually curate them for better typing.
 
-* MonkeyType: MonkeyType is a tool developed by Instagram that generates stub files
-  based on runtime types.
+-   MonkeyType: MonkeyType is a tool developed by Instagram that generates stub files
+    based on runtime types.
 
-* pyright: Pyright is a static type checker for Python developed by Microsoft.
-  It includes a tool for creating stubs that's a bit more sophisticated than stubgen.
+-   pyright: Pyright is a static type checker for Python developed by Microsoft. It
+    includes a tool for creating stubs that's a bit more sophisticated than stubgen.
 
-* [sktim](https://github.com/sktime/sktime). A unified interface for machine
-  learning with time series
+-   [sktim](https://github.com/sktime/sktime). A unified interface for machine learning
+    with time series
 
-* [huggingface](https://huggingface.co/). We are on a mission to democratize
-  good machine learning, one commit at a time.
+-   [huggingface](https://huggingface.co/). We are on a mission to democratize good
+    machine learning, one commit at a time.
 
-* [alpaca](https://github.com/tatsu-lab/stanford_alpaca). Build and share an
-  instruction-following LLaMA model.
+-   [alpaca](https://github.com/tatsu-lab/stanford_alpaca). Build and share an
+    instruction-following LLaMA model.
 
-* [transformers](https://github.com/huggingface/transformers). State-of-the-art
-  Machine Learning for JAX, PyTorch and TensorFlow.
+-   [transformers](https://github.com/huggingface/transformers). State-of-the-art
+    Machine Learning for JAX, PyTorch and TensorFlow.
 
 ## Simple Arguments parser for extra simple scritps
 
@@ -808,6 +817,7 @@ print(f"{f'Mr. {name}' if age >= 18 and gender == 'male' else f'Ms. {name}'} is 
 ### Padding
 
 Left Padding:
+
 ```python
 s = "pad this"
 padded_output = f"{s:>10}"
@@ -815,6 +825,7 @@ print(padded_output)  # Output: "   pad this"
 ```
 
 Center Padding:
+
 ```python
 s = "pad this"
 padded_output = f"{s:^10}"
@@ -822,6 +833,7 @@ print(padded_output)  # Output: " pad this "
 ```
 
 Delimiter change:
+
 ```python
 s = "pad this"
 padded_output = f"{s:-<10}"
@@ -829,6 +841,7 @@ print(padded_output)  # Output: "pad this--"
 ```
 
 Dictionary Padding:
+
 ```python
 s = {"foo": "bar", "baz": "qux"}
 for key, value in s.items():
@@ -837,6 +850,7 @@ for key, value in s.items():
 ```
 
 Functions (or custom types) Padding:
+
 ```python
 from torchvision.transforms import Compose, Resize, ToTensor
 
@@ -966,10 +980,10 @@ print(b)
 
 ## Pypi Python pip pacakge repository
 
-* [https://packaging.python.org/en/latest/guides/distributing-packages-using-setuptools/]
-* [https://github.com/pypa/setuptools_scm]
-* [https://setuptools.pypa.io/en/latest/userguide/declarative_config.html]
-* [https://packaging.python.org/en/latest/specifications/core-metadata/]
+-   [https://packaging.python.org/en/latest/guides/distributing-packages-using-setuptools/]
+-   [https://github.com/pypa/setuptools_scm]
+-   [https://setuptools.pypa.io/en/latest/userguide/declarative_config.html]
+-   [https://packaging.python.org/en/latest/specifications/core-metadata/]
 
 ### How to deploy my packages
 
@@ -1005,7 +1019,8 @@ setup(
 )
 ```
 
-If you have a setup.cfg file in your project, you can specify the version number in that file instead of the setup.py file.
+If you have a setup.cfg file in your project, you can specify the version number in that
+file instead of the setup.py file.
 
 To set the version number in setup.cfg, you can add the following section:
 
@@ -1016,7 +1031,8 @@ version = 0.0.1
 
 Make sure to replace 0.0.1 with the version number you want to use.
 
-Here's an example of what the setup.cfg file might look like with the version set to 0.0.1:
+Here's an example of what the setup.cfg file might look like with the version set to
+0.0.1:
 
 ```cfg
 [metadata]
@@ -1043,19 +1059,21 @@ install_requires =
 
 ```
 
-Once you've updated the version field in setup.cfg, you can run the same commands to create a source distribution of your package and upload it to PyPI:
+Once you've updated the version field in setup.cfg, you can run the same commands to
+create a source distribution of your package and upload it to PyPI:
 
 ```bash
 python setup.py sdist
 twine upload dist/*
 ```
 
-This will create a .tar.gz file of your package in the dist folder, and upload it to PyPI.
+This will create a .tar.gz file of your package in the dist folder, and upload it to
+PyPI.
 
 ### List the current top-level packages to generate a virtual enviroment
 
-Pip by default will generate a comprehensive list of all packages,
-to curate the list use `pip-chill`. So instead of:
+Pip by default will generate a comprehensive list of all packages, to curate the list
+use `pip-chill`. So instead of:
 
 ```bash
 pip freeze > requirements.txt
@@ -1086,9 +1104,10 @@ foo: int = "123"  # pyright: ignore [reportPrivateUsage, reportGeneralTypeIssues
 def my_function(my_arg, *, keyword_arg):
 ```
 
-Note the asterisk (\*) before the `keyword_arg` parameter name.
-This indicates that the parameter is a keyword-only argument, meaning it can only be passed by keyword and not by position.
-Since there is no default value assigned to keyword_arg, it must be provided by the caller of the function.
+Note the asterisk (\*) before the `keyword_arg` parameter name. This indicates that the
+parameter is a keyword-only argument, meaning it can only be passed by keyword and not
+by position. Since there is no default value assigned to keyword_arg, it must be
+provided by the caller of the function.
 
 ## Meta Programming, call a module or method dynamically
 
@@ -1099,7 +1118,7 @@ self.__dataset = getattr(torchvision.datasets, self.dataset_name)(**self.dataset
 Would be like doing the following in the loosely typed JavaScript
 
 ```javascript
-this.__dataset = torchvision.datasets[this.dataset_name].call(this.dataset_kwargs)
+this.__dataset = torchvision.datasets[this.dataset_name].call(this.dataset_kwargs);
 ```
 
 ## Torch vision - Dataset - Where are the labels in each dataset
@@ -1121,18 +1140,20 @@ labels = cifar10.targets
 class_names = cifar10.classes
 ```
 
-* The `targets` attribute returns a list of integers representing the class labels for each data point in the dataset.
-* The `classes` attribute returns a list of strings representing the class names corresponding to the integer labels.
+-   The `targets` attribute returns a list of integers representing the class labels for
+    each data point in the dataset.
+-   The `classes` attribute returns a list of strings representing the class names
+    corresponding to the integer labels.
 
 ## Pytest - Unit testing suite
 
-> [realpython](https://realpython.com/pytest-python-testing/)
-> [pytest](https://docs.pytest.org/en/7.1.x/how-to/unittest.html)
+> [realpython](https://realpython.com/pytest-python-testing/) >
+> [pytest](https://docs.pytest.org/en/7.1.x/how-to/unittest.html) >
 > [MagicMock](https://docs.python.org/3/library/unittest.mock.html)
 
-* [pytest-randomly](https://github.com/pytest-dev/pytest-randomly)
-* [pytest-cov](https://pytest-cov.readthedocs.io/en/latest/)
-* [pytest-bdd](https://pytest-bdd.readthedocs.io/en/latest/)
+-   [pytest-randomly](https://github.com/pytest-dev/pytest-randomly)
+-   [pytest-cov](https://pytest-cov.readthedocs.io/en/latest/)
+-   [pytest-bdd](https://pytest-bdd.readthedocs.io/en/latest/)
 
 ### Skip focus and more on tests
 
@@ -1181,8 +1202,8 @@ class Cat(Animal):
 
 Adding a default with Field¶
 
-Pylance/pyright requires default to be a keyword argument to
-Field in order to infer that the field is optional.
+Pylance/pyright requires default to be a keyword argument to Field in order to infer
+that the field is optional.
 
 from pydantic import BaseModel, Field
 
@@ -1243,24 +1264,33 @@ pprint(source_code)
 import ipdb; ipdb.set_trace()
 ```
 
-#### Command   Description
+#### Command Description
 
-* p   Print the value of an expression.
-* pp  Pretty-print the value of an expression.
-* n   Continue execution until the next line in the current function is reached or it returns.
-* s   Execute the current line and stop at the first possible occasion (either in a function that is called or in the current function).
-* c   Continue execution and only stop when a breakpoint is encountered.
-* unt   Continue execution until the line with a number greater than the current one is reached. With a line number argument, continue execution until a line with a number greater or equal to that is reached.
-* l   List source code for the current file. Without arguments, list 11 lines around the current line or continue the previous listing.
-* ll  List the whole source code for the current function or frame.
-* b   With no arguments, list all breaks. With a line number argument, set a breakpoint at this line in the current file.
-* w   Print a stack trace, with the most recent frame at the bottom. An arrow indicates the current frame, which determines the context of most commands.
-* u   Move the current frame count (default one) levels up in the stack trace (to an older frame).
-* d   Move the current frame count (default one) levels down in the stack trace (to a newer frame).
-* h   See a list of available commands.
-* h <topic>   Show help for a command or topic.
-* h pdb   Show the full pdb documentation.
-* q   Quit the debugger and exit.
+-   p Print the value of an expression.
+-   pp Pretty-print the value of an expression.
+-   n Continue execution until the next line in the current function is reached or it
+    returns.
+-   s Execute the current line and stop at the first possible occasion (either in a
+    function that is called or in the current function).
+-   c Continue execution and only stop when a breakpoint is encountered.
+-   unt Continue execution until the line with a number greater than the current one is
+    reached. With a line number argument, continue execution until a line with a number
+    greater or equal to that is reached.
+-   l List source code for the current file. Without arguments, list 11 lines around the
+    current line or continue the previous listing.
+-   ll List the whole source code for the current function or frame.
+-   b With no arguments, list all breaks. With a line number argument, set a breakpoint
+    at this line in the current file.
+-   w Print a stack trace, with the most recent frame at the bottom. An arrow indicates
+    the current frame, which determines the context of most commands.
+-   u Move the current frame count (default one) levels up in the stack trace (to an
+    older frame).
+-   d Move the current frame count (default one) levels down in the stack trace (to a
+    newer frame).
+-   h See a list of available commands.
+-   h <topic> Show help for a command or topic.
+-   h pdb Show the full pdb documentation.
+-   q Quit the debugger and exit.
 
 ## From dictionary to list and sets and back to track ids
 
@@ -1297,16 +1327,16 @@ _, bar = pair()
 
 ### Sub-modules
 
-* **optimize**: optimization and root finding.
-* **linalg**: linear algebra.
-* **interpolate**: interpolation.
-* **integrate**: integration and ODE solvers.
-* **signal**: signal processing.
-* **special**: special functions.
-* **stats**: statistics and random numbers.
-* **spatial**: spatial algorithms and data structures.
-* **ndimage**: n-dimensional image processing.
-* **constants**: physical and mathematical constants.
+-   **optimize**: optimization and root finding.
+-   **linalg**: linear algebra.
+-   **interpolate**: interpolation.
+-   **integrate**: integration and ODE solvers.
+-   **signal**: signal processing.
+-   **special**: special functions.
+-   **stats**: statistics and random numbers.
+-   **spatial**: spatial algorithms and data structures.
+-   **ndimage**: n-dimensional image processing.
+-   **constants**: physical and mathematical constants.
 
 ### Optimization and Root Finding (scipy.optimize)
 
@@ -1322,30 +1352,30 @@ solution = root(fun, x0, method='hybr', options={'xtol': 1e-8, 'disp': True})
 
 ### SciPy vs NumPy
 
-| Feature                       | NumPy                       | SciPy |
-|---                            |---                          |---    |
-| Purpose                       | General-purpose numerical computing              | Scientific and technical computing                            |
-| Focus                         | N-dimensional arrays (ndarrays), basic operations| Advanced functionality built on top of NumPy                  |
-| Linear Algebra                | Basic linear algebra support                     | Advanced linear algebra, including decompositions and solvers |
-| Interpolation                 | N/A                                              | Interpolation functions for 1D, 2D, and ND data               |
-| Optimization and Root-finding | N/A                                              | Optimization and root-finding algorithms                      |
-| Signal Processing             | N/A
+| Feature                       | NumPy                                             | SciPy                                                         |
+| ----------------------------- | ------------------------------------------------- | ------------------------------------------------------------- |
+| Purpose                       | General-purpose numerical computing               | Scientific and technical computing                            |
+| Focus                         | N-dimensional arrays (ndarrays), basic operations | Advanced functionality built on top of NumPy                  |
+| Linear Algebra                | Basic linear algebra support                      | Advanced linear algebra, including decompositions and solvers |
+| Interpolation                 | N/A                                               | Interpolation functions for 1D, 2D, and ND data               |
+| Optimization and Root-finding | N/A                                               | Optimization and root-finding algorithms                      |
+| Signal Processing             | N/A                                               |
 
 ## 🔥 PyTorch
 
 ###  🔥 PyTorch vs  🌊 TensorFlow
 
-| Feature                   | TensorFlow                                             | PyTorch                                                    |
-|---------------------------|--------------------------------------------------------|-------------------------------------------------------------|
-| Origin                    | Developed by Google Brain                              | Developed by Facebook's AI Research Lab (FAIR)             |
-| Release Date              | November 2015                                          | October 2016                                                |
-| Computational Graph       | Static graph (Eager execution available)               | Dynamic computational graph                                |
-| Debugging                 | More challenging due to static graph                   | Easier due to dynamic graph and native Python support      |
-| APIs                      | High-level (Keras) and low-level APIs available        | Native Pythonic APIs, PyTorch Lightning for high-level     |
-| Deployment                | TensorFlow Serving, TensorFlow Lite, TensorFlow.js     | TorchScript, ONNX, and third-party tools                   |
-| Popularity & Community    | Widely adopted, large community and resources          | Rapidly growing community, increasing research adoption    |
-| Performance               | Highly optimized for both CPU and GPU                  | Highly optimized for both CPU and GPU, slightly faster    |
-| Distributed Training      | Built-in support with `tf.distribute`                 | Built-in support with `torch.distributed`                  |
+| Feature                | TensorFlow                                         | PyTorch                                                 |
+| ---------------------- | -------------------------------------------------- | ------------------------------------------------------- |
+| Origin                 | Developed by Google Brain                          | Developed by Facebook's AI Research Lab (FAIR)          |
+| Release Date           | November 2015                                      | October 2016                                            |
+| Computational Graph    | Static graph (Eager execution available)           | Dynamic computational graph                             |
+| Debugging              | More challenging due to static graph               | Easier due to dynamic graph and native Python support   |
+| APIs                   | High-level (Keras) and low-level APIs available    | Native Pythonic APIs, PyTorch Lightning for high-level  |
+| Deployment             | TensorFlow Serving, TensorFlow Lite, TensorFlow.js | TorchScript, ONNX, and third-party tools                |
+| Popularity & Community | Widely adopted, large community and resources      | Rapidly growing community, increasing research adoption |
+| Performance            | Highly optimized for both CPU and GPU              | Highly optimized for both CPU and GPU, slightly faster  |
+| Distributed Training   | Built-in support with `tf.distribute`              | Built-in support with `torch.distributed`               |
 
 #### LeNet-5 In 🔥 PyTorch
 
@@ -1407,6 +1437,7 @@ class LeNet5(models.Model):
 
 lenet5 = LeNet5()
 ```
+
 Alternatively, use the `nn.Sequential()` like method:
 
 ```python
@@ -1443,6 +1474,7 @@ pyplot.savefig(tmp_path, bbox_inches='tight', pad_inches=0, transparent=True)
 ### Linear Algebra (scipy.linalg)
 
 Linear algebra functions, including matrix operations, decompositions, and solvers.
+
 ```python
 from scipy.linalg import det, inv, eig, solve
 
@@ -1603,10 +1635,10 @@ def get_args_kwargs_from_string(string):
 
 ## Jupiter
 
-> `jupiter notebook *.ipynb`
-> `jupyter lab --watch --autoreload`
+> `jupiter notebook *.ipynb` > `jupyter lab --watch --autoreload`
 
-Develop and render your notebooks in NeoVim directly [NeoVim|vim-jukit](https://github.com/luk400/vim-jukit)
+Develop and render your notebooks in NeoVim directly
+[NeoVim|vim-jukit](https://github.com/luk400/vim-jukit)
 
 #### Jupyter Extensions
 
@@ -1637,16 +1669,13 @@ OR on a html cell:
 %%html
 <script>
     // AUTORUN ALL CELLS ON NOTEBOOK-LOAD!
-    require(
-        ['base/js/namespace', 'jquery'],
-        function(jupyter, $) {
-            $(jupyter.events).on("kernel_ready.Kernel", function () {
-                console.log("Auto-running all cells-below...");
-                jupyter.actions.call('jupyter-notebook:run-all-cells-below');
-                jupyter.actions.call('jupyter-notebook:save-notebook');
-            });
-        }
-    );
+    require(["base/js/namespace", "jquery"], function (jupyter, $) {
+        $(jupyter.events).on("kernel_ready.Kernel", function () {
+            console.log("Auto-running all cells-below...");
+            jupyter.actions.call("jupyter-notebook:run-all-cells-below");
+            jupyter.actions.call("jupyter-notebook:save-notebook");
+        });
+    });
 </script>
 ```
 
@@ -1683,13 +1712,13 @@ np.array(features, ndmin=2).T
 
 > The notion that regex doesn't support inverse matching is not entirely true.
 
-* `^((?!notWord).)*$`
-* `^(?:(?!:notWord).)*$`
-* `^((?!(notWord|norWord)).)*$`
+-   `^((?!notWord).)*$`
+-   `^(?:(?!:notWord).)*$`
+-   `^((?!(notWord|norWord)).)*$`
 
 ## To see messages per file and line
 
-**nvim** `'<,'>s/\(:[^ ]*\)/\1/g`
+**nvim** `'<,'>s/\(:[^ ]*\)/\1 /g`
 
 # 🏢 AWS | Amazon Web Services
 
@@ -1697,8 +1726,8 @@ np.array(features, ndmin=2).T
 
 > Amazon Neptune
 
-* Either have amazon block chain
-* Or Amazon Quantum Ledger Database, for financial purposes.
+-   Either have amazon block chain
+-   Or Amazon Quantum Ledger Database, for financial purposes.
 
 ## AWS Interfaces (GUI, CLI, SDK, and beans)
 
@@ -1708,15 +1737,17 @@ np.array(features, ndmin=2).T
 
 > To manage all the infrastructure as a code, duplicate rinse repeat delete...
 
-* Alternatively CloudFormatiion, which is a bit more technical since its declarative.
+-   Alternatively CloudFormatiion, which is a bit more technical since its declarative.
 
 ## Lambda Functions
 
 > They meant for services that take less that 15mins to work.
 
-You can have either a A-ECS (elastic container service) A-EKS (elastic kubernetes service)
+You can have either a A-ECS (elastic container service) A-EKS (elastic kubernetes
+service)
 
-Even more business oriented, use server-less *Fargate* to complete forget the underline of ECS/EKC rather than instances.
+Even more business oriented, use server-less _Fargate_ to complete forget the underline
+of ECS/EKC rather than instances.
 
 ## Terraform
 
@@ -1724,9 +1755,10 @@ Big folders are namespaces.
 
 ## Ingress
 
-They are all about serving traffic to the outside world. To avoid having every service with an public IP, the Ingress's serve as an API Gateway.
+They are all about serving traffic to the outside world. To avoid having every service
+with an public IP, the Ingress's serve as an API Gateway.
 
-* And POD's talk by using services.
+-   And POD's talk by using services.
 
 ### Ingress Controller
 
@@ -1738,7 +1770,8 @@ A proxy (revese proxy), is like an having nGinx , configured through a YAML file
 
 ### BartrAIND Russell
 
-> The whole problem with Artificial Intelligence is that bad models are so certain of themselves, and good models so full of doubts.
+> The whole problem with Artificial Intelligence is that bad models are so certain of
+> themselves, and good models so full of doubts.
 
 # 🤖 Artificial Intelligence
 
@@ -1746,8 +1779,8 @@ A proxy (revese proxy), is like an having nGinx , configured through a YAML file
 
 ### Learning Rate - Scheduler
 
-[https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate]
-How to adjust the learning on each epoch, to start with a big LR and get smaller over time.
+[https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate] How to adjust
+the learning on each epoch, to start with a big LR and get smaller over time.
 
 ```python
 from torch.optim.lr_scheduler import StepLR
@@ -1769,13 +1802,15 @@ for ...
 
 This scheduler decreases the learning rate by a factor after a fixed number of epochs.
 
-* step_size: *Eons inside the epochs.* determines the number of epochs after which the learning rate will be multiplied by the `gamma` parameter.
-* gamma: [0.1] The factor to reduce the learning rate `lr = initial_lr * gamma^(epoch // step_size)`
-
+-   step_size: _Eons inside the epochs._ determines the number of epochs after which the
+    learning rate will be multiplied by the `gamma` parameter.
+-   gamma: [0.1] The factor to reduce the learning rate
+    `lr = initial_lr * gamma^(epoch // step_size)`
 
 #### ReduceLROnPlateau
 
-This scheduler monitors the validation loss and decreases the learning rate if the validation loss does not improve for a fixed number of epochs.
+This scheduler monitors the validation loss and decreases the learning rate if the
+validation loss does not improve for a fixed number of epochs.
 
 ```python
 optimizer = torch.optim.Adam(model.parameters(), lr=lr)
@@ -1799,7 +1834,8 @@ optimizer = torch.optim.SGD(model.parameters(), lr=0.1, momentum=0.9)
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs)
 ```
 
-This scheduler gradually reduces the learning rate to a minimum value over a fixed number of epochs using a cosine function.
+This scheduler gradually reduces the learning rate to a minimum value over a fixed
+number of epochs using a cosine function.
 
 #### MultiStepLR
 
@@ -1811,108 +1847,107 @@ This scheduler varies the learning rate cyclically between minimum and maximum v
 
 ### Output functions
 
-Using a Softmax as the output function will return vector of probabilities of our classes.
+Using a Softmax as the output function will return vector of probabilities of our
+classes.
 
 ### Activation Function Alternatives
 
-There are several other activation functions you can try as alternatives to ReLU,
-ELU, and TanH. Here are a few popular ones:
+There are several other activation functions you can try as alternatives to ReLU, ELU,
+and TanH. Here are a few popular ones:
 
-0. **TanH**: The hyperbolic tangent (TanH) function is an activation function that
-   maps input values to the range (-1, 1). It is similar to the sigmoid function,
-   but with an output range that is centered around zero. TanH can provide better
-   performance in certain cases when compared to the sigmoid function due to its
-   symmetric output range. However, it can still suffer from vanishing gradients
-   for large positive or negative input values.
+0. **TanH**: The hyperbolic tangent (TanH) function is an activation function that maps
+   input values to the range (-1, 1). It is similar to the sigmoid function, but with an
+   output range that is centered around zero. TanH can provide better performance in
+   certain cases when compared to the sigmoid function due to its symmetric output
+   range. However, it can still suffer from vanishing gradients for large positive or
+   negative input values.
 
-   ```python
-   nn.Tanh()
-   ```
+    ```python
+    nn.Tanh()
+    ```
 
-   Recommended weight initialization:
+    Recommended weight initialization:
 
-   ```python
-   nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='leaky_relu')
-   ```
+    ```python
+    nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='leaky_relu')
+    ```
 
 1. **Leaky ReLU (LReLU)**: Leaky ReLU is an improved version of ReLU that allows a
    small, non-zero gradient for negative input values. This can help prevent dead
    neurons during training.
 
-   ```python
-   nn.LeakyReLU(negative_slope=0.01)
-   ```
+    ```python
+    nn.LeakyReLU(negative_slope=0.01)
+    ```
 
-   Recommended weight initialization:
+    Recommended weight initialization:
 
-   ```python
-   nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='leaky_relu')
-   ```
+    ```python
+    nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='leaky_relu')
+    ```
 
-2. **Parametric ReLU (PReLU)**: Parametric ReLU is similar to Leaky ReLU, but it
-   learns the negative slope during training, making it adaptive.
+2. **Parametric ReLU (PReLU)**: Parametric ReLU is similar to Leaky ReLU, but it learns
+   the negative slope during training, making it adaptive.
 
-   ```python
-   nn.PReLU()
-   ```
+    ```python
+    nn.PReLU()
+    ```
 
-   Recommended weight initialization:
+    Recommended weight initialization:
 
-   ```python
-   nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='leaky_relu')
-   ```
+    ```python
+    nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='leaky_relu')
+    ```
 
-3. **Sigmoid**: The sigmoid function maps input values to the range (0, 1) and is
-   widely used in binary classification problems. However, it can suffer from
-   vanishing gradients for large positive or negative input values.
+3. **Sigmoid**: The sigmoid function maps input values to the range (0, 1) and is widely
+   used in binary classification problems. However, it can suffer from vanishing
+   gradients for large positive or negative input values.
 
-   ```python
-   nn.Sigmoid()
-   ```
+    ```python
+    nn.Sigmoid()
+    ```
 
-   Recommended weight initialization:
+    Recommended weight initialization:
 
-   ```python
-   nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='sigmoid')
-   ```
+    ```python
+    nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='sigmoid')
+    ```
 
-4. **Swish (also known as SiLU)**: Swish is a smooth, self-gated activation
-   function that has been found to work well in deep networks.
+4. **Swish (also known as SiLU)**: Swish is a smooth, self-gated activation function
+   that has been found to work well in deep networks.
 
-   ```python
-   nn.SiLU()
-   ```
+    ```python
+    nn.SiLU()
+    ```
 
-   Recommended weight initialization:
+    Recommended weight initialization:
 
-   ```python
-   nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='swish')
-   ```
+    ```python
+    nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='swish')
+    ```
 
-5. **Softplus**: The softplus function is a smooth approximation of the ReLU
-   function.
+5. **Softplus**: The softplus function is a smooth approximation of the ReLU function.
 
-   ```python
-   nn.Softplus()
-   ```
+    ```python
+    nn.Softplus()
+    ```
 
-   Recommended weight initialization:
+    Recommended weight initialization:
 
-   ```python
-   nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='softplus')
-   ```
+    ```python
+    nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='softplus')
+    ```
 
-Remember that when using a different activation function, you should also adjust
-the weight initialization method accordingly.
-
+Remember that when using a different activation function, you should also adjust the
+weight initialization method accordingly.
 
 #### Table of common output function per activation function
 
-| Activation FN | Loss Function             |
-| ---           |  ---                      |
-| Sigmoid       |  Binary Cross Entropy     |
-| Softmax       |  Multiclass Cross Entropy |
-| Identity      |  Mean Squared Error       |
+| Activation FN | Loss Function            |
+| ------------- | ------------------------ |
+| Sigmoid       | Binary Cross Entropy     |
+| Softmax       | Multiclass Cross Entropy |
+| Identity      | Mean Squared Error       |
 
 ### Regularization L1 vs L2
 
@@ -1930,7 +1965,8 @@ For feature selection, since it return sparse vectors [0, 1, 0, 1]
 +λ(w1^2+…+wn^2)``
 ```
 
-For training models, since it will not favor sparse vectors resulting [0.25, 0.5, 0.33, 0.5]
+For training models, since it will not favor sparse vectors resulting [0.25, 0.5, 0.33,
+0.5]
 
 ## Deep Networks, the breakthrough of vanishing gradients
 
@@ -1938,9 +1974,13 @@ For training models, since it will not favor sparse vectors resulting [0.25, 0.5
 
 [Resnet](https://pytorch.org/vision/stable/_modules/torchvision/models/resnet.html)
 
-Microsoft implemented a simple and cleaver trick to avoid the gradients becoming too week to impact the backward weight calculation (vanishing gradient).
+Microsoft implemented a simple and cleaver trick to avoid the gradients becoming too
+week to impact the backward weight calculation (vanishing gradient).
 
-To understand the idea, imagine having sum function that aggregates layers allowing a **skip connection** for the gradient. On the above code, what would happen if the gradient becomes zero and `F = self.conv_block(x) => 0`, this slight fix avoid the gradient from vanishing.
+To understand the idea, imagine having sum function that aggregates layers allowing a
+**skip connection** for the gradient. On the above code, what would happen if the
+gradient becomes zero and `F = self.conv_block(x) => 0`, this slight fix avoid the
+gradient from vanishing.
 
 ```python
 class ResidualBlock(nn.Module):
@@ -1966,20 +2006,18 @@ class ResidualBlock(nn.Module):
 
 ## Transfer learning, by freezing parameters and adding classifier
 
-To transfer learning, you choose from a pre-trained data network like resnet18
-with it weights and biases downloaded. And you can either simply change the
-`classifier` or got deeper in fine tuning, and freeze some layer of your
-choosing.
+To transfer learning, you choose from a pre-trained data network like resnet18 with it
+weights and biases downloaded. And you can either simply change the `classifier` or got
+deeper in fine tuning, and freeze some layer of your choosing.
 
-> You will need to use a learning rate small enough so you do not destroy the
-> filters that the network has learned on ImageNet.
+> You will need to use a learning rate small enough so you do not destroy the filters
+> that the network has learned on ImageNet.
 
-So If I want my network to know beforehand what's a flower, I can use a
-pre-trained network on ImageNet (1000 classes) which can tell a animal from a
-plant and object. And starting from there I can freeze 0 to N of the
-features weights, and start my own training setting own features in
-convolutional layers for distinguishing the classes of a flower
-(pre knowing that's is a flower)
+So If I want my network to know beforehand what's a flower, I can use a pre-trained
+network on ImageNet (1000 classes) which can tell a animal from a plant and object. And
+starting from there I can freeze 0 to N of the features weights, and start my own
+training setting own features in convolutional layers for distinguishing the classes of
+a flower (pre knowing that's is a flower)
 
 ```python
 # Freeze the first two convolutional layers
@@ -1989,17 +2027,18 @@ for layer in model[:2]:
 
 ### Libraries
 
-* `pip install `[timm](https://github.com/huggingface/pytorch-image-models)
+-   `pip install `[timm](https://github.com/huggingface/pytorch-image-models)
 
 ## AWS | Data Warehouse
 
 > for 10 years ago, within 10 different data schemas
 
-Amazon *RedShift*, supports exabytes for a single query
+Amazon _RedShift_, supports exabytes for a single query
 
-### Pytorch 🔥 🕶️  torch-vision
+### Pytorch 🔥 🕶️ torch-vision
 
-> Remember to clear your gradients, before staring to train your network with `optimizer.zero_grad()`
+> Remember to clear your gradients, before staring to train your network with
+> `optimizer.zero_grad()`
 
 #### My own Fire Layer with Convolutional layers
 
@@ -2122,15 +2161,16 @@ checkpoint = {
 
 > `RandAugment`: Practical automated data augmentation with a reduced search space
 
-Use  `torchvision.transforms.RandAugment` which is a random Transformation policies that are optimized by the community for image classification.
+Use `torchvision.transforms.RandAugment` which is a random Transformation policies that
+are optimized by the community for image classification.
 
 ### 🪐 Jupiter
 
-Just `jupyter notebook --autoreload  --no-browser -y 4-Fashion-MNIST-_Exercises_.ipynb`
+Just `jupyter notebook --autoreload --no-browser -y 4-Fashion-MNIST-_Exercises_.ipynb`
 
 #### Error loading the dependencies
 
-In your *notebook.ipynb*:
+In your _notebook.ipynb_:
 
 ```python
 # Jupiter needs me to manually re-install the dependencies from pip
@@ -2154,27 +2194,26 @@ testloader = DataLoader(testset, batch_size=32, shuffle=True)
 
 ## Convolution Conv2D or Conv3D
 
-> Edge detection, use "MaxPooling" or "AvgPooling" to remove noise and make the output of the convolution more
-> focused on the data so zooming in the meaningful data and removing zeros.
+> Edge detection, use "MaxPooling" or "AvgPooling" to remove noise and make the output
+> of the convolution more focused on the data so zooming in the meaningful data and
+> removing zeros.
 
-The output tensor formula is  `((W + 2P − K) / S)+1.`
+The output tensor formula is `((W + 2P − K) / S)+1.`
 
-* **W** is the input volume - The NxM matrix or tensor input.
-* **P** is the padding - The amount of tolerance and padding added for bigger kernels or strides
-* **K** is the Kernel size - The size of the filter kernel, the view if you want.
-* **S** is the stride - The amount of pixels to move, use S=2 to half the output size.
-
+-   **W** is the input volume - The NxM matrix or tensor input.
+-   **P** is the padding - The amount of tolerance and padding added for bigger kernels
+    or strides
+-   **K** is the Kernel size - The size of the filter kernel, the view if you want.
+-   **S** is the stride - The amount of pixels to move, use S=2 to half the output size.
 
 ### The `group` parameter explanation
 
-The groups parameter essentially splits the input and output channels into
-multiple groups, and each output channel is only allowed to have connections
-within its group. This reduces the number of connections between input and
-output channels, which in turn reduces the computational cost and the number of
-parameters in the model.
+The groups parameter essentially splits the input and output channels into multiple
+groups, and each output channel is only allowed to have connections within its group.
+This reduces the number of connections between input and output channels, which in turn
+reduces the computational cost and the number of parameters in the model.
 
-Here's a brief explanation of the three main scenarios when using the groups
-parameter:
+Here's a brief explanation of the three main scenarios when using the groups parameter:
 
     1. groups=1: This is the default setting, which corresponds to the standard
       convolution where each output channel is connected to all input channels.
@@ -2194,86 +2233,82 @@ parameter:
       convolutions significantly reduce the number of connections and are widely
       used in lightweight models, such as MobileNet.
 
-Using the groups parameter, you can create more efficient convolutional neural
-networks, which can be beneficial for large-scale models or models running on
-resource-constrained devices. The ConvNeXt architecture, for example, leverages
-grouped convolutions to achieve better computational efficiency and improved
-parameter efficiency compared to standard convolutional neural networks.
+Using the groups parameter, you can create more efficient convolutional neural networks,
+which can be beneficial for large-scale models or models running on resource-constrained
+devices. The ConvNeXt architecture, for example, leverages grouped convolutions to
+achieve better computational efficiency and improved parameter efficiency compared to
+standard convolutional neural networks.
 
 ### Pooling layer
 
 The output tensor formula is `((W - K) / S) + 1`
 
-* Kernel size is basically the matrix where to apply the operation (max, avg, etc..)
+-   Kernel size is basically the matrix where to apply the operation (max, avg, etc..)
 
 ### Neural Network Weight Initialization Cheatsheet
 
 #### Xavier (Glorot) Initialization
 
-- **When to use**: Primarily for networks with `tanh`, `sigmoid`, or other
-  _symmetric_ activation functions.
-- **How it works**: Sets the initial weights to have a variance that depends on
-  the number of input and output neurons.
-- **Formula**: `sqrt(6 / (number of input neurons + number of output neurons))`
-- **Benefits**:
-  - Helps prevent gradients from vanishing or exploding during backpropagation.
-  - Speeds up convergence by providing a better starting point for optimization.
+-   **When to use**: Primarily for networks with `tanh`, `sigmoid`, or other _symmetric_
+    activation functions.
+-   **How it works**: Sets the initial weights to have a variance that depends on the
+    number of input and output neurons.
+-   **Formula**: `sqrt(6 / (number of input neurons + number of output neurons))`
+-   **Benefits**:
+    -   Helps prevent gradients from vanishing or exploding during backpropagation.
+    -   Speeds up convergence by providing a better starting point for optimization.
 
 #### He (Kaiming) Initialization
 
-- **When to use**: Primarily for networks with `ReLU` or other _asymmetric_
-  activation functions (e.g., Leaky ReLU, PReLU).
-- **How it works**: Sets the initial weights to have a variance that depends on
-  the number of input neurons, adjusted for the non-linearity introduced by ReLU.
-- **Formula**: `sqrt(2 / number of input neurons)`
-- **Benefits**:
-  - Helps prevent gradients from vanishing or exploding during backpropagation.
-  - Speeds up convergence by providing a better starting point for optimization,
-    specifically for ReLU-based networks.
+-   **When to use**: Primarily for networks with `ReLU` or other _asymmetric_ activation
+    functions (e.g., Leaky ReLU, PReLU).
+-   **How it works**: Sets the initial weights to have a variance that depends on the
+    number of input neurons, adjusted for the non-linearity introduced by ReLU.
+-   **Formula**: `sqrt(2 / number of input neurons)`
+-   **Benefits**:
+    -   Helps prevent gradients from vanishing or exploding during backpropagation.
+    -   Speeds up convergence by providing a better starting point for optimization,
+        specifically for ReLU-based networks.
 
 ### Mixing `tanh` and `ReLU` Activation Functions
 
-- In general, it's best to stick to a single type of activation function
-  throughout the network, as mixing them can make it harder to choose a suitable
-  weight initialization strategy.
-- `tanh` and `ReLU` have different properties:
-  - `tanh`: Symmetric around zero, outputs values between -1 and 1, and has
-    non-zero gradients for both positive and negative inputs.
-  - `ReLU`: Asymmetric, outputs values between 0 and infinity, and has zero
-    gradients for negative inputs.
-- Mixing these activation functions can lead to issues during training, such as:
-  - Slower convergence due to inappropriate weight initialization.
-  - Vanishing or exploding gradients, which may be exacerbated by having mixed
-    activation functions in the network.
-  - Difficulties in optimizing hyperparameters or designing the network
-    architecture.
+-   In general, it's best to stick to a single type of activation function throughout
+    the network, as mixing them can make it harder to choose a suitable weight
+    initialization strategy.
+-   `tanh` and `ReLU` have different properties:
+    -   `tanh`: Symmetric around zero, outputs values between -1 and 1, and has non-zero
+        gradients for both positive and negative inputs.
+    -   `ReLU`: Asymmetric, outputs values between 0 and infinity, and has zero
+        gradients for negative inputs.
+-   Mixing these activation functions can lead to issues during training, such as:
+    -   Slower convergence due to inappropriate weight initialization.
+    -   Vanishing or exploding gradients, which may be exacerbated by having mixed
+        activation functions in the network.
+    -   Difficulties in optimizing hyperparameters or designing the network
+        architecture.
 
-It's generally recommended to use a consistent activation function throughout
-the network, such as ReLU, which has become popular due to its simplicity and
-effectiveness in deep learning models.
+It's generally recommended to use a consistent activation function throughout the
+network, such as ReLU, which has become popular due to its simplicity and effectiveness
+in deep learning models.
 
 ### Recommended order for a mix of MaxPool, BatchNorm2d, ReLU and Dropout
 
 Convolution -> Activation -> Batch Normalization -> Pooling -> Dropout.
 
-Conv2d -> ReLU -> BatchNorm2d
-[Conv2d -> ReLU -> BatchNorm2d]
-MaxPool -> Dropout
+Conv2d -> ReLU -> BatchNorm2d [Conv2d -> ReLU -> BatchNorm2d] MaxPool -> Dropout
 
-Conv2d -> ReLU -> BatchNorm2d
-MaxPool -> Dropout
-[MaxPool -> Dropout]
+Conv2d -> ReLU -> BatchNorm2d MaxPool -> Dropout [MaxPool -> Dropout]
 
-Flatten -> Linear -> ReLU [ -> Dropout ]
-Softmax.
+Flatten -> Linear -> ReLU [ -> Dropout ] Softmax.
 
 ## Auto Encoders
 
-Basically we define two functions a decoder and a encoder, which one should aim
-to make the data slimmer and more narrowed while the other should take the
-smaller data and expand it. Visually we shrink the data, and we later enlarge it.
+Basically we define two functions a decoder and a encoder, which one should aim to make
+the data slimmer and more narrowed while the other should take the smaller data and
+expand it. Visually we shrink the data, and we later enlarge it.
 
 **Neural Network**
+
 ```python
 def __init__(self):
     self.encoder = nn.Sequential() # As you wish
@@ -2291,30 +2326,39 @@ def forward(self, x):
 ```
 
 **Training loop**
+
 ```python
 loss = criterion(outputs.flatten(), images.flatten())
 # loss = criterion(outputs.flatten(), labels) Against the images again
 ```
+
 ### Convolutional Auto Encoders (decoding)
 
-The encoding part we already know (look above), so for the decoding we will use the inverse of *pooling*, **un-pooling** 😮
+The encoding part we already know (look above), so for the decoding we will use the
+inverse of _pooling_, **un-pooling** 😮
 
-* Nearest Neighbors, copy existing values `nn.Upsample(scale_factor = 2, mode='nearest')`
+-   Nearest Neighbors, copy existing values
+    `nn.Upsample(scale_factor = 2, mode='nearest')`
 
 #### Transposed Convolutional Layer (de-convolutional layer)
 
 `nn.ConvTranspose2d`
 
-This is applies the convolution by increasing the padding and stride to have it increase the output.
+This is applies the convolution by increasing the padding and stride to have it increase
+the output.
 
-Instead of using the kernel to add/multiply all of it into a single number, it uses the kernel as the main output for each pixel with the input of the first pixel. *Note* that the paddings and striding, must be bigger to avoid heavy overlaps and keep in mind overlaps are resolved by adding:
+Instead of using the kernel to add/multiply all of it into a single number, it uses the
+kernel as the main output for each pixel with the input of the first pixel. _Note_ that
+the paddings and striding, must be bigger to avoid heavy overlaps and keep in mind
+overlaps are resolved by adding:
 
-The formula is `S * (W - 1) + K - 2P` or `output = stride * (input - 1) + kernel - 2 * padding`:
+The formula is `S * (W - 1) + K - 2P` or
+`output = stride * (input - 1) + kernel - 2 * padding`:
 
-* **output** The spatial size of the output tensor
-* **input** The spatial size of the input tensor
-* **kernel** The spatial size of the kernel
-* **padding** The number of zero-valued pixels
+-   **output** The spatial size of the output tensor
+-   **input** The spatial size of the input tensor
+-   **kernel** The spatial size of the kernel
+-   **padding** The number of zero-valued pixels
 
 ##### Example
 
@@ -2339,21 +2383,33 @@ class Autoencoder(nn.Module):
 
 ##### NOTE: That `nn.Unsample` performs better
 
-Eventually `ConvTranspose2d` would learn to perform better, but initially the "hard-coded" `mode="nearset"` is better.
+Eventually `ConvTranspose2d` would learn to perform better, but initially the
+"hard-coded" `mode="nearset"` is better.
 
-For some tasks, such as image super-resolution, nearest neighbor interpolation can be a more effective method for scaling up an image.
+For some tasks, such as image super-resolution, nearest neighbor interpolation can be a
+more effective method for scaling up an image.
 
-In practice, it is often beneficial to use a combination of different upsampling methods, such as nearest neighbor interpolation, bilinear interpolation, and transposed convolutional layers, in order to achieve the best performance.
+In practice, it is often beneficial to use a combination of different upsampling
+methods, such as nearest neighbor interpolation, bilinear interpolation, and transposed
+convolutional layers, in order to achieve the best performance.
 
 ### 💡Neural networks thoughts
 
 #### AeMonge
 
-> Hey Chat, so Convolutional Neural Networks are great detecting features in images. So if we want to create a network for flower classification, we should use some Convolutional layer, so that it can learn to distinguish features that make any flower a specific kind. But this got me thinking, shouldn't I initially train the network simply to recognize or not ( binary classification ) and one is trained, add convolutional layer to such a network and freezing the initial layer which have already distinguish the features that make a flower.
+> Hey Chat, so Convolutional Neural Networks are great detecting features in images. So
+> if we want to create a network for flower classification, we should use some
+> Convolutional layer, so that it can learn to distinguish features that make any flower
+> a specific kind. But this got me thinking, shouldn't I initially train the network
+> simply to recognize or not ( binary classification ) and one is trained, add
+> convolutional layer to such a network and freezing the initial layer which have
+> already distinguish the features that make a flower.
 
 #### ChatGPT
 
-> The frozen layers act as a feature extractor, and the new layers are trained to learn to classify the flower types based on the extracted features. This approach can help speed up the training process and improve the performance of your network.
+> The frozen layers act as a feature extractor, and the new layers are trained to learn
+> to classify the flower types based on the extracted features. This approach can help
+> speed up the training process and improve the performance of your network.
 
 ```python
 # Freeze the first two convolutional layers
@@ -2363,50 +2419,78 @@ for layer in model[:2]:
 
 #### AeMonge
 
-Aha! That's basically transfer knowledge in a fine tune way. Okey, that start to click with me.
+Aha! That's basically transfer knowledge in a fine tune way. Okey, that start to click
+with me.
 
-But now I'm wondering, can I challenge two different networks against each other. Having a network trained to distinguish between flower types given a colored images and other network trained for the same but with greyscale images. The purpose would be to make them train and validate each other, as the color of a flower won't affect the type of it; they network that has trained with the colored images has to adjust it's weights on the convolutional layer to drop colored features. While the greyscale network will learn to understand depth better, since that better understand with colors, and will also adjust it's features on the convolutional layer.
+But now I'm wondering, can I challenge two different networks against each other. Having
+a network trained to distinguish between flower types given a colored images and other
+network trained for the same but with greyscale images. The purpose would be to make
+them train and validate each other, as the color of a flower won't affect the type of
+it; they network that has trained with the colored images has to adjust it's weights on
+the convolutional layer to drop colored features. While the greyscale network will learn
+to understand depth better, since that better understand with colors, and will also
+adjust it's features on the convolutional layer.
 
-Is this a common practice? If so, how is it called and can you provide a better explanation of such with references?
+Is this a common practice? If so, how is it called and can you provide a better
+explanation of such with references?
 
 #### ChatGPT - Adversarial Training CycleGAN
 
-What you are describing is a form of **adversarial training**, where two neural networks are pitted against each other to improve their performance. In your case, you want to train two networks to classify flower types, one using color images and the other using greyscale images, and force them to learn features that are complementary to each other.
+What you are describing is a form of **adversarial training**, where two neural networks
+are pitted against each other to improve their performance. In your case, you want to
+train two networks to classify flower types, one using color images and the other using
+greyscale images, and force them to learn features that are complementary to each other.
 
-This approach is similar to the concept of domain adaptation, where a model trained on one domain is adapted to perform well on a different but related domain. In your case, the two domains are color images and greyscale images, and you want to train a model that can generalize well across both domains.
+This approach is similar to the concept of domain adaptation, where a model trained on
+one domain is adapted to perform well on a different but related domain. In your case,
+the two domains are color images and greyscale images, and you want to train a model
+that can generalize well across both domains.
 
-One way to achieve this is to use a technique called **CycleGAN**, which is a type of generative adversarial network (`GAN`) that can learn to translate between two different domains without the need for paired training data. In your case, you could use `CycleGAN` to generate greyscale versions of the color images and vice versa, and then use the resulting images to train your two networks.
+One way to achieve this is to use a technique called **CycleGAN**, which is a type of
+generative adversarial network (`GAN`) that can learn to translate between two different
+domains without the need for paired training data. In your case, you could use
+`CycleGAN` to generate greyscale versions of the color images and vice versa, and then
+use the resulting images to train your two networks.
 
-Another approach is to use a technique called domain adversarial training, where a domain classifier is added to the network, and the network is trained to simultaneously minimize the classification loss and maximize the confusion of the domain classifier. In your case, the domain classifier could be trained to distinguish between color and greyscale images, and the two networks could be trained to confuse the domain classifier by producing features that are common across both domains.
+Another approach is to use a technique called domain adversarial training, where a
+domain classifier is added to the network, and the network is trained to simultaneously
+minimize the classification loss and maximize the confusion of the domain classifier. In
+your case, the domain classifier could be trained to distinguish between color and
+greyscale images, and the two networks could be trained to confuse the domain classifier
+by producing features that are common across both domains.
 
-Overall, this approach is not very common, but it has been shown to be effective in certain scenarios. However, it requires careful design and tuning of the networks and training procedures, and it may not always be necessary or beneficial depending on the specific problem and data at hand.
+Overall, this approach is not very common, but it has been shown to be effective in
+certain scenarios. However, it requires careful design and tuning of the networks and
+training procedures, and it may not always be necessary or beneficial depending on the
+specific problem and data at hand.
 
 ## Predictor class wrapper
 
-Designed as a wrapper around a pre-trained neural network model (convolutional neural network)
-for image classification.
+Designed as a wrapper around a pre-trained neural network model (convolutional neural
+network) for image classification.
 
-By encapsulating the pre-trained model and the necessary data preprocessing and post-processing steps
-within the Predictor class, it simplifies the process of using the model for image classification tasks.
+By encapsulating the pre-trained model and the necessary data preprocessing and
+post-processing steps within the Predictor class, it simplifies the process of using the
+model for image classification tasks.
 
-1. Model wrapper: The Predictor class acts as a wrapper around the pre-trained neural network model,
-    making it more convenient to use.
+1. Model wrapper: The Predictor class acts as a wrapper around the pre-trained neural
+   network model, making it more convenient to use.
 
 2. Preprocessing pipeline: The class contains a sequence of data preprocessing steps,
-    such as resizing, center cropping, and normalization, which are applied to input images before
-    they are fed to the model.
+   such as resizing, center cropping, and normalization, which are applied to input
+   images before they are fed to the model.
 
-3. Forward method: The main functionality of the Predictor class is implemented in its forward method,
-    which processes the input image through the preprocessing pipeline, the pre-trained model,
-    and the softmax function to obtain class probabilities.
+3. Forward method: The main functionality of the Predictor class is implemented in its
+   forward method, which processes the input image through the preprocessing pipeline,
+   the pre-trained model, and the softmax function to obtain class probabilities.
 
-4. Simplifying image classification: By encapsulating the pre-trained model and data processing steps,
-    the Predictor class makes it easy for users to perform image classification tasks with minimal
-    additional code.
+4. Simplifying image classification: By encapsulating the pre-trained model and data
+   processing steps, the Predictor class makes it easy for users to perform image
+   classification tasks with minimal additional code.
 
-5. User-friendly interface: The class provides a user-friendly interface for working with a
-    pre-trained model, requiring only the model, class names, and normalization parameters
-    during initialization.
+5. User-friendly interface: The class provides a user-friendly interface for working
+   with a pre-trained model, requiring only the model, class names, and normalization
+   parameters during initialization.
 
 # 📄 PDF `gs` ghost script
 
@@ -2429,6 +2513,7 @@ sudo killall coreaudiod`
 ```
 
 #  Bash Command line tooling
+
 ## Boxes
 
 To draw nice boxes around an input:
@@ -2488,6 +2573,7 @@ sudo du -hs /{var,etc}/* | sort -h
 pacman -Sc
 pacman -Scc
 ```
+
 ## Webcam
 
 ### Fix the webcam
@@ -2495,8 +2581,9 @@ pacman -Scc
 If the webcam is not loading, you should execute the following command:
 
 1. **Restart webcam driver:**
-   - `sudo modprobe -r uvcvideo`.
-   - Reload the kernel module: `sudo modprobe uvcvideo`.
+
+    - `sudo modprobe -r uvcvideo`.
+    - Reload the kernel module: `sudo modprobe uvcvideo`.
 
 2. **Test with different applications and device paths:**
-   - `cheese -d /dev/video0` or `cheese -d /dev/video1`.
+    - `cheese -d /dev/video0` or `cheese -d /dev/video1`.
