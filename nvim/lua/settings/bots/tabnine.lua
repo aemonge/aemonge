@@ -1,27 +1,4 @@
 local M = {}
-local D = {}
-
--- table.insert(M, {
---     "tzachar/cmp-tabnine",
---     build = "./install.sh",
---     dependencies = "hrsh7th/nvim-cmp",
---     event = "InsertEnter",
---     ft = require("file-types")({
---         "languages",
---         "frameworks",
---         "markup"
---     }),
---     config = function()
---         require("cmp_tabnine.config"):setup({
---             max_lines = 1000,
---             max_num_results = 20,
---             sort = true,
---             run_on_every_keystroke = true,
---             snippet_placeholder = "...",
---             show_prediction_strength = true,
---         })
---     end,
--- })
 
 table.insert(M, {
     'codota/tabnine-nvim',
@@ -42,10 +19,11 @@ table.insert(M, {
         })
 
         require("which-key").register({
-            c = { require("tabnine.chat").open, "Chat with tabnine"}
+            name = "Chat with ...",
+            c = { require("tabnine.chat").open, "tabnine"}
         }, {
           mode = {"n"},
-          prefix = "<leader>",
+          prefix = "<leader>c",
           buffer = nil,
           silent = true,
           noremap = true,

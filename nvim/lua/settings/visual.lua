@@ -15,13 +15,7 @@ table.insert(M, bufferline)
 local tint = require "settings.visual.tint"
 table.insert(M, tint)
 
--- local limelight = require "settings.visual.limelight"
--- table.insert(M, limelight)
-
 local lualine = require "settings.visual.lualine"
 table.insert(M, lualine)
-
--- local overlength = require "settings.visual.overlength"
--- table.insert(M, overlength)
 
 return M

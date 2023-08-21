@@ -3,6 +3,7 @@ local M = {}
 table.insert(M, {
     "williamboman/mason.nvim",
     dependencies = { "RubixDev/mason-update-all" },
+    priority = 100 - 2,
     ft = require("file-types")({
         "text",
         "markup",

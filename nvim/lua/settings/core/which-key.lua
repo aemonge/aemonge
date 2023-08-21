@@ -2,7 +2,7 @@ local M = {}
 
 table.insert(M, {
     "folke/which-key.nvim",
-    priority = 1,
+    priority = 100,
     config = function()
         vim.o.timeout = true
         vim.o.timeoutlen = 180

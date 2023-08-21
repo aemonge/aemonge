@@ -47,6 +47,7 @@ M.list = {
         "coc-tabnine",
         "coc-pairs",
         "coc-spell-checker",
+        "coc-cspell-dicts",
         "coc-diagnostic",
         "coc-vimlsp",
     },

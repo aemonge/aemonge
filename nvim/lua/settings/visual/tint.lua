@@ -1,42 +1,27 @@
 local M = {
-  "levouh/tint.nvim",
-  config = function()
-    require("tint").setup({
-      -- tint = 0,                                              -- Darken colors, use a positive value to brighten
-      saturation = 0.9,       -- Saturation to preserve
-      focus = {
-        "WinEnter", "BufEnter", "BufRead", "BufWrite",
-        "InsertLeave", "CmdwinEnter", "CmdwinLeave", "VimResized"
-      },
-      -- transforms = require("tint").transforms.SATURATE_TINT, -- Showing default behavior, but value here can be predefined set of transforms
-      tint_background_colors = false,       -- Tint background portions of highlight groups
-      highlight_ignore_patterns = {         -- Highlight group patterns to ignore, see `string.find`
-        "WinSeparator", "Status.*"
-      },
-      window_ignore_function = function(winid)
-        local bufid = vim.api.nvim_win_get_buf(winid)
-        local buftype = vim.api.nvim_buf_get_option(bufid, "buftype")
-        local floating = vim.api.nvim_win_get_config(winid).relative ~= ""
+    "levouh/tint.nvim",
+    config = function()
+        require("tint").setup({
+            -- tint = 0,                                              -- Darken colors, use a positive value to brighten
+            saturation = 0.9, -- Saturation to preserve
+            focus = {
+                "WinEnter", "BufEnter", "TermLeave", "CmdwinLeave"
+            },
+            -- transforms = require("tint").transforms.SATURATE_TINT, -- Showing default behavior, but value here can be predefined set of transforms
+            tint_background_colors = false, -- Tint background portions of highlight groups
+            highlight_ignore_patterns = { -- Highlight group patterns to ignore, see `string.find`
+                "WinSeparator", "Status.*"
+            },
+            window_ignore_function = function(winid)
+                local bufid = vim.api.nvim_win_get_buf(winid)
+                local buftype = vim.api.nvim_buf_get_option(bufid, "buftype")
+                local floating = vim.api.nvim_win_get_config(winid).relative ~= ""
 
-        -- Do not tint `terminal` or floating windows, tint everything else
-        return buftype == "terminal" or floating
-      end
-    })
-
-    require("which-key").register({
-      r = {
-        function() require("tint").untint(vim.api.nvim_get_current_win()) end,
-        "Untint current_win"
-      }
-    }, {
-      mode = "n",
-      prefix = "<leader>t",
-      buffer = nil,
-      silent = true,
-      noremap = true,
-      nowait = true,
-    })
-  end,
+                -- Do not tint `terminal` or floating windows, tint everything else
+                return buftype == "terminal" or floating
+            end
+        })
+    end,
 }
 
 return M

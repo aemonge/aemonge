@@ -2,6 +2,7 @@ local M = {}
 
 table.insert(M, {
     "ahmedkhalf/project.nvim",
+    priority = 100 - 1,
     config = function()
         require("project_nvim").setup({
             patterns = {

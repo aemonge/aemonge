@@ -41,14 +41,8 @@ table.insert(plugins, format)
 local bots = require "settings.bots"
 table.insert(plugins, bots)
 
-local lsp = require "settings.lsp"
-table.insert(plugins, lsp)
-
 local coc = require "settings.coc"
 table.insert(plugins, coc)
-
-local debbug = require "settings.debug"
-table.insert(plugins, debbug)
 
 local navigation = require "settings.navigation"
 table.insert(plugins, navigation)

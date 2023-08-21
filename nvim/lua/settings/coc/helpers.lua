@@ -15,19 +15,6 @@ function _G.goto_priority()
     end
 end
 
-function _G.goto_file()
-    if vim.fn.CocHasProvider('definition') then
-        vim .api.nvim_command([[
-          try
-            silent! call vim.fn.CocAction('jumpDefinition')
-          catch
-            execute "normal! gf"
-        ]])
-    else
-        vim.cmd("normal! gf")
-    end
-end
-
 function _G.code_action_priority()
     if vim.fn.CocHasProvider('codeAction') then
         vim.fn.CocAction('codeAction')

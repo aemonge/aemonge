@@ -51,9 +51,30 @@ table.insert(M, {
             { "npm",  "yarn" }, { "webpack", "rollup", "parcel" }
         }
 
+
+        -- Utility function to capitalize a string: true/false True/False TRUE/FALSE
+        local function capitalize(s)
+            return s:sub(1,1):upper() .. s:sub(2):lower()
+        end
+
+        local expanded_custom_augends = {}
+
+        for _, set in ipairs(custom_augends) do
+            local lowercase_set, uppercase_set, capitalized_set = {}, {}, {}
+            for _, word in ipairs(set) do
+                table.insert(lowercase_set, word:lower())
+                table.insert(uppercase_set, word:upper())
+                table.insert(capitalized_set, capitalize(word))
+            end
+            table.insert(expanded_custom_augends, lowercase_set)
+            table.insert(expanded_custom_augends, uppercase_set)
+            table.insert(expanded_custom_augends, capitalized_set)
+        end
+
         local augend = require("dial.augend")
         local custom_dial_augends = {}
-        for _, elements in ipairs(custom_augends) do
+
+        for _, elements in ipairs(expanded_custom_augends) do
             table.insert(custom_dial_augends, augend.constant.new { elements = elements })
         end
 

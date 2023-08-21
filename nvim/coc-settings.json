@@ -1,4 +1,7 @@
 {
+    // Bash
+    "sh.enable": true,
+    // Markdown
     "markdownlint.config": {
         "MD013": {
             "line_length": 88
@@ -6,9 +9,6 @@
         "MD030": false
     },
     // PYTHON SETTINGS AND EXTENSIONS
-    // Python formatting: black
-    "python.formatting.provider": "black",
-    "python.sortImports.path": "isort",
 
     // Python linting: flake8:
     //    flake8-quotes, pep8-naming, flake8-picky-parentheses, flake8-docstrings
@@ -63,7 +63,20 @@
         "border": true,
         "rounded": true
     },
+    "coc.preferences.formatOnSave": true,
     "diagnostic.format": "(%source:%code) %message.",
+    "diagnostic-languageserver.mergeConfig": true,
+    "diagnostic-languageserver.linters": {
+        "vim": "vint",
+        "email": "languagetool",
+        "sh": ["shellcheck", "shellharden"],
+        "lua": ["selene"]
+    },
+    "diagnostic-languageserver.formatFiletypes": {
+        "python": ["black", "isort"],
+        "lua": "stylua",
+        "sh": ["shfmt", "beautysh", "shellharden"]
+    },
 
     // NAVIGATION & UI (Suggestions)
     "suggest.virtualText": true,
@@ -99,6 +112,7 @@
         "node",
         "filetypes"
     ],
+    "cSpell.language": "en,es",
     "cSpell.enabledLanguageIds": [
         "es_es",
         "asciidoc",
@@ -146,7 +160,7 @@
         "sourcery": {
             "command": "sourcery",
             "args": ["lsp"],
-            "filetypes": ["python"],
+            "filetypes": ["python", "javascript", "typescript"],
             "initializationOptions": {
                 "extension_version": "coc.nvim",
                 "editor_version": "neovim"

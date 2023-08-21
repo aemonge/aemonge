@@ -2,6 +2,7 @@ local M = {}
 
 table.insert(M, {
     "jackMort/ChatGPT.nvim",
+    event = "VeryLazy",
     ft = require("file-types")({
         "markup",
         "languages",
@@ -82,19 +83,16 @@ table.insert(M, {
                 cycle_windows = "<Tab>",
             },
         })
+
         require("which-key").register({
-            c = {
-                name = "ChatGPT",
-                c = { [[:ChatGPT<cr>]], "Simple" },
-                a = { [[:ChatGPTActAs<cr>]], "Act as .." },
-            },
+            g = { [[:ChatGPT<cr>]], "GTP"}
         }, {
-            mode = "n",
-            prefix = "<leader>",
-            buffer = nil,
-            silent = true,
-            noremap = true,
-            nowait = true,
+          mode = {"n"},
+          prefix = "<leader>c",
+          buffer = nil,
+          silent = true,
+          noremap = true,
+          nowait = true,
         })
     end,
 })
