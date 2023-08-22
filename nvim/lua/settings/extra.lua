@@ -12,6 +12,9 @@ table.insert(M, ghost)
 local notify = require("settings.extra.notify")
 table.insert(M, notify)
 
+local dap = require("settings.extra.nvim-dap-ui")
+table.insert(M, dap)
+
 table.insert(M, { "lewis6991/impatient.nvim" })
 
 table.insert(M, {

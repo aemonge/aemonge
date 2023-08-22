@@ -23,6 +23,17 @@ table.insert(M, {
                 "tox.ini",
             },
         })
+        require('telescope').load_extension('projects')
+        require("which-key").register({
+            p = { [[:Telescope projects<CR>]], "Projects" }
+        }, {
+            mode = { "n" },
+            prefix = "<leader>t",
+            buffer = nil,
+            silent = true,
+            noremap = true,
+            nowait = true,
+        })
     end,
 })
 

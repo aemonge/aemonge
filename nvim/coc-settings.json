@@ -67,13 +67,14 @@
     "diagnostic.format": "(%source:%code) %message.",
     "diagnostic-languageserver.mergeConfig": true,
     "diagnostic-languageserver.linters": {
+        "python": ["flake8", "pyright", "bandit"],
         "vim": "vint",
         "email": "languagetool",
         "sh": ["shellcheck", "shellharden"],
         "lua": ["selene"]
     },
     "diagnostic-languageserver.formatFiletypes": {
-        "python": ["black", "isort"],
+        "python": ["autoflake", "black", "isort"],
         "lua": "stylua",
         "sh": ["shfmt", "beautysh", "shellharden"]
     },
