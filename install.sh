@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 system() {
   rm -rf /etc/sddm.conf.d/zz-steamos-autologin.conf
   ln -s ~/usr/env-configs/zz-steamos-autologin.conf /etc/sddm.conf.d/zz-steamos-autologin.conf
@@ -46,7 +48,7 @@ firefox() {
 }
 
 nvim() {
-  pip install neovim-remote
+  # pip install neovim-remote
   mkdir -p ~/.config/nvim/spell
 
   rm -rf ~/.config/nvim 2> /dev/null
@@ -63,4 +65,4 @@ devConfig
 envConfig
 nvim
 kde
-firefox
+# firefox

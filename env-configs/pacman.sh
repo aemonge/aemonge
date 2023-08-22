@@ -7,35 +7,54 @@ _rwfux() {
   ./rwfus -e
 }
 
-_pacman() {
-  sudo pacman-key --init
-  sudo pacman-key --populate
-  sudo pacman -S --needed base-devel git
-  sudo pacman -S linux-neptune-headers
-  sudo pacman -S base-devel linux-headers gcc glibc gcc-libs \
-    linux-api-headers
-  sudo pacman -S python-pip zsh git tig \
-   flameshot glow xclip onboard \
-   nodejs npm the_silver_searcher neovim \
-   entr clamav
-  # Super extra but useful
-  sudo pacman -S libunistring pcre2
+_pikaur() {
+  git clone https://aur.archlinux.org/pikaur.git /tmp/pikaur
+
+  cd /tmp/pikaur
+  makepkg -fsri
 }
 
-_pikaur() {
-   git clone https://aur.archlinux.org/pikaur.git /tmp/pikaur
+_system() {
+  sudo pacman-key --init
+  sudo pacman-key --populate
 
-   cd /tmp/pikaur
-   makepkg -fsri
+  # Headers to build software
+  sudo pacman -S --needed --noconfirm base-devel git gcc glibc gcc-libs
+  sudo pacman -S --needed --noconfirm linux-neptune-headers linux-headers linux-api-headers
 
-   pikaur -S --noconfirm linux-steamos libxcrypt-compat
-   pikaur -S --noconfirm fzf firefox-pwa-bin konsave firefox-developer-edition \
-     telegram-desktop
-   pikaur -S --noconfirm spotify grip boxes marktext-bin
+  # Super extra but useful
+  sudo pacman -S --noconfirm  libunistring pcre2 discover packagekit-qt5
+
+  # Steam-OS oriented
+  sudo pacman -S --needed --noconfirm linux-steamos libxcrypt-compat
+  # pikaur -S --noconfirm linux-steamos libxcrypt-compat
+}
+
+_dev_extra() {
+
+  # System though pikaur
+  pikaur -S --noconfirm fzf firefox-pwa-bin konsave firefox-developer-edition boxes marktext-bin
+
+  # Developer focused
+  sudo pacman -S --noconfirm python-pip tig flameshot glow onboard nodejs npm docker
+
+  # Main bash system-wide packages
+  sudo pacman -S --needed --noconfirm zsh xclip the_silver_searcher entr neovim
+  pip install neovim-remote
+}
+
+_user_extra() {
+  # User focused
+  pkcon --noninteractive install clamtk telegram-desktop spotify grip box
+
+  # Work focused
+  pkcon --noninteractive install slack
 }
 
 # steamos-readonly disable
 _rwfux
-_pacman
 _pikaur
+_system
+_dev_extra
+_user_extra
 # steamos-readonly enable
