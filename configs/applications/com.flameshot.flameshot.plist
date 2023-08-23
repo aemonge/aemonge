@@ -1,0 +1,21 @@
+[General]
+buttons=@Variant(\0\0\0\x7f\0\0\0\vQList<int>\0\0\0\0\v\0\0\0\0\0\0\0\x1\0\0\0\x2\0\0\0\x3\0\0\0\x4\0\0\0\x12\0\0\0\xf\0\0\0\b\0\0\0\n\0\0\0\v\0\0\0\x11)
+contrastOpacity=188
+copyPathAfterSave=true
+disabledTrayIcon=false
+drawColor=#e66861
+drawFontSize=16
+drawThickness=3
+historyConfirmationToDelete=false
+predefinedColorPaletteLarge=true
+saveAfterCopy=false
+saveAsFileExtension=png
+savePath=/home/deck/desktop
+showDesktopNotification=true
+showHelp=false
+showMagnifier=true
+showStartupLaunchMessage=false
+squareMagnifier=false
+startupLaunch=true
+undoLimit=90
+userColors=picker, #ffd7af, #ff5f00, #ea6962, #ffd700, #affa00, #87fa00, #60f900, #04fa5f, #04fa87, #5ffbaf, #5ffcd7, #03fcd7, #00afff, #5fafff, #0087ff, #005fff

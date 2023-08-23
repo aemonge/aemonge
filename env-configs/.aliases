@@ -1,7 +1,0 @@
-# alias docker-clean="docker kill $(docker ps -q | xargs); docker volume rm $(docker volume ls -q | xargs);  docker image rm -f $(docker image ls -q | xargs)"
-alias vcd=~/usr/bin/vcd
-alias open=xdg-open
-alias ll='tree -Chl -L 3 --dirsfirst'
-alias f='vim $(fzf)'
-alias copy='xclip -sel clip'
-# alias copy=pbcopy

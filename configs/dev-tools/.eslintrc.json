@@ -1,0 +1,37 @@
+{
+    "env": {
+        "browser": true,
+        "es6": true,
+        "jest": true
+    },
+    "globals": {
+        "require": true,
+        "module": true
+    },
+    "extends": "eslint:recommended",
+    "parserOptions": {
+        "ecmaFeatures": {
+            "jsx": true
+        },
+        "ecmaVersion": 2018,
+        "sourceType": "module",
+        "noUnusedLocals": true,
+        "noUnusedParameters": true
+    },
+    "rules": {
+        "indent": [2, 2, { "SwitchCase": 1 }],
+        "max-len": ["error", { "code": 88, "tabWidth": 4, "ignoreUrls": true }],
+        "linebreak-style": [0],
+        "quotes": ["error", "double"],
+        "semi": ["error", "always"],
+        "no-console": ["warn"]
+    },
+    "overrides": [
+        {
+            "files": ["*.ts", "*.tsx"],
+            "rules": {
+                "no-unused-vars": "off"
+            }
+        }
+    ]
+}

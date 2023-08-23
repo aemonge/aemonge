@@ -1,0 +1,139 @@
+[tool.poetry]
+name = ""
+version = "0.0.1"
+description = ""
+authors = ["aemonge <andres@aemonge.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{include = "<package>"}]
+
+
+[tool.poetry.group.dev.dependencies]
+# poetry add -G dev ipdb, flake8, isort, black, flake8-quotes, pep8-naming,
+# poetry add -G dev flake8-docstrings, toml, python-githooks, types-toml, pyright,
+# poetry add -G dev darglint, pylsp-rope, flake8-print, flake8-bandit,
+# poetry add -G dev flake8-comprehensions, flake8-bugbear, flake8-annotations,
+# poetry add -G dev bandit, hooks4git flake8-black flake8-string-format
+# poetry add -G dev flake8-unused-arguments flake8-picky-parentheses
+# poetry add -G dev flake8-docstring-checker, flake8-eradicate, flake8-builtins,
+# poetry add -G dev flake8-blind-except, flake8-isort, autoflake8
+
+[tool.poetry.group.test.dependencies]
+# poetry add -G test pytest, pynguin, pytest-cov, pytest-lineno, pytest-describe, vcrpy,
+# poetry add -G test pytest-vcr, botocore, pytest-order, pytest-mock,
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+# ################################################################################### #
+# ## Linting and Code Standards
+# ################################################################################### #
+
+# [tool.flake8] @SEE: ./.flake8
+# [flake8]
+# docstring_style= numpy
+# inline-quotes = double
+# docstring-convention = numpy
+# exclude = .git, __pycache__, docs, venv, *.egg, build, *__init__.py, dockerfiles, */tests/*, *spec.py
+# max-line-length = 88
+# extend-ignore = E203, W503, D107, E251, ANN101, ANN102, B008
+# max-module-lines = 1
+# no-spaces-allowed = true
+# naming-convention = snake_case
+# ignore=D101, D102
+# require-code = true
+#
+# per-file-ignores =
+#     **/*_test.py: D103, D100, D101, D102, N806
+#     **/*_fixtures.py: D103, D100, D101, D102, N806
+#     **/fixtures.py: D103, D100, D101, D102, N806
+
+[tool.bandit]
+exclude = "*_test.py"
+tests = ["B201", "B301"]
+skips = ["B101", "B601"]
+
+[tool.darglint]
+docstring_style = "numpy"
+
+[tool.isort]
+known_third_party = ["fastapi"]
+profile = "black"
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+combine_as_imports = true
+ensure_newline_before_comments = true
+line_length = 88
+
+[tool.black]
+line-length = 88
+target-version = ['py36', 'py37', 'py38']
+include = '\.pyi?$'
+exclude = '''
+(
+/(
+    \.eggs         # exclude a few common directories in the
+  | \.git          # root of the project
+  | \.hg
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+| foo.py           # also separately exclude a file named foo.py in
+                   # the root of the project
+)
+'''
+string-normalization = false
+
+[tool.autoflake]
+check = true
+exclude = "*test.py"
+ignore_init_module_imports = true
+imports = ["fastapi", "httpx", "pymongo"]
+in_place = true
+recursive = true
+remove_all_duplicates = true
+remove_all_unused_imports = true
+remove_all_unused_variables = true
+remove_duplicate_keys = true
+remove_unused_variables = true
+
+# ################################################################################### #
+# ## Testing and Coverage
+# ################################################################################### #
+
+[tool.pytest.ini_options]
+console_output_style = "progress"
+python_files = ['**/*.py']
+python_functions = ['*_test', 'should_*', 'test_*']
+testpaths = ["**/*_test.py"]
+addopts = "-x --show-lineno"
+
+[tool.coverage.run]
+branch = true
+source = ["app"]
+omit = [
+  "**/__init__.py", "**/*_test.py", "**/*_fixtures.py", "app/shared/db/*",
+  "app/assumptions/api.py"
+]
+
+[tool.coverage.report]
+fail_under = 98
+exclude_lines = [
+  # Have to re-enable the standard pragma
+  "pragma: no cover",
+
+  # Don't complain about missing debug-only code:
+  "def __repr__",
+  "if self\\.debug",
+
+  # Don't complain if non-runnable code isn't run:
+  "if 0:",
+  "if __name__ == .__main__.:",
+]
