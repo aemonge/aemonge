@@ -1,2 +1,3 @@
 ../env-configs/.profile.before-nvim
 env-configs/.profile.before-nvim
+nvim/lazy-lock.json
