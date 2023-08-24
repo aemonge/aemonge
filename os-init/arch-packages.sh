@@ -12,7 +12,7 @@ _aura() {
     git clone https://aur.archlinux.org/aura-bin.git /tmp/aura-bin
     cd /tmp/aura-bin
     makepkg
-    sudo pacman -U *pkg.tar.zst
+    sudo pacman -U "*pkg.tar.zst"
 }
 
 _system() {
@@ -24,8 +24,8 @@ _dev_extra() {
     sudo pacman -S --needed --noconfirm firefox-developer-edition python-pip zsh xclip
     sudo pacman -S --needed --noconfirm the_silver_searcher entr neovim tig flameshot
     sudo pacman -S --needed --noconfirm glow onboard nodejs npm docker fzf rustup
-    sudo npm i -g npm yarn
 
+    sudo npm i -g npm yarn
     sudo aura -A --noconfirm --needed firefox-pwa konsave neovim-remote
 }
 
