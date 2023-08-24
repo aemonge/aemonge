@@ -1,121 +1,109 @@
 #!/bin/bash
 
-set -e
+log_error() {
+    echo "[ERROR] $1" 1>&2
+}
 
 arch_packages() {
-  ./arch-packages.sh
+    echo "Installing Arch packages..."
+    ./arch-packages.sh || log_error "Failed to install Arch packages"
 }
 
 font() {
-  ./fonts.sh
+    echo "Setting up fonts..."
+    ./fonts.sh || log_error "Failed to setup fonts"
 }
 
 pcloud() {
-  ./pcloud.sh
+    echo "Setting up pCloud..."
+    ./pcloud.sh || log_error "Failed to setup pCloud"
 }
 
 mkdirs() {
-  # Base directory containing the .directory files
-  dir_settings="$HOME/usr/configs/directories"
+    echo "Setting up directories..."
+    local dir_settings="$HOME/usr/configs/directories"
 
-  # Create directories and symlink their .directory settings
-  for dir_file in "$dir_settings"/*.directory; do
-    # Extract directory name from the .directory filename
-    dir_name=$(basename "$dir_file" .directory)
+    # Create directories and symlink their .directory settings
+    for dir_file in "$dir_settings"/*.directory; do
+        local dir_name=$(basename "$dir_file" .directory)
 
-    mkdir -p "$HOME/$dir_name"
+        mkdir -p "$HOME/$dir_name" || log_error "Failed to create directory $HOME/$dir_name"
 
-    # Create a symlink for the .directory file
-    ln -sf "$dir_settings/$dir_name.directory" "$HOME/$dir_name/.directory"
-  done
+        ln -sf "$dir_settings/$dir_name.directory" "$HOME/$dir_name/.directory" || log_error "Failed to symlink $dir_name.directory"
+    done
 }
 
 dot-files() {
+    echo "Setting up dot-files..."
     local base_path="$HOME/usr/configs/dot-files"
     local dirs
 
-    # Populate dirs array using mapfile
     mapfile -t dirs < <(find "$base_path" -maxdepth 1 -mindepth 1 -type d -exec basename {} \;)
 
     for dir in "${dirs[@]}"; do
         local file
         local dotfile_name
 
-        # Loop through the hidden files (dot-files) in the current directory
         for file in "$base_path/$dir"/.*; do
-            # Extract the basename to get the dotfile name (e.g., .zshrc)
             dotfile_name=$(basename "$file")
 
-            # Ensure it's a regular file and not '.' or '..'
             if [[ -f "$file" && "$dotfile_name" != "." && "$dotfile_name" != ".." ]]; then
-                # Remove any existing dotfile in the home directory, ignoring errors
-                rm "$HOME/$dotfile_name" 2>/dev/null
+                rm "$HOME/$dotfile_name" 2>/dev/null || log_error "Failed to remove $HOME/$dotfile_name"
 
-                # Create a symbolic link to the new dotfile
-                ln -s "$file" "$HOME/$dotfile_name"
+                ln -s "$file" "$HOME/$dotfile_name" || log_error "Failed to symlink $dotfile_name"
             fi
         done
     done
 }
 
 local-configs() {
+    echo "Setting up local configurations..."
     local base_path="$HOME/usr/configs/local-configs"
     local target_path="$HOME/.config"
     local dirs
 
-    # Populate dirs array using mapfile
     mapfile -t dirs < <(find "$base_path" -maxdepth 1 -mindepth 1 -type d -exec basename {} \;)
 
     for dir in "${dirs[@]}"; do
-        # If the target directory exists, remove it
         if [[ -d "${target_path:?}/$dir" || -L "${target_path:?}/$dir" || -f "${target_path:?}/$dir" ]]; then
-            echo rm -rf "${target_path:?}/$dir"
+            rm -rf "${target_path:?}/$dir" || log_error "Failed to remove ${target_path:?}/$dir"
 
-            # Clear cache, share, and state directories for the config
-            echo rm -rf "${HOME:?}/.cache/$dir" 2>/dev/null
-            echo rm -rf "${HOME:?}/.local/share/$dir" 2>/dev/null
-            echo rm -rf "${HOME:?}/.local/state/$dir" 2>/dev/null
+            rm -rf "${HOME:?}/.cache/$dir" 2>/dev/null
+            rm -rf "${HOME:?}/.local/share/$dir" 2>/dev/null
+            rm -rf "${HOME:?}/.local/state/$dir" 2>/dev/null
         fi
 
-        # Create a symbolic link for the directory
-        echo ln -s "${base_path:?}/$dir" "${target_path:?}/"
+        ln -s "${base_path:?}/$dir" "${target_path:?}/" || log_error "Failed to symlink ${base_path:?}/$dir"
     done
 }
 
 bins() {
-  # Ensure ~/.local/bin exists
-  mkdir -p ~/.local/bin
+    echo "Setting up binaries..."
+    mkdir -p ~/.local/bin || log_error "Failed to create ~/.local/bin directory"
 
-  # Link binaries
-  for bin in ~/usr/bin/*; do
-      ln -sf "$bin" ~/.local/bin/
-  done
+    for bin in ~/usr/bin/*; do
+        ln -sf "$bin" ~/.local/bin/ || log_error "Failed to symlink binary from ~/usr/bin"
+    done
 }
 
 kde() {
-  if command -v konsave &>/dev/null && [[ -f "${HOME:?}/media/deck.knsv" ]]; then
-    konsave -i "${HOME:?}/media/deck.knsv"
-    konsave -a deck
-  fi
+    echo "Setting up KDE configurations..."
+    if command -v konsave &>/dev/null && [[ -f "${HOME:?}/media/deck.knsv" ]]; then
+        konsave -i "${HOME:?}/media/deck.knsv" || log_error "Failed to import KDE configuration"
+        konsave -a deck || log_error "Failed to apply KDE theme"
+    fi
 }
 
-firefox(){
-  firefox_profile_dir="$HOME/.mozilla/firefox"
-  chrome_file_path="$HOME/usr/configs/firefox/chrome/userChrome.css"
+firefox() {
+    echo "Setting up Firefox configurations..."
+    local firefox_profile_dir="$HOME/.mozilla/firefox"
+    local chrome_file_path="$HOME/usr/configs/firefox/chrome/userChrome.css"
 
-  # Search for .default or .dev-edition-default directories
-  for profile in "$firefox_profile_dir"/*.default*; do
-      # Check if the chrome directory exists in the profile and create it if not
-      if [ ! -d "$profile/chrome" ]; then
-          mkdir "$profile/chrome"
-      fi
+    for profile in "$firefox_profile_dir"/*.default*; do
+        [ ! -d "$profile/chrome" ] && mkdir "$profile/chrome" || log_error "Failed to create Firefox chrome directory"
 
-      # Link the userChrome.css file
-      ln -sf "$chrome_file_path" "$profile/chrome/userChrome.css"
-
-      # Exiting after linking the first found profile; remove this break if you want to apply to all profiles
-      # break
-  done
+        ln -sf "$chrome_file_path" "$profile/chrome/userChrome.css" || log_error "Failed to symlink Firefox userChrome.css"
+    done
 }
 
 # Parse arguments and call functions accordingly
@@ -141,7 +129,7 @@ case "$1" in
     kde) kde ;;
     firefox) firefox ;;
     *)
-        echo "Usage: $0 {arch-packages|font|mkdirs|dot-files|local-configs|pcloud|kde|firefox|--all}"
+        echo "Usage: $0 {arch-packages|font|mkdirs|dot-files|local-configs|bins|pcloud|kde|firefox|--all}"
         exit 1
         ;;
 esac
