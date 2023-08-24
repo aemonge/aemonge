@@ -99,10 +99,15 @@ firefox() {
     local firefox_profile_dir="$HOME/.mozilla/firefox"
     local chrome_file_path="$HOME/usr/configs/firefox/chrome/userChrome.css"
 
-    for profile in "$firefox_profile_dir"/*.default*; do
-        [ ! -d "$profile/chrome" ] && mkdir "$profile/chrome" || log_error "Failed to create Firefox chrome directory"
+    # Create an array of profiles
+    local profiles=( "$firefox_profile_dir"/*.default* )
+    for profile in "${profiles[@]}"; do
+        # Make sure the current item is a directory before proceeding
+        if [ -d "$profile" ]; then
+            [ ! -d "$profile/chrome" ] && mkdir "$profile/chrome" || log_error "Failed to create Firefox chrome directory"
 
-        ln -sf "$chrome_file_path" "$profile/chrome/userChrome.css" || log_error "Failed to symlink Firefox userChrome.css"
+            ln -sf "$chrome_file_path" "$profile/chrome/userChrome.css" || log_error "Failed to symlink Firefox userChrome.css"
+        fi
     done
 }
 
