@@ -97,18 +97,20 @@ kde() {
 firefox() {
     echo "Setting up Firefox configurations..."
     local firefox_profile_dir="$HOME/.mozilla/firefox"
-    local chrome_file_path="$HOME/usr/configs/firefox/chrome/userChrome.css"
+    local chrome_dir_path="$HOME/usr/configs/saved-configs/firefox/chrome"
 
-    # Create an array of profiles
-    local profiles=( "$firefox_profile_dir"/*.default* )
-    for profile in "${profiles[@]}"; do
-        # Make sure the current item is a directory before proceeding
-        if [ -d "$profile" ]; then
-            [ ! -d "$profile/chrome" ] && mkdir "$profile/chrome" || log_error "Failed to create Firefox chrome directory"
+    # Use find to get the directories
+    while IFS= read -r profile; do
+        echo "Processing: $profile"
 
-            ln -sf "$chrome_file_path" "$profile/chrome/userChrome.css" || log_error "Failed to symlink Firefox userChrome.css"
+        # Check and remove existing chrome directory or symlink
+        if [ -d "$profile/chrome" ] || [ -L "$profile/chrome" ]; then
+            rm -rf "$profile/chrome"
         fi
-    done
+
+        # Create symlink for the entire chrome directory
+        ln -sfv "$chrome_dir_path" "$profile/"
+    done < <(find "$firefox_profile_dir" -maxdepth 1 -type d -name "*default")
 }
 
 # Parse arguments and call functions accordingly
