@@ -18,16 +18,20 @@ table.insert(M, {
             exclude_filetypes = { "TelescopePrompt" }
         })
 
+        local chat_ui = require("settings.bots.chatgpt-miu")
+
         require("which-key").register({
             name = "Chat with ...",
-            c = { require("tabnine.chat").open, "tabnine"}
+            c = { require("tabnine.chat").open, "tabnine" },
+            g = { function() chat_ui(0) end, "ChatGPT" },
+            G = { function() chat_ui(1) end, "ChatGPT" }
         }, {
-          mode = {"n"},
-          prefix = "<leader>c",
-          buffer = nil,
-          silent = true,
-          noremap = true,
-          nowait = true,
+            mode = { "n" },
+            prefix = "<leader>c",
+            buffer = nil,
+            silent = true,
+            noremap = true,
+            nowait = true,
         })
     end
 })

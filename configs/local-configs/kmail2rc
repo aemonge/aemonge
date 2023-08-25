@@ -16,19 +16,20 @@ SendOnCheck=SendOnManualChecks
 [CollectionFolderView]
 Current=c72
 Expansion=c71,c11
-HeaderState=\x00\x00\x00\xff\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x04\x0e\x00\x00\x00\x03\x00\x00\x00\x01\x00\x00\x00d\x00\x00\x00\x03\x00\x00\x00d\x00\x00\x00\x02\x00\x00\x00d\x00\x00\x00\xdc\x00\x00\x00\x04\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00d\xff\xff\xff\xff\x00\x00\x00\x81\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\xdc\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x03\xe8\x00\x00\x00\x00d
+HeaderState=\x00\x00\x00\xff\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x04\x0e\x00\x00\x00\x03\x00\x00\x00\x01\x00\x00\x00d\x00\x00\x00\x02\x00\x00\x00d\x00\x00\x00\x03\x00\x00\x00d\x00\x00\x00\xdc\x00\x00\x00\x04\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00d\xff\xff\xff\xff\x00\x00\x00\x81\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\xdc\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x03\xe8\x00\x00\x00\x00d
 HorizontalScroll=0
 VerticalScroll=0
 
 [CollectionTreeOrder]
 18=c64,c63,c20,c29,c19,c48,c50,c47,c49,c22,c21,c27
+71=c77,c73,c72,c79,c82,c76,c80,c78,c74,c81,c75,c83
 
 [Composer]
 DisplayPort-2 eDP DisplayPort-3=DisplayPort-2
 DisplayPort-2 eDP DisplayPort-3 Height 1920x1080 DisplayPort-2=562
 DisplayPort-2 eDP DisplayPort-3 Width 1920x1080 DisplayPort-2=833
-DisplayPort-2 eDP DisplayPort-3 XPosition 1920x1080 DisplayPort-2=1829
-DisplayPort-2 eDP DisplayPort-3 YPosition 1920x1080 DisplayPort-2=672
+DisplayPort-2 eDP DisplayPort-3 XPosition 1920x1080 DisplayPort-2=2160
+DisplayPort-2 eDP DisplayPort-3 YPosition 1920x1080 DisplayPort-2=337
 MenuBar=Disabled
 PreviousDictionary=American English (United States)
 State=AAAA/wAAAAD9AAAAAAAAA0EAAAG1AAAABAAAAAQAAAAIAAAACPwAAAADAAAAAgAAAAEAAAAWAG0AYQBpAG4AVABvAG8AbABCAGEAcgEAAAAA/////wAAAAAAAAAAAAAAAgAAAAEAAAAWAGgAdABtAGwAVABvAG8AbABCAGEAcgEAAAAA/////wAAAAAAAAAAAAAAAgAAAAEAAAAgAGQAaQByAGUAYwB0AGkAbwBuAFQAbwBvAGwAQgBhAHIAAAAAAP////8AAAAAAAAAAA==
@@ -99,8 +100,13 @@ listViewIconSize[$i]=64
 DisplayPort-2 eDP DisplayPort-3=DisplayPort-2
 DisplayPort-2 eDP DisplayPort-3 Height 1920x1080 DisplayPort-2=932
 DisplayPort-2 eDP DisplayPort-3 Width 1920x1080 DisplayPort-2=1299
-DisplayPort-2 eDP DisplayPort-3 XPosition 1920x1080 DisplayPort-2=1701
-DisplayPort-2 eDP DisplayPort-3 YPosition 1920x1080 DisplayPort-2=337
+DisplayPort-2 eDP DisplayPort-3 XPosition 1920x1080 DisplayPort-2=1651
+DisplayPort-2 eDP DisplayPort-3 YPosition 1920x1080 DisplayPort-2=362
+DisplayPort-3 eDP DisplayPort-4=DisplayPort-3
+DisplayPort-3 eDP DisplayPort-4 Height 1920x1080 DisplayPort-3=932
+DisplayPort-3 eDP DisplayPort-4 Width 1920x1080 DisplayPort-3=1299
+DisplayPort-3 eDP DisplayPort-4 XPosition 1920x1080 DisplayPort-3=1701
+DisplayPort-3 eDP DisplayPort-4 YPosition 1920x1080 DisplayPort-3=337
 MenuBar=Disabled
 State=AAAA/wAAAAD9AAAAAAAABRMAAANjAAAABAAAAAQAAAAIAAAACPwAAAABAAAAAgAAAAEAAAAWAG0AYQBpAG4AVABvAG8AbABCAGEAcgEAAAAA/////wAAAAAAAAAA
 ToolBarsMovable=Disabled
@@ -134,6 +140,9 @@ Set7=0000cafe00001002000000180031003600390032003800300032003600350038002d0038000
 
 [MessageListView::StorageModelAggregations]
 DefaultSet=1692802658-8
+
+[MessageListView::StorageModelSelectedMessages]
+MessageUniqueIdForStorageModel73=1451
 
 [MessageListView::StorageModelSortOrder]
 GlobalSortOrderGroupSortDirection=Descending

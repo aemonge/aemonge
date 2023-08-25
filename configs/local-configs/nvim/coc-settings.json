@@ -71,12 +71,16 @@
         "vim": "vint",
         "email": "languagetool",
         "sh": ["shellcheck", "shellharden"],
-        "lua": ["selene"]
+        "lua": ["selene"],
+        "markdown": ["alex", "write-good", "textlint", "proselint", "markdownlint"],
+        "yaml": ["yamllint"]
     },
     "diagnostic-languageserver.formatFiletypes": {
         "python": ["autoflake", "black", "isort"],
         "lua": "stylua",
-        "sh": ["shfmt", "beautysh", "shellharden"]
+        "sh": ["shfmt", "beautysh", "shellharden"],
+        "markdown": ["prettierd", "markdownlint", "prettier"],
+        "yaml": ["yamlfmt", "yamlfix", "prettier"]
     },
 
     // NAVIGATION & UI (Suggestions)
@@ -158,19 +162,19 @@
 
     // LANGUAGESERVER
     "languageserver": {
-        "sourcery": {
-            "command": "sourcery",
-            "args": ["lsp"],
-            "filetypes": ["python", "javascript", "typescript"],
-            "initializationOptions": {
-                "extension_version": "coc.nvim",
-                "editor_version": "neovim"
-            },
-            "settings": {
-                "sourcery": {
-                    "metricsEnabled": true
-                }
-            }
-        }
+        // "sourcery": {
+        // "command": "sourcery",
+        // "args": ["lsp"],
+        // "filetypes": ["python", "javascript", "typescript"],
+        // "initializationOptions": {
+        // "extension_version": "coc.nvim",
+        // "editor_version": "neovim"
+        // },
+        // "settings": {
+        // "sourcery": {
+        // "metricsEnabled": true
+        // }
+        // }
+        // }
     }
 }

@@ -4,4 +4,5 @@ alias open=xdg-open
 alias ll='tree -Chl -L 3 --dirsfirst'
 alias f='vim $(fzf)'
 alias copy='xclip -sel clip'
+alias c='chatgpt'
 # alias copy=pbcopy

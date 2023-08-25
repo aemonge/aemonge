@@ -1,41 +1,81 @@
 #!/bin/env python
 
+"""
+This is a Python script which replaces "include" tags in a given input file.
+An include tag is a line of comment that looks like this: <!-- include: file.txt -->
+This line will be replaced with the contents of the referenced "file.txt" wrapped in a code block.
+
+Usage:
+python finclude.py <input_file>
+"""
 
 import re
 import sys
-from typing import List
+import os
 
-def replace_include_tags(input_file: str, output_file: str) -> None:
- with open(input_file, 'r') as f:
-     content = f.readlines()
+def replace_include_tags(input_file: str) -> None:
+    """Replace include tags."""
+    with open(input_file, 'r') as f:
+        content = f.readlines()
 
- include_pattern = r'( *)(<!-- include: .* -->)'
- for i, line in enumerate(content):
-    if (match := re.search(include_pattern, line)):
-         padding = match[1]
-         include_tag = match[2]
-         include_file = include_tag.strip().replace('<!-- include: ', '')\
-                                           .replace(' -->', '')
-         with open(include_file, 'r') as f:
-             include_content = f.readlines()
+    include_pattern = r'( *)(<!-- include: .* -->)'
+    code_marker_ext = {
+        'py': 'python',
+        'js': 'javascript',
+        'txt': '',
+        'html':'html',
+        'css':'css',
+        'json':'json',
+        'java':'java',
+        'c': 'c',
+        'cpp': 'cpp',
+        'go':'go',
+        'rs':'rust',
+        'php':'php',
+        'rb':'ruby',
+        'swift':'swift',
+        'sh':'bash',
+        'sql':'sql',
+        'yml':'yaml',
+        'xml':'xml'
+    }
 
-         include_content = [
-                f"{padding}{include_line}"
-                if include_line.strip()
-                else include_line
-                for include_line in include_content
-            ]
-         content[i] = ''.join(include_content)
+    for i, line in enumerate(content):
+        if (match := re.search(include_pattern, line)):
+            padding = match[1]
+            include_tag = match[2]
+            include_file = include_tag.strip().replace('<!-- include: ', '').replace(' -->', '')
+            include_file = os.path.expanduser(include_file)
 
- with open(output_file, 'w') as f:
-     f.write(''.join(content))
+            try:
+                with open(include_file, 'r') as f:
+                    include_content = f.readlines()
+
+                # Detecting filetype
+                extension = include_file.split('.')[-1]
+                if extension in code_marker_ext:
+                    filetype = code_marker_ext[extension]
+                else:
+                    filetype = ''
+
+            except FileNotFoundError:
+                include_content = ['<!-- include file not found -->']
+
+            code_block = [f"{padding}```{filetype}\n"] + include_content + [f"{padding}```\n"]
+            content[i] = ''.join(code_block)
+
+    sys.stdout.write(''.join(content))
 
 if __name__ == "__main__":
- if len(sys.argv) < 3:
-     print("Usage: python finclude.py <input_file> <output_file>")
-     sys.exit(1)
+    if len(sys.argv) < 2:
+        print("Usage: python finclude.py <input_file>")
+        sys.exit(1)
 
- input_file = sys.argv[1]
- output_file = sys.argv[2]
+    input_file = sys.argv[1]
 
- replace_include_tags(input_file, output_file)
+    # Check if input_file exists and is a file
+    if not os.path.isfile(input_file):
+        print("'{}' is not a file.".format(input_file))
+        sys.exit(1)
+
+    replace_include_tags(input_file)

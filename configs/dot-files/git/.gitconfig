@@ -15,10 +15,6 @@
   rebase = false
   autoSetupRemote = true
 
-[user]
-  email = andres@aemonge.com
-  name = aemonge
-
 [push]
   autoSetupRemote = true
 
