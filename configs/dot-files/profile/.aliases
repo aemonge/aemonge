@@ -4,5 +4,6 @@ alias open=xdg-open
 alias ll='tree -Chl -L 3 --dirsfirst'
 alias f='vim $(fzf)'
 alias copy='xclip -sel clip'
-alias c='chatgpt'
+alias vic="nvim +':lua require(\"settings.bots.chatgpt-miu\")(0, true)'"
+alias vic_n="nvim +':lua require(\"settings.bots.chatgpt-miu\")(1, true)'"
 # alias copy=pbcopy
