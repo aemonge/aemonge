@@ -1,0 +1,6 @@
+#!/bin/bash
+
+cp /home/deck/usr/os-init/configs/etc_sddm_conf.d/steam.conf /etc/sddm.conf.d/zz-steamos-autologin.conf
+if lsusb | grep -q "Lenovo USB[3|2].0 Hub"; then
+    cp /home/deck/usr/os-init/configs/etc_sddm_conf.d/plasma.conf /etc/sddm.conf.d/zz-steamos-autologin.conf
+fi

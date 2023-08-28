@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Exec=/home/deck/usr/os-init/configs/copy-etc-files
+Hidden=true
+NoDisplay=true
+X-GNOME-Autostart-enabled=true
+Name=system-configs
+Comment=Reapply my own system configuration
