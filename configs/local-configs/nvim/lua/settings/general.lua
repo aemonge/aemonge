@@ -4,7 +4,7 @@ vim.opt.autoread = true   -- Set autoread when a file is changed outside
 vim.opt.autowrite = true  -- FileChangedShell * echo Warning: File changed on disk
 vim.opt.backup = false    -- creates a backup file
 vim.opt.clipboard = {     -- allows neovim to access the system clipboard
-    "unnamed", "unnamedplus"
+  "unnamed", "unnamedplus"
 }
 vim.opt.cmdheight = 0                 -- Hyper focused, hidden cmd bar
 vim.opt.concealcursor = "v"           -- Mostly invisible, but when acting on it `vi` display it
@@ -62,7 +62,6 @@ vim.opt.writebackup = false           -- if a file is being edited by another pr
 vim.opt.linebreak = false             -- Don't break my lines, just warn me with over-length
 vim.opt.incsearch = true
 vim.opt.gdefault = true               -- Make the `s/` have the 'g' flag as default.
-vim.opt.statusline = "%f %y"          -- When lualine disabled the shoudl file and type.
 
 vim.g.markdown_fenced_languages = { 'html', 'python', 'ruby', 'vim', 'python', 'bash', 'javascript' }
 

@@ -21,7 +21,7 @@ local venv = {
 
 local diagnostics = {
     "diagnostics",
-    sources = { "nvim_diagnostic" },
+    sources = { "nvim_diagnostic", "coc" },
     sections = { "error", "warn" },
     symbols = { error = " ", warn = " " },
     colored = false,
@@ -72,6 +72,7 @@ local M = {
                 lualine_y = {
                     venv,
                     "require'lsp-status'.status()",
+                    "coc#status",
                     filetype,
                 },
                 lualine_z = { 'os.date("%I:%M:%S", os.time())' },

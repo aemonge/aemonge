@@ -32,6 +32,11 @@ local pluginsFileTypes = {
     "vista",        -- vista.vim
 }
 
+local dapFileTypes = {
+    "DAP Scopes", "DAP Scopes", "DAP Stacks", "DAP Watches",
+    "DAP Console", "*dap-repl*"
+}
+
 local textFileTypes = {
     "txt",
     "text",
@@ -213,7 +218,8 @@ local allFileTypes = {
     frameworks     = frameworkFileTypes,
     data           = dataFileTypes,
     versionControl = versionControlFileTypes,
-    plugings       = pluginsFileTypes
+    plugings       = pluginsFileTypes,
+    dap            = dapFileTypes
 }
 
 local function getFileTypes(categories)
@@ -238,3 +244,4 @@ return getFileTypes
 -- "data",
 -- "versionControl",
 -- "plugings",
+-- "dap"
