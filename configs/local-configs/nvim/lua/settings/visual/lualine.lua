@@ -50,13 +50,15 @@ local branch = {
 local M = {
     "nvim-lualine/lualine.nvim",
     config = function()
+        disabled_filetypes, disabled_buftypes = require("settings.visual.raw-types")
         require("lualine").setup({
             options = {
                 icons_enabled = true,
                 theme = "material",
                 component_separators = { left = "", right = "" },
                 section_separators = { left = "", right = "" },
-                disabled_filetypes = { "dashboard", "NvimTree", "Outline" },
+                disabled_filetypes = disabled_filetypes,
+                disabled_buftypes = disabled_buftypes,
                 always_divide_middle = true,
             },
             sections = {
@@ -83,15 +85,7 @@ local M = {
                 lualine_x = {},
                 lualine_y = { filetype },
                 lualine_z = {},
-            },
-            disabled_filetypes = { "", "NvimTree", "Outline", "terminal" },
-            disabled_buftypes = {
-                "",
-                "terminal",
-                "quickfix",
-                "prompt",
-                "terminal",
-            },
+            }
         })
     end,
 }

@@ -62,6 +62,7 @@ vim.opt.writebackup = false           -- if a file is being edited by another pr
 vim.opt.linebreak = false             -- Don't break my lines, just warn me with over-length
 vim.opt.incsearch = true
 vim.opt.gdefault = true               -- Make the `s/` have the 'g' flag as default.
+vim.opt.statusline = "%f %y"          -- When lualine disabled the shoudl file and type.
 
 vim.g.markdown_fenced_languages = { 'html', 'python', 'ruby', 'vim', 'python', 'bash', 'javascript' }
 

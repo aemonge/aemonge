@@ -76,7 +76,7 @@
         "yaml": ["yamllint"]
     },
     "diagnostic-languageserver.formatFiletypes": {
-        "python": ["autoflake", "black", "isort"],
+        "python": ["black", "isort", "autoflake"],
         "lua": "stylua",
         "sh": ["shfmt", "beautysh", "shellharden"],
         "markdown": ["prettierd", "markdownlint", "prettier"],
@@ -162,19 +162,19 @@
 
     // LANGUAGESERVER
     "languageserver": {
-        // "sourcery": {
-        // "command": "sourcery",
-        // "args": ["lsp"],
-        // "filetypes": ["python", "javascript", "typescript"],
-        // "initializationOptions": {
-        // "extension_version": "coc.nvim",
-        // "editor_version": "neovim"
-        // },
-        // "settings": {
-        // "sourcery": {
-        // "metricsEnabled": true
-        // }
-        // }
-        // }
+        "sourcery": {
+            "command": "sourcery",
+            "args": ["lsp"],
+            "filetypes": ["python", "javascript", "typescript"],
+            "initializationOptions": {
+                "extension_version": "coc.nvim",
+                "editor_version": "neovim"
+            },
+            "settings": {
+                "sourcery": {
+                    "metricsEnabled": true
+                }
+            }
+        }
     }
 }
