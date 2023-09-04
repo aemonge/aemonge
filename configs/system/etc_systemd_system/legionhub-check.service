@@ -3,7 +3,8 @@ Description=Check USB
 Before=sddm.service
 
 [Service]
-ExecStart=/usr/sbin/is-legion-plugged
+Type=oneshot
+ExecStart=/home/deck/usr/sbin/is-legion-plugged
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=graphical.target

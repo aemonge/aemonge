@@ -86,6 +86,7 @@ bins() {
     done
 
     for sbin in ~/usr/sbin/*; do
+        sudo chown root:root "$sbin"
         sudo ln -sf "$sbin" /usr/sbin/ || log_error "Failed to sudo symlink binary from ~/usr/sbin"
     done
 }
