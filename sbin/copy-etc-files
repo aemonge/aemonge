@@ -1,0 +1,10 @@
+#!/bin/bash
+
+sudo steamos-readonly disable
+sudo cp /home/deck/usr/configs/system/etc_sddm.conf.d/plasma.conf /etc/sddm.conf.d/zz-steamos-autologin.conf
+sudo cp /home/deck/usr/configs/system/etc_systemd_system/legionhub-check.service /etc/systemd/system/legionhub-check.service
+sudo cp /home/deck/usr/configs/system/etc_udev_rules.d/95-monitor-hotplug.rules /etc/udev/rules.d/95-monitor-hotplug.rules
+sudo cp /home/deck/usr/configs/system/etc_sudoers.d/90-deck-cmds /etc/sudoers.d/90-deck-cmds
+sudo cp /home/deck/usr/configs/system/etc_sudoers.d/91-docker /etc/sudoers.d/91-docker
+sudo cp /home/deck/usr/configs/system/etc_sudoers.d/92-steamos /etc/sudoers.d/92-steamos
+sudo steamos-readonly enable

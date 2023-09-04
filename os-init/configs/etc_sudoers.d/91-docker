@@ -1,1 +1,0 @@
-deck ALL=(ALL) NOPASSWD: /usr/bin/systemctl start docker.service, /usr/bin/systemctl stop docker.service, /usr/bin/systemctl restart docker.service

@@ -1,6 +1,12 @@
 #!/bin/bash
 
-_rwfux() {
+_rwfus() {
+    # Only RWFUS if we are on a valve steam deck
+    echo "$(uname -r)" | grep '-valve' > /dev/null 2>&1
+    if [ "$?" != "0" ]; then
+        return 0
+    fi
+
     echo "Cloning and installing rwfus..."
     git clone https://github.com/ValShaped/rwfus.git /tmp/rwfus
     cd /tmp/rwfus || echo "Error: failed to create directory /tmp/rwfus" && exit
@@ -25,7 +31,7 @@ _aura() {
 
 _system() {
     echo "Installing system packages..."
-    sudo pacman -S --needed --noconfirm base-devel gcc glibc gcc-libs openssl
+    sudo pacman -S --needed --noconfirm base-devel gcc glibc gcc-libs openssl libxcrypt-compat
     echo "System packages installed successfully."
 }
 
@@ -33,7 +39,7 @@ _dev_extra() {
     echo "Installing developer packages..."
     sudo pacman -S --needed --noconfirm firefox-developer-edition python-pip zsh xclip
     sudo pacman -S --needed --noconfirm the_silver_searcher entr neovim tig flameshot
-    sudo pacman -S --needed --noconfirm glow onboard nodejs npm docker fzf rustup
+    sudo pacman -S --needed --noconfirm glow onboard nodejs npm docker fzf rustup yakuake
 
     sudo npm i -g npm yarn
     sudo aura -A --noconfirm --needed firefox-pwa konsave neovim-remote
@@ -42,14 +48,14 @@ _dev_extra() {
 
 _user_extra() {
     echo "Installing user packages..."
-    sudo aura -A --noconfirm --needed kde-servicemenus-clamtkscan clamav-desktop-bin
+    sudo aura -A --noconfirm --needed kde-servicemenus-clamtkscan clamav-desktop-bin kdepim kdepim-addons
     sudo aura -A --noconfirm --needed telegram-desktop-bin
-    sudo aura -A --noconfirm --needed --skippgpcheck spotify
+    sudo aura -A --noconfirm --needed --skippgpcheck spotify clementine kmail
     sudo aura -A --noconfirm --needed slack-desktop
     echo "User packages installed successfully."
 }
 
-_rwfux
+_rwfus
 _system
 _aura
 _dev_extra

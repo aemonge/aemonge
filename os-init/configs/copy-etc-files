@@ -1,5 +1,0 @@
-#!/bin/bash
-
-sudo cp ~/usr/os-init/configs/etc_sddm.conf.d/plasma.conf /etc/sddm.conf.d/zz-steamos-autologin.conf
-sudo cp ~/usr/os-init/configs/etc_systemd_system/legionhub-check.service /etc/systemd/system/legionhub-check.service
-sudo cp ~/usr/os-init/configs/etc_udev_rules.d/95-monitor-hotplug.rules /etc/udev_rules.d/95-monitor-hotplug.rules

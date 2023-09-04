@@ -3,7 +3,6 @@
 BEFORE(){
     OPTS
     PATH
-    PROFILE
 }
 
 AFTER(){
@@ -12,6 +11,7 @@ AFTER(){
 
 BEFORE_NVIM(){
     SSH
+    PROFILE
     CONDA
 }
 
@@ -20,6 +20,7 @@ AFTER_NVIM(){
     ZINIT
     ZINIT_PLUGINS
     THEME
+    PROFILE
 }
 
 PATH() {
@@ -42,6 +43,10 @@ OPTS() {
 PROFILE() {
     source ~/.profile
     source ~/.aliases
+
+    if [ -z $NVIM ] && [ -e ~/.profile.before-nvim ]; then
+        source ~/.profile.before-nvim
+    fi
 }
 
 SSH() {
@@ -193,7 +198,6 @@ START() {
     else
         if [ -z $NVIM ]; then
             BEFORE_NVIM
-            source ~/.profile.before-nvim
             nvim +':terminal' +':startinsert' && exit || AFTER_NVIM
         else
             AFTER_NVIM

@@ -1,6 +1,0 @@
-    deck ALL=(root) NOPASSWD: /usr/bin/cp /home/deck/usr/os-init/configs/etc_sddm.conf.d/plasma.conf /etc/sddm.conf.d/zz-steamos-autologin.conf
-
-    deck ALL=(root) NOPASSWD: /usr/bin/cp /home/deck/usr/os-init/configs/etc_systemd_system/legionhub-check.service /etc/systemd/system/legionhub-check.service
-
-    deck ALL=(root) NOPASSWD: /usr/bin/cp /home/deck/usr/os-init/configs/etc_udev_rules.d/95-monitor-hotplug.rules /etc/udev/rules.d/95-monitor-hotplug.rules
-

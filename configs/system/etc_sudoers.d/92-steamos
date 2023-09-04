@@ -1,0 +1,2 @@
+deck  ALL=(ALL) NOPASSWD: /usr/bin/steamos-readonly enable
+deck  ALL=(ALL) NOPASSWD: /usr/bin/steamos-readonly disable

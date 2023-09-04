@@ -1,0 +1,20 @@
+[Desktop Entry]
+Comment[en_US]=
+Comment=
+Exec=/home/deck/usr/os-init/configs/copy-etc-files
+GenericName[en_US]=
+GenericName=
+Icon=dialog-scripts
+MimeType=
+Name[en_US]=copy-etc-files
+Name=copy-etc-files
+Path=
+StartupNotify=true
+Terminal=false
+TerminalOptions=
+Type=Application
+X-DBUS-ServiceName=
+X-DBUS-StartupType=
+X-KDE-AutostartScript=true
+X-KDE-SubstituteUID=false
+X-KDE-Username=

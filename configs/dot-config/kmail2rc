@@ -1,3 +1,6 @@
+[$Version]
+update_info=webengineurlinterceptoradblock.upd:webengineurlinterceptoradblock_move_settings
+
 [AttachmentView]
 State=\x00\x00\x00\xff\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x03\x84\x00\x00\x00\x08\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00d\xff\xff\xff\xff\x00\x00\x00\x81\x00\x00\x00\x00\x00\x00\x00\x08\x00\x00\x00\xc8\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00d\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00d\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00d\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00d\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00d\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00d\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00d\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x03\xe8\x00\x00\x00\x00d
 
@@ -22,14 +25,19 @@ VerticalScroll=0
 
 [CollectionTreeOrder]
 18=c64,c63,c20,c29,c19,c48,c50,c47,c49,c22,c21,c27
-71=c77,c73,c72,c79,c82,c76,c80,c78,c74,c81,c75,c83
+71=c77,c73,c72,c79,c82,c76,c80,c78,c106,c74,c81,c75,c83
 
 [Composer]
 DisplayPort-2 eDP DisplayPort-3=DisplayPort-2
 DisplayPort-2 eDP DisplayPort-3 Height 1920x1080 DisplayPort-2=562
 DisplayPort-2 eDP DisplayPort-3 Width 1920x1080 DisplayPort-2=833
-DisplayPort-2 eDP DisplayPort-3 XPosition 1920x1080 DisplayPort-2=2160
+DisplayPort-2 eDP DisplayPort-3 XPosition 1920x1080 DisplayPort-2=2167
 DisplayPort-2 eDP DisplayPort-3 YPosition 1920x1080 DisplayPort-2=337
+DisplayPort-3 eDP DisplayPort-5=DisplayPort-3
+DisplayPort-3 eDP DisplayPort-5 Height 1920x1080 DisplayPort-3=562
+DisplayPort-3 eDP DisplayPort-5 Width 1920x1080 DisplayPort-3=833
+DisplayPort-3 eDP DisplayPort-5 XPosition 1920x1080 DisplayPort-3=1952
+DisplayPort-3 eDP DisplayPort-5 YPosition 1920x1080 DisplayPort-3=400
 MenuBar=Disabled
 PreviousDictionary=American English (United States)
 State=AAAA/wAAAAD9AAAAAAAAA0EAAAG1AAAABAAAAAQAAAAIAAAACPwAAAADAAAAAgAAAAEAAAAWAG0AYQBpAG4AVABvAG8AbABCAGEAcgEAAAAA/////wAAAAAAAAAAAAAAAgAAAAEAAAAWAGgAdABtAGwAVABvAG8AbABCAGEAcgEAAAAA/////wAAAAAAAAAAAAAAAgAAAAEAAAAgAGQAaQByAGUAYwB0AGkAbwBuAFQAbwBvAGwAQgBhAHIAAAAAAP////8AAAAAAAAAAA==
@@ -98,18 +106,40 @@ listViewIconSize[$i]=64
 
 [Main Window]
 DisplayPort-2 eDP DisplayPort-3=DisplayPort-2
+DisplayPort-2 eDP DisplayPort-3 Height 1280x800 eDP=774
 DisplayPort-2 eDP DisplayPort-3 Height 1920x1080 DisplayPort-2=932
+DisplayPort-2 eDP DisplayPort-3 Width 1280x800 eDP=1079
 DisplayPort-2 eDP DisplayPort-3 Width 1920x1080 DisplayPort-2=1299
-DisplayPort-2 eDP DisplayPort-3 XPosition 1920x1080 DisplayPort-2=1651
-DisplayPort-2 eDP DisplayPort-3 YPosition 1920x1080 DisplayPort-2=362
+DisplayPort-2 eDP DisplayPort-3 XPosition 1280x800 eDP=1335
+DisplayPort-2 eDP DisplayPort-3 XPosition 1920x1080 DisplayPort-2=1701
+DisplayPort-2 eDP DisplayPort-3 YPosition 1280x800 eDP=1395
+DisplayPort-2 eDP DisplayPort-3 YPosition 1920x1080 DisplayPort-2=337
 DisplayPort-3 eDP DisplayPort-4=DisplayPort-3
+DisplayPort-3 eDP DisplayPort-4 Height 1280x800 eDP=774
 DisplayPort-3 eDP DisplayPort-4 Height 1920x1080 DisplayPort-3=932
+DisplayPort-3 eDP DisplayPort-4 Width 1280x800 eDP=1079
 DisplayPort-3 eDP DisplayPort-4 Width 1920x1080 DisplayPort-3=1299
 DisplayPort-3 eDP DisplayPort-4 XPosition 1920x1080 DisplayPort-3=1701
 DisplayPort-3 eDP DisplayPort-4 YPosition 1920x1080 DisplayPort-3=337
+DisplayPort-3 eDP DisplayPort-5=DisplayPort-3
+DisplayPort-3 eDP DisplayPort-5 Height 1920x1080 DisplayPort-3=730
+DisplayPort-3 eDP DisplayPort-5 Width 1920x1080 DisplayPort-3=1215
+DisplayPort-3 eDP DisplayPort-5 XPosition 1920x1080 DisplayPort-3=1783
+DisplayPort-3 eDP DisplayPort-5 YPosition 1920x1080 DisplayPort-3=337
 MenuBar=Disabled
 State=AAAA/wAAAAD9AAAAAAAABRMAAANjAAAABAAAAAQAAAAIAAAACPwAAAABAAAAAgAAAAEAAAAWAG0AYQBpAG4AVABvAG8AbABCAGEAcgEAAAAA/////wAAAAAAAAAA
 ToolBarsMovable=Disabled
+eDP=eDP
+eDP DisplayPort-0 Height 1280x800 eDP=774
+eDP DisplayPort-0 Width 1280x800 eDP=1079
+eDP Height 1280x800 eDP=774
+eDP Height 768x480 eDP=932
+eDP Width 1280x800 eDP=767
+eDP Width 768x480 eDP=1079
+eDP XPosition 1280x800 eDP=0
+eDP XPosition 768x480 eDP=0
+eDP YPosition 1280x800 eDP=49
+eDP YPosition 768x480 eDP=120
 
 [Main Window][Toolbar mainToolBar]
 IconSize=16
@@ -142,16 +172,18 @@ Set7=0000cafe00001002000000180031003600390032003800300032003600350038002d0038000
 DefaultSet=1692802658-8
 
 [MessageListView::StorageModelSelectedMessages]
+MessageUniqueIdForStorageModel72=2801
 MessageUniqueIdForStorageModel73=1451
+MessageUniqueIdForStorageModel87=1516
 
 [MessageListView::StorageModelSortOrder]
 GlobalSortOrderGroupSortDirection=Descending
-GlobalSortOrderGroupSorting=SortGroupsBySenderOrReceiver
+GlobalSortOrderGroupSorting=SortGroupsByDateTimeOfMostRecent
 GlobalSortOrderMessageSortDirection=Descending
 GlobalSortOrderMessageSorting=SortMessagesByDateTime
 
 [MessageListView::StorageModelThemes]
-DefaultSet=1692802658-10
+DefaultSet=1692802658-11
 
 [MessageListView::Themes]
 Count=3

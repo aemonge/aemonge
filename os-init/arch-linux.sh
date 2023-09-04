@@ -21,7 +21,7 @@ pcloud() {
 
 mkdirs() {
     echo "Setting up directories..."
-    local dir_settings="$HOME/usr/configs/directories"
+    local dir_settings="$HOME/usr/configs/dirs-icons"
 
     # Create directories and symlink their .directory settings
     for dir_file in "$dir_settings"/*.directory; do
@@ -56,9 +56,9 @@ dot-files() {
     done
 }
 
-local-configs() {
+dot-configs() {
     echo "Setting up local configurations..."
-    local base_path="$HOME/usr/configs/local-configs"
+    local base_path="$HOME/usr/configs/dot-config"
     local target_path="$HOME/.config"
     local dirs
 
@@ -83,6 +83,10 @@ bins() {
 
     for bin in ~/usr/bin/*; do
         ln -sf "$bin" ~/.local/bin/ || log_error "Failed to symlink binary from ~/usr/bin"
+    done
+
+    for sbin in ~/usr/sbin/*; do
+        sudo ln -sf "$sbin" /usr/sbin/ || log_error "Failed to sudo symlink binary from ~/usr/sbin"
     done
 }
 
@@ -130,13 +134,13 @@ case "$1" in
     font) font ;;
     mkdirs) mkdirs ;;
     dot-files) dot-files ;;
-    local-configs) local-configs ;;
+    dot-configs) dot-configs ;;
     bins) bins ;;
     pcloud) pcloud ;;
     kde) kde ;;
     firefox) firefox ;;
     *)
-        echo "Usage: $0 {arch-packages|font|mkdirs|dot-files|local-configs|bins|pcloud|kde|firefox|--all}"
+        echo "Usage: $0 {arch-packages|font|mkdirs|dot-files|dot-configs|bins|pcloud|kde|firefox|--all}"
         exit 1
         ;;
 esac

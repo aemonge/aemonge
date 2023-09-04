@@ -1,7 +1,5 @@
 #!/bin/bash
 
-touch /tmp/query.md
-
 if [ $# -eq 1 ]; then
     chatgpt  --clear-history
 fi

@@ -23,6 +23,9 @@
   ch            = checkout
   cm            = commit -m
   ca            = commit --amend --no-edit
+  ra            = rebase --abort
+  rc            = rebase --continue
+  ri            = "!f() { git rebase -i \"HEAD~$1\"; }; f"
   assume        = update-index --assume-unchanged
   unassume      = update-index --no-assume-unchanged
   fpush         = push --force-with-lease
@@ -104,3 +107,6 @@
 ; Don't make me the author on rebase, keep the blame on them bro 🤙 `git -c rebase.instructionFormat='%s%nexec GIT_COMMITTER_DATE="%cD" git commit --amend --no-edit' rebase -i`
 [init]
     defaultBranch = main
+[user]
+	name = aemonge
+	email = andres@babiopower.com

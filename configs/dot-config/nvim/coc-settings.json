@@ -67,7 +67,7 @@
     "diagnostic.format": "(%source:%code) %message.",
     "diagnostic-languageserver.mergeConfig": true,
     "diagnostic-languageserver.linters": {
-        "python": ["flake8", "pyright", "bandit"],
+        // "python": ["flake8", "pyright", "bandit"],
         "vim": "vint",
         "email": "languagetool",
         "sh": ["shellcheck", "shellharden"],

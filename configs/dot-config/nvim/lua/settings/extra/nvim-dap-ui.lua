@@ -13,6 +13,14 @@ table.insert(M, {
         require('dap-python').setup()
         require("dapui").setup({
             force_buffers = false,
+            floating = {
+                max_height = 0.9,
+                max_width = 0.5, -- Floats will be treated as percentage of your screen.
+                border = "rounded",
+                mappings = {
+                    close = { "q", "<Esc>" },
+                },
+            },
             layouts = {
                 {
                     elements = {
@@ -30,8 +38,9 @@ table.insert(M, {
                 },
                 {
                     elements = {
-                        { id = 'scopes',  size = 0.5 },
-                        { id = 'watches', size = 0.5 },
+                        { id = 'scopes',  size = 0.4 },
+                        { id = 'stacks',  size = 0.4 },
+                        { id = 'watches', size = 0.2 },
                     },
                     position = 'right',
                     size = 0.35,
@@ -45,6 +54,9 @@ table.insert(M, {
             command = "setlocal statusline=%f",
             desc = "Display the name of the DAP UI section"
         })
+
+        -- Trigger completion automatically
+        vim.cmd("au FileType dap-repl lua require('dap.ext.autocompl').attach()")
 
         require("which-key").register({
             v = {
