@@ -1,5 +1,10 @@
 [Appearance]
+BackgroundColorOpacity=90
 Skin=legacy
+
+[Behavior]
+OpenAfterStart=true
+RememberFullscreen=true
 
 [Dialogs]
 FirstRun=false
@@ -8,10 +13,9 @@ FirstRun=false
 hinding_title_bar=false
 
 [Window]
-Height=70
-KeepAbove=true
+Height=90
+KeepAbove=false
 Screen=1
 ShowTabBar=false
 ShowTitleBar=false
 ToggleToFocus=true
-Width=80

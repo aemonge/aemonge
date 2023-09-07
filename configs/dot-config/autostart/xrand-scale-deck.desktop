@@ -1,5 +1,5 @@
 [Desktop Entry]
-Exec=/home/deck/.local/bin/xrand-scale-deck
+Exec=/sbin/xrand-scale-deck
 Icon=dialog-scripts
 Name=xrand-scale-deck
 Path=

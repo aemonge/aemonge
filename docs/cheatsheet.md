@@ -2,6 +2,12 @@
 
 # 💻 Command line
 
+## Detach current background process from terminal
+
+```bash
+disown  %jobid
+```
+
 ## Screen for server connection and reconnect
 
 To keep a server with logs on a session, that can be re-attached later use `screen` or
@@ -688,6 +694,7 @@ git ch HEAD~1 <file>
 ```
 
 ## Reset author
+
 ```bash
 git commit --amend --author="Author Name <email@address.com>" --no-edit
 ```
@@ -1802,8 +1809,8 @@ for ...
 
 This scheduler decreases the learning rate by a factor after a fixed number of epochs.
 
--   step_size: _Eons inside the epochs._ determines the number of epochs after which the
-    learning rate will be multiplied by the `gamma` parameter.
+-   step*size: \_Eons inside the epochs.* determines the number of epochs after which
+    the learning rate will be multiplied by the `gamma` parameter.
 -   gamma: [0.1] The factor to reduce the learning rate
     `lr = initial_lr * gamma^(epoch // step_size)`
 

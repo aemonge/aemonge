@@ -31,6 +31,7 @@
   fpush         = push --force-with-lease
 
 # One liner functions
+  reset-author  = "!f() { git commit --amend --no-edit --author=\"$1\"}; f"
   lola          = "log --graph --decorate --pretty='format:%C(auto)%h %d %s %C(green)%an%C(bold blue) %ad' --abbrev-commit --all --date=relative"
   assumed       = "!git ls-files -v | grep ^h | cut -c 3-"
   ours          = "!f() { git checkout --ours $@ && git add $@; }; f"
@@ -107,6 +108,3 @@
 ; Don't make me the author on rebase, keep the blame on them bro 🤙 `git -c rebase.instructionFormat='%s%nexec GIT_COMMITTER_DATE="%cD" git commit --amend --no-edit' rebase -i`
 [init]
     defaultBranch = main
-[user]
-	name = aemonge
-	email = andres@babiopower.com

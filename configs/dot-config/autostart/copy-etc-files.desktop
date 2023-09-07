@@ -1,7 +1,7 @@
 [Desktop Entry]
 Comment[en_US]=
 Comment=
-Exec=/home/deck/usr/os-init/configs/copy-etc-files
+Exec=/sbin/copy-etc-files
 GenericName[en_US]=
 GenericName=
 Icon=dialog-scripts

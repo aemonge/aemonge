@@ -66,19 +66,26 @@
     "coc.preferences.formatOnSave": true,
     "diagnostic.format": "(%source:%code) %message.",
     "diagnostic-languageserver.mergeConfig": true,
+    "diagnostic-languageserver.filetypes": {
+        "sh": ["bash-language-server", "sourcery"],
+        "bash": ["bash-language-server"]
+    },
     "diagnostic-languageserver.linters": {
         // "python": ["flake8", "pyright", "bandit"],
         "vim": "vint",
         "email": "languagetool",
         "sh": ["shellcheck", "shellharden"],
+        "bash": ["shellcheck", "shellharden"],
+
         "lua": ["selene"],
         "markdown": ["alex", "write-good", "textlint", "proselint", "markdownlint"],
         "yaml": ["yamllint"]
     },
     "diagnostic-languageserver.formatFiletypes": {
-        "python": ["black", "isort", "autoflake"],
+        "python": ["black", "isort", "autoflake", "docformatter"],
         "lua": "stylua",
         "sh": ["shfmt", "beautysh", "shellharden"],
+        "bash": ["shfmt", "beautysh", "shellharden"],
         "markdown": ["prettierd", "markdownlint", "prettier"],
         "yaml": ["yamlfmt", "yamlfix", "prettier"]
     },

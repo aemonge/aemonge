@@ -1,7 +1,13 @@
 #!/bin/sh
 
-if [[ "$OSTYPE"  == "darwin"* ]]; then
-  lsof -i $1 | grep '(LISTEN)' | awk '{print $2}' | uniq
-else
-  echo 'not implemented'
-fi
+case $(uname -s) in
+darwin)
+    lsof -i "$1" | grep '(LISTEN)' | awk '{print $2}' | uniq
+    ;;
+Linux)
+    ss -ltnp "sport = :8000" | awk 'NR>1{print $6}' | awk -F '[",]' '{print $2, $4}'
+    ;;
+*)
+    echo "Unsupported operating system: $OS"
+    ;;
+esac
