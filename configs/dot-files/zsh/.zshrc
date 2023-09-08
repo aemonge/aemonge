@@ -16,6 +16,7 @@ BEFORE_NVIM(){
 }
 
 AFTER_NVIM(){
+    _CONDA
     P10K_ZINIT
     ZINIT
     ZINIT_PLUGINS
@@ -192,7 +193,6 @@ START() {
             BEFORE_NVIM
             AFTER_NVIM
         else
-            _CONDA
             AFTER_NVIM
         fi
     else

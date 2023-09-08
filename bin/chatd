@@ -1,7 +1,33 @@
 #!/bin/bash
 
+ACTOR="a developer"
+
 if [ $# -eq 1 ]; then
     chatgpt  --clear-history
+    uuid=$(uuidgen | tr -d '-' | cut -c 1-24)
+
+    echo "Session: $uuid"
+    echo $uuid > /tmp/chatgpt-uuid
+    mkdir -p "~/.chatgpt-cli/history/$uuid/"
+else
+    uuid=$(cat /tmp/chatgpt-uuid)
 fi
 
-ls /tmp/query.md | entr -rpcs "finclude /tmp/query.md | chatgpt \"Act as a developer\""
+
+echo "/tmp/query.md" | entr -rps "finclude /tmp/query.md | chatgpt \"Act as $ACTOR\""
+
+# _chat() {
+#   finclude /tmp/query.md >> "~/.chatgpt-cli/history/$uuid/queries.md"
+#   finclude /tmp/query.md | chatgpt "Act as an $ACTOR" \
+#     >> "~/.chatgpt-cli/history/$uuid/answers.md"
+#
+#
+#   echo "\n<!-- ################################################ -->"  \
+#     >> "~/.chatgpt-cli/history/$uuid/questions.md"
+#   echo "\n<!-- ################################################ -->"  \
+#     >> "~/.chatgpt-cli/history/$uuid/answers.md"
+# }
+
+# export SHELL=/bin/bash
+#
+# ls /tmp/query.md | entr -p _chat
