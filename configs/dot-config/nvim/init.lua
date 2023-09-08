@@ -44,6 +44,9 @@ table.insert(plugins, bots)
 local coc = require "settings.coc"
 table.insert(plugins, coc)
 
+local dap = require("settings.nvim-dap-ui")
+table.insert(plugins, dap)
+
 local navigation = require "settings.navigation"
 table.insert(plugins, navigation)
 

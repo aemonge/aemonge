@@ -9,18 +9,15 @@
         "MD030": false
     },
     // PYTHON SETTINGS AND EXTENSIONS
-
     // Python linting: flake8:
     //    flake8-quotes, pep8-naming, flake8-picky-parentheses, flake8-docstrings
     "python.linting.enabled": true,
     "python.linting.flake8Enabled": true,
-
     // Python type checking: pyright (or mypy, but pyright integrates better)
     "pyright.enable": true,
-
+    "python.venvPath": "~/.conda/envs/",
     // Security checks
     "python.linting.banditEnabled": true,
-
     // NAVIGATION & UI
     "tree.key.selectNext": "<c-n>",
     "tree.key.selectPrevious": "<c-p>",
@@ -45,7 +42,6 @@
         "pyproject.toml",
         "tox.ini"
     ],
-
     // NAVIGATION & UI (Diagnostic)
     "diagnostic.enableMessage": "jump", // Use this to never to not show the on hover
     "diagnostic.checkCurrentLine": true,
@@ -58,6 +54,10 @@
         "border": true,
         "rounded": true
     },
+    "signature.floatConfig": {
+        "border": true,
+        "rounded": true
+    },
     "diagnostic.enableHighlightLineNumber": true,
     "diagnostic.floatConfig": {
         "border": true,
@@ -67,29 +67,80 @@
     "diagnostic.format": "(%source:%code) %message.",
     "diagnostic-languageserver.mergeConfig": true,
     "diagnostic-languageserver.filetypes": {
-        "sh": ["bash-language-server", "sourcery"],
-        "bash": ["bash-language-server"]
+        // "python": ["pyright", "sourcery"],
+        "python": [
+            "pyright",
+            "sourcery",
+            "python-lsp-server"
+        ],
+        // "python": ["pyright", "sourcery", "python-lsp-server", "jedi-language-server"],
+        "sh": [
+            "bash-language-server",
+            "sourcery"
+        ],
+        "bash": [
+            "bash-language-server"
+        ]
     },
     "diagnostic-languageserver.linters": {
-        // "python": ["flake8", "pyright", "bandit"],
+        "python": [
+            "flake8",
+            "pyright",
+            "bandit"
+        ],
         "vim": "vint",
         "email": "languagetool",
-        "sh": ["shellcheck", "shellharden"],
-        "bash": ["shellcheck", "shellharden"],
-
-        "lua": ["selene"],
-        "markdown": ["alex", "write-good", "textlint", "proselint", "markdownlint"],
-        "yaml": ["yamllint"]
+        "sh": [
+            "shellcheck",
+            "shellharden"
+        ],
+        "bash": [
+            "shellcheck",
+            "shellharden"
+        ],
+        "lua": [
+            "selene"
+        ],
+        "markdown": [
+            "alex",
+            "write-good",
+            "textlint",
+            "proselint",
+            "markdownlint"
+        ],
+        "yaml": [
+            "yamllint"
+        ]
     },
     "diagnostic-languageserver.formatFiletypes": {
-        "python": ["black", "isort", "autoflake", "docformatter"],
+        "python": [
+            "black",
+            "isort",
+            "autoflake",
+            "docformatter"
+        ],
         "lua": "stylua",
-        "sh": ["shfmt", "beautysh", "shellharden"],
-        "bash": ["shfmt", "beautysh", "shellharden"],
-        "markdown": ["prettierd", "markdownlint", "prettier"],
-        "yaml": ["yamlfmt", "yamlfix", "prettier"]
+        "sh": [
+            "shfmt",
+            "beautysh",
+            "shellharden"
+        ],
+        "bash": [
+            "shfmt",
+            "beautysh",
+            "shellharden"
+        ],
+        "markdown": [
+            "prettierd",
+            "markdownlint",
+            "prettier"
+        ],
+        "yaml": [
+            "yamlfmt",
+            "yamlfix",
+            "prettier"
+        ]
     },
-
     // NAVIGATION & UI (Suggestions)
     "suggest.virtualText": true,
     "suggest.noselect": true,
@@ -103,76 +154,79 @@
     "suggest.selection": "first",
     "suggest.autoTrigger": "always",
     "suggest.insertMode": "replace",
-
     // Completion priorities
     "tabnine.limit": 3,
     "tabnine.shortcut": "ﮧ",
     "snippets.priority": 90,
     "coc.source.file.priority": 10,
-
     // LANGUAGE & SPELL
-    "cSpell.import": ["@cspell/dict-es-es/cspell-ext.json"],
-    "cSpell.dictionaries": [
-        "es_US",
-        "softwareTerms",
-        "companies",
-        "python",
-        "html",
-        "css",
-        "bash",
-        "latex",
-        "node",
-        "filetypes"
-    ],
-    "cSpell.language": "en,es",
-    "cSpell.enabledLanguageIds": [
-        "es_es",
-        "asciidoc",
-        "c",
-        "cpp",
-        "csharp",
-        "css",
-        "es",
-        "git-commit",
-        "gitcommit",
-        "go",
-        "handlebars",
-        "haskell",
-        "html",
-        "jade",
-        "java",
-        "javascript",
-        "javascriptreact",
-        "json",
-        "jsonc",
-        "latex",
-        "less",
-        "markdown",
-        "php",
-        "plaintext",
-        "pug",
-        "python",
-        "restructuredtext",
-        "rust",
-        "scala",
-        "scss",
-        "text",
-        "typescript",
-        "typescriptreact",
-        "vim",
-        "yaml",
-        "yml"
-    ],
-    "cSpell.logLevel": "Error",
-    "cSpell.showStatus": false,
-    "cSpell.includeRegExpList": ["/from\\s+(['\"]).*\\1/"],
-
+    // "cSpell.import": ["@cspell/dict-es-es/cspell-ext.json"],
+    // "cSpell.dictionaries": [
+    // "es_US",
+    // "softwareTerms",
+    // "companies",
+    // "python",
+    // "html",
+    // "css",
+    // // "bash",
+    // "latex",
+    // "node",
+    // "filetypes"
+    // ],
+    // "cSpell.language": "en,es",
+    // "cSpell.enabledLanguageIds": [
+    // "es_es",
+    // "asciidoc",
+    // "c",
+    // "cpp",
+    // "csharp",
+    // "css",
+    // "es",
+    // "git-commit",
+    // "gitcommit",
+    // "go",
+    // "handlebars",
+    // "haskell",
+    // "html",
+    // "jade",
+    // "java",
+    // "javascript",
+    // "javascriptreact",
+    // "json",
+    // "jsonc",
+    // "latex",
+    // "less",
+    // "markdown",
+    // "php",
+    // "plaintext",
+    // "pug",
+    // "python",
+    // "restructuredtext",
+    // "rust",
+    // "scala",
+    // "scss",
+    // "text",
+    // "typescript",
+    // "typescriptreact",
+    // "vim",
+    // "yaml",
+    // "yml"
+    // ],
+    // "cSpell.logLevel": "Error",
+    // "cSpell.showStatus": false,
+    // "cSpell.includeRegExpList": ["/from\\s+(['\"]).*\\1/"],
     // LANGUAGESERVER
     "languageserver": {
         "sourcery": {
             "command": "sourcery",
-            "args": ["lsp"],
-            "filetypes": ["python", "javascript", "typescript"],
+            "args": [
+                "lsp"
+            ],
+            "filetypes": [
+                "python",
+                "javascript",
+                "typescript"
+            ],
             "initializationOptions": {
                 "extension_version": "coc.nvim",
                 "editor_version": "neovim"
@@ -182,6 +236,15 @@
                     "metricsEnabled": true
                 }
             }
+        },
+        "bash": {
+            "command": "bash-language-server",
+            "args": [
+                "start"
+            ],
+            "filetypes": [
+                "sh"
+            ]
         }
     }
 }

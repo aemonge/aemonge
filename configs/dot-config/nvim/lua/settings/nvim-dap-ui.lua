@@ -24,14 +24,14 @@ table.insert(M, {
       layouts = {
         {
           elements = {
-            { id = 'console', size = 1 },
+            { id = 'repl', size = 1 },
           },
           position = 'bottom',
           size = 0.16,
         },
         {
           elements = {
-            { id = 'repl', size = 1 },
+            { id = 'watches', size = 1 },
           },
           position = 'bottom',
           size = 0.24,
@@ -40,7 +40,6 @@ table.insert(M, {
           elements = {
             { id = 'scopes',  size = 0.4 },
             { id = 'stacks',  size = 0.4 },
-            { id = 'watches', size = 0.2 },
           },
           position = 'right',
           size = 0.35,

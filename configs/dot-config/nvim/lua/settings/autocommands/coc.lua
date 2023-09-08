@@ -17,13 +17,13 @@ vim.api.nvim_create_autocmd("User", {
 -- Update all package managers
 vim.api.nvim_create_autocmd("User", {
     pattern = "LazyUpdate",
-    command = "MasonUpdateAll",
-    desc = "Run MasonUpdate after LazyUpdate"
-})
-vim.api.nvim_create_autocmd('User', {
-    pattern = 'MasonUpdateAllComplete',
+    --     command = "MasonUpdateAll",
+    --     desc = "Run MasonUpdate after LazyUpdate"
+    -- })
+    -- vim.api.nvim_create_autocmd('User', {
+    --     pattern = 'MasonUpdateAllComplete',
     command = "CocUpdate",
-    desc = "Run CocUpdate after MasonUpdate"
+    desc = "coc.nvim update"
 })
 
 -- Create new Fold, Format and OR commands

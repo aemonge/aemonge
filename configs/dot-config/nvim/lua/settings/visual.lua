@@ -6,6 +6,9 @@ table.insert(M, theme)
 local dressing = require "settings.visual.dressing"
 table.insert(M, dressing)
 
+local notify = require("settings.visual.notify")
+table.insert(M, notify)
+
 local gitsigns = require "settings.visual.gitsigns"
 table.insert(M, gitsigns)
 
