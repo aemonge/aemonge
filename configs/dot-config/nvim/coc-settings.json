@@ -1,4 +1,5 @@
 {
+    "yaml.format.enable": true,
     // Bash
     "sh.enable": true,
     // Markdown
@@ -67,19 +68,10 @@
     "diagnostic.format": "(%source:%code) %message.",
     "diagnostic-languageserver.mergeConfig": true,
     "diagnostic-languageserver.filetypes": {
-        // "python": ["pyright", "sourcery"],
         "python": [
             "pyright",
             "sourcery",
             "python-lsp-server"
-        ],
-        // "python": ["pyright", "sourcery", "python-lsp-server", "jedi-language-server"],
-        "sh": [
-            "bash-language-server",
-            "sourcery"
-        ],
-        "bash": [
-            "bash-language-server"
         ]
     },
     "diagnostic-languageserver.linters": {
@@ -89,15 +81,8 @@
             "bandit"
         ],
         "vim": "vint",
+        "text": "languagetool",
         "email": "languagetool",
-        "sh": [
-            "shellcheck",
-            "shellharden"
-        ],
-        "bash": [
-            "shellcheck",
-            "shellharden"
-        ],
         "lua": [
             "selene"
         ],
@@ -106,6 +91,7 @@
             "write-good",
             "textlint",
             "proselint",
+            "languagetool",
             "markdownlint"
         ],
         "yaml": [
@@ -117,19 +103,20 @@
             "black",
             "isort",
             "autoflake",
+            "autopep8",
             "docformatter"
         ],
         "lua": "stylua",
-        "sh": [
-            "shfmt",
-            "beautysh",
-            "shellharden"
-        ],
-        "bash": [
-            "shfmt",
-            "beautysh",
-            "shellharden"
-        ],
+        // "sh": [
+        // "shfmt",
+        // "beautysh",
+        // "shellharden"
+        // ],
+        // "bash": [
+        // "shfmt",
+        // "beautysh",
+        // "shellharden"
+        // ],
         "markdown": [
             "prettierd",
             "markdownlint",
@@ -236,15 +223,7 @@
                     "metricsEnabled": true
                 }
             }
-        },
-        "bash": {
-            "command": "bash-language-server",
-            "args": [
-                "start"
-            ],
-            "filetypes": [
-                "sh"
-            ]
         }
-    }
+    },
+    "svelte.enable-ts-plugin": true
 }

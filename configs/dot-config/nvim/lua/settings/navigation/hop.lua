@@ -13,20 +13,6 @@ table.insert(M, {
     }),
     config = function()
         require("hop").setup()
-        require("which-key").register(
-            {
-                S = { ":HopVertical<cr>", "Hop to line" },
-                s = { ":HopWordCurrentLine<cr>", "Hop to pattern" },
-                ['g/'] = { ":HopPattern<cr>", "Hop to pattern" },
-            },
-            {
-                prefix = nil,
-                buffer = nil,
-                silent = true,
-                noremap = true,
-                nowait = true,
-            }
-        )
     end,
 })
 

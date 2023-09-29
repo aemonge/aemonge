@@ -13,7 +13,8 @@ function! CloseTabOrQuit()
 endfunction
 ]]
 
-local M = {
+local M = {}
+M.M = {
     ["<c-w>"] = {
         name = "Split and Resize",
 
@@ -57,6 +58,25 @@ local M = {
     ['_'] = { ":resize -2<cr>", "Decrease Horizontally" },
     ['+'] = { ":resize +3<cr>", "Increase Horizontally" },
     ['='] = { ":vertical resize -2<cr>", "Decrease Vertically" },
-    ['-'] = { ":vertical resize +3<cr>", "Increase Vertically" }
+    ['-'] = { ":vertical resize +3<cr>", "Increase Vertically" },
+
+    -- NVIM TREE
+
+    ['<leader>e'] = { ":NvimTreeFindFileToggle! <cr>", "NvimTree" },
+
+    -- Hop
+
+    S = { ":HopVertical<cr>", "Hop to line" },
+    s = { ":HopWordCurrentLine<cr>", "Hop to pattern" },
+    ['g/'] = { ":HopPattern<cr>", "Hop to pattern" },
+}
+
+M.O = {
+    mode = "n",
+    prefix = nil,
+    buffer = nil,
+    silent = true,
+    noremap = true,
+    nowait = true,
 }
 return M

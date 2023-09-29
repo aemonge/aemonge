@@ -2,7 +2,9 @@ local function t(str) --TermCodes
     return vim.api.nvim_replace_termcodes(str, true, true, true)
 end
 
-local t_mappings = {
+local M = {}
+
+M.M = {
     ["<ESC><ESC>"] = { t("<C-\\><C-N>"), "Go to normal mode" },
     ["<c-h>"] = { t("<C-\\><C-n><c-w>h"), "Go right" },
     ["<c-l>"] = {
@@ -17,7 +19,6 @@ local t_mappings = {
         [""] = { t("<C-\\><C-n><c-w>j"), "Go down" },
         ["<c-j>"] = { t("<C-\\><C-n>gT<cr>"), "Previous tab" },
     },
-    -- ['<c-p>'] = { t 'nvr -cc "cd $(pwd) | Telescope find_files" <CR>', "Open files in CWD" },
     ["<c-t>"] = { t("<C-\\><C-n>:lua NewTermTab()<cr>"), "New term tab" },
     ["<c-w>"] = {
         name = "Split new Terminals",
@@ -41,4 +42,12 @@ local t_mappings = {
     },
 }
 
-return t_mappings
+M.O = {
+    mode = "t",
+    prefix = nil,
+    buffer = nil,
+    silent = true,
+    nowait = true,
+}
+
+return M

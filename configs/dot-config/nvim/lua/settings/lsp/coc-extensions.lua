@@ -17,6 +17,7 @@ M.list = {
     ["frontend"] = {
         "coc-css",
         "coc-html",
+        "coc-svelte",
         -- "coc-prettier",
         -- "coc-stylelint",
         "coc-tsserver",
@@ -33,7 +34,7 @@ M.list = {
     },
 
     ["text_markdowns"] = {
-        -- "coc-yaml",
+        "coc-yaml",
         "coc-markdownlint",
         -- "coc-eslint",
         "coc-json",

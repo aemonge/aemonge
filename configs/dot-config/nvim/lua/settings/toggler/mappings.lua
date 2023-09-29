@@ -5,7 +5,7 @@ local _breakpoints = function()
     vim.cmd [[copen]]
 end
 
-table.insert(M, {
+M.M = {
     t = {
         name = "Toggler",
         e = { ":setlocal foldenable!<cr>", "Fold" },
@@ -16,6 +16,15 @@ table.insert(M, {
         b = { function() _breakpoints() end, "Toggle Breakpoints" },
         B = { "<cmd>lua require'dap'.clear_breakpoints()<CR>", "Clear Breakpoints" }
     }
-})
+}
 
-return M
+M.O = {
+    mode = "n",
+    prefix = "<leader>",
+    buffer = nil,
+    silent = true,
+    noremap = true,
+    nowait = true,
+}
+
+return M, O

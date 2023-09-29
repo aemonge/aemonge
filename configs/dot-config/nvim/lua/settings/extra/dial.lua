@@ -31,12 +31,13 @@ table.insert(M, {
             { "weight", "height" }, { "filter", "reject" }, { "disable", "enable" },
             { "const", "let",   "var" }, { "disabled", "enabled" }, { "internal", "external" },
             { "floor", "round", "ceil" }, { "subscribe", "unsubscribe" }, { "header", "body", "footer" },
-            { "protected", "private", "public" }, { "red", "blue", "green", "yellow" },
-            { "tiny",      "small",   "medium", "big", "huge" }, { "debug", "info", "warn", "error", "silent" },
-            { "x-short", "short",  "normal",  "medium",    "long",     "large",  "x-large" },
-            { "pico",    "nano",   "micro",   "mili",      "kilo",     "mega",   "giga",    "tera", "peta" },
-            { "sunday",  "monday", "tuesday", "wednesday", "thursday", "friday", "saturday" },
-            { "import",  "export" }, { "require", "provide" }, { "async", "await" },
+            { "protected", "private",     "public" }, { "red", "blue", "green", "yellow" },
+            { "tiny",      "extra-small", "small",   "medium",    "large",    "extra-large", "big",     "huge" },
+            { "debug",     "info",        "warn",    "error",     "silent" },
+            { "x-short",   "short",       "normal",  "medium",    "long",     "large",       "x-large" },
+            { "pico",      "nano",        "micro",   "mili",      "kilo",     "mega",        "giga",    "tera", "peta" },
+            { "sunday",    "monday",      "tuesday", "wednesday", "thursday", "friday",      "saturday" },
+            { "import",    "export" }, { "require", "provide" }, { "async", "await" },
             { "public",    "private", "protected" },
             { "front-end", "back-end" }, { "client", "server" },
             { "staging", "production", "development" },
@@ -54,7 +55,7 @@ table.insert(M, {
 
         -- Utility function to capitalize a string: true/false True/False TRUE/FALSE
         local function capitalize(s)
-            return s:sub(1,1):upper() .. s:sub(2):lower()
+            return s:sub(1, 1):upper() .. s:sub(2):lower()
         end
 
         local expanded_custom_augends = {}

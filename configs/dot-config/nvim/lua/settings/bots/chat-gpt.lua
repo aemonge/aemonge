@@ -85,14 +85,14 @@ table.insert(M, {
         })
 
         require("which-key").register({
-            g = { [[:ChatGPT<cr>]], "GTP"}
+            g = { [[:ChatGPT<cr>]], "GTP" }
         }, {
-          mode = {"n"},
-          prefix = "<leader>c",
-          buffer = nil,
-          silent = true,
-          noremap = true,
-          nowait = true,
+            mode = { "n" },
+            prefix = "<leader>c",
+            buffer = nil,
+            silent = true,
+            noremap = true,
+            nowait = true,
         })
     end,
 })

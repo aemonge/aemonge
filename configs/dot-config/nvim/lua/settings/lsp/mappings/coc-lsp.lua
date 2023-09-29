@@ -1,8 +1,10 @@
-local M = {}
+local wk = require("which-key")
 
-M.n = {
+wk.register({
     a = { "<CMD>lua _G.code_action_priority()<CR>", "Code actions" },
     f = { "<Plug>(coc-format)", "Format file" },
+
+    -- s = { "<cmd>:VenvSelect<cr>", "Select V-Environment" },
 
     ['.'] = { ":<C-u>CocList commands<cr>", "Show CoC Commands" },
     r = { ":CocRestart<CR>", "Restart CoC" },
@@ -10,9 +12,7 @@ M.n = {
     c = { ":CocLocalConfig<CR>", "Local Configuration" },
     l = { ":lua require('lazy').update({show = false})<CR>", "Lazy and CoC Update" },
     L = { ":Lazy<CR>", "Lazy" }
-}
-
-M.nOpts = {
+}, {
     mode = "n",
     prefix = "<leader>l",
     name = "LSP and COC actions",
@@ -20,14 +20,12 @@ M.nOpts = {
     silent = true,
     noremap = true,
     nowait = true,
-}
+})
 
-M.v = {
+wk.register({
     a = { "<CMD>lua _G.code_action_priority()<CR>", "Code actions" },
     f = { "<Plug>(coc-format-selected)", "Format" },
-}
-
-M.vOpts = {
+}, {
     mode = "v",
     prefix = "<leader>l",
     name = "LSP and COC actions",
@@ -35,6 +33,4 @@ M.vOpts = {
     silent = true,
     noremap = true,
     nowait = true,
-}
-
-return M
+})

@@ -50,20 +50,7 @@ table.insert(M, {
                 enable = false,
             },
         })
-
-        local wk = require("which-key")
-        wk.register({
-            ["lb"] = { ":Gitsigns blame_line<cr>", "Git blame" },
-        }, {
-            mode = "n",
-            prefix = "<leader>",
-            buffer = nil,
-            silent = true,
-            noremap = true,
-            nowait = true,
-        })
     end,
 })
 
--- Git signs can blame ! check if it can move me to the commit is self ;)
 return M

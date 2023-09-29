@@ -91,7 +91,13 @@ table.insert(M, {
                         ["?"] = actions.which_key,
                     },
                 },
-            },
+            }
+        })
+        require('telescope.builtin').buffers({
+            show_all_buffers = false,
+            ignore_current_buffer = true,
+            only_cwd = true,
+            sort_lastused = true
         })
 
         telescope.load_extension("zf-native")
@@ -99,31 +105,6 @@ table.insert(M, {
         telescope.load_extension("glyph")
         telescope.load_extension("ag")
         telescope.load_extension("undo")
-
-        require("which-key").register({
-            ["<c-p>"] = { ":Telescope find_files <cr>", "Files search in CWD" },
-            ["<c-n>"] = {
-                ":Telescope buffers sort_mru=1 ignore_current_buffer=1 initial_mode=insert <cr>",
-                "Buffer list",
-            },
-            ["<c-f>"] = { ":Telescope live_grep <cr>", "Grep on files in CWD" },
-            ["<leader>f"] = {
-                "Telescope",
-                a = { "<cmd>Telescope <CR>", "Built-in" },
-                h = { "<cmd>Telescope help_tags <CR>", "Help" },
-                u = { "<cmd>Telescope undo <CR>", "Undo" },
-                t = { "<cmd>Telescope tags <CR>", "Tags" },
-                e = { "<cmd>Telescope emoji <CR>", "Emoji" },
-                g = { "<cmd>Telescope glyph <CR>", "Glyph" },
-            },
-        }, {
-            mode = "n",
-            prefix = nil,
-            buffer = nil,
-            silent = true,
-            noremap = true,
-            nowait = true,
-        })
     end,
 })
 
@@ -138,7 +119,7 @@ vim.keymap.set(
     "v",
     "<c-f>",
     "y<esc>q:pITelescope grep_string search=<cr>",
-    mapping_opts
+    { buffer = nil, silent = true, noremap = true, nowait = true }
 )
 vim.cmd([[
   func! GetVisualSelection() abort

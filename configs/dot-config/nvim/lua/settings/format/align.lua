@@ -8,22 +8,6 @@ table.insert(M, {
         "languages",
         "frameworks",
     }),
-    config = function()
-        local wk = require("which-key")
-
-        wk.register({
-            a = { "<Plug>(EasyAlign)*", "Align" },
-            A = { "<Plug>(LiveEasyAlign)*", "Live Align (<c-p> to accept)" },
-        }, {
-            name = "Go to ...",
-            mode   = "v",
-            prefix = "g",
-            buffer = nil,
-            silent = true,
-            noremap = true,
-            nowait  = true,
-        })
-    end,
 })
 
 return M

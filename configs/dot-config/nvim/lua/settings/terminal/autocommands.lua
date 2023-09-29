@@ -44,7 +44,7 @@ vim.api.nvim_create_autocmd("TermClose", {
 
 vim.api.nvim_create_autocmd({ "TermOpen" }, {
     callback = function()
-        local bufname = vim.fn.bufname('%')
+        local bufname = vim.fn.bufname("%")
         vim.opt_local.title = true
         vim.opt_local.number = false
         vim.opt_local.relativenumber = false
@@ -54,13 +54,14 @@ vim.api.nvim_create_autocmd({ "TermOpen" }, {
         vim.opt_local.foldenable = false
         vim.opt_local.spell = false
         vim.opt_local.ruler = false
+        vim.opt_local.buflisted = false
         vim.cmd([[
             setlocal ft=terminal
             setlocal bufhidden=delete
         ]])
 
         -- Check if buffer name contains 'chatd'
-        if not bufname:match('chatd') then
+        if not bufname:match("chatd") then
             vim.cmd([[ au BufEnter <buffer> :startinsert ]])
         end
     end,

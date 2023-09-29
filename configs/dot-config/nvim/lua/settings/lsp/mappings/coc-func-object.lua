@@ -1,17 +1,13 @@
-local M = {}
+local wk = require("which-key")
 
-M.map = {
+wk.register({
     ["if"] = { "<Plug>(coc-funcobj-i)" },
     ["af"] = { "<Plug>(coc-funcobj-a)" },
     ["ic"] = { "<Plug>(coc-classobj-i)" },
     ["ac"] = { "<Plug>(coc-classobj-a)" }
-}
-
-M.opts = {
+}, {
+    mode = { "x", "o" },
     silent = true,
     nowait = true,
-    expr = true,
-    mode = { "x", "o" }
-}
-
-return M
+    expr = true
+})
