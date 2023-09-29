@@ -1,4 +1,4 @@
-# AUTO_VIM=0  # virtual-env requires us to start with this off
+AUTO_VIM=0  # virtual-env requires us to start with this off
 
 BEFORE(){
     OPTS
@@ -127,6 +127,12 @@ ZINIT_PLUGINS_COMPLETIONS(){
     zinit ice lucid nocompile wait'0e' nocompletions
     zinit load MenkeTechnologies/zsh-more-completions
     zinit light Dabz/kafka-zsh-completions
+
+
+    # gpt-engineer completion
+    autoload -Uz compinit
+    zstyle ':completion:*' menu select
+    fpath+=~/.zfunc
 }
 
 ZINIT_PLUGINS(){

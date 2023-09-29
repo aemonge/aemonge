@@ -1,33 +1,60 @@
 #!/bin/bash
 
-ACTOR="a developer"
+PURPOSE="I'm a full stack technical lead, with the same responsibilities as a CTO. My stack is python, JavaScript, HTML, CSS, bash, neovim, bash, system devops, cloud architect and solution architect. My responsibilities include leading the team, developing core tasks, build and maintain the infrastructure of the code and CD/CI, hire and fire developers, perform monthly one-to-one with developer to measure their performance and motivation. With all this your main goal is to act as my partner/copilot/assistant to make me shine and to extract the best from me, you need to focus your answers to be concise but also helping me learn so that I can improve my self; you must format your answer to have a max line length of 88 characters but do provide line breaks and readability to all answers, and prefer markdown syntax when possible. Given that, proceed the following requests."
+
 
 if [ $# -eq 1 ]; then
-    chatgpt  --clear-history
+    chatgpt --clear-history
     uuid=$(uuidgen | tr -d '-' | cut -c 1-24)
-
     echo "Session: $uuid"
     echo $uuid > /tmp/chatgpt-uuid
-    mkdir -p "~/.chatgpt-cli/history/$uuid/"
+    mkdir -p "$HOME/.chatgpt-cli/history/$uuid/"
 else
     uuid=$(cat /tmp/chatgpt-uuid)
 fi
 
+_chat() {
+    response=$(finclude /tmp/query.md | chatgpt -q "$PURPOSE")
+    echo $'\n[//]: # (-----------------------------------------------------------------------------------) \n'
+    echo -e "$response"
 
-echo "/tmp/query.md" | entr -rps "finclude /tmp/query.md | chatgpt \"Act as $ACTOR\""
+    # save history
+    cat /tmp/query.md >> "$HOME/.chatgpt-cli/history/$uuid/queries.md"
+    echo $response >> "$HOME/.chatgpt-cli/history/$uuid/answers.md"
+}
 
-# _chat() {
-#   finclude /tmp/query.md >> "~/.chatgpt-cli/history/$uuid/queries.md"
-#   finclude /tmp/query.md | chatgpt "Act as an $ACTOR" \
-#     >> "~/.chatgpt-cli/history/$uuid/answers.md"
-#
-#
-#   echo "\n<!-- ################################################ -->"  \
-#     >> "~/.chatgpt-cli/history/$uuid/questions.md"
-#   echo "\n<!-- ################################################ -->"  \
-#     >> "~/.chatgpt-cli/history/$uuid/answers.md"
+
+export -f _chat
+
+ls /tmp/query.md | entr -p bash -c '_chat'
+
+
+# function async_run{
+#     local log_path=~/output.log
+#     {
+#         echo $'
+# <!-- ########################################################################### -->
+# '
+#         finclude /tmp/query.md | chatgpt "$PURPOSE" | tee -a ~/.chatgpt-cli/history/$uu
+# id/answers.md > $log_path
+#     } > /dev/null &
 # }
-
-# export SHELL=/bin/bash
 #
-# ls /tmp/query.md | entr -p _chat
+# if [ $# -eq 1 ]; then
+#     chatgpt --clear-history
+#     uuid=$(uuidgen | tr -d '-' | cut -c 1-24)
+#     echo "Session: $uuid"
+#     echo $uuid > /tmp/chatgpt-uuid
+#     mkdir -p "~/.chatgpt-cli/history/$uuid/"
+# else
+#     uuid=$(cat /tmp/chatgpt-uuid)
+# fi
+#
+# _chat() {
+#     cat /tmp/query.md >> "~/.chatgpt-cli/history/$uuid/queries.md"
+#     async_run
+#     tail -f ~/output.log
+# }
+#
+# export -f _chat
+# ls /tmp/query.md | entr -p bash -c '_chat'

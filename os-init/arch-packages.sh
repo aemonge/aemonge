@@ -48,6 +48,7 @@ _dev_extra() {
 
 _user_extra() {
     echo "Installing user packages..."
+    sudo pacman -S --noconfirm --needed  hunspell-es_es languagetool
     sudo aura -A --noconfirm --needed kde-servicemenus-clamtkscan clamav-desktop-bin kdepim kdepim-addons
     sudo aura -A --noconfirm --needed telegram-desktop-bin
     sudo aura -A --noconfirm --needed --skippgpcheck spotify clementine kmail
