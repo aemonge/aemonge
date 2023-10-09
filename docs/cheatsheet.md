@@ -418,6 +418,45 @@ General dependencies
 pikaur -S mongosh-bin
 ```
 
+## Set a field all to lowercase
+
+```mongo
+db.collectionName.find({}).forEach(function(doc) {
+    db.collectionName.updateOne(
+        { "_id": doc._id },
+        { "$set": { "alias": doc.alias.toLowerCase() } }
+    );
+});
+```
+
+## Import from CSV
+
+```bash
+mongoimport --type csv -d helios -c utilities -f "name,alias,featured,states,zip_codes" --file ~/downloads/utilit ies\ reviewed.csv
+```
+
+And a phew extras might be usefull
+
+```python
+from pymongo import MongoClient
+
+client = MongoClient("mongodb://localhost:27017/")
+db = client["helios"]
+collection = db["utilities"]
+
+utilities = collection.find()
+for utility in utilities:
+    # update 'featured' field
+    utility["featured"] = True if utility["featured"] == "TRUE" else False
+
+    # update 'states' and 'zip_codes' fields
+    utility["states"] = [utility["states"]]
+    utility["zip_codes"] = utility["zip_codes"].split(" ")
+
+    # save the changes back to the collection
+    db.utilities.replace_one({"_id": utility["_id"]}, utility)
+```
+
 ## Admin create user specific to a database
 
 ```python

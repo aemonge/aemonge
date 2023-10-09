@@ -1,4 +1,5 @@
 {
+    // YAML
     "yaml.format.enable": true,
     // Bash
     "sh.enable": true,
@@ -9,16 +10,16 @@
         },
         "MD030": false
     },
-    // PYTHON SETTINGS AND EXTENSIONS
-    // Python linting: flake8:
-    //    flake8-quotes, pep8-naming, flake8-picky-parentheses, flake8-docstrings
+    // Python
+    "pyright.enable": true,
     "python.linting.enabled": true,
     "python.linting.flake8Enabled": true,
-    // Python type checking: pyright (or mypy, but pyright integrates better)
-    "pyright.enable": true,
-    "python.venvPath": "~/.conda/envs/",
-    // Security checks
     "python.linting.banditEnabled": true,
+    "python.linting.pycodestyleEnabled": false,
+    "python.linting.pyflakesEnabled": false,
+    "python.linting.pytypeEnabled": true,
+    "python.formatting.provider": "black",
+    "python.venvPath": "~/.conda/envs/",
     // NAVIGATION & UI
     "tree.key.selectNext": "<c-n>",
     "tree.key.selectPrevious": "<c-p>",
@@ -65,6 +66,7 @@
         "rounded": true
     },
     "coc.preferences.formatOnSave": true,
+    // Diagnostic
     "diagnostic.format": "(%source:%code) %message.",
     "diagnostic-languageserver.mergeConfig": true,
     "diagnostic-languageserver.filetypes": {
@@ -75,11 +77,6 @@
         ]
     },
     "diagnostic-languageserver.linters": {
-        "python": [
-            "flake8",
-            "pyright",
-            "bandit"
-        ],
         "vim": "vint",
         "text": "languagetool",
         "email": "languagetool",
@@ -107,16 +104,6 @@
             "docformatter"
         ],
         "lua": "stylua",
-        // "sh": [
-        // "shfmt",
-        // "beautysh",
-        // "shellharden"
-        // ],
-        // "bash": [
-        // "shfmt",
-        // "beautysh",
-        // "shellharden"
-        // ],
         "markdown": [
             "prettierd",
             "markdownlint",
@@ -146,62 +133,6 @@
     "tabnine.shortcut": "ﮧ",
     "snippets.priority": 90,
     "coc.source.file.priority": 10,
-    // LANGUAGE & SPELL
-    // "cSpell.import": ["@cspell/dict-es-es/cspell-ext.json"],
-    // "cSpell.dictionaries": [
-    // "es_US",
-    // "softwareTerms",
-    // "companies",
-    // "python",
-    // "html",
-    // "css",
-    // // "bash",
-    // "latex",
-    // "node",
-    // "filetypes"
-    // ],
-    // "cSpell.language": "en,es",
-    // "cSpell.enabledLanguageIds": [
-    // "es_es",
-    // "asciidoc",
-    // "c",
-    // "cpp",
-    // "csharp",
-    // "css",
-    // "es",
-    // "git-commit",
-    // "gitcommit",
-    // "go",
-    // "handlebars",
-    // "haskell",
-    // "html",
-    // "jade",
-    // "java",
-    // "javascript",
-    // "javascriptreact",
-    // "json",
-    // "jsonc",
-    // "latex",
-    // "less",
-    // "markdown",
-    // "php",
-    // "plaintext",
-    // "pug",
-    // "python",
-    // "restructuredtext",
-    // "rust",
-    // "scala",
-    // "scss",
-    // "text",
-    // "typescript",
-    // "typescriptreact",
-    // "vim",
-    // "yaml",
-    // "yml"
-    // ],
-    // "cSpell.logLevel": "Error",
-    // "cSpell.showStatus": false,
-    // "cSpell.includeRegExpList": ["/from\\s+(['\"]).*\\1/"],
     // LANGUAGESERVER
     "languageserver": {
         "sourcery": {

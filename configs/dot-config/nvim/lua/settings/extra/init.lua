@@ -9,8 +9,8 @@ table.insert(M, glow)
 local ghost = require("settings.extra.ghost")
 table.insert(M, ghost)
 
--- local swenv = require("settings.extra.swenv")
--- table.insert(M, swenv)
+local swenv = require("settings.extra.swenv")
+table.insert(M, swenv)
 
 -- local venv = require("settings.extra.venv")
 -- table.insert(M, venv)

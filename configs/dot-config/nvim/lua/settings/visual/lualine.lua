@@ -69,10 +69,13 @@ local M = {
                     -- { "g:coc_status" },
                     { "filename", path = 1, shorting_target = 80 },
                 },
-                lualine_x = { "location", { 'g:coc_status', 'bo:filetype' } },
+                lualine_x = {
+                    "location",
+                    { 'g:coc_status', 'bo:filetype' },
+                    { "swenv", icon = "" }
+                },
                 lualine_y = {
                     diagnostics,
-                    -- { "swenv", icon = "" }
                 },
                 lualine_z = { 'os.date("%I:%M:%S", os.time())' },
             },

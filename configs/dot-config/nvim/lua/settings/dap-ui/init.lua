@@ -1,5 +1,8 @@
 local M = {}
 
+local cache = {}
+
+
 table.insert(M, {
     "rcarriga/nvim-dap-ui",
     ft = require("file-types")({
@@ -10,22 +13,47 @@ table.insert(M, {
     },
     config = function()
         local dap = require("dap")
-        dap.adapters.python = function(cb)
-            cb({
-                type = "server",
-                port = "5678",
-                host = "127.0.0.1",
-                options = {
-                    source_filetype = "python",
-                },
-            })
+        local F = require("settings.dap-ui.helpers")
+        local adapter_python_path = adapter_python_path and vim.fn.expand(vim.fn.trim(adapter_python_path), true) or
+            'python3'
+        dap.adapters.python = function(cb, config)
+            if config.request == 'attach' then
+                cb({
+                    type = "server",
+                    port = "5678",
+                    host = "127.0.0.1",
+                    options = {
+                        source_filetype = "python",
+                    }
+                })
+            else
+                cb({
+                    type = 'executable',
+                    command = adapter_python_path,
+                    args = { '-m', 'debugpy.adapter' },
+                    options = {
+                        source_filetype = 'python',
+                    }
+                })
+            end
         end
 
         dap.configurations.python = {
             {
                 type = "python",
                 request = "attach",
+                name = 'Server at 127.0.0.1:5678',
             },
+            {
+                type = 'python',
+                request = 'launch',
+                name = 'File',
+                program = '${file}',
+                args = function()
+                    -- TODO: Wait for this file to be saved here
+                    return F.openBufferAndReturnArgs(vim.fn.expand("%:t"))
+                end
+            }
         }
 
 

@@ -1,3 +1,4 @@
 name: openai
 model: gpt-4-0613
 url: https://api.openai.com
+role: you only reply with code

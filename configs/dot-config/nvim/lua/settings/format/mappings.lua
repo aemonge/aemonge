@@ -1,6 +1,5 @@
 local M = {}
 
-
 M.M = {
     g = {
         name = "Go to",
@@ -9,12 +8,12 @@ M.M = {
     },
 
     ["<leader>"] = {
-        ["/"] = { "<Plug>(comment_toggle_linewise_current)<cr>", "Comment" },
+        ["/"] = { "<Plug>(comment_toggle_linewise)<cr>", "Comment" },
     }
 }
 
 M.O = {
-    mode = { "v", "n" },
+    mode = "n",
     prefix = nil,
     buffer = nil,
     silent = true,

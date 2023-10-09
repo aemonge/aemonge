@@ -7,8 +7,8 @@ M.M = {
         "Buffer list",
     },
     ["<c-f>"] = { ":Telescope live_grep <cr>", "Grep on files in CWD" },
-    ["<leader>f"] = {
-        "Telescope",
+    ["<leader>s"] = {
+        "Search",
         a = { "<cmd>Telescope <CR>", "Built-in" },
         h = { "<cmd>Telescope help_tags <CR>", "Help" },
         u = { "<cmd>Telescope undo <CR>", "Undo" },
