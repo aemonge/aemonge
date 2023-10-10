@@ -5,7 +5,33 @@ table.insert(M, {
     dependencies = "nvim-tree/nvim-web-devicons",
     config = function()
         require("bufferline").setup({
+            highlights = {
+                fill = {
+                    bg = "#4F596E",
+                },
+                background = {
+                    bg = "#353C4A",
+                },
+                tab_selected = {
+                    bg = "#353C4A",
+                },
+                close_button = {
+                    bg = "#353C4A",
+                },
+                separator = {
+                    bg = "#353C4A",
+                },
+            },
             options = {
+                custom_areas = {
+                    right = function()
+                        local result = {}
+                        table.insert(result, {
+                            text = ' ' .. '  ' .. os.date('%H:%M') .. ' ', guifg = "#EC5241"
+                        })
+                        return result
+                    end,
+                },
                 mode = "tabs",
                 sort_by = "tabs",
                 numbers = "none",              -- | "ordinal" | "buffer_id" | "both" | function({ ordinal, id, lower, raise }): string,
@@ -33,8 +59,8 @@ table.insert(M, {
                 offsets = { { filetype = "NvimTree", text = "", padding = 1 } },
                 show_buffer_icons = false,
                 show_buffer_close_icons = true,
-                show_close_icon = true,
-                show_tab_indicators = true,
+                show_close_icon = false,
+                show_tab_indicators = false,
                 persist_buffer_sort = true, -- whether or not custom sorted buffers should persist
                 separator_style = "thin",   -- | "thick" | "thin" | { 'any', 'any' },
                 enforce_regular_tabs = true,

@@ -12,7 +12,7 @@ Parent=FALLBACK/
 StartInCurrentSessionDir=false
 TerminalCenter=true
 TerminalColumns=180
-TerminalRows=35
+TerminalRows=45
 
 [Scrolling]
 HighlightScrolledLines=false

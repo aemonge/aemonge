@@ -127,7 +127,8 @@ ZINIT_PLUGINS_COMPLETIONS(){
     zinit ice lucid nocompile wait'0e' nocompletions
     zinit load MenkeTechnologies/zsh-more-completions
     zinit light Dabz/kafka-zsh-completions
-
+    zinit light sbodiu-pivotal/fly-zsh-autocomplete-plugin
+    zinit light greymd/docker-zsh-completion
 
     # gpt-engineer completion
     autoload -Uz compinit

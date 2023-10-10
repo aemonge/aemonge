@@ -8,7 +8,7 @@ M.M = {
     },
 
     ["<leader>"] = {
-        ["/"] = { "<Plug>(comment_toggle_linewise)<cr>", "Comment" },
+        ["/"] = { "<Plug>(comment_toggle_linewise_current)<cr>", "Comment" },
     }
 }
 

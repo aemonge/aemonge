@@ -21,7 +21,7 @@ table.insert(M, {
             ["/"] = { "<Plug>(comment_toggle_linewise_visual)<cr>", "Comment" },
         }, {
             mode = "v",
-            prefix = "leader",
+            prefix = "<leader>",
             buffer = nil,
             silent = true,
             noremap = true,

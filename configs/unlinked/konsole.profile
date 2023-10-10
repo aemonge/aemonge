@@ -11,8 +11,8 @@ Name=konsole
 Parent=FALLBACK/
 StartInCurrentSessionDir=false
 TerminalCenter=true
-TerminalColumns=115
-TerminalRows=28
+TerminalColumns=165
+TerminalRows=40
 
 [Scrolling]
 HighlightScrolledLines=false

@@ -6,7 +6,7 @@ local venv = {
         if vim.bo.filetype == "python" then
             local venv = os.getenv("CONDA_DEFAULT_ENV")
                 or os.getenv("VIRTUAL_ENV")
-            if venv then
+            if venv and venv ~= "base" then
                 local icons = require("nvim-web-devicons")
                 local py_icon, _ = icons.get_icon(".py")
                 return string.format(
@@ -51,15 +51,20 @@ local M = {
     "nvim-lualine/lualine.nvim",
     config = function()
         local disabled_filetypes, disabled_buftypes = require("settings.visual.raw-types")
+        local material_theme = require("lualine.themes.material")
+
+        material_theme.normal.c = { fg = '#CCCECF', bg = '#4F596E' }
+        material_theme.normal.x = { fg = '#CCCECF', bg = '#2E3C43' }
+
         require("lualine").setup({
             options = {
                 icons_enabled = true,
-                theme = "material",
+                theme = material_theme,
                 component_separators = { left = "", right = "" },
                 section_separators = { left = "", right = "" },
                 disabled_filetypes = disabled_filetypes,
                 disabled_buftypes = disabled_buftypes,
-                always_divide_middle = true,
+                always_divide_middle = false,
             },
             sections = {
                 lualine_a = { branch },
@@ -67,23 +72,31 @@ local M = {
                 lualine_c = {
                     { "nvim-tree" },
                     -- { "g:coc_status" },
-                    { "filename", path = 1, shorting_target = 80 },
+                    {
+                        "filename",
+                        path = 1,
+                        shorting_target = 80,
+                    },
                 },
                 lualine_x = {
-                    "location",
+                    { "location" },
                     { 'g:coc_status', 'bo:filetype' },
-                    { "swenv", icon = "" }
                 },
                 lualine_y = {
                     diagnostics,
                 },
-                lualine_z = { 'os.date("%I:%M:%S", os.time())' },
+                lualine_z = { { "swenv", icon = "", color = { fg = '#3B4252', bg = '#7E98BA' } } }
+                -- lualine_z = { 'os.date("%I:%M:%S", os.time())' },
             },
             inactive_sections = {
                 lualine_a = { branch },
                 lualine_b = {},
                 lualine_c = {
-                    { "filename", path = 1, shorting_target = 80 },
+                    {
+                        "filename",
+                        path = 1,
+                        shorting_target = 80,
+                    },
                 },
                 lualine_x = {},
                 lualine_y = { filetype },

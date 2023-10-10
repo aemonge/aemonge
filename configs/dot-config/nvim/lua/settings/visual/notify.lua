@@ -8,7 +8,7 @@ table.insert(M, {
             background_colour = "#000000",
             max_width = 70,
             stages = "slide",
-            timeout = 2000,
+            timeout = 7500,
             top_down = false,
         })
         vim.notify = require("notify")
