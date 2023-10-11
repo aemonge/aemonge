@@ -1,4 +1,4 @@
-AUTO_VIM=1  # virtual-env requires us to start with this off
+# AUTO_VIM=0
 
 BEFORE(){
     OPTS
@@ -146,6 +146,10 @@ ZINIT_PLUGINS(){
     # zinit load zdharma-continuum/history-search-multi-word
     zinit ice wait lucid # Turbo mode is verbose, so you need an option for quiet.
     zinit light zsh-users/zsh-completions
+
+    zinit light Tarrasch/zsh-autoenv
+    # https://github.com/Tarrasch/zsh-autoenv
+    # By default it uses .autoenv.zsh for entering, and .autoenv_leave.zsh for leaving.
 
     zinit light zdharma-continuum/fast-syntax-highlighting
     zinit snippet OMZP::dotenv

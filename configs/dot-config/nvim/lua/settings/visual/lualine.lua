@@ -53,53 +53,62 @@ local M = {
         local disabled_filetypes, disabled_buftypes = require("settings.visual.raw-types")
         local material_theme = require("lualine.themes.material")
 
-        material_theme.normal.c = { fg = '#CCCECF', bg = '#4F596E' }
-        material_theme.normal.x = { fg = '#CCCECF', bg = '#2E3C43' }
+        local theme = {
+            normal = {
+                a = { fg = '#CCCECF', bg = '#2E3C43' },
+                b = material_theme.normal.a,
+                c = { fg = '#CCCECF', bg = '#4F596E' },
+                x = { fg = '#CCCECF', bg = '#2E3C43' },
+                y = { fg = '#CCCECF', bg = '#4F596E' },
+                z = material_theme.normal.z
+            },
+            inactive = {
+                a = { fg = '#CCCECF', bg = '#353C4A' },
+                c = { fg = '#CCCECF', bg = '#353C4A' },
+                y = { fg = '#CCCECF', bg = '#353C4A' },
+            }
+        }
 
         require("lualine").setup({
             options = {
                 icons_enabled = true,
-                theme = material_theme,
+                theme = theme,
                 component_separators = { left = "", right = "" },
                 section_separators = { left = "", right = "" },
                 disabled_filetypes = disabled_filetypes,
                 disabled_buftypes = disabled_buftypes,
-                always_divide_middle = false,
             },
             sections = {
-                lualine_a = { branch },
-                lualine_b = { diff },
+                lualine_a = { diff },
+                lualine_b = { branch },
                 lualine_c = {
                     { "nvim-tree" },
-                    -- { "g:coc_status" },
-                    {
-                        "filename",
-                        path = 1,
-                        shorting_target = 80,
-                    },
+                    { "filename", path = 0 },
                 },
                 lualine_x = {
-                    { "location" },
-                    { 'g:coc_status', 'bo:filetype' },
+                    "searchcount",
                 },
                 lualine_y = {
                     diagnostics,
+                    { 'g:coc_status', 'bo:filetype' },
                 },
-                lualine_z = { { "swenv", icon = "", color = { fg = '#3B4252', bg = '#7E98BA' } } }
-                -- lualine_z = { 'os.date("%I:%M:%S", os.time())' },
+                lualine_z = {
+                    {
+                        "swenv",
+                        icon = "",
+                        color = { fg = '#3B4252', bg = '#7E98BA' }
+                    }
+                }
             },
             inactive_sections = {
-                lualine_a = { branch },
+                lualine_a = { diff },
                 lualine_b = {},
-                lualine_c = {
-                    {
-                        "filename",
-                        path = 1,
-                        shorting_target = 80,
-                    },
-                },
+                lualine_c = { { "filename", path = 1 } },
                 lualine_x = {},
-                lualine_y = { filetype },
+                lualine_y = {
+                    diagnostics,
+                    { 'g:coc_status', 'bo:filetype' },
+                },
                 lualine_z = {},
             }
         })

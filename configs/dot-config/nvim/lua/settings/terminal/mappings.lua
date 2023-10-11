@@ -6,17 +6,19 @@ local M = {}
 
 M.M = {
     ["<ESC><ESC>"] = { t("<C-\\><C-N>"), "Go to normal mode" },
-    ["<c-h>"] = { t("<C-\\><C-n><c-w>h"), "Go right" },
+    ["<ESC>h"] = { t("<C-\\><C-N>"), "Go to normal mode" },
+
+    ["<c-h>"] = { t("<C-\\><C-n><c-w>hi"), "Go right" },
     ["<c-l>"] = {
-        [""] = { t("<C-\\><C-n><c-w>l"), "Go left" },
+        [""] = { t("<C-\\><C-n><c-w>li"), "Go left" },
         ["<c-l>"] = { [[<C-\><C-N>:lua ClearTerm()<CR>]], "Send clear" },
     },
     ["<c-k>"] = {
-        [""] = { t("<C-\\><C-n><c-w>k"), "Go up" },
+        [""] = { t("<C-\\><C-n><c-w>ki"), "Go up" },
         ["<c-k>"] = { t("<C-\\><C-n>gt<cr>"), "Next tab" },
     },
     ["<c-j>"] = {
-        [""] = { t("<C-\\><C-n><c-w>j"), "Go down" },
+        [""] = { t("<C-\\><C-n><c-w>ji"), "Go down" },
         ["<c-j>"] = { t("<C-\\><C-n>gT<cr>"), "Previous tab" },
     },
     ["<c-t>"] = { t("<C-\\><C-n>:lua NewTermTab()<cr>"), "New term tab" },

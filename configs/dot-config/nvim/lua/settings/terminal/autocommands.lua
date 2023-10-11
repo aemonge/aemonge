@@ -11,35 +11,33 @@ vim.api.nvim_create_autocmd("TermLeave", {
         if pcall(require, "tint") then
             require("tint").untint(vim.api.nvim_get_current_win())
         end
-        vim.cmd("set laststatus=2")
+        vim.api.nvim_set_option('laststatus', 2)
     end,
 })
 
 vim.api.nvim_create_autocmd("TermEnter", {
     callback = function()
-        vim.cmd("set laststatus=0")
-    end,
-})
-
-vim.api.nvim_create_autocmd("TermEnter", {
-    callback = function()
-        -- NOTE: when only the term tab remains, clear all.
-        --       To give the impression of closing vim.
+        -- NOTE: when only the term tab remains, clear all. To give the impression of closing vim.
         if vim.fn.tabpagenr("$") == 1 then
             vim.cmd([[silent! BWipeout! hidden]])
         end
     end,
 })
 
-vim.api.nvim_create_autocmd("TermClose", {
+vim.cmd([[autocmd TermClose * if !v:event.status | exe 'silent! bdelete! '..expand('<abuf>') | endif]])
+
+
+-- Close terminal buffer if exit 0; and close the unnamed unlisted buffer to exit all
+vim.api.nvim_create_autocmd({ "TermClose" }, {
     callback = function()
-        local listed_buffers = vim.fn.getbufinfo({ buflisted = 1 })
-        if #listed_buffers == 1 then
-            vim.cmd("qall")
-        else
-            vim.cmd("q")
+        if not vim.v.event.status then
+            vim.api.nvim_buf_delete(tonumber(vim.fn.expand('<abuf>')), { force = true })
         end
-    end,
+
+        if vim.fn.bufname('%') == '' then
+            vim.api.nvim_command('q')
+        end
+    end
 })
 
 vim.api.nvim_create_autocmd({ "TermOpen" }, {
@@ -55,14 +53,20 @@ vim.api.nvim_create_autocmd({ "TermOpen" }, {
         vim.opt_local.spell = false
         vim.opt_local.ruler = false
         vim.opt_local.buflisted = false
-        vim.cmd([[
-            setlocal ft=terminal
-            setlocal bufhidden=delete
-        ]])
+        vim.opt_local.bufhidden = "wipe"
+        vim.opt_local.laststatus = 0
+        vim.cmd([[ setlocal ft=terminal ]])
 
         -- Check if buffer name contains 'chatd'
         if not bufname:match("chatd") then
             vim.cmd([[ au BufEnter <buffer> :startinsert ]])
         end
     end,
+})
+
+vim.api.nvim_create_autocmd({ "BufEnter" }, {
+    pattern = "term://*",
+    callback = function()
+        vim.api.nvim_set_option('laststatus', 0)
+    end
 })

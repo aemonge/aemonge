@@ -11,7 +11,7 @@ table.insert(M, {
             -- end,
             -- post_set_venv = vim.cmd [[":CocRestart<CR>"]]
             post_set_venv = function()
-                vim.cmd [[":CocRestart<CR>"]]
+                vim.cmd.CocRestart()
             end
         })
     end
