@@ -18,7 +18,7 @@ M.list = {
         "coc-css",
         "coc-html",
         "coc-svelte",
-        -- "coc-prettier",
+        "coc-prettier",
         -- "coc-stylelint",
         "coc-tsserver",
     },
@@ -30,7 +30,7 @@ M.list = {
     ["devops"] = {
         "coc-sh",
         "coc-docker",
-        -- "@yaegassy/coc-nginx",
+        "@yaegassy/coc-nginx",
     },
 
     ["text_markdowns"] = {
@@ -50,7 +50,9 @@ M.list = {
         -- "coc-spell-checker",
         -- "coc-cspell-dicts",
         "coc-diagnostic",
-        -- "coc-vimlsp",
+        -- "coc-lightbulb",
+        "coc-vimlsp",
+        "coc-marketplace"
     },
 }
 

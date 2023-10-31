@@ -9,3 +9,7 @@ deck ALL=(root) NOPASSWD: /usr/bin/cp /home/deck/usr/configs/system/etc_sudoers.
 deck ALL=(root) NOPASSWD: /usr/bin/cp /home/deck/usr/configs/system/etc_sudoers.d/91-docker /etc/sudoers.d/91-docker
 
 deck ALL=(root) NOPASSWD: /usr/bin/cp /home/deck/usr/configs/system/etc_sudoers.d/92-steamos /etc/sudoers.d/92-steamos
+
+deck ALL=(root) NOPASSWD: /usr/bin/cp /home/deck/usr/configs/system/etc_sudoers.d/00-sudo /etc/sudoers.d/00-sudo
+
+deck ALL=(root) NOPASSWD: /usr/bin/cp /home/deck/usr/configs/system/etc_sudoers /etc/sudoers

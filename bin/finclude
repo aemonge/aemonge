@@ -9,60 +9,66 @@ Usage:
 python finclude.py <input_file>
 """
 
+import os
 import re
 import sys
-import os
+
 
 def replace_include_tags(input_file: str) -> None:
     """Replace include tags."""
-    with open(input_file, 'r') as f:
+    with open(input_file, "r") as f:
         content = f.readlines()
 
-    include_pattern = r'( *)(<!-- include: .* -->)'
+    include_pattern = r"([^ ]*)(<!-- *include: *[^ ]* *-->)"
     code_marker_ext = {
-        'py': 'python',
-        'js': 'javascript',
-        'txt': '',
-        'html':'html',
-        'css':'css',
-        'json':'json',
-        'java':'java',
-        'c': 'c',
-        'cpp': 'cpp',
-        'go':'go',
-        'rs':'rust',
-        'php':'php',
-        'rb':'ruby',
-        'swift':'swift',
-        'sh':'bash',
-        'sql':'sql',
-        'yml':'yaml',
-        'xml':'xml'
+        "py": "python",
+        "js": "javascript",
+        "txt": "",
+        "html": "html",
+        "css": "css",
+        "json": "json",
+        "java": "java",
+        "c": "c",
+        "cpp": "cpp",
+        "go": "go",
+        "rs": "rust",
+        "php": "php",
+        "rb": "ruby",
+        "swift": "swift",
+        "sh": "bash",
+        "sql": "sql",
+        "yml": "yaml",
+        "xml": "xml",
     }
 
     for i, line in enumerate(content):
-        if (match := re.search(include_pattern, line)):
+        if match := re.search(include_pattern, line):
             padding = match[1]
             include_tag = match[2]
-            file_name  = include_tag.strip().replace('<!-- include: ', '').replace(' -->', '')
+            file_name = re.search(
+                r"(?P<file_name>^.*?)<!--\s*include:\s*(?P<path>.*?)\s*-->", include_tag
+            ).group("path")
             include_file = os.path.expanduser(file_name)
-            filetype = ''
+            filetype = ""
 
             try:
-                with open(include_file, 'r') as f:
+                with open(include_file, "r") as f:
                     include_content = f.readlines()
 
                 # Detecting filetype
-                extension = include_file.split('.')[-1]
-                filetype = code_marker_ext.get(extension, '')
+                extension = include_file.split(".")[-1]
+                filetype = code_marker_ext.get(extension, "")
             except FileNotFoundError:
-                include_content = ['<!-- include file not found -->']
+                include_content = ["<!-- include file not found -->"]
 
             code_block = [f"{padding}*{file_name}*:\n\n"]
-            code_block += [f"{padding}```{filetype}\n"] + include_content + [f"{padding}```\n"]
-            content[i] = ''.join(code_block)
+            code_block += (
+                [f"{padding}```{filetype}\n"] + include_content + [f"{padding}```\n"]
+            )
+            content[i] = "".join(code_block)
 
-    sys.stdout.write(''.join(content))
+    sys.stdout.write("".join(content))
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

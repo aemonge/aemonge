@@ -19,7 +19,7 @@ done <<< "$SCREEN_STATUS"
 
 if [ $CONNECTED -ge 1 ]; then
   # KDE Will be first, sleep 3s make us second
-  sleep 3s && xrandr --output eDP --scale 0.6
+  sleep 2s && xrandr --output eDP --scale 0.6
 else
   echo "Listed $CONNECTED with $SCREEN_STATUS"
 fi

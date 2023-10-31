@@ -1,20 +1,22 @@
-local mappings, options = {}, {}
-local chat_ui = require("settings.bots.chatgpt-miu")
+local M = {}
 
-table.insert(mappings, {
+M.M = {
     name = "AI Tools",
-    t = { require("tabnine.chat").open, "Tabnine chat" },
-    m = { function() chat_ui(1) end, "My ChatGPT" },
-    n = { ":NeoAIToggle<cr>", "NeoAI" },
-    N = { ":NeoAIContext<cr>", "NeoAI with context" }
-})
-table.insert(options, {
-    mode = { "n" },
-    prefix = "<leader>i",
+    i = {
+        t = { require("tabnine.chat").open, "Tabnine chat" },
+        m = { function() require("settings.bots.chatgpt-miu")(1) end, "My ChatGPT" },
+        n = { ":NeoAIToggle<cr>", "NeoAI" },
+        N = { ":NeoAIContext<cr>", "NeoAI with context" }
+    }
+}
+
+M.O = {
+    mode = { "n", "v" },
+    prefix = "<leader>",
     buffer = nil,
     silent = true,
     noremap = true,
     nowait = true,
-})
+}
 
-return mappings, options
+return M

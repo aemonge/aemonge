@@ -10,8 +10,9 @@ wk.register({
     r = { ":CocRestart<CR>", "Restart CoC" },
     C = { ":CocConfig<CR>", "Configuration" },
     c = { ":CocLocalConfig<CR>", "Local Configuration" },
-    l = { ":lua require('lazy').update({show = false})<CR>", "Lazy and CoC Update" },
-    L = { ":Lazy<CR>", "Lazy" }
+    L = { ":lua require('lazy').update({show = false})<CR>", "Lazy and CoC Update" },
+    l = { ":Lazy<CR>", "Lazy" },
+    m = { ":CocList marketplace<cr>", "Coc Marketplace" }
 }, {
     mode = "n",
     prefix = "<leader>l",

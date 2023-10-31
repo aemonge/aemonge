@@ -93,6 +93,10 @@
         ],
         "yaml": [
             "yamllint"
+        ],
+        "sh": "shellcheck",
+        "bash": [
+            ""
         ]
     },
     "diagnostic-languageserver.formatFiletypes": {
@@ -113,7 +117,8 @@
             "yamlfmt",
             "yamlfix",
             "prettier"
-        ]
+        ],
+        "sh": "shfmt",
     },
     // NAVIGATION & UI (Suggestions)
     "suggest.virtualText": true,
@@ -154,6 +159,15 @@
                     "metricsEnabled": true
                 }
             }
+        },
+        "bash": {
+            "command": "bash-language-server",
+            "args": [
+                "start"
+            ],
+            "filetypes": [
+                "sh"
+            ]
         }
     },
     "svelte.enable-ts-plugin": true

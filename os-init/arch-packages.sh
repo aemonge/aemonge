@@ -40,6 +40,7 @@ _dev_extra() {
     sudo pacman -S --needed --noconfirm firefox-developer-edition python-pip zsh xclip
     sudo pacman -S --needed --noconfirm the_silver_searcher entr neovim tig flameshot
     sudo pacman -S --needed --noconfirm glow onboard nodejs npm docker fzf rustup yakuake
+    sudo pacman -S --needed --noconfirm shellcheck
 
     sudo npm i -g npm yarn
     sudo aura -A --noconfirm --needed firefox-pwa konsave neovim-remote
@@ -48,9 +49,11 @@ _dev_extra() {
 
 _user_extra() {
     echo "Installing user packages..."
-    sudo pacman -S --noconfirm --needed  hunspell-es_es languagetool qt5-imageformats
+    sudo pacman -S --noconfirm --needed hunspell-es_es languagetool qt5-imageformats
+    sudo pacman -S --noconfirm --needed qt6-base qt6-declarative qt6-tools qt6-webview qt6-webengine
+    sudo pacman -S --noconfirm --needed libsecret libcap wireguard-tools
     sudo aura -A --noconfirm --needed kde-servicemenus-clamtkscan clamav-desktop-bin kdepim kdepim-addons
-    sudo aura -A --noconfirm --needed telegram-desktop-bin
+    sudo aura -A --noconfirm --needed telegram-desktop-bin mozillavpn
     sudo aura -A --noconfirm --needed --skippgpcheck spotify clementine kmail
     sudo aura -A --noconfirm --needed slack-desktop
     echo "User packages installed successfully."

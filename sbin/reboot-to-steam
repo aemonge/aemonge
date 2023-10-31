@@ -1,0 +1,3 @@
+#!/bin/bash
+
+sudo cp /home/deck/usr/configs/system/etc_sddm.conf.d/steam.conf /etc/sddm.conf.d/zz-steamos-autologin.conf && reboot

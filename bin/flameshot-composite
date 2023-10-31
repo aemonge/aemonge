@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# Toggling compositing
+qdbus org.kde.KWin /Compositor suspend
+
+# Run flameshot and resume compositing
+flameshot gui && qdbus org.kde.KWin /Compositor resume

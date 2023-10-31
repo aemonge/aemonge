@@ -81,9 +81,9 @@ table.insert(M, {
             )
 
             -- File navigation
-            vim.keymap.set('n', '/',
-                api.tree.search_node, opts('Search')
-            )
+            -- vim.keymap.set('n', '/',
+            --     api.tree.search_node, opts('Search')
+            -- )
             vim.keymap.set('n', 'o',
                 api.node.open.edit, opts('Open')
             )

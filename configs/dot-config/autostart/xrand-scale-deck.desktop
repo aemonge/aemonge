@@ -1,7 +1,0 @@
-[Desktop Entry]
-Exec=/sbin/xrand-scale-deck
-Icon=dialog-scripts
-Name=xrand-scale-deck
-Path=
-Type=Application
-X-KDE-AutostartScript=true

@@ -1,3 +1,16 @@
+local function search_count()
+    if vim.api.nvim_get_vvar("hlsearch") == 1 then
+        local res = vim.fn.searchcount({ maxcount = 999, timeout = 500 })
+
+        if res.total > 0 then
+            return string.format("%d/%d", res.current, res.total)
+        end
+    end
+
+    return ""
+end
+
+
 local venv = {
     "venv",
     colored = true,
@@ -58,7 +71,7 @@ local M = {
                 a = { fg = '#CCCECF', bg = '#2E3C43' },
                 b = material_theme.normal.a,
                 c = { fg = '#CCCECF', bg = '#4F596E' },
-                x = { fg = '#CCCECF', bg = '#2E3C43' },
+                x = { fg = '#CCCECF', bg = '#4F596E' },
                 y = { fg = '#CCCECF', bg = '#4F596E' },
                 z = material_theme.normal.z
             },
@@ -83,31 +96,36 @@ local M = {
                 lualine_b = { branch },
                 lualine_c = {
                     { "nvim-tree" },
-                    { "filename", path = 0 },
+                    { "filename", path = 1 },
                 },
-                lualine_x = {
-                    "searchcount",
-                },
+                lualine_x = {},
                 lualine_y = {
+                    {
+                        'g:coc_status',
+                        'b:coc_current_function',
+                        'bo:filetype',
+                    },
                     diagnostics,
-                    { 'g:coc_status', 'bo:filetype' },
                 },
                 lualine_z = {
+                    { search_count, type = "lua_expr" },
                     {
                         "swenv",
+                        cond = function()
+                            return vim.bo.filetype == "python"
+                        end,
                         icon = "",
                         color = { fg = '#3B4252', bg = '#7E98BA' }
                     }
                 }
             },
             inactive_sections = {
-                lualine_a = { diff },
+                lualine_a = {},
                 lualine_b = {},
                 lualine_c = { { "filename", path = 1 } },
                 lualine_x = {},
                 lualine_y = {
-                    diagnostics,
-                    { 'g:coc_status', 'bo:filetype' },
+                    "filetype", "filesize"
                 },
                 lualine_z = {},
             }

@@ -15,24 +15,25 @@ vim.api.nvim_create_autocmd("TermLeave", {
     end,
 })
 
+-- When only the term tab remains, clear all. To give the impression of closing vim.
 vim.api.nvim_create_autocmd("TermEnter", {
     callback = function()
-        -- NOTE: when only the term tab remains, clear all. To give the impression of closing vim.
         if vim.fn.tabpagenr("$") == 1 then
             vim.cmd([[silent! BWipeout! hidden]])
+            -- vim.cmd([[silent! lua ClearTerm()]])
         end
     end,
 })
 
-vim.cmd([[autocmd TermClose * if !v:event.status | exe 'silent! bdelete! '..expand('<abuf>') | endif]])
-
 
 -- Close terminal buffer if exit 0; and close the unnamed unlisted buffer to exit all
+-- vim.cmd([[autocmd TermClose * if !v:event.status | exe 'silent! bdelete! '..expand('<abuf>') | endif]])
 vim.api.nvim_create_autocmd({ "TermClose" }, {
     callback = function()
-        if not vim.v.event.status then
-            vim.api.nvim_buf_delete(tonumber(vim.fn.expand('<abuf>')), { force = true })
-        end
+        vim.cmd([[if !v:event.status | exe 'silent! bdelete! '..expand('<abuf>') | endif]])
+        -- if not vim.v.event.status then
+        --     vim.api.nvim_buf_delete(tonumber(vim.fn.expand('<abuf>')), { force = true })
+        -- end
 
         if vim.fn.bufname('%') == '' then
             vim.api.nvim_command('q')
@@ -61,12 +62,6 @@ vim.api.nvim_create_autocmd({ "TermOpen" }, {
         if not bufname:match("chatd") then
             vim.cmd([[ au BufEnter <buffer> :startinsert ]])
         end
+        vim.cmd([[ au BufEnter <buffer> :set laststatus=0 ]])
     end,
-})
-
-vim.api.nvim_create_autocmd({ "BufEnter" }, {
-    pattern = "term://*",
-    callback = function()
-        vim.api.nvim_set_option('laststatus', 0)
-    end
 })

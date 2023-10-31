@@ -1,0 +1,7 @@
+[Desktop Entry]
+Exec=/home/deck/usr/configs/system/deck-workstation.arandr.sh
+Icon=dialog-scripts
+Name=deck-workstation.arandr.sh
+Path=
+Type=Application
+X-KDE-AutostartScript=true

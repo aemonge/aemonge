@@ -19,8 +19,8 @@ table.insert(M, {
         "NeoAIInjectContextCode",
     },
     keys = {
-        { "<leader>as", desc = "summarize text" },
-        { "<leader>ag", desc = "generate git message" },
+        { "<leader>is", desc = "summarize text" },
+        { "<leader>ig", desc = "generate git message" },
     },
     config = function()
         require("neoai").setup({
