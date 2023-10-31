@@ -8,10 +8,10 @@ pcloud () {
     mkdir -p "$dir"
 
     # Downloading and setting permissions
-    pushd "$dir" || echo "Error: Failed to pushd $dir" && exit 1
+    pushd "$dir" || (echo "Error: Failed to pushd $dir" && exit 1)
     curl -L "https://www.pcloud.com/how-to-install-pcloud-drive-linux.html?download=electron-64" -o pcloud
     chmod +x pcloud
-    popd || echo "Error: Failed to popd" && exit 1
+    popd || (echo "Error: Failed to popd" && exit 1)
 
     # Ensure local bin exists
     mkdir -p "$HOME/.local/bin"

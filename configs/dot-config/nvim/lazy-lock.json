@@ -32,7 +32,7 @@
   "plenary.nvim": { "branch": "master", "commit": "50012918b2fc8357b87cff2a7f7f0446e47da174" },
   "project.nvim": { "branch": "main", "commit": "8c6bad7d22eef1b71144b401c9f74ed01526a4fb" },
   "promise-async": { "branch": "main", "commit": "e94f35161b8c5d4a4ca3b6ff93dd073eb9214c0e" },
-  "swenv.nvim": { "branch": "main", "commit": "08aea3e8809ab00dfcab3cebb466dcb8001ad162" },
+  "swenv.nvim": { "branch": "main", "commit": "70659ea7856c239b467eae6c7026978e2f732f5a" },
   "tabnine-nvim": { "branch": "master", "commit": "6ec8cdc58899491518f11fb2e3009d593c23e710" },
   "telescope-ag": { "branch": "main", "commit": "7d25064da3c7689461bcfa89ad1f08548415193d" },
   "telescope-emoji.nvim": { "branch": "master", "commit": "86248d97be84a1ce83f0541500ef9edc99ea2aa1" },

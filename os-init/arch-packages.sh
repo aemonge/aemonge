@@ -31,7 +31,7 @@ _aura() {
 
 _system() {
     echo "Installing system packages..."
-    sudo pacman -S --needed --noconfirm base-devel gcc glibc gcc-libs openssl libxcrypt-compat
+    sudo pacman -S --needed --noconfirm base-devel gcc glibc gcc-libs openssl libxcrypt-compat fakeroot
     echo "System packages installed successfully."
 }
 
@@ -42,7 +42,8 @@ _dev_extra() {
     sudo pacman -S --needed --noconfirm glow onboard nodejs npm docker fzf rustup yakuake
     sudo pacman -S --needed --noconfirm shellcheck
 
-    sudo npm i -g npm yarn
+    npm config set prefix ~/.node_modules
+    npm i -g yarn
     sudo aura -A --noconfirm --needed firefox-pwa konsave neovim-remote
     echo "Developer packages installed successfully."
 }
@@ -52,15 +53,21 @@ _user_extra() {
     sudo pacman -S --noconfirm --needed hunspell-es_es languagetool qt5-imageformats
     sudo pacman -S --noconfirm --needed qt6-base qt6-declarative qt6-tools qt6-webview qt6-webengine
     sudo pacman -S --noconfirm --needed libsecret libcap wireguard-tools
-    sudo aura -A --noconfirm --needed kde-servicemenus-clamtkscan clamav-desktop-bin kdepim kdepim-addons
-    sudo aura -A --noconfirm --needed telegram-desktop-bin mozillavpn
-    sudo aura -A --noconfirm --needed --skippgpcheck spotify clementine kmail
-    sudo aura -A --noconfirm --needed slack-desktop
+    sudo pacman -S --noconfirm --needed  kde-pim-meta kdepim-runtime kdepim-addons kmail clementine
+    sudo aura -A --noconfirm --needed clamav-desktop-bin kde-servicemenus-clamtkscan
+    sudo aura -A --noconfirm --needed telegram-desktop-bin # mozillavpn
+    sudo aura -A --noconfirm --needed --skippgpcheck spotify
+    # sudo aura -A --noconfirm --needed slack-desktop
     echo "User packages installed successfully."
+}
+
+_audio() {
+    sudo pacman -S gst-plugins-base gst-plugins-good gst-libav
 }
 
 _rwfus
 _system
-_aura
+# _aura
 _dev_extra
+_audio
 _user_extra

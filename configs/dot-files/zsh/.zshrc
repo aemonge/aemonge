@@ -1,4 +1,4 @@
-# AUTO_VIM=0
+# AUTO_VIM=1
 
 BEFORE(){
     OPTS
@@ -32,6 +32,7 @@ PATH() {
     export PATH=$PATH:/usr/sbin
 
     export PATH=$PATH:$HOME/.local/bin/
+    export PATH=$PATH:$HOME/.node_modules/bin/
 }
 
 OPTS() {
@@ -55,7 +56,8 @@ SSH() {
 }
 
 _CONDA() {
-  . "/home/deck/.conda/etc/profile.d/conda.sh"
+  # . "/home/deck/.conda/etc/profile.d/conda.sh"
+  . "/opt/miniconda3/etc/profile.d/conda.sh"
 }
 CONDA() {
     # >>> conda initialize >>>
