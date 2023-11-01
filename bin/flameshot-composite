@@ -4,4 +4,8 @@
 qdbus org.kde.KWin /Compositor suspend
 
 # Run flameshot and resume compositing
-flameshot gui && qdbus org.kde.KWin /Compositor resume
+if [ command -v flameshot ]; then
+    flameshot gui && qdbus org.kde.KWin /Compositor resume
+else
+    /var/lib/flatpak/app/org.flameshot.Flameshot/current/active/files/bin/flameshot gui && qdbus org.kde.KWin /Compositor resume
+fi

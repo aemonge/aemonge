@@ -1,4 +1,4 @@
-# AUTO_VIM=1
+AUTO_VIM=1
 
 BEFORE(){
     OPTS
@@ -46,9 +46,6 @@ PROFILE() {
     source ~/.profile
     source ~/.aliases
 
-    if [ -z $NVIM ] && [ -e ~/.profile.before-nvim ]; then
-        source ~/.profile.before-nvim
-    fi
 }
 
 SSH() {
@@ -56,8 +53,8 @@ SSH() {
 }
 
 _CONDA() {
-  # . "/home/deck/.conda/etc/profile.d/conda.sh"
-  . "/opt/miniconda3/etc/profile.d/conda.sh"
+  . "/home/deck/.conda/etc/profile.d/conda.sh"
+  # . "/opt/miniconda3/etc/profile.d/conda.sh"
 }
 CONDA() {
     # >>> conda initialize >>>

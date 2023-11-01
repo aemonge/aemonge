@@ -1,10 +1,18 @@
-# alias docker-clean="docker kill $(docker ps -q | xargs); docker volume rm $(docker volume ls -q | xargs);  docker image rm -f $(docker image ls -q | xargs)"
-alias vcd=~/usr/bin/vcd
-alias open=xdg-open
+#!/bin/bash
+
+# System
+alias open="xdg-open"
+alias copy="xclip -sel clip"
 alias ll='tree -Chl -L 3 --dirsfirst'
+
+# Vim
+alias vcd=~/usr/bin/vcd
 alias f='vim $(fzf)'
-alias copy='xclip -sel clip'
+
+# Chat GTP
 alias vic="touch /tmp/query.md; nvim +':lua require(\"settings.bots.chatgpt-miu\")(0, true)'"
 alias vic_n="touch /tmp/query.md; nvim +':lua require(\"settings.bots.chatgpt-miu\")(1, true)'"
-alias docker-force-clean="docker system prune --all --volumes --force && docker kill \$(docker ps -q) && docker rm \$(docker ps -a -q) && docker rmi \$(docker images -q)"
-# alias copy=pbcopy
+
+# Docker
+# alias docker-clean="docker kill $(docker ps -q | xargs); docker volume rm $(docker volume ls -q | xargs);  docker image rm -f $(docker image ls -q | xargs)"
+# alias docker-force-clean="docker system prune --all --volumes --force && docker kill \$(docker ps -q) && docker rm \$(docker ps -a -q) && docker rmi \$(docker images -q)"
