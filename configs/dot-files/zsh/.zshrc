@@ -13,6 +13,8 @@ BEFORE_NVIM(){
     SSH
     PROFILE
     CONDA
+    ZINIT
+    ZINIT_BEFORE_PLUGINS
 }
 
 AFTER_NVIM(){
@@ -20,6 +22,7 @@ AFTER_NVIM(){
     P10K_ZINIT
     ZINIT
     ZINIT_PLUGINS
+    ZINIT_BEFORE_PLUGINS
     THEME
     PROFILE
 }
@@ -128,6 +131,8 @@ ZINIT_PLUGINS_COMPLETIONS(){
     zinit light Dabz/kafka-zsh-completions
     zinit light sbodiu-pivotal/fly-zsh-autocomplete-plugin
     zinit light greymd/docker-zsh-completion
+    zinit light nix-community/nix-zsh-completions
+    zinit light chisui/zsh-nix-shell
 
     # gpt-engineer completion
     autoload -Uz compinit
@@ -135,12 +140,14 @@ ZINIT_PLUGINS_COMPLETIONS(){
     fpath+=~/.zfunc
 }
 
+ZINIT_BEFORE_PLUGINS() {
+    # nodenv
+    zinit light mattberther/zsh-nodenv
+}
+
 ZINIT_PLUGINS(){
     ZSH_HISTORY
     ZSH_AUTOSUGGEST_STRATEGY=(history completion)
-
-    # nodenv
-    zinit light mattberther/zsh-nodenv
 
     # zinit load zdharma-continuum/history-search-multi-word
     zinit ice wait lucid # Turbo mode is verbose, so you need an option for quiet.

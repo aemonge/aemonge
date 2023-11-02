@@ -65,9 +65,17 @@ _audio() {
     sudo pacman -S gst-plugins-base gst-plugins-good gst-libav
 }
 
+_nix() {
+    nix-env -i tig
+    nix-env -iA nixpkgs.mozillavpn
+    nix-env -iA nixpkgs.mozwire
+    nix-env -iA nixpkgs.wireguard-tools
+}
+
 _rwfus
 _system
 # _aura
 _dev_extra
 _audio
 _user_extra
+#_nix
