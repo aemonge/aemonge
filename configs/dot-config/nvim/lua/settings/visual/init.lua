@@ -18,6 +18,10 @@ table.insert(M, bufferline)
 local tint = require "settings.visual.tint"
 table.insert(M, tint)
 
+table.insert(M, {
+    "ChristianChiarulli/neovim-codicons"
+})
+
 local lualine = require "settings.visual.lualine"
 table.insert(M, lualine)
 

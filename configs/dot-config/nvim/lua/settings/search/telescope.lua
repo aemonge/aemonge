@@ -3,11 +3,13 @@ local M = {}
 
 table.insert(M, {
     "nvim-telescope/telescope.nvim",
-    tag = "0.1.1",
+    -- tag = "0.1.1",
     dependencies = {
         "nvim-telescope/telescope.nvim",
         "nvim-lua/plenary.nvim",
         "debugloop/telescope-undo.nvim",
+
+        "nvim-tree/nvim-web-devicons",
 
         "kelly-lin/telescope-ag",
         "xiyaowong/telescope-emoji.nvim",
@@ -108,9 +110,10 @@ table.insert(M, {
     end,
 })
 
--- table.insert(M, { 'nvim-telescope/telescope-fzf-native.nvim',
--- build = 'make'
--- })
+table.insert(M, {
+    "nvim-telescope/telescope-fzf-native.nvim",
+    build = 'make'
+})
 
 ---------------------------------------------------------------------------
 -- Telescope Search on visual selection

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+sudo dockerd --userns-remap=deck:deck -G 'deck' &
+# disown %1
