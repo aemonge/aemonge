@@ -12,6 +12,7 @@ M.M = {
 
 M.O = {
     mode = { "n", "v" },
+    name = "AI Tools",
     prefix = "<leader>",
     buffer = nil,
     silent = true,

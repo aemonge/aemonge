@@ -18,9 +18,11 @@ table.insert(M, {
         })
 
         require("which-key").register({
-            ["/"] = { "<Plug>(comment_toggle_linewise_visual)<cr>", "Comment" },
+            ["/"] = { "<Plug>(comment_toggle_linewise_current)<cr>", "Comment" },
+            f = { "<Plug>(coc-format)", "Format file" },
         }, {
-            mode = "v",
+            mode = "n",
+            name = "Format",
             prefix = "<leader>",
             buffer = nil,
             silent = true,

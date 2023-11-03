@@ -2,7 +2,6 @@ local wk = require("which-key")
 
 wk.register({
     a = { "<CMD>lua _G.code_action_priority()<CR>", "Code actions" },
-    f = { "<Plug>(coc-format)", "Format file" },
 
     -- s = { "<cmd>:VenvSelect<cr>", "Select V-Environment" },
 
@@ -12,7 +11,7 @@ wk.register({
     c = { ":CocLocalConfig<CR>", "Local Configuration" },
     L = { ":lua require('lazy').update({show = false})<CR>", "Lazy and CoC Update" },
     l = { ":Lazy<CR>", "Lazy" },
-    m = { ":CocList marketplace<cr>", "Coc Marketplace" }
+    M = { ":CocList marketplace<cr>", "Coc Marketplace" }
 }, {
     mode = "n",
     prefix = "<leader>l",
@@ -25,7 +24,6 @@ wk.register({
 
 wk.register({
     a = { "<CMD>lua _G.code_action_priority()<CR>", "Code actions" },
-    f = { "<Plug>(coc-format-selected)", "Format" },
 }, {
     mode = "v",
     prefix = "<leader>l",

@@ -1,20 +1,16 @@
 local M = {}
 
 M.M = {
-    g = {
-        name = "Go to",
-        a = { "<Plug>(EasyAlign)*", "Align" },
-        A = { "<Plug>(LiveEasyAlign)*", "Live Align (<c-p> to accept)" },
-    },
-
-    ["<leader>"] = {
-        ["/"] = { "<Plug>(comment_toggle_linewise_current)<cr>", "Comment" },
-    }
+    ["/"] = { "<Plug>(comment_toggle_linewise_visual)<cr>", "Comment" },
+    a = { "<Plug>(EasyAlign)*", "Align" },
+    A = { "<Plug>(LiveEasyAlign)*", "Live Align (<c-p> to accept)" },
+    f = { "<Plug>(coc-format-selected)", "Format" },
 }
 
 M.O = {
-    mode = "n",
-    prefix = nil,
+    mode = "v",
+    prefix = "<leader>",
+    name = "Format",
     buffer = nil,
     silent = true,
     noremap = true,

@@ -1,0 +1,21 @@
+{
+    "version": 4,
+    "lastUserContextId": 172,
+    "identities": [
+        {
+            "userContextId": 170,
+            "public": true,
+            "icon": "briefcase",
+            "color": "red",
+            "name": "Babio"
+        },
+        {
+            "userContextId": 172,
+            "public": true,
+            "icon": "briefcase",
+            "color": "orange",
+            "name": "Babio External"
+        }
+    ]
+}
+
