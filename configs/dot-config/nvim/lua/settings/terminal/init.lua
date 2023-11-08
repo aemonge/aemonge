@@ -16,6 +16,10 @@ table.insert(M, {
     }),
 })
 
+table.insert(M, {
+    "numtostr/BufOnly.nvim",
+})
+
 local toggleterm = require("settings.terminal.toggleterm") -- require "settings.terminal.mappings"
 table.insert(M, toggleterm)
 

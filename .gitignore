@@ -1,1 +1,5 @@
+# Bins
 bin/mongosh
+
+# configs
+configs/unlinked/pcloud/data.db

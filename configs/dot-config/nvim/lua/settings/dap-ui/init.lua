@@ -74,14 +74,22 @@ table.insert(M, {
                         { id = "stacks", size = 0.35, position = "right" },
                     },
                     position = "bottom",
-                    size = 0.20,
+                    size = 0.15,
                 },
                 {
                     elements = {
-                        { id = "watches", size = 1 },
+                        { id = "console", size = 0.5, position = "left" },
+                        { id = "watches", size = 0.5, position = "right" },
                     },
                     position = "bottom",
-                    size = 0.20,
+                    size = 15,
+                },
+                {
+                    elements = {
+                        { id = "repl", size = 1 },
+                    },
+                    position = "bottom",
+                    size = 0.15,
                 },
             }
         })

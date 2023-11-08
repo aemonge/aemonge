@@ -1,4 +1,7 @@
 {
+    "coc.preferences.formatOnType": true,
+    "cSpell.enabled": false,
+    "cSpell.showStatus": false,
     // YAML
     "yaml.format.enable": true,
     // Bash
@@ -70,19 +73,13 @@
     "diagnostic.format": "(%source:%code) %message.",
     "diagnostic-languageserver.mergeConfig": true,
     "diagnostic-languageserver.filetypes": {
-        "python": [
-            "pyright",
-            "sourcery",
-            "python-lsp-server"
-        ]
+        "python": ["pyright", "sourcery", "python-lsp-server"]
     },
     "diagnostic-languageserver.linters": {
         "vim": "vint",
         "text": "languagetool",
         "email": "languagetool",
-        "lua": [
-            "selene"
-        ],
+        "lua": ["selene"],
         "markdown": [
             "alex",
             "write-good",
@@ -91,34 +88,16 @@
             "languagetool",
             "markdownlint"
         ],
-        "yaml": [
-            "yamllint"
-        ],
+        "yaml": ["yamllint"],
         "sh": "shellcheck",
-        "bash": [
-            ""
-        ]
+        "bash": [""]
     },
     "diagnostic-languageserver.formatFiletypes": {
-        "python": [
-            "black",
-            "isort",
-            "autoflake",
-            "autopep8",
-            "docformatter"
-        ],
+        "python": ["black", "isort", "autoflake", "autopep8", "docformatter"],
         "lua": "stylua",
-        "markdown": [
-            "prettierd",
-            "markdownlint",
-            "prettier"
-        ],
-        "yaml": [
-            "yamlfmt",
-            "yamlfix",
-            "prettier"
-        ],
-        "sh": "shfmt",
+        "markdown": ["prettierd", "markdownlint", "prettier"],
+        "yaml": ["yamlfmt", "yamlfix", "prettier"],
+        "sh": "shfmt"
     },
     // NAVIGATION & UI (Suggestions)
     "suggest.virtualText": true,
@@ -142,14 +121,8 @@
     "languageserver": {
         "sourcery": {
             "command": "sourcery",
-            "args": [
-                "lsp"
-            ],
-            "filetypes": [
-                "python",
-                "javascript",
-                "typescript"
-            ],
+            "args": ["lsp"],
+            "filetypes": ["python", "javascript", "typescript"],
             "initializationOptions": {
                 "extension_version": "coc.nvim",
                 "editor_version": "neovim"
@@ -162,12 +135,8 @@
         },
         "bash": {
             "command": "bash-language-server",
-            "args": [
-                "start"
-            ],
-            "filetypes": [
-                "sh"
-            ]
+            "args": ["start"],
+            "filetypes": ["sh"]
         }
     },
     "svelte.enable-ts-plugin": true

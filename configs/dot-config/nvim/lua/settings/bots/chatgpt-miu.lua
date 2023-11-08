@@ -48,7 +48,7 @@ local function chat_ui(param, newTab)
 
     -- set the terminal buffer to markdown file type
     vim.api.nvim_buf_set_option(buf_term, "ft", "markdown")
-    vim.o.showtabline = 0
+    -- vim.o.showtabline = 0
     vim.o.autoread = true
 
     -- Set a buffer variable

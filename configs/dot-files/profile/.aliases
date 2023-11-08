@@ -2,7 +2,8 @@
 
 # System
 alias open="xdg-open"
-alias copy="xclip -sel clip"
+alias xcopy="xclip -sel clip"
+alias xpaste="xclip -sel clip -o"
 alias ll='tree -Chl -L 3 --dirsfirst'
 
 # Vim
@@ -10,8 +11,8 @@ alias vcd=~/usr/bin/vcd
 alias f='vim $(fzf)'
 
 # Chat GTP
-alias vic="touch /tmp/query.md; nvim +':lua require(\"settings.bots.chatgpt-miu\")(0, true)'"
-alias vic_n="touch /tmp/query.md; nvim +':lua require(\"settings.bots.chatgpt-miu\")(1, true)'"
+alias vic="nvim +':lua require(\"settings.bots.chatgpt-miu\")(0, true)'"
+alias vic_n="nvim +':lua require(\"settings.bots.chatgpt-miu\")(1, true)'"
 
 # Docker
 # alias docker-clean="docker kill $(docker ps -q | xargs); docker volume rm $(docker volume ls -q | xargs);  docker image rm -f $(docker image ls -q | xargs)"

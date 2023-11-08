@@ -14,7 +14,7 @@ M.M = {
 
 M.O = {
     mode = "n",
-    prefix = "<leader>f",
+    prefix = "<leader>F",
     buffer = nil,
     silent = true,
     noremap = true,

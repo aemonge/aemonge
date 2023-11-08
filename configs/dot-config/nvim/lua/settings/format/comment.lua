@@ -22,7 +22,6 @@ table.insert(M, {
             f = { "<Plug>(coc-format)", "Format file" },
         }, {
             mode = "n",
-            name = "Format",
             prefix = "<leader>",
             buffer = nil,
             silent = true,
