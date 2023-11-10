@@ -40,6 +40,8 @@
   remove-tags   = "!git tag | xargs git tag -d"
   remove-tags-remote  = "!git tag -l | xargs -n 1 git push --delete origin"
   clean-ignored =  "!f() { for dir in $(git ls-files -i --exclude-from=.gitignore $@); do git rm -r --cached $dir; done; }; f"
+  remove-file   = "!f() { git filter-branch --index-filter 'git rm -rf --cached --ignore-unmatch $@' HEAD; }; f"
+
 
 # Not Aliases but useful functions
 # NOTE: [For example '!f() { : git commit ; ... }; f' will tell the completion to use commit completion.]
