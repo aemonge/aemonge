@@ -2,8 +2,8 @@ local M = {}
 
 M.M = {
     name = "File operations",
-    F = { ":let @+=fnamemodify(expand('%'), ':~:.')<CR>", "Yank file-path" },
-    f = { ":let @+=fnamemodify(expand('%:t'), ':~:.')<CR>", "Yank file-name" },
+    f = { ":let @+=fnamemodify(expand('%'), ':~:.')<CR>", "Yank file-path" },
+    F = { ":let @+=fnamemodify(expand('%:t'), ':~:.')<CR>", "Yank file-name" },
     a = { "ggVGyg;", "Yank file contents" },
     p = { "ggVGpg;", "Replace file contents with clipboard" },
     c = { "ggVGdg;", "Clear file contents" },
@@ -14,7 +14,7 @@ M.M = {
 
 M.O = {
     mode = "n",
-    prefix = "<leader>F",
+    prefix = "<leader>.",
     buffer = nil,
     silent = true,
     noremap = true,

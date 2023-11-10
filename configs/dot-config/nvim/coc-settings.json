@@ -50,7 +50,7 @@
     // NAVIGATION & UI (Diagnostic)
     "diagnostic.enableMessage": "jump", // Use this to never to not show the on hover
     "diagnostic.checkCurrentLine": true,
-    "diagnostic.refreshOnInsertMode": false,
+    "diagnostic.refreshOnInsertMode": true,
     "diagnostic.errorSign": "",
     "diagnostic.warningSign": "",
     "diagnostic.hintSign": "✎",

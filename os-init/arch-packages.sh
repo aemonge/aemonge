@@ -31,51 +31,51 @@ _aura() {
 
 _system() {
     echo "Installing system packages..."
-    sudo pacman -S --needed --noconfirm base-devel gcc glibc gcc-libs openssl libxcrypt-compat fakeroot
+    sudo pacman -S --needed --noconfirm base-devel gcc glibc gcc-libs openssl libxcrypt-compat fakeroot packagekit-qt5
     echo "System packages installed successfully."
 }
 
 _dev_extra() {
     echo "Installing developer packages..."
-    sudo pacman -S --needed --noconfirm firefox-developer-edition python-pip zsh xclip
-    sudo pacman -S --needed --noconfirm the_silver_searcher entr neovim tig flameshot
-    sudo pacman -S --needed --noconfirm glow onboard nodejs npm docker fzf rustup yakuake
-    sudo pacman -S --needed --noconfirm shellcheck
+    sudo pacman -S --needed --noconfirm python-pip zsh xclip the_silver_searcher entr neovim tig
+    sudo pacman -S --needed --noconfirm  fzf rustup flameshot shellcheck
 
     npm config set prefix ~/.node_modules
     npm i -g yarn
-    sudo aura -A --noconfirm --needed firefox-pwa konsave neovim-remote
+    pip install neovim-remote konsave
     echo "Developer packages installed successfully."
+}
+
+_media_extra() {
+    echo "Installing media packages..."
+    sudo pacman -S --noconfirm --needed gst-plugins-base gst-plugins-good gst-libav
+    sudo pacman -S --noconfirm --needed kimageformats qt5-imageformats qt6-imageformats
+    sudo pacman -S --noconfirm --needed hunspell-en_en hunspell-es_es languagetool
+    sudo pacman -S --noconfirm --needed libsecret libcap wireguard-tools
+    echo "Media packages installed successfully."
 }
 
 _user_extra() {
     echo "Installing user packages..."
-    sudo pacman -S --noconfirm --needed hunspell-es_es languagetool qt5-imageformats
-    sudo pacman -S --noconfirm --needed qt6-base qt6-declarative qt6-tools qt6-webview qt6-webengine
-    sudo pacman -S --noconfirm --needed libsecret libcap wireguard-tools
-    sudo pacman -S --noconfirm --needed  kde-pim-meta kdepim-runtime kdepim-addons kmail clementine
+    sudo pacman -S --noconfirm --needed firefox
+    sudo pacman -S --noconfirm --needed kde-pim-meta kdepim-runtime kdepim-addons kmail clementine
     sudo aura -A --noconfirm --needed clamav-desktop-bin kde-servicemenus-clamtkscan
-    sudo aura -A --noconfirm --needed telegram-desktop-bin # mozillavpn
-    sudo aura -A --noconfirm --needed --skippgpcheck spotify
-    # sudo aura -A --noconfirm --needed slack-desktop
     echo "User packages installed successfully."
 }
 
-_audio() {
-    sudo pacman -S gst-plugins-base gst-plugins-good gst-libav
-}
-
-_nix() {
-    nix-env -i tig
-    nix-env -iA nixpkgs.mozillavpn
-    nix-env -iA nixpkgs.mozwire
-    nix-env -iA nixpkgs.wireguard-tools
+_discover() {
+  # https://apps.kde.org/discover/
+  # telegram-desktop-bin slack-desktop spotify
+  # sudo aura -A --noconfirm --needed telegram-desktop-bin # mozillavpn
+  # sudo aura -A --noconfirm --needed spotify
+  # sudo aura -A --noconfirm --needed slack-desktop firefox-pwa
+  # sudo pacman -S --needed --noconfirm nodejs npm docker
 }
 
 _rwfus
 _system
-# _aura
+_aura
 _dev_extra
-_audio
+_media_extra
 _user_extra
-#_nix
+# _discover
