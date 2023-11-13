@@ -102,7 +102,7 @@ kde() {
 firefox() {
     echo "Setting up Firefox configurations..."
     local firefox_profile_dir="$HOME/.mozilla/firefox"
-    local chrome_dir_path="$HOME/usr/configs/saved-configs/firefox/chrome"
+    local chrome_dir_path="/home/deck/usr/configs/unlinked/firefox/chrome/"
 
     # Use find to get the directories
     while IFS= read -r profile; do

@@ -32,13 +32,14 @@ _aura() {
 _system() {
     echo "Installing system packages..."
     sudo pacman -S --needed --noconfirm base-devel gcc glibc gcc-libs openssl libxcrypt-compat fakeroot packagekit-qt5
+    sudo pacman -S --needed --noconfirm make libcap
     echo "System packages installed successfully."
 }
 
 _dev_extra() {
     echo "Installing developer packages..."
     sudo pacman -S --needed --noconfirm python-pip zsh xclip the_silver_searcher entr neovim tig
-    sudo pacman -S --needed --noconfirm  fzf rustup flameshot shellcheck
+    sudo pacman -S --needed --noconfirm fzf rustup flameshot shellcheck nodejs
 
     npm config set prefix ~/.node_modules
     npm i -g yarn
@@ -49,21 +50,22 @@ _dev_extra() {
 _media_extra() {
     echo "Installing media packages..."
     sudo pacman -S --noconfirm --needed gst-plugins-base gst-plugins-good gst-libav
-    sudo pacman -S --noconfirm --needed kimageformats qt5-imageformats qt6-imageformats
-    sudo pacman -S --noconfirm --needed hunspell-en_en hunspell-es_es languagetool
+    sudo pacman -S --noconfirm --needed kimageformats qt5-imageformats qt6-imageformats libwebp
+    sudo pacman -S --noconfirm --needed hunspell-en_us hunspell-es_es languagetool
     sudo pacman -S --noconfirm --needed libsecret libcap wireguard-tools
     echo "Media packages installed successfully."
 }
 
 _user_extra() {
     echo "Installing user packages..."
-    sudo pacman -S --noconfirm --needed firefox
+    sudo pacman -S --noconfirm --needed firefox kdeconnect
     sudo pacman -S --noconfirm --needed kde-pim-meta kdepim-runtime kdepim-addons kmail clementine
     sudo aura -A --noconfirm --needed clamav-desktop-bin kde-servicemenus-clamtkscan
     echo "User packages installed successfully."
 }
 
 _discover() {
+  echo "discover package"
   # https://apps.kde.org/discover/
   # telegram-desktop-bin slack-desktop spotify
   # sudo aura -A --noconfirm --needed telegram-desktop-bin # mozillavpn

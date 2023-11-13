@@ -206,12 +206,8 @@ START() {
     BEFORE
 
     if [ -v $AUTO_VIM ]; then
-        if [ -z $NVIM ]; then
-            BEFORE_NVIM
-            AFTER_NVIM
-        else
-            AFTER_NVIM
-        fi
+        BEFORE_NVIM
+        AFTER_NVIM
     else
         if [ -z $NVIM ]; then
             BEFORE_NVIM

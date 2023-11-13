@@ -18,6 +18,7 @@
     z-index: 999999;
     border-top: 1px solid ThreeDShadow;
     background-color: #b79c74;
+    display: inline-grid;
 }
 
 #main-window[inFullscreen="true"] #browser,
