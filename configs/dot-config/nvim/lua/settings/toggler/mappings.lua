@@ -14,7 +14,8 @@ M.M = {
         t = { ":call CocAction('diagnosticList')<cr>", "Show diagnostic list" },
         k = { [[:let @/ ='󱌌'<cr>]], " Clear search 󱌌 " },
         b = { function() _breakpoints() end, "Toggle Breakpoints" },
-        B = { "<cmd>lua require'dap'.clear_breakpoints()<CR>", "Clear Breakpoints" }
+        B = { "<cmd>lua require'dap'.clear_breakpoints()<CR>", "Clear Breakpoints" },
+        l = { ":Twilight<CR>", "Toggle Twilight" }
     }
 }
 

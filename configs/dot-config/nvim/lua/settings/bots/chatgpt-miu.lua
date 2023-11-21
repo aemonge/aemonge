@@ -2,7 +2,7 @@ local function chat_ui(param, newTab)
     if not newTab then
         vim.cmd("tabnew")
     end
-    vim.cmd("edit /tmp/query.md")
+    vim.cmd("edit! /tmp/query.md")
 
     local win_id_query = vim.api.nvim_get_current_win()
     local buf_query = vim.api.nvim_get_current_buf()

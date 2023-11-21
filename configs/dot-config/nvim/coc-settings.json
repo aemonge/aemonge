@@ -1,7 +1,5 @@
 {
-    "coc.preferences.formatOnType": true,
-    "cSpell.enabled": false,
-    "cSpell.showStatus": false,
+    "coc.preferences.formatOnType": false,
     // YAML
     "yaml.format.enable": true,
     // Bash
@@ -17,7 +15,7 @@
     "pyright.enable": true,
     "python.linting.enabled": true,
     "python.linting.flake8Enabled": true,
-    "python.linting.banditEnabled": true,
+    "python.linting.banditEnabled": false,
     "python.linting.pycodestyleEnabled": false,
     "python.linting.pyflakesEnabled": false,
     "python.linting.pytypeEnabled": true,
@@ -89,8 +87,7 @@
             "markdownlint"
         ],
         "yaml": ["yamllint"],
-        "sh": "shellcheck",
-        "bash": [""]
+        "sh": "shellcheck"
     },
     "diagnostic-languageserver.formatFiletypes": {
         "python": ["black", "isort", "autoflake", "autopep8", "docformatter"],
@@ -132,11 +129,6 @@
                     "metricsEnabled": true
                 }
             }
-        },
-        "bash": {
-            "command": "bash-language-server",
-            "args": ["start"],
-            "filetypes": ["sh"]
         }
     },
     "svelte.enable-ts-plugin": true

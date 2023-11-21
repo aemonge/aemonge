@@ -4,7 +4,8 @@ M.M = {
   ["/"] = { "<Plug>(comment_toggle_linewise_visual)<cr>", "Comment" },
   a = { "<Plug>(EasyAlign)*", "Align" },
   A = { "<Plug>(LiveEasyAlign)*", "Live Align (<c-p> to accept)" },
-  f = { "<Plug>(coc-format-selected)", "Format" },
+  -- f = { "<Plug>(coc-format)", "Format" },
+  f = { ":Format<cr>", "Format" },
 }
 
 M.O = {

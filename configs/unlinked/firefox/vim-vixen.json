@@ -53,6 +53,14 @@
             "type": "scroll.horizonally",
             "count": 1
         },
+        "u": {
+            "type": "scroll.pages",
+            "count": -0.5
+        },
+        "d": {
+            "type": "scroll.pages",
+            "count": 0.5
+        },
         "<C-U>": {
             "type": "scroll.pages",
             "count": -0.5
@@ -78,10 +86,10 @@
         "$": {
             "type": "scroll.end"
         },
-        "x$": {
+        "X": {
             "type": "tabs.close.right"
         },
-        "!d": {
+        "x": {
             "type": "tabs.close.force"
         },
         "U": {
@@ -89,6 +97,9 @@
         },
         "H": {
             "type": "tabs.prev"
+        },
+        "L": {
+            "type": "tabs.next"
         },
         "gt": {
             "type": "tabs.next"
@@ -134,14 +145,6 @@
             "type": "follow.start",
             "newTab": true,
             "background": false
-        },
-        "x": {
-            "type": "tabs.close",
-            "select": "right"
-        },
-        "X": {
-            "type": "tabs.close",
-            "select": "left"
         },
         "m": {
             "type": "mark.set.prefix"
@@ -225,4 +228,3 @@
     },
     "blacklist": []
 }
-

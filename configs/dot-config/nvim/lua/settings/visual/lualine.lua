@@ -33,8 +33,8 @@ local diagnostics = {
   "diagnostics",
   sources = { "nvim_diagnostic", "coc" },
   sections = { 'error', 'warn' },
-  symbols = { error = ' ', warn = ' ', info = '', hint = '𥉉' },
-  colored = false,
+  symbols = { warn = ' ', error = ' ', info = '', hint = '𥉉' },
+  colored = true,
   update_in_insert = true,
   always_visible = true,
 }

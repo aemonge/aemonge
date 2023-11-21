@@ -52,7 +52,8 @@ M.list = {
         "coc-diagnostic",
         -- "coc-lightbulb",
         "coc-vimlsp",
-        "coc-marketplace"
+        "coc-marketplace",
+        "coc-project"
     },
 }
 
