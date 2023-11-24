@@ -12,7 +12,7 @@ local M = {
         views = {
             cmdline_popup = {
                 position = {
-                    row = 5,
+                    row = "95%",
                     col = "50%",
                 },
                 size = {
@@ -23,7 +23,7 @@ local M = {
             popupmenu = {
                 relative = "editor",
                 position = {
-                    row = 8,
+                    row = "85%",
                     col = "50%",
                 },
                 size = {

@@ -27,6 +27,6 @@ vim.api.nvim_create_autocmd("User", {
 })
 
 -- Create new Fold, Format and OR commands
-vim.api.nvim_create_user_command("Format", "call CocAction('format')", {})
+vim.api.nvim_create_user_command("Format", "call CocActionAsync('format')", {})
 vim.api.nvim_create_user_command("Fold", "call CocAction('fold', <f-args>)", { nargs = '?' })
 vim.api.nvim_create_user_command("OR", "call CocActionAsync('runCommand', 'editor.action.organizeImport')", {})

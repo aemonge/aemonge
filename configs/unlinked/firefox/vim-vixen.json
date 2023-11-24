@@ -139,12 +139,12 @@
         "f": {
             "type": "follow.start",
             "newTab": false,
-            "background": true
+            "background": false
         },
         "F": {
             "type": "follow.start",
             "newTab": true,
-            "background": false
+            "background": true
         },
         "m": {
             "type": "mark.set.prefix"
@@ -215,16 +215,16 @@
         }
     },
     "search": {
-        "default": "duckduckgo",
+        "default": "startpage",
         "engines": {
-            "duckduckgo": "https://duckduckgo.com/?q={}"
+            "startpage": "https://www.startpage.com/sp/search?query={}"
         }
     },
     "properties": {
         "hintchars": "abcdefghijklmnopqrstuvwxyz",
         "smoothscroll": true,
         "complete": "sbh",
-        "colorscheme": "system"
+        "colorscheme": "dark"
     },
     "blacklist": []
 }

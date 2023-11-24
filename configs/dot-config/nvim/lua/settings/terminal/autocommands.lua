@@ -20,6 +20,7 @@ vim.api.nvim_create_autocmd("TermEnter", {
     callback = function()
         if vim.fn.tabpagenr("$") == 1 then
             vim.cmd([[silent! BufOnly]])
+            vim.cmd([[silent! :startinsert]])
         end
     end,
 })

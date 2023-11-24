@@ -1,17 +1,18 @@
 local M = {}
 
 table.insert(M, {
-    "rcarriga/nvim-notify",
-    priority = 99999,
-    config = function()
-        require("notify").setup({
-            background_colour = "#000000",
-            max_width = 70,
-            stages = "slide",
-            timeout = 7500,
-            top_down = false,
-        })
-    end,
+  "rcarriga/nvim-notify",
+  priority = 99999,
+  config = function()
+    require("notify").setup({
+      max_width = 90,
+      background_colour = "#000000",
+      stages = "fade_in_slide_out",
+      timeout = 3500,
+      top_down = false,
+      level = vim.log.levels.WARN
+    })
+  end,
 })
 
 return M
