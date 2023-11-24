@@ -68,14 +68,6 @@ local diff = {
   symbols = { added = " ", modified = " ", removed = " " }, -- changes diff symbols
 }
 
-local branch = {
-  "branch",
-  color = { fg = "#CCCECF", bg = "#4f596e" },
-  icons_enabled = true,
-  draw_empty = true,
-  icon = "",
-}
-
 local M = {
   "nvim-lualine/lualine.nvim",
   after = "noice.nvim",
@@ -86,18 +78,26 @@ local M = {
     local theme = {
       insert = {
         a = { fg = "#7E98BA", bg = "#2E3C43" },
+        b = { fg = "#7E98BA", bg = "#3B4252" },
+        y = { fg = "#CCCECF", bg = "#4F596E" },
         z = material_theme.normal.z
       },
       visual = {
         a = { bg = "#628B4A", fg = "#2E3C43" },
+        b = { fg = "#7E98BA", bg = "#3B4252" },
+        y = { fg = "#CCCECF", bg = "#4F596E" },
         z = material_theme.normal.z
       },
       replace = {
         a = { bg = "#D16969", fg = "#2E3C43" },
+        b = { fg = "#7E98BA", bg = "#3B4252" },
+        y = { fg = "#CCCECF", bg = "#4F596E" },
         z = material_theme.normal.z
       },
       command = {
         a = { bg = "#E5C07B", fg = "#2E3C43" },
+        b = { fg = "#7E98BA", bg = "#3B4252" },
+        y = { fg = "#CCCECF", bg = "#4F596E" },
         z = material_theme.normal.z
       },
       normal = {
@@ -140,12 +140,18 @@ local M = {
         disabled_buftypes = disabled_buftypes,
       },
       sections = {
-        lualine_a = { diff },
-        lualine_b = {},
-        lualine_c = {
-          { "nvim-tree" },
-          { "filename", path = 1 },
+        lualine_a = {
         },
+        lualine_b = {
+          {
+            "branch",
+            icons_enabled = true,
+            draw_empty = true,
+            colored = false,
+            icon = "",
+          }
+        },
+        lualine_c = { diff },
         lualine_x = {
           { search_count, type = "lua_expr" }
         },
@@ -168,8 +174,16 @@ local M = {
       },
       inactive_sections = {
         lualine_a = {},
-        lualine_b = {},
-        lualine_c = { { "filename", path = 1 } },
+        lualine_b = {
+          {
+            "branch",
+            icons_enabled = true,
+            draw_empty = false,
+            icon = "",
+            color = { fg = "#CCCECF", bg = "none" }
+          }
+        },
+        lualine_c = { "diff" },
         lualine_x = {},
         lualine_y = {
           "filetype"
@@ -180,20 +194,27 @@ local M = {
         lualine_a = {},
         lualine_b = {
           {
-            "branch",
+            "filename",
+            path = 1,
             color = {
-              bg = "#152528"
-            },
-            icons_enabled = true,
-            draw_empty = false,
-            icon = "",
-          }
+              fg = "#CCCECF", bg = "none"
+            }
+          },
         },
         lualine_z = { diagnostics },
       },
       winbar = {
         lualine_a = { get_mode_symbol },
-        lualine_b = { branch },
+        lualine_b = {
+          { "nvim-tree", color = { bg = "#4f596e" } },
+          {
+            "filename",
+            path = 0,
+            color = {
+              fg = "#cdcecf", bg = "#4f596e"
+            }
+          },
+        },
         lualine_c = { diagnostics },
         lualine_y = {},
         lualine_z = { {
