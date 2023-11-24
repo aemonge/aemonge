@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
-Exec=bash -c '"/usr/bin/video-wallpaper.sh" --start "abandoned/post-apocalyptic-city-moewalls-com.HD.mp4"'
+Exec=bash -c '"/usr/bin/video-wallpaper.sh" --start "/home/deck/images/wallpapers/animated/abandoned/abandoned-airport-in-summer-moewalls-com.HD.mp4"'
 Hidden=false
 NoDisplay=false
-X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-enabled=false
 Name=video-wallpaper

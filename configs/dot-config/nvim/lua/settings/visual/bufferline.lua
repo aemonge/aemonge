@@ -4,23 +4,24 @@ table.insert(M, {
     "akinsho/bufferline.nvim",
     dependencies = "nvim-tree/nvim-web-devicons",
     config = function()
+        local selected = {
+            bg = "#4f596e",
+        }
+        local unselected = {
+            bg = "#152528"
+        }
         require("bufferline").setup({
             highlights = {
-                fill = {
-                    bg = "#4F596E",
-                },
-                background = {
-                    bg = "#353C4A",
-                },
-                tab_selected = {
-                    bg = "#353C4A",
-                },
-                close_button = {
-                    bg = "#353C4A",
-                },
-                separator = {
-                    bg = "#353C4A",
-                },
+                fill               = unselected,
+                background         = unselected,
+                separator          = unselected,
+                separator_visible  = unselected,
+                indicator_visible  = unselected,
+                indicator_selected = selected,
+                separator_selected = selected,
+                buffer_selected    = selected,
+                modified_selected  = selected,
+                tab_selected       = selected,
             },
             options = {
                 custom_areas = {

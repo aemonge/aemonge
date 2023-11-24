@@ -50,13 +50,14 @@ _kde() {
     # Steam GPU https://github.com/catsout/wallpaper-engine-kde-plugin
     # https://github.com/ghostlexly/gpu-video-wallpaper
     # Okey-ish https://github.com/PeterTucker/smartER-video-wallpaper
+    # https://github.com/jeffshee/hidamari
     echo "Installing kde packages..."
     sudo pacman -S --needed --noconfirm flameshot libx11 mpv pyqt5 trash-cli
     sudo pacman -S --needed --noconfirm xdg-desktop-portal xdg-desktop-portal-kde
     # sudo aura -A --noconfirm --needed xwinwrap-0.9-bin ghostlexly-gpu-video-wallpaper
     sudo pacman -S --needed --noconfirm qt5-declarative python-websockets plasma-framework
     sudo pacman -S --needed --noconfirm qt5-websockets qt5-webchannel
-    sudo aura -A --noconfirm --needed plasma5-wallpapers-wallpaper-engine-git
+    # sudo aura -A --noconfirm --needed plasma5-wallpapers-wallpaper-engine-git
     pip install konsave pyqt5
 
     # Force using dolphin to choose files

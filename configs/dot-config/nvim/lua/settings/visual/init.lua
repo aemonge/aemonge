@@ -15,6 +15,9 @@ table.insert(M, gitsigns)
 local bufferline = require "settings.visual.bufferline"
 table.insert(M, bufferline)
 
+local noice = require "settings.visual.noice"
+table.insert(M, noice)
+
 local tint = require "settings.visual.tint"
 table.insert(M, tint)
 
@@ -22,7 +25,7 @@ local twilight = require "settings.visual.twilight"
 table.insert(M, twilight)
 
 table.insert(M, {
-  "ChristianChiarulli/neovim-codicons"
+    "ChristianChiarulli/neovim-codicons"
 })
 
 local lualine = require "settings.visual.lualine"

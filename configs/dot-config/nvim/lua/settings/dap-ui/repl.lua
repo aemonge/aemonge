@@ -8,7 +8,7 @@ function M.setup()
     vim.api.nvim_buf_set_keymap(0, 'i', '<c-k>', '<c-w><Up>', opts)
     vim.api.nvim_buf_set_keymap(0, 'i', '<c-l>', '<c-w><Right>', opts)
 
-    vim.api.nvim_buf_set_keymap(0, 'i', '<Tab>', 'pumvisible() ? "<C-n>" : "<C-n><C-o>"', { expr = true })
+    vim.api.nvim_buf_set_keymap(0, 'i', '<Tab>', 'pumvisible() ? "<C-n>" : "<C-x><C-o>"', { expr = true })
 end
 
 return M

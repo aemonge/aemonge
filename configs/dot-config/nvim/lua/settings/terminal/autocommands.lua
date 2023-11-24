@@ -20,21 +20,14 @@ vim.api.nvim_create_autocmd("TermEnter", {
     callback = function()
         if vim.fn.tabpagenr("$") == 1 then
             vim.cmd([[silent! BufOnly]])
-            -- vim.cmd([[silent! lua ClearTerm()]])
         end
     end,
 })
 
 
--- Close terminal buffer if exit 0; and close the unnamed unlisted buffer to exit all
--- vim.cmd([[autocmd TermClose * if !v:event.status | exe 'silent! bdelete! '..expand('<abuf>') | endif]])
 vim.api.nvim_create_autocmd({ "TermClose" }, {
     callback = function()
-        vim.cmd([[if !v:event.status | exe 'silent! bdelete! '..expand('<abuf>') | endif]])
-        -- if not vim.v.event.status then
-        --     vim.api.nvim_buf_delete(tonumber(vim.fn.expand('<abuf>')), { force = true })
-        -- end
-
+        vim.cmd([[exe 'silent! bdelete! '..expand('<abuf>')]])
         if vim.fn.bufname('%') == '' then
             vim.api.nvim_command('q')
         end

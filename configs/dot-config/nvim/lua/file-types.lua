@@ -30,6 +30,7 @@ local pluginsFileTypes = {
     "undotree",     -- undotree
     "vim-plug",     -- vim-plug
     "vista",        -- vista.vim
+    "terminal",     -- terminal
 }
 
 local dapFileTypes = {

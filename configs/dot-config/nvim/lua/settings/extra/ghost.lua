@@ -4,7 +4,7 @@ local M = {
     init = function()
         require "which-key".register({
             t = {
-                g = { function()
+                G = { function()
                     vim.cmd [[
               silent! Lazy load nvim-ghost.nvim
             ]]
@@ -16,7 +16,7 @@ local M = {
     config = function()
         require "which-key".register({
             t = {
-                g = { function()
+                G = { function()
                     vim.cmd [[
               silent! call nvim_ghost#disable()
               silent! call nvim_ghost#kill_server()<cr>

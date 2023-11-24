@@ -13,32 +13,35 @@ table.insert(M, {
     config = function()
         require('nightfox').setup({
             options = {
-                transparent = true, -- Disable setting background
+                transparent = true,     -- Disable setting background
                 terminal_colors = true, -- Set terminal colors (vim.g.terminal_color_*) used in `:terminal`
-                dim_inactive = false, -- Non focused panes set to alternative background
-                inverse = {     -- Inverse highlight for different types
+                dim_inactive = false,   -- Non focused panes set to alternative background
+                inverse = {             -- Inverse highlight for different types
                     match_paren = false,
                     search = false,
                 },
                 modules = {
                     -- List of various plugins and additional options
                     coc = true,
+                    ['dap-ui'] = true,
                     diagnostic = true,
                     gitgutter = true,
                     gitsigns = true,
                     glyph_palette = true,
                     hop = true,
+                    illuminate = true,
+                    ['lazy.nvim'] = true,
                     lsp_saga = true,
                     lsp_trouble = true,
                     modes = true,
                     native_lsp = true,
+                    navic = true,
                     neotree = true,
                     notify = true,
                     nvimtree = true,
                     telescope = true,
                     treesitter = true,
                     whichkey = true,
-                    ['dap-ui'] = true,
                 },
             },
             groups = {
