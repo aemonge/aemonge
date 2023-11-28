@@ -38,7 +38,7 @@ dot-files() {
     local base_path="$HOME/usr/configs/dot-files"
     local dirs
 
-    mapfile -t dirs < <(find "$base_path" -maxdepth 1 -mindepth 1 -type d -exec basename {} \;)
+    # mapfile -t dirs < <(find "$base_path" -maxdepth 1 -mindepth 1 -type d -exec basename {} \;)
 
     for dir in "${dirs[@]}"; do
         local file

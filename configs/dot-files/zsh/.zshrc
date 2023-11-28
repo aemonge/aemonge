@@ -18,7 +18,6 @@ BEFORE_NVIM(){
 }
 
 AFTER_NVIM(){
-    _CONDA
     P10K_ZINIT
     ZINIT
     ZINIT_PLUGINS
@@ -55,25 +54,21 @@ SSH() {
     eval "$(ssh-agent -s)" > /dev/null 2>&1
 }
 
-_CONDA() {
-  . "/home/deck/.conda/etc/profile.d/conda.sh"
-  # . "/opt/miniconda3/etc/profile.d/conda.sh"
-}
 CONDA() {
-    # >>> conda initialize >>>
-    # !! Contents within this block are managed by 'conda init' !!
-    __conda_setup="$('/home/deck/.conda/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
-    if [ $? -eq 0 ]; then
-        eval "$__conda_setup"
-    else
-        if [ -f "/home/deck/.conda/etc/profile.d/conda.sh" ]; then
-            _CONDA
-        else
-            export PATH="/home/deck/.conda/bin:$PATH"
-        fi
-    fi
-    unset __conda_setup
-    # <<< conda initialize <<<
+  # >>> conda initialize >>>
+  # !! Contents within this block are managed by 'conda init' !!
+  __conda_setup="$('/usr/local/Caskroom/miniconda/base/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+  if [ $? -eq 0 ]; then
+      eval "$__conda_setup"
+  else
+      if [ -f "/usr/local/Caskroom/miniconda/base/etc/profile.d/conda.sh" ]; then
+          . "/usr/local/Caskroom/miniconda/base/etc/profile.d/conda.sh"
+      else
+          export PATH="/usr/local/Caskroom/miniconda/base/bin:$PATH"
+      fi
+  fi
+  unset __conda_setup
+  # <<< conda initialize <<<
 }
 
 P10K_ZINIT() {
@@ -141,8 +136,8 @@ ZINIT_PLUGINS_COMPLETIONS(){
 }
 
 ZINIT_BEFORE_PLUGINS() {
-    # nodenv
     zinit light mattberther/zsh-nodenv
+    zinit light commiyou/conda-init-zsh-plugin
 }
 
 ZINIT_PLUGINS(){

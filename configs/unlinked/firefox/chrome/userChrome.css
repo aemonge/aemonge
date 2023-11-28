@@ -4,29 +4,29 @@
  * Tabs on bottom
  */
 
-#main-window[inFullscreen="true"] #titlebar,
-#main-window[sizemode="fullscreen"] #titlebar,
-#main-window[sizemode="maximized"] #titlebar {
-    position: relative;
-    border-top: none;
-}
-
-#titlebar {
-    position: absolute;
-    bottom: 0;
-    width: 100vw;
-    z-index: 999999;
-    border-top: 1px solid ThreeDShadow;
-    background-color: #b79c74;
-    display: inline-grid;
-}
-
-#main-window[inFullscreen="true"] #browser,
-#main-window[sizemode="fullscreen"] #browser,
-#main-window[sizemode="maximized"] #browser {
-    margin-bottom: 0px;
-}
-
-#browser {
-    margin-bottom: 38px;
-}
+/* #main-window[inFullscreen="true"] #titlebar, */
+/* #main-window[sizemode="fullscreen"] #titlebar, */
+/* #main-window[sizemode="maximized"] #titlebar { */
+/*     position: relative; */
+/*     border-top: none; */
+/* } */
+/**/
+/* #titlebar { */
+/*     position: absolute; */
+/*     bottom: 0; */
+/*     width: 100vw; */
+/*     z-index: 999999; */
+/*     border-top: 1px solid ThreeDShadow; */
+/*     background-color: #b79c74; */
+/*     display: inline-grid; */
+/* } */
+/**/
+/* #main-window[inFullscreen="true"] #browser, */
+/* #main-window[sizemode="fullscreen"] #browser, */
+/* #main-window[sizemode="maximized"] #browser { */
+/*     margin-bottom: 0px; */
+/* } */
+/**/
+/* #browser { */
+/*     margin-bottom: 38px; */
+/* } */
