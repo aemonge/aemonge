@@ -41,7 +41,7 @@ _dev_extra() {
     echo "Installing developer packages..."
     sudo pacman -S --needed --noconfirm python-pip zsh xclip the_silver_searcher neovim
     sudo pacman -S --needed --noconfirm fzf rustup entr tig shellcheck ripgrep
-    pip install neovim-remote
+    pip install neovim-remote konsave
     sudo aura -A --noconfirm --needed miniconda3
     echo "Developer packages installed successfully."
 }
@@ -76,12 +76,11 @@ _media_extra() {
     echo "Media packages installed successfully."
 }
 
-
 _user_extra() {
     echo "Installing user packages..."
-    sudo pacman -S --noconfirm --needed firefox kdeconnect
+    sudo pacman -S --noconfirm --needed firefox kdeconnect flameshot
     sudo pacman -S --noconfirm --needed kde-pim-meta kdepim-runtime kdepim-addons
-    sudo pacman -S --noconfirm --needed clementine
+    sudo pacman -S --noconfirm --needed clementine trash-cli
     sudo aura -A --noconfirm --needed clamav-desktop-bin kde-servicemenus-clamtkscan
     echo "User packages installed successfully."
 }
@@ -96,11 +95,11 @@ _discover() {
   # sudo pacman -S --needed --noconfirm nodejs npm docker
 }
 
-# _rwfus
+_rwfus
 _system
 _aura
 _dev_extra
-_kde
+# _kde
 _media_extra
 _user_extra
 # _discover
