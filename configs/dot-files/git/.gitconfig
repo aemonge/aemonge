@@ -110,3 +110,5 @@
 ; Don't make me the author on rebase, keep the blame on them bro 🤙 `git -c rebase.instructionFormat='%s%nexec GIT_COMMITTER_DATE="%cD" git commit --amend --no-edit' rebase -i`
 [init]
     defaultBranch = main
+[user]
+	name = aemonge

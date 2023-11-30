@@ -95,11 +95,11 @@ _discover() {
   # sudo pacman -S --needed --noconfirm nodejs npm docker
 }
 
-_rwfus
+# _rwfus
 _system
-_aura
+# _aura
 _dev_extra
-# _kde
+_kde
 _media_extra
 _user_extra
 # _discover

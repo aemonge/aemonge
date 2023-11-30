@@ -135,7 +135,7 @@ local M = {
             options = {
                 icons_enabled = true,
                 theme = theme,
-                always_visible = true,
+                always_visible = false,
                 component_separators = { left = "", right = "" },
                 section_separators = { left = "", right = "" },
                 disabled_filetypes = disabled_filetypes,

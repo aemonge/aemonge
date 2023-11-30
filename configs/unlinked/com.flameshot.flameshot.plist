@@ -1,22 +1,5 @@
 [General]
-buttons=@Variant(\0\0\0\x7f\0\0\0\vQList<int>\0\0\0\0\v\0\0\0\0\0\0\0\x1\0\0\0\x2\0\0\0\x3\0\0\0\x4\0\0\0\x12\0\0\0\xf\0\0\0\b\0\0\0\n\0\0\0\v\0\0\0\x11)
+buttons=@Variant(\0\0\0\x7f\0\0\0\vQList<int>\0\0\0\0\x10\0\0\0\0\0\0\0\x1\0\0\0\x2\0\0\0\x3\0\0\0\x4\0\0\0\x5\0\0\0\x12\0\0\0\xf\0\0\0\x13\0\0\0\a\0\0\0\b\0\0\0\t\0\0\0\x10\0\0\0\v\0\0\0\x17\0\0\0\x11)
 contrastOpacity=188
-copyPathAfterSave=true
-disabledTrayIcon=false
-drawColor=#0087ff
-drawFontSize=8
-drawThickness=3
-historyConfirmationToDelete=false
-predefinedColorPaletteLarge=true
-saveAfterCopy=false
-saveAsFileExtension=webp
-saveLastRegion=true
-savePath=/home/deck/desktop
-showDesktopNotification=true
-showHelp=false
-showMagnifier=true
-showStartupLaunchMessage=false
-squareMagnifier=false
-startupLaunch=true
-undoLimit=90
-userColors=picker, #ffd7af, #ff5f00, #ea6962, #ffd700, #affa00, #87fa00, #60f900, #04fa5f, #04fa87, #5ffbaf, #5ffcd7, #03fcd7, #00afff, #5fafff, #0087ff, #005fff
+drawColor=#bd5e57
+userColors=picker, #005fff, #0087ff, #5fafff, #00afff, #03fcd7, #04fa5f, #04fa5a, #bd5e57, #ea6962
