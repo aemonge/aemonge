@@ -1,6 +1,7 @@
 [Appearance]
-BackgroundColorOpacity=90
+BackgroundColorOpacity=88
 Skin=legacy
+Translucency=true
 
 [Behavior]
 OpenAfterStart=true
@@ -13,9 +14,11 @@ FirstRun=false
 hinding_title_bar=false
 
 [Window]
-Height=90
+Height=70
 KeepAbove=false
 Screen=1
+ShowOnAllDesktops=false
 ShowTabBar=false
 ShowTitleBar=false
 ToggleToFocus=true
+Width=80

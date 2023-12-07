@@ -1,0 +1,11 @@
+[Desktop Entry]
+Categories=Network;Security;
+Comment=A fast, secure and easy to use VPN. Built by the makers of Firefox.
+Encoding=UTF-8
+Exec=/usr/local/bin/mozillavpn
+Icon=mozillavpn
+Name=MozillaVPN
+StartupNotify=true
+Terminal=false
+Type=Application
+Version=1.5

@@ -9,11 +9,10 @@ table.insert(M, {
     }),
 })
 
-table.insert(M, {
-  "lukas-reineke/virt-column.nvim",
-  opts = {} ,
-})
-
+-- table.insert(M, {
+--   "lukas-reineke/virt-column.nvim",
+--   opts = {} ,
+-- })
 
 local alignment = require("settings.format.align")
 table.insert(M, alignment)

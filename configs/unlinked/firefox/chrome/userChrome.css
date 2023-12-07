@@ -7,7 +7,7 @@ vbox#titlebar {
     position: absolute !important;
     bottom: 0;
     width: 100vw;
-    background-color: #4d525d !important;
+    background-color: #b99a6c !important;
     border-top: 1px solid ThreeDShadow;
     display: inline-grid;
 }

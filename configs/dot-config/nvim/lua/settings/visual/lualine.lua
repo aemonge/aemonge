@@ -153,7 +153,10 @@ local M = {
                         icon = "",
                     }
                 },
-                lualine_c = { diff },
+                lualine_c = { diff, {
+                    require("noice").api.status.message.get,
+                    cond = require("noice").api.status.message.has,
+                } },
                 lualine_x = {
                     { search_count, type = "lua_expr" }
                 },
@@ -212,7 +215,7 @@ local M = {
                     { "nvim-tree", color = { bg = "#4f596e" } },
                     {
                         "filename",
-                        path = 4,
+                        path = 3,
                         color = {
                             fg = "#cdcecf", bg = "#4f596e"
                         }

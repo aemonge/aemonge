@@ -66,8 +66,8 @@ M.M = {
 
     -- Hop
 
-    S = { ":HopVertical<cr>", "Hop to line" },
-    s = { ":HopWordCurrentLine<cr>", "Hop to pattern" },
+    s = { ":HopWordAC<cr>", "Hop to pattern" },
+    S = { ":HopWordBC<cr>", "Hop to line" },
     ['g/'] = { ":HopPattern<cr>", "Hop to pattern" },
 }
 

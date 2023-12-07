@@ -10,6 +10,9 @@ alias ll='tree -Chl -L 3 --dirsfirst'
 alias vcd=~/usr/bin/vcd
 alias f='vim $(fzf)'
 
+# Fix termin info
+alias clear=/usr/bin/clear
+
 # Docker
 # alias docker-clean="docker kill $(docker ps -q | xargs); docker volume rm $(docker volume ls -q | xargs);  docker image rm -f $(docker image ls -q | xargs)"
 # alias docker-force-clean="docker system prune --all --volumes --force && docker kill \$(docker ps -q) && docker rm \$(docker ps -a -q) && docker rmi \$(docker images -q)"

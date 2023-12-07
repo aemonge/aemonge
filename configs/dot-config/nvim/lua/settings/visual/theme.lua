@@ -47,6 +47,7 @@ table.insert(M, {
             groups = {
                 all = {
                     CursorColumn       = { bg = "NONE", style = "bold" },
+                    ColorColumn        = { guifg = "#151929" },
                     CursorLine         = { bg = "NONE", style = "bold" },
                     CursorLineNr       = { fg = "NONE", style = "bold" },
                     FloatShadowThrough = { bg = "NONE" },

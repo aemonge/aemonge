@@ -3,6 +3,7 @@ AUTO_VIM=1
 BEFORE(){
     OPTS
     PATH
+    CONDA
 }
 
 AFTER(){
@@ -12,7 +13,6 @@ AFTER(){
 BEFORE_NVIM(){
     SSH
     PROFILE
-    CONDA
     ZINIT
     ZINIT_BEFORE_PLUGINS
 }
@@ -39,6 +39,8 @@ PATH() {
 
 OPTS() {
     export LANG=en_US.UTF-8
+    export LC_ALL=en_US.UTF-8
+    export LC_CTYPE=en_US.UTF-8
     export EDITOR='vmux'
     set -o vi
 }
@@ -56,7 +58,18 @@ SSH() {
 
 CONDA() {
   # >>> conda initialize >>>
-  [ -f /opt/miniconda3/etc/profile.d/conda.sh ] && source /opt/miniconda3/etc/profile.d/conda.sh
+  # !! Contents within this block are managed by 'conda init' !!
+  __conda_setup="$('/opt/miniconda3/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+  if [ $? -eq 0 ]; then
+      eval "$__conda_setup"
+  else
+      if [ -f "/opt/miniconda3/etc/profile.d/conda.sh" ]; then
+          . "/opt/miniconda3/etc/profile.d/conda.sh"
+      else
+          export PATH="/opt/miniconda3/bin:$PATH"
+      fi
+  fi
+  unset __conda_setup
   # <<< conda initialize <<<
 }
 
@@ -98,30 +111,30 @@ ZSH_HISTORY() {
 }
 
 ZINIT_PLUGINS_COMPLETIONS(){
-    zinit light conda-incubator/conda-zsh-completion
-    zinit light srijanshetty/zsh-pip-completion
+    # zinit light conda-incubator/conda-zsh-completion
+    # zinit light srijanshetty/zsh-pip-completion
 
     # Replace `light` with `load` if you want some more debugging
-    zinit ice depth=1 # optional, but avoids downloading the full history
-    zinit light 3v1n0/zsh-bash-completions-fallback
+    # zinit ice depth=1 # optional, but avoids downloading the full history
+    # zinit light 3v1n0/zsh-bash-completions-fallback
 
     # With a daemon for completion engine
     zinit wait lucid for \
         dim-an/cod
 
     # Even more completion bro
-    zinit ice lucid nocompile wait'0e' nocompletions
-    zinit load MenkeTechnologies/zsh-more-completions
-    zinit light Dabz/kafka-zsh-completions
-    zinit light sbodiu-pivotal/fly-zsh-autocomplete-plugin
-    zinit light greymd/docker-zsh-completion
-    zinit light nix-community/nix-zsh-completions
-    zinit light chisui/zsh-nix-shell
+    # zinit ice lucid nocompile wait'0e' nocompletions
+    # zinit load MenkeTechnologies/zsh-more-completions
+    # zinit light Dabz/kafka-zsh-completions
+    # zinit light sbodiu-pivotal/fly-zsh-autocomplete-plugin
+    # zinit light greymd/docker-zsh-completion
+    # zinit light nix-community/nix-zsh-completions
+    # zinit light chisui/zsh-nix-shell
 
     # gpt-engineer completion
-    autoload -Uz compinit
-    zstyle ':completion:*' menu select
-    fpath+=~/.zfunc
+    # autoload -Uz compinit
+    # zstyle ':completion:*' menu select
+    # fpath+=~/.zfunc
 }
 
 ZINIT_BEFORE_PLUGINS() {
@@ -140,6 +153,10 @@ ZINIT_PLUGINS(){
     zinit light Tarrasch/zsh-autoenv
     # https://github.com/Tarrasch/zsh-autoenv
     # By default it uses .autoenv.zsh for entering, and .autoenv_leave.zsh for leaving.
+
+    # Diff so fancy
+    zinit ice as'null' sbin'bin/*'
+    zinit light z-shell/zsh-diff-so-fancy
 
     zinit light zdharma-continuum/fast-syntax-highlighting
     zinit snippet OMZP::dotenv

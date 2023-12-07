@@ -1,5 +1,5 @@
 @-moz-document url("about:newtab"), url("about:home"), url("about:blank"), url("about:addons"), url("about:config"), url("about:preferences") {
     body {
-        background-color: #b9af9e;
+        background-color: #b9af9e !important;
     }
 }
