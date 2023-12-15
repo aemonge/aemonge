@@ -1,11 +1,20 @@
 [Desktop Entry]
 Categories=Network;Security;
+Comment[en_US]=A fast, secure and easy to use VPN. Built by the makers of Firefox.
 Comment=A fast, secure and easy to use VPN. Built by the makers of Firefox.
 Encoding=UTF-8
 Exec=/usr/local/bin/mozillavpn
+GenericName[en_US]=
+GenericName=
 Icon=mozillavpn
+MimeType=
+Name[en_US]=MozillaVPN
 Name=MozillaVPN
+Path=
 StartupNotify=true
 Terminal=false
+TerminalOptions=
 Type=Application
 Version=1.5
+X-KDE-SubstituteUID=false
+X-KDE-Username=

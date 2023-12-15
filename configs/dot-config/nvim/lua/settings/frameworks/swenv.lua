@@ -1,7 +1,6 @@
 local M = {}
--- https://github.com/linux-cultist/venv-selector.nvim
 table.insert(M, {
-  "aemonge/swenv.nvim",
+  "AckslD/swenv.nvim",
   config = function()
     local swenv = require("swenv")
     swenv.setup({

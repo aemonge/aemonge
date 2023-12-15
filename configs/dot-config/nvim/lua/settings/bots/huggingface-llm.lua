@@ -6,18 +6,26 @@ local M = {
     "markup"
   }),
   opts = {
-    accept_keymap = "<C-l>",
+    accept_keymap = "<C-k>",
     dismiss_keymap = "<C-c>",
-    -- model = "wizardlm/WizardCoder-Python-34B-V1.0",
-    -- model = "codellama/CodeLlama-7b-Python-hf",
-    -- model = "https://api-inference.huggingface.co/models/WizardLM/WizardCoder-Python-34B-V1.0",
-    model = "bigcode/starcoderplus",
-    context_window = 16384,     -- 8192,
+    -- tokens_to_clear = { "<|endoftext|>" },
+    -- fim = {
+    --     enabled = true,
+    --     prefix = "<fim_prefix>",
+    --     middle = "<fim_middle>",
+    --     suffix = "<fim_suffix>",
+    -- },
+    model = "WizardLM/WizardCoder-3B-V1.0",
+    -- model = "bigcode/starcoder",  -- Works
+    -- model = "TinyLlama/TinyLlama-1.1B-python-v0.1",  -- To be tested
+    -- model = "mlx-llama/CodeLlama-7b-Python-mlx",     -- To be tested
+    -- model = "https://api-inference.huggingface.co/models/WizardLM/WizardCoder-Python-34B-V1.0",  -- UnTested and Expensive
+    -- context_window = 8192, -- 16384 ,
     tokenizer = {
-      -- repository = "bigcode/starcoderplus",
-      -- to = "/home/aemonge/usr/configs/unlinked/llama-tokenizer.json"
-      -- path = "/home/aemonge/usr/configs/unlinked/wizard-tokenizer.json"
-      path = "/home/aemonge/usr/configs/unlinked/llama-tokenizer.json"
+    --   repository = "bigcode/starcoder",
+    --   -- to = "/home/aemonge/usr/configs/unlinked/llama-tokenizer.json"
+      path = "/vault/models/WizardCoder/tokenizer.json"
+    --   -- path = "/home/aemonge/usr/configs/unlinked/llama-tokenizer.json"
     }
   }
 }

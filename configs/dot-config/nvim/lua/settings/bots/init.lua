@@ -6,6 +6,9 @@ local M = {}
 local huggingface = require("settings.bots.huggingface-llm")
 table.insert(M, huggingface)
 
+local oatmeal = require("settings.bots.oatmeal")
+table.insert(M, oatmeal)
+
 -- local cmptabnine = require("settings.bots.tabnine")
 -- table.insert(M, cmptabnine)
 

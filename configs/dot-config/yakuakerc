@@ -16,7 +16,7 @@ hinding_title_bar=false
 [Window]
 Height=70
 KeepAbove=false
-Screen=1
+Screen=3
 ShowOnAllDesktops=false
 ShowTabBar=false
 ShowTitleBar=false

@@ -32,6 +32,7 @@ PATH() {
     export PATH=$PATH:/usr/bin
     export PATH=$PATH:/usr/local/bin
     export PATH=$PATH:/usr/sbin
+    export PATH=$PATH:/opt/cuda/bin/
 
     export PATH=$PATH:$HOME/.local/bin/
     export PATH=$PATH:$HOME/.node_modules/bin/
@@ -42,6 +43,7 @@ OPTS() {
     export LC_ALL=en_US.UTF-8
     export LC_CTYPE=en_US.UTF-8
     export EDITOR='vmux'
+    export TERM="xterm-256color"
     set -o vi
 }
 
@@ -121,6 +123,10 @@ ZINIT_PLUGINS_COMPLETIONS(){
     # With a daemon for completion engine
     zinit wait lucid for \
         dim-an/cod
+
+    # Completion in ~/.zinit/completions
+    autoload -U compinit && compinit
+    compdef _oatmeal oatmeal
 
     # Even more completion bro
     # zinit ice lucid nocompile wait'0e' nocompletions

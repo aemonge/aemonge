@@ -4,6 +4,18 @@
 ! keysym Caps_Lock = Escape
 ! add Lock = Caps_Lock
 
+! !!!!!!!!!!! Swap Left Super-Alt !!!!!!!!!!!!!!!
+! keycode 64 = Alt_L
+! keycode 133 = Super_L
+! remove Mod1 = Alt_L
+! remove Mod4 = Super_L
+! add Mod1 = Super_L
+! add Mod4 = Alt_L
+! keysym Super_L = Alt_L
+! keysym Alt_L = Super_L
+! keycode  64 = Super_L NoSymbol Super_L
+! keycode 133 = Alt_L NoSymbol Alt_L
+
 ! !!!!!!!!!!! Super binding !!!!!!!!!!!!!!!
 !  keycode 133 = Mode_switch
 !  keycode 134 = Mode_switch
@@ -20,8 +32,8 @@
 ! keysym j = j J Down
 
 ! !!!!!!!!!!!! Latin Keys !!!!!!!!!!!!!!!!!
-keysym apostrophe = apostrophe quotedbl dead_acute
-keysym semicolon = semicolon colon ntilde
-keysym comma = comma less grave
-keysym slash = slash question questiondown
-keysym 1 = 1 exclam exclamdown
+! keysym apostrophe = apostrophe quotedbl dead_acute
+! keysym semicolon = semicolon colon ntilde
+! keysym comma = comma less grave
+! keysym slash = slash question questiondown
+! keysym 1 = 1 exclam exclamdown
