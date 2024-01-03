@@ -8,9 +8,6 @@ table.insert(M, {
         "languages",
         "frameworks",
     }),
-    config = function()
-        require("nvim-autopairs").setup({})
-    end,
 })
 
 return M

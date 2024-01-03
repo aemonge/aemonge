@@ -1,4 +1,22 @@
----- Telescope
+---------------------------------------------------------------------------
+-- Telescope Search on visual selection
+---------------------------------------------------------------------------
+vim.cmd([[
+  func! GetVisualSelection() abort
+      let [lnum1, col1] = getpos("'<")[1:2]
+      let [lnum2, col2] = getpos("'>")[1:2]
+      let lines = getline(lnum1, lnum2)
+      if len(lines) == 0
+          return ''
+      endif
+      let lines[-1] = lines[-1][: col2 - (&selection ==# 'inclusive' ? 1 : 2)]
+      let lines[0] = lines[0][col1 - 1:]
+      return join(lines, "\n")
+  endf
+  xnoremap * :<C-u>let @/ = GetVisualSelection()<CR>/<C-R>=@/<CR><CR>
+  xnoremap # :<C-u>let @/ = GetVisualSelection()<CR>?<C-R>=@/<CR><CR>
+]])
+
 local M = {}
 
 table.insert(M, {
@@ -108,43 +126,27 @@ table.insert(M, {
         telescope.load_extension("ag")
         telescope.load_extension("undo")
     end,
+
+    keys = {
+        { '<leader>n', '<cmd>Telescope notify <cr>', { silent = true, noremap = true, nowait = true }, mode = "n", desc = "  Notifications" },
+        { '<leader>sG', '<cmd>Gitsigns <cr>', { silent = true, noremap = true, nowait = true }, mode = "n", desc = "Git" },
+        { '<c-p>', ':Telescope find_files <cr>', { silent = true, noremap = true, nowait = true }, mode = "n", desc = "Files search in CWD" },
+        { '<c-n>', ':Telescope buffers sort_mru=1 ignore_current_buffer=1 initial_mode=insert <cr>', { silent = true, noremap = true, nowait = true }, mode = "n", desc = "Buffer list" },
+        { '<c-f>', ':Telescope live_grep <cr>', { silent = true, noremap = true, nowait = true }, mode = "n", desc = "Grep on files in CWD" },
+        { '<leader>sa', '<cmd>Telescope <CR>', { silent = true, noremap = true, nowait = true }, mode = "n", desc = "Built-in" },
+        { '<leader>sh', '<cmd>Telescope help_tags <CR>', { silent = true, noremap = true, nowait = true }, mode = "n", desc = "Help" },
+        { '<leader>su', '<cmd>Telescope undo <CR>', { silent = true, noremap = true, nowait = true }, mode = "n", desc = "Undo" },
+        { '<leader>st', '<cmd>Telescope tags <CR>', { silent = true, noremap = true, nowait = true }, mode = "n", desc = "Tags" },
+        { '<leader>se', '<cmd>Telescope emoji <CR>', { silent = true, noremap = true, nowait = true }, mode = "n", desc = "Emoji" },
+        { '<leader>sg', '<cmd>Telescope glyph <CR>', { silent = true, noremap = true, nowait = true }, mode = "n", desc = "Glyph" },
+        { '<c-f>', 'y<esc>q:pITelescope grep_string search=<cr>', { silent = true, noremap = true, nowait = true }, mode = "v", desc = "Telescope Search on visual selection" },
+        { '<c-f>', ':<C-u>lua require("telescope.builtin.__files").grep_string({search="<C-R>=GetVisualSelection()<CR>"})<CR>', { silent = true, noremap = true, nowait = true }, mode = "v", desc = "Telescope Search on visual selection" },
+    }
 })
 
 table.insert(M, {
     "nvim-telescope/telescope-fzf-native.nvim",
     build = 'make'
 })
-
----------------------------------------------------------------------------
--- Telescope Search on visual selection
----------------------------------------------------------------------------
-vim.keymap.set(
-    "v",
-    "<c-f>",
-    "y<esc>q:pITelescope grep_string search=<cr>",
-    { buffer = nil, silent = true, noremap = true, nowait = true }
-)
-vim.cmd([[
-  func! GetVisualSelection() abort
-      let [lnum1, col1] = getpos("'<")[1:2]
-      let [lnum2, col2] = getpos("'>")[1:2]
-      let lines = getline(lnum1, lnum2)
-      if len(lines) == 0
-          return ''
-      endif
-      let lines[-1] = lines[-1][: col2 - (&selection ==# 'inclusive' ? 1 : 2)]
-      let lines[0] = lines[0][col1 - 1:]
-      return join(lines, "\n")
-  endf
-  xnoremap * :<C-u>let @/ = GetVisualSelection()<CR>/<C-R>=@/<CR><CR>
-  xnoremap # :<C-u>let @/ = GetVisualSelection()<CR>?<C-R>=@/<CR><CR>
-]])
-
-vim.keymap.set(
-    "v",
-    "<c-f>",
-    ':<C-u>lua require("telescope.builtin.__files").grep_string({search="<C-R>=GetVisualSelection()<CR>"})<CR>',
-    { buffer = nil, silent = true, noremap = true, nowait = true }
-)
 
 return M

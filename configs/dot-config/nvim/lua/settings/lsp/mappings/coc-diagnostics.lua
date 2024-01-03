@@ -12,9 +12,8 @@ wk.register({
 })
 
 wk.register({
-    d = { "<CMD>lua _G.show_diagnostic_line()<CR>", "Diagnostic hover" },
-    g = { ":Gitsigns blame_line<cr>", "Git blame" },
-    G = { ":Gitsigns<cr>", "Git ..." },
+    d = { "<CMD>lua _G.show_diagnostic_line()<CR>", "  Diagnostic hover" },
+    g = { ":Gitsigns blame_line<cr>", "  Git blame" },
 }, {
     mode = "n",
     prefix = "<leader>",

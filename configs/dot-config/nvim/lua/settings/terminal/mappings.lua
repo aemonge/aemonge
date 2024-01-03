@@ -5,23 +5,19 @@ end
 local M = {}
 
 M.M = {
-    ["<ESC><ESC>"] = { t("<C-\\><C-N>"), "Go to normal mode" },
-    ["<ESC>h"] = { t("<C-\\><C-N>"), "Go to normal mode" },
+    ["<C-o>"] = { t("<C-\\><C-N>"), "Go to normal mode" },
 
-    ["<c-h>"] = { t("<C-\\><C-n><c-w>h"), "Go right" },
-    ["<c-l>"] = {
-        [""] = { t("<C-\\><C-n><c-w>l"), "Go left" },
-        ["<c-l>"] = { [[<C-\><C-N>:lua ClearTerm()<CR>]], "Send clear" },
+    ["<c-j>"] = {
+        [""] = { t("<C-\\><C-n><c-w>W"), "Previous window" },
+        ["<c-j>"] = { t("<C-\\><C-n>gT"), "Previous tab" },
     },
     ["<c-k>"] = {
-        [""] = { t("<C-\\><C-n><c-w>k"), "Go up" },
-        ["<c-k>"] = { t("<C-\\><C-n>gt<cr>"), "Next tab" },
+        [""] = { t("<C-\\><C-n><c-w>w"), "Next window" },
+        ["<c-k>"] = { t("<C-\\><C-n>gt"), "Next tab" },
     },
-    ["<c-j>"] = {
-        [""] = { t("<C-\\><C-n><c-w>j"), "Go down" },
-        ["<c-j>"] = { t("<C-\\><C-n>gT<cr>"), "Previous tab" },
-    },
+
     ["<c-t>"] = { t("<C-\\><C-n>:lua NewTermTab()<cr>"), "New term tab" },
+
     ["<c-w>"] = {
         name = "Split new Terminals",
 

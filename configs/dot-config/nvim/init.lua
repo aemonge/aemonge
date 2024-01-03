@@ -4,9 +4,9 @@ vim.g.maplocalleader = ","
 
 -- DEBUG
 -- vim.opt.cmdheight = 2
--- vim.cmd[[set shortmess-=F]]
+-- vim.cmd [[set shortmess-=F]]
 -- vim.opt.verbose = 3
--- vim.cmd[[set verbosefile=~/nvim.log]]
+-- vim.cmd [[set verbosefile=~/nvim.log]]
 
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.loop.fs_stat(lazypath) then
@@ -41,6 +41,18 @@ table.insert(plugins, {
     config = function()
         local wk = require("which-key")
         wk.setup(conf.whichKey)
+        wk.register({
+            v = { "🐞 Debugger" },
+            t = { "蘒 Toggler" },
+            s = { "  Telescope search" },
+            l = { "  LSP, COC and and environment" },
+            ['.'] = { "  File operations" }
+        }, {
+            mode = "n",
+            silent = true,
+            noremap = true,
+            prefix = '<leader>',
+        })
         helpers.require_mappings(wk)
     end,
 })

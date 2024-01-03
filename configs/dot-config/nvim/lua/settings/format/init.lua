@@ -1,7 +1,7 @@
 local M = {}
 
 table.insert(M, {
-    "gpanders/editorconfig.nvim",
+    "tpope/vim-sleuth",
     ft = require("file-types")({
         "markup",
         "languages",
@@ -20,8 +20,8 @@ table.insert(M, alignment)
 local comment = require("settings.format.comment")
 table.insert(M, comment)
 
-local autpair = require("settings.format.autopairs")
-table.insert(M, autpair)
+-- local autpair = require("settings.format.autopairs")
+-- table.insert(M, autpair)
 
 local surround = require("settings.format.surround")
 table.insert(M, surround)

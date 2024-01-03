@@ -14,14 +14,12 @@ BEFORE_NVIM(){
     SSH
     PROFILE
     ZINIT
-    ZINIT_BEFORE_PLUGINS
 }
 
 AFTER_NVIM(){
     P10K_ZINIT
     ZINIT
     ZINIT_PLUGINS
-    ZINIT_BEFORE_PLUGINS
     THEME
     PROFILE
 }
@@ -32,10 +30,10 @@ PATH() {
     export PATH=$PATH:/usr/bin
     export PATH=$PATH:/usr/local/bin
     export PATH=$PATH:/usr/sbin
-    export PATH=$PATH:/opt/cuda/bin/
+    export PATH=$PATH:/opt/cuda/bin
 
-    export PATH=$PATH:$HOME/.local/bin/
-    export PATH=$PATH:$HOME/.node_modules/bin/
+    export PATH=$PATH:$HOME/.local/bin
+    export PATH=$PATH:$HOME/.node_modules/bin
 }
 
 OPTS() {
@@ -51,7 +49,6 @@ OPTS() {
 PROFILE() {
     source ~/.profile
     source ~/.aliases
-
 }
 
 SSH() {
@@ -79,7 +76,6 @@ P10K_ZINIT() {
     # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
     # Initialization code that may require console input (password prompts, [y/n]
     # confirmations, etc.) must go above this block; everything else may go below.
-
     if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
         source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
     fi
@@ -113,66 +109,26 @@ ZSH_HISTORY() {
 }
 
 ZINIT_PLUGINS_COMPLETIONS(){
-    # zinit light conda-incubator/conda-zsh-completion
-    # zinit light srijanshetty/zsh-pip-completion
-
-    # Replace `light` with `load` if you want some more debugging
-    # zinit ice depth=1 # optional, but avoids downloading the full history
-    # zinit light 3v1n0/zsh-bash-completions-fallback
-
-    # With a daemon for completion engine
-    zinit wait lucid for \
-        dim-an/cod
-
     # Completion in ~/.zinit/completions
     autoload -U compinit && compinit
     compdef _oatmeal oatmeal
-
-    # Even more completion bro
-    # zinit ice lucid nocompile wait'0e' nocompletions
-    # zinit load MenkeTechnologies/zsh-more-completions
-    # zinit light Dabz/kafka-zsh-completions
-    # zinit light sbodiu-pivotal/fly-zsh-autocomplete-plugin
-    # zinit light greymd/docker-zsh-completion
-    # zinit light nix-community/nix-zsh-completions
-    # zinit light chisui/zsh-nix-shell
-
-    # gpt-engineer completion
-    # autoload -Uz compinit
-    # zstyle ':completion:*' menu select
-    # fpath+=~/.zfunc
-}
-
-ZINIT_BEFORE_PLUGINS() {
-    zinit light mattberther/zsh-nodenv
-    # zinit light commiyou/conda-init-zsh-plugin
 }
 
 ZINIT_PLUGINS(){
     ZSH_HISTORY
     ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 
-    # zinit load zdharma-continuum/history-search-multi-word
-    zinit ice wait lucid # Turbo mode is verbose, so you need an option for quiet.
-    zinit light zsh-users/zsh-completions
-
-    zinit light Tarrasch/zsh-autoenv
-    # https://github.com/Tarrasch/zsh-autoenv
-    # By default it uses .autoenv.zsh for entering, and .autoenv_leave.zsh for leaving.
-
-    # Diff so fancy
-    zinit ice as'null' sbin'bin/*'
-    zinit light z-shell/zsh-diff-so-fancy
-
-    zinit light zdharma-continuum/fast-syntax-highlighting
     zinit snippet OMZP::dotenv
-
-    zinit light 0b10/cheatsheet
-    ZINIT_PLUGINS_COMPLETIONS
+    zinit wait lucid light-mode for \
+        zdharma-continuum/fast-syntax-highlighting \
+        zdharma-continuum/history-search-multi-word \
+        zsh-users/zsh-completions \
+        Tarrasch/zsh-autoenv \
+        dim-an/cod \
+        mattberther/zsh-nodenv \
 
     # zsh-autosuggestions
-    # zinit light zsh-users/zsh-autosuggestions
-    zinit load zsh-users/zsh-autosuggestions  # Load it instantly, no "light"
+    zinit light zsh-users/zsh-autosuggestions
     bindkey '^p' history-search-backward
     bindkey '^o' history-search-forward
     bindkey '^n' autosuggest-accept
@@ -180,8 +136,7 @@ ZINIT_PLUGINS(){
     bindkey '^a' autosuggest-toggle
     bindkey '^s' autosuggest-clear
 
-    autoload compinit
-    compinit
+    ZINIT_PLUGINS_COMPLETIONS
 }
 
 ZINIT() {
@@ -198,15 +153,6 @@ ZINIT() {
     source "$HOME/.local/share/zinit/zinit.git/zinit.zsh"
     autoload -Uz _zinit
     (( ${+_comps} )) && _comps[zinit]=_zinit
-
-    # Load a few important annexes, without Turbo
-    # (this is currently required for annexes)
-    zinit light-mode for \
-        zdharma-continuum/zinit-annex-as-monitor \
-        zdharma-continuum/zinit-annex-bin-gem-node \
-        zdharma-continuum/zinit-annex-patch-dl \
-        zdharma-continuum/zinit-annex-rust
-    ### End of Zinit's installer chunk
 }
 
 START() {

@@ -418,6 +418,13 @@ General dependencies
 pikaur -S mongosh-bin
 ```
 
+## Query and list only intersting data
+
+```sh
+db.proposals.find({}, { source: 1, "details.production.panels": 1, _id: 0 })
+db.proposals.find({}, { source: 1, len: {"$size": "$details.production.panels"}, _id: 0 })
+```
+
 ## Set a field all to lowercase
 
 ```mongo
@@ -571,6 +578,8 @@ if (roofs := db.roof.find(query)):
 > field, and the operation returns an error if the queried field isn't indexed with
 > 2dsphere index. Also, remember to handle any exceptions that may occur during the
 > execution of these operations, especially when dealing with real-world data.
+
+``
 
 # 📚 GIT
 

@@ -1,0 +1,22 @@
+{
+    "KPlugin": {
+        "Name": "Truely Maximized",
+        "Description": "Truely maximizes your screen space by setting opacity to 1 and hiding the title bars of your windows when they are maximized.",
+        "Icon": "preferences-system-windows",
+        "Version": "1.1.0",
+        "Id": "truely-maximized",
+        "License": "GPLv3",
+        "Website": "https://github.com/aemonge/truely-maximized",
+        "Authors": [
+            {
+                "Name": "aemonge",
+                "Email": "andres.monge@gmail.com"
+            }
+        ]
+    },
+    "X-Plasma-API": "javascript",
+    "X-Plasma-MainScript": "code/main.js",
+    "KPackageStructure": "KWin/Script",
+    "X-KWin-Border-Activate": true,
+    "X-KDE-ConfigModule": "kwin/effects/configs/kcm_kwin4_genericscripted"
+}

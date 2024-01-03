@@ -13,13 +13,7 @@ wk.register({
     l = { ":Lazy<CR>", "Lazy" },
     M = { ":CocList marketplace<cr>", "Coc Marketplace" }
 }, {
-    mode = "n",
     prefix = "<leader>l",
-    name = "LSP and COC actions",
-    buffer = nil,
-    silent = true,
-    noremap = true,
-    nowait = true,
 })
 
 wk.register({

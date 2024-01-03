@@ -1,5 +1,4 @@
-local M = {
-}
+local M = {}
 
 
 local swenv = require("settings.frameworks.swenv")
@@ -10,8 +9,5 @@ table.insert(M, {
 })
 
 table.insert(M, { "plasticboy/vim-markdown" })
-
-local glow = require("settings.frameworks.glow")
-table.insert(M, glow)
 
 return M

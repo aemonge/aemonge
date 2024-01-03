@@ -16,7 +16,7 @@ endfunction
 local M = {}
 M.M = {
     ["<c-w>"] = {
-        name = "Split and Resize",
+        name = "  Split, move or re-size",
 
         h = { ":leftabove vsplit<cr>", "Split left" },
         j = { ":rightbelow split<cr>", "Split down" },
@@ -39,36 +39,21 @@ M.M = {
         v = nil,
     },
 
-    ["<c-h>"] = { "<c-w><Left>", "Go left" },
-    ["<c-l>"] = { "<c-w><Right>", "Go right" },
-
-    ["<c-t>"] = { ":lua NewTermTab()<cr>", "New term tab" },
-
+    ["<c-j>"] = {
+        [""] = { "<c-w>W", "Previous window" },
+        ["<c-j>"] = { "gT", "Previous tab" },
+    },
     ["<c-k>"] = {
-        [''] = { "<c-w><Up>", "Go up" },
+        [""] = { "<c-w>w", "Next window" },
         ["<c-k>"] = { "gt", "Next tab" },
     },
 
-    ["<c-j>"] = {
-        [''] = { "<c-w><Down>", "Go down" },
-        ["<c-j>"] = { "gT", "Previous tab" },
-    },
-
+    ["<c-t>"] = { ":lua NewTermTab()<cr>", "New term tab" },
 
     ['_'] = { ":resize -2<cr>", "Decrease Horizontally" },
     ['+'] = { ":resize +3<cr>", "Increase Horizontally" },
     ['='] = { ":vertical resize -2<cr>", "Decrease Vertically" },
     ['-'] = { ":vertical resize +3<cr>", "Increase Vertically" },
-
-    -- NVIM TREE
-
-    ['<leader>e'] = { ":NvimTreeFindFileToggle! <cr>", "NvimTree" },
-
-    -- Hop
-
-    s = { ":HopWordAC<cr>", "Hop to pattern" },
-    S = { ":HopWordBC<cr>", "Hop to line" },
-    ['g/'] = { ":HopPattern<cr>", "Hop to pattern" },
 }
 
 M.O = {

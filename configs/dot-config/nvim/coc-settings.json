@@ -12,7 +12,7 @@
         "MD030": false
     },
     // Lua
-    "Lua.format.enable": false,
+    "Lua.format.enable": true,
     // Python
     "pyright.enable": true,
     "python.linting.enabled": true,
@@ -77,15 +77,15 @@
     },
     "diagnostic-languageserver.linters": {
         "vim": "vint",
-        "text": "languagetool",
-        "email": "languagetool",
+        // "text": "languagetool",
+        // "email": "languagetool",
         "lua": ["selene"],
         "markdown": [
             "alex",
             "write-good",
             "textlint",
             "proselint",
-            "languagetool",
+            // "languagetool",
             "markdownlint"
         ],
         "yaml": ["yamllint"],

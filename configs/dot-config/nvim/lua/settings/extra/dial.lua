@@ -4,29 +4,10 @@ table.insert(M, {
     "monaqa/dial.nvim",
     dependencies = { "nvim-lua/plenary.nvim" },
     config = function()
-        local wk = require("which-key")
-        local dialM = require("dial.map")
-
-        -- Register key mappings
-        local key_mappings = {
-            n = {
-                ['<c-a>'] = { dialM.inc_normal(), "Dial Inc" },
-                ['<c-x>'] = { dialM.dec_normal(), "Dial Dec" }
-            },
-            v = {
-                ['<c-a>'] = { dialM.inc_visual(), "Dial Inc" },
-                ['<c-x>'] = { dialM.dec_visual(), "Dial Dec" }
-            }
-        }
-
-        for mode, mappings in pairs(key_mappings) do
-            wk.register(mappings, { mode = mode, silent = true, noremap = true, nowait = true })
-        end
-
         -- Define custom augends
         local custom_augends = {
             { "set", "get" }, { "form", "to" }, { "push", "pop" }, { "more", "less" },
-            { "mas", "menos" }, { "prev", "next" }, { "start", "end" }, { "true", "false" },
+            { "mas", "menos" }, { "previous", "prev", "next" }, { "start", "end" }, { "true", "false" },
             { "light",  "dark" }, { "open", "close" }, { "read", "write" }, { "truthy", "falsy" },
             { "weight", "height" }, { "filter", "reject" }, { "disable", "enable" },
             { "const", "let",   "var" }, { "disabled", "enabled" }, { "internal", "external" },
@@ -82,7 +63,38 @@ table.insert(M, {
         require("dial.config").augends:register_group {
             default = custom_dial_augends
         }
-    end
+    end,
+    keys = {
+        {
+            '<c-a>',
+            function() require("dial.map").manipulate("increment", "normal") end,
+            { noremap = true, silent = true, nowait = true },
+            mode = "n",
+            desc = "Increment"
+        },
+        {
+            '<c-x>',
+            function() require("dial.map").manipulate("decrement", "normal") end,
+            { noremap = true, silent = true, nowait = true },
+            mode = "n",
+            desc = "Decrement"
+        },
+        {
+            '<c-a>',
+            function() require("dial.map").manipulate("increment", "insert") end,
+            { noremap = true, silent = true, nowait = true },
+            mode = "i",
+            desc = "Increment"
+        },
+        {
+            '<c-x>',
+            function() require("dial.map").manipulate("decrement", "insert") end,
+            { noremap = true, silent = true, nowait = true },
+            mode = "i",
+            desc = "Decrement"
+        },
+    }
+
 })
 
 return M

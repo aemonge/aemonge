@@ -1,32 +1,30 @@
 local M = {}
 
 local _breakpoints = function()
-  require 'dap'.list_breakpoints()
-  vim.cmd [[copen]]
+    require 'dap'.list_breakpoints()
+    vim.cmd [[copen]]
 end
 
 M.M = {
-  t = {
-    name = "Toggler",
+    a = { ":LLMToggleAutoSuggest <CR>", "Toggle LLM" },
     e = { ":setlocal foldenable!<cr>", "Fold" },
     w = { ":setlocal wrap!<cr>", "Wrap" },
     g = { ":Gitsigns toggle_current_line_blame<cr>", "Git blame" },
     h = { ":set nohlsearch!<cr>", "Search highlight" },
     t = { ":call CocAction('diagnosticList')<cr>", "Show diagnostic list" },
-    k = { [[:let @/ ='󱌌'<cr>]], " Clear search 󱌌 " },
+    k = { [[:let @/ ='󱌌'<cr>]], " Clear search " },
     b = { function() _breakpoints() end, "Toggle Breakpoints" },
     B = { "<cmd>lua require'dap'.clear_breakpoints()<CR>", "Clear Breakpoints" },
     l = { ":Twilight<CR>", "Toggle Twilight" }
-  }
 }
 
 M.O = {
-  mode = "n",
-  prefix = "<leader>",
-  buffer = nil,
-  silent = true,
-  noremap = true,
-  nowait = true,
+    mode = "n",
+    prefix = "<leader>t",
+    buffer = nil,
+    silent = true,
+    noremap = true,
+    nowait = true,
 }
 
-return M, O
+return M

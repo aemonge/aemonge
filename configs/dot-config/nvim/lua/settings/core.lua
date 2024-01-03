@@ -19,8 +19,8 @@ C.whichKey = {
     -- to enable all native operators, set the preset / operators plugin above
     icons = {
         breadcrumb = "»", -- symbol used in the command line area that shows your active key combo
-        separator = "➜", -- symbol used between a key and it's label
-        group = " ", -- symbol prepended to a group
+        separator = "",   -- symbol used between a key and it's label
+        group = ""        -- " ", -- symbol prepended to a group
     },
     window = {
         border = "double", -- none, single, double, shadow

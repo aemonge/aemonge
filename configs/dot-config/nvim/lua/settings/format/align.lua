@@ -8,28 +8,10 @@ table.insert(M, {
         "languages",
         "frameworks",
     }),
-
-    config = function()
-        require("Comment").setup({
-            opleader = false,
-            extra = false,
-            stiky = true,
-            mappings = false,
-            pre_hook = nil,
-            post_hook = nil,
-        })
-
-        require("which-key").register({
-            ["/"] = { "<Plug>(comment_toggle_linewise_current)<cr>", "Comment" },
-        }, {
-            mode = "n",
-            prefix = "<leader>",
-            buffer = nil,
-            silent = true,
-            noremap = true,
-            nowait = true,
-        })
-    end,
+    keys = {
+        { '<leader>a', "<Plug>(EasyAlign)*",     { silent = true, noremap = true, nowait = true }, mode = "v", desc = "Align" },
+        { '<leader>A', "<Plug>(LiveEasyAlign)*", { silent = true, noremap = true, nowait = true }, mode = "v", desc = "Live Align (<c-p> to accept)" },
+    }
 })
 
 return M
