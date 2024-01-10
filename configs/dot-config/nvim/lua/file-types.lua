@@ -299,6 +299,7 @@ return getFileTypes
 -- "text",
 -- "markup",
 -- "languages",
+-- "langExtensions"
 -- "frameworks",
 -- "data",
 -- "versionControl",

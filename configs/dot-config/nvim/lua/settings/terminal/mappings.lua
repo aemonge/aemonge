@@ -8,11 +8,11 @@ M.M = {
     ["<C-o>"] = { t("<C-\\><C-N>"), "Go to normal mode" },
 
     ["<c-j>"] = {
-        [""] = { t("<C-\\><C-n><c-w>W"), "Previous window" },
+        [""] = { t("<C-\\><C-n><c-w>w"), "Next window" },
         ["<c-j>"] = { t("<C-\\><C-n>gT"), "Previous tab" },
     },
     ["<c-k>"] = {
-        [""] = { t("<C-\\><C-n><c-w>w"), "Next window" },
+        [""] = { t("<C-\\><C-n><c-w>W"), "Previous window" },
         ["<c-k>"] = { t("<C-\\><C-n>gt"), "Next tab" },
     },
 

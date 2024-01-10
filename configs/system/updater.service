@@ -1,0 +1,6 @@
+[Unit]
+Description=Daily system update
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/updater.sh

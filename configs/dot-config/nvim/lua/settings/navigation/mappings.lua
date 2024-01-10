@@ -40,11 +40,11 @@ M.M = {
     },
 
     ["<c-j>"] = {
-        [""] = { "<c-w>W", "Previous window" },
+        [""] = { "<c-w>w", "Next window" },
         ["<c-j>"] = { "gT", "Previous tab" },
     },
     ["<c-k>"] = {
-        [""] = { "<c-w>w", "Next window" },
+        [""] = { "<c-w>W", "Previous window" },
         ["<c-k>"] = { "gt", "Next tab" },
     },
 

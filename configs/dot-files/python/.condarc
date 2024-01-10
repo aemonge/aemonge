@@ -1,5 +1,12 @@
 changeps1: false
 env_prompt: ({name})
 envs_dirs:
-  - /opt/miniconda3/envs
+  - /home/aemonge/.conda/envs
 auto_activate_base: true
+solver: libmamba
+create_default_packages:
+  - pip
+  - ipython
+  - gcc=10.4.0
+  - flake8
+  - black

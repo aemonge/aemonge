@@ -1,4 +1,25 @@
 {
+    // Grammarly
+    "grammarly.severity": {
+        "BasicPunct": 3,
+        "CommonlyConfused": 4,
+        "Determiners": 4,
+        "Formatting": 3,
+        "Fragment": 4,
+        "Unknown": 3
+    },
+    "grammarly.domain": "technical",
+    "grammarly.emotions": [
+        "neutral",
+        "confident",
+        "joyful",
+        "optimistic",
+        "analytical",
+        "friendly"
+    ],
+    "grammarly.showExamples": true,
+    "grammarly.showExplanation": true,
+
     "coc.preferences.formatOnType": true,
     // YAML
     "yaml.format.enable": true,

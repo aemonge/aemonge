@@ -2,6 +2,7 @@
 vim.api.nvim_create_augroup("CocGroup", {})
 vim.api.nvim_create_autocmd("CursorHold", {
     group = "CocGroup",
+    pattern = require("file-types")({ "langExtensions"}),
     command = "silent call CocActionAsync('highlight')",
     desc = "Highlight symbol under cursor on CursorHold"
 })
@@ -17,11 +18,6 @@ vim.api.nvim_create_autocmd("User", {
 -- Update all package managers
 vim.api.nvim_create_autocmd("User", {
     pattern = "LazyUpdate",
-    --     command = "MasonUpdateAll",
-    --     desc = "Run MasonUpdate after LazyUpdate"
-    -- })
-    -- vim.api.nvim_create_autocmd('User', {
-    --     pattern = 'MasonUpdateAllComplete',
     command = "CocUpdate",
     desc = "coc.nvim update"
 })

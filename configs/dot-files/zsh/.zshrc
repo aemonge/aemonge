@@ -14,6 +14,7 @@ BEFORE_NVIM(){
     SSH
     PROFILE
     ZINIT
+    ZINIT_ZERO_PLUGINS
 }
 
 AFTER_NVIM(){
@@ -33,7 +34,6 @@ PATH() {
     export PATH=$PATH:/opt/cuda/bin
 
     export PATH=$PATH:$HOME/.local/bin
-    export PATH=$PATH:$HOME/.node_modules/bin
 }
 
 OPTS() {
@@ -41,7 +41,6 @@ OPTS() {
     export LC_ALL=en_US.UTF-8
     export LC_CTYPE=en_US.UTF-8
     export EDITOR='vmux'
-    export TERM="xterm-256color"
     set -o vi
 }
 
@@ -114,6 +113,10 @@ ZINIT_PLUGINS_COMPLETIONS(){
     compdef _oatmeal oatmeal
 }
 
+ZINIT_ZERO_PLUGINS() {
+    zinit load mattberther/zsh-nodenv
+}
+
 ZINIT_PLUGINS(){
     ZSH_HISTORY
     ZSH_AUTOSUGGEST_STRATEGY=(history completion)
@@ -125,7 +128,6 @@ ZINIT_PLUGINS(){
         zsh-users/zsh-completions \
         Tarrasch/zsh-autoenv \
         dim-an/cod \
-        mattberther/zsh-nodenv \
 
     # zsh-autosuggestions
     zinit light zsh-users/zsh-autosuggestions

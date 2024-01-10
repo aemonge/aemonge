@@ -79,20 +79,20 @@ table.insert(M, {
             mode = "n",
             desc = "Decrement"
         },
-        {
-            '<c-a>',
-            function() require("dial.map").manipulate("increment", "insert") end,
-            { noremap = true, silent = true, nowait = true },
-            mode = "i",
-            desc = "Increment"
-        },
-        {
-            '<c-x>',
-            function() require("dial.map").manipulate("decrement", "insert") end,
-            { noremap = true, silent = true, nowait = true },
-            mode = "i",
-            desc = "Decrement"
-        },
+        -- {
+        --     '<c-a>',
+        --     function() require("dial.map").manipulate("increment", "insert") end,
+        --     { noremap = true, silent = true, nowait = true },
+        --     mode = "i",
+        --     desc = "Increment"
+        -- },
+        -- {
+        --     '<c-x>',
+        --     function() require("dial.map").manipulate("decrement", "insert") end,
+        --     { noremap = true, silent = true, nowait = true },
+        --     mode = "i",
+        --     desc = "Decrement"
+        -- },
     }
 
 })

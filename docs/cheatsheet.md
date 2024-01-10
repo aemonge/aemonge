@@ -579,8 +579,6 @@ if (roofs := db.roof.find(query)):
 > 2dsphere index. Also, remember to handle any exceptions that may occur during the
 > execution of these operations, especially when dealing with real-world data.
 
-``
-
 # 📚 GIT
 
 ## Git workflow

@@ -2,6 +2,7 @@ local M = {}
 table.insert(M, {
     "AckslD/swenv.nvim",
     opts = {
+        venvs_path = vim.fn.expand('~/.conda/envs'),
         post_set_venv = function()
             local timer = vim.loop.new_timer()
             -- Check every 250ms if g:coc_status exists

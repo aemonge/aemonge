@@ -13,6 +13,7 @@ wk.register({
 
 wk.register({
     d = { "<CMD>lua _G.show_diagnostic_line()<CR>", "  Diagnostic hover" },
+    f = { "<CMD>Format<CR>", "  Format " },
     g = { ":Gitsigns blame_line<cr>", "  Git blame" },
 }, {
     mode = "n",

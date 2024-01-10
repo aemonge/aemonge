@@ -136,7 +136,7 @@ table.insert(M, {
         { '<leader>sa', '<cmd>Telescope <CR>', { silent = true, noremap = true, nowait = true }, mode = "n", desc = "Built-in" },
         { '<leader>sh', '<cmd>Telescope help_tags <CR>', { silent = true, noremap = true, nowait = true }, mode = "n", desc = "Help" },
         { '<leader>su', '<cmd>Telescope undo <CR>', { silent = true, noremap = true, nowait = true }, mode = "n", desc = "Undo" },
-        { '<leader>st', '<cmd>Telescope tags <CR>', { silent = true, noremap = true, nowait = true }, mode = "n", desc = "Tags" },
+        { '<leader>st', '<cmd>Telescope current_buffer_tags <CR>', { silent = true, noremap = true, nowait = true }, mode = "n", desc = "Tags" },
         { '<leader>se', '<cmd>Telescope emoji <CR>', { silent = true, noremap = true, nowait = true }, mode = "n", desc = "Emoji" },
         { '<leader>sg', '<cmd>Telescope glyph <CR>', { silent = true, noremap = true, nowait = true }, mode = "n", desc = "Glyph" },
         { '<c-f>', 'y<esc>q:pITelescope grep_string search=<cr>', { silent = true, noremap = true, nowait = true }, mode = "v", desc = "Telescope Search on visual selection" },
