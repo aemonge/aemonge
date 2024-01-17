@@ -85,7 +85,7 @@ table.insert(M, {
         })
 
         vim.fn.sign_define("DapBreakpoint", {
-            text = "🛑",
+            text = "",
             texthl = "",
             linehl = "",
             numhl = ""
@@ -98,9 +98,23 @@ table.insert(M, {
             desc = "Display the name of the DAP UI section"
         })
 
-
-        vim.cmd [[ au FileType dap-repl lua require('settings.dap-ui.repl').setup() ]]
-        -- vim.cmd [[ au FileType dap-repl lua require('dap.ext.autocompl').attach() ]]
+        -- Avoid keeping the dap-repl open, if all is close close it too
+        vim.api.nvim_create_autocmd('FileType', {
+            pattern = { 'dap-repl' },
+            callback = function()
+                vim.api.nvim_buf_set_option(0, 'buflisted', false)
+                vim.api.nvim_buf_set_option(0, 'modified', false)
+                require('settings.dap-ui.repl').setup()
+            end
+        })
+        vim.api.nvim_create_autocmd({ "BufHidden", "BufDelete" }, {
+            pattern = { 'dap-repl' },
+            callback = function()
+                if vim.api.nvim_buf_get_option(0, 'filetype') == 'dap-repl' then
+                    vim.api.nvim_buf_delete(0, { force = true })
+                end
+            end
+        })
     end,
     keys = {
         { '<leader>v', desc = "🐞Debugger" },

@@ -1,8 +1,15 @@
 #!/bin/bash
 
-pacman -Syu --noconfirm
-aura -Syu --noconfirm
+set -e
+
+echo "sudo pacman -Syu --noconfirm"
+sudo pacman -Syu --noconfirm
+
+echo "sudo aura -Syu --noconfirm"
+sudo aura -Syu --noconfirm
+
+echo "npm update -g"
 npm update -g
-sudo -u aemonge /opt/miniconda3/bin/pipupgrade -s
-sudo -u aemonge /opt/miniconda3/bin/pipupgrade -y
-sudo -u aemonge /opt/miniconda3/bin/pipupgrade --doctor -y
+
+echo "pipupgrade -s && pipupgrade -y"
+pipupgrade -s && pipupgrade -y

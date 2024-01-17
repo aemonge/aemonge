@@ -54,23 +54,6 @@ SSH() {
     eval "$(ssh-agent -s)" > /dev/null 2>&1
 }
 
-CONDA() {
-  # >>> conda initialize >>>
-  # !! Contents within this block are managed by 'conda init' !!
-  __conda_setup="$('/opt/miniconda3/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
-  if [ $? -eq 0 ]; then
-      eval "$__conda_setup"
-  else
-      if [ -f "/opt/miniconda3/etc/profile.d/conda.sh" ]; then
-          . "/opt/miniconda3/etc/profile.d/conda.sh"
-      else
-          export PATH="/opt/miniconda3/bin:$PATH"
-      fi
-  fi
-  unset __conda_setup
-  # <<< conda initialize <<<
-}
-
 P10K_ZINIT() {
     # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
     # Initialization code that may require console input (password prompts, [y/n]
@@ -127,6 +110,7 @@ ZINIT_PLUGINS(){
         zdharma-continuum/history-search-multi-word \
         zsh-users/zsh-completions \
         Tarrasch/zsh-autoenv \
+        KulkarniKaustubh/fzf-dir-navigator \
         dim-an/cod \
 
     # zsh-autosuggestions
@@ -157,6 +141,23 @@ ZINIT() {
     (( ${+_comps} )) && _comps[zinit]=_zinit
 }
 
+CONDA() {
+    # >>> conda initialize >>>
+    # !! Contents within this block are managed by 'conda init' !!
+    __conda_setup="$('/home/aemonge/.conda/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
+    if [ $? -eq 0 ]; then
+        eval "$__conda_setup"
+    else
+        if [ -f "/home/aemonge/.conda/etc/profile.d/conda.sh" ]; then
+            . "/home/aemonge/.conda/etc/profile.d/conda.sh"
+        else
+            export PATH="/home/aemonge/.conda/bin:$PATH"
+        fi
+    fi
+    unset __conda_setup
+    # <<< conda initialize <<<
+}
+
 START() {
     BEFORE
 
@@ -175,3 +176,5 @@ START() {
     AFTER
 }
 START
+
+

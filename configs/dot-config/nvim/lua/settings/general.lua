@@ -4,7 +4,7 @@ vim.opt.autoread = true   -- Set autoread when a file is changed outside
 vim.opt.autowrite = true  -- FileChangedShell * echo Warning: File changed on disk
 vim.opt.backup = false    -- creates a backup file
 vim.opt.clipboard = {     -- allows neovim to access the system clipboard
-  "unnamed", "unnamedplus"
+    "unnamed", "unnamedplus"
 }
 vim.opt.cmdheight = 0                 -- Hyper focused, hidden cmd bar
 vim.opt.concealcursor = "v"           -- Mostly invisible, but when acting on it `vi` display it
@@ -64,6 +64,7 @@ vim.opt.incsearch = true
 vim.opt.gdefault = true               -- Make the `s/` have the 'g' flag as default.
 
 vim.g.markdown_fenced_languages = { 'html', 'python', 'ruby', 'vim', 'python', 'bash', 'javascript' }
+vim.g.noeterm_autoscroll = 1
 
 -- My own file types
 vim.cmd('filetype plugin on')

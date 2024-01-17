@@ -11,7 +11,7 @@ table.insert(M, {
     priority = 99999,
     opts = {
         max_width = 90,
-        background_colour = "#000000",
+        background_colour = 'NONE', -- "#000000",
         timeout = 3500,
         top_down = false,
         level = vim.log.levels.WARN,

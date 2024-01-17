@@ -6,12 +6,15 @@ alias xcopy="xclip -sel clip"
 alias xpaste="xclip -sel clip -o"
 alias ll='tree -Chl -L 3 --dirsfirst'
 
+# Use the trash men
+alias rm=/usr/bin/trash
+alias rmf=/usr/bin/rm
+
 # Vim
 alias vcd=~/usr/bin/vcd
-alias f='vim $(fzf)'
 
 # Fix termin info
-alias clear=/usr/bin/clear
+# alias clear=/usr/bin/clear
 
 # Docker
 # alias docker-clean="docker kill $(docker ps -q | xargs); docker volume rm $(docker volume ls -q | xargs);  docker image rm -f $(docker image ls -q | xargs)"

@@ -11,7 +11,7 @@ else
     done
 fi
 
-if [ -z $NVIM ]; then
+if [ -z "$NVIM" ]; then
   "${cmd[@]}"
 else
   nvr -s --remote-tab "$@"

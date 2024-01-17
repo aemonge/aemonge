@@ -10,3 +10,6 @@ create_default_packages:
   - gcc=10.4.0
   - flake8
   - black
+channels:
+  - conda-forge
+  - defaults

@@ -16,6 +16,13 @@ local M = {
             middle = " <MID>",
             suffix = " <SUF>",
         },
+        -- tokens_to_clear = { "<|endoftext|>" },
+        -- fim = {
+        --     enabled = true,
+        --     prefix = "<fim_prefix>",
+        --     middle = "<fim_middle>",
+        --     suffix = "<fim-suffix>",
+        -- },
         -- model = "WizardLM/WizardCoder-3B-V1.0",
         -- model = "https://api-inference.huggingface.co/models/WizardLM/WizardCoder-Python-7B-V1.0",
         -- model = "TinyLlama/TinyLlama-1.1B-python-v0.1",  -- To be tested
@@ -26,10 +33,12 @@ local M = {
         -- model = "aemonge/cognitivecomputations-dolphin-2.5-mixtral-8x7b",
         -- model = "bigcode/starcoder",  -- Works
         model = "codellama/CodeLlama-13b-hf", -- Works Better with PRO 😉
-        context_window = 4096,
+        -- model = "bigcode/santacoder",
+        context_window = 8192,
         enable_suggestions_on_startup = true,
         enable_suggestions_on_files = require("file-types")({ "langExtensions" }),
         tokenizer = {
+            -- repository = "bigcode/stantacoder",
             -- repository = "bigcode/starcoder",
             repository = "codellama/CodeLlama-13b-hf",
         },
