@@ -19,7 +19,9 @@ vim.api.nvim_create_autocmd("TermLeave", {
 vim.api.nvim_create_autocmd("TermEnter", {
     callback = function()
         if vim.fn.tabpagenr("$") == 1 then
-            vim.cmd([[silent! BufOnly]])
+            if #vim.fn.tabpagebuflist() == 1 then
+                vim.cmd([[silent! BufOnly]])
+            end
             vim.cmd([[silent! :startinsert]])
         end
     end,

@@ -1,0 +1,18 @@
+#!/bin/sh
+
+if type nvr > /dev/null
+then
+  if [[ "$OSTYPE"  == "darwin"* ]]; then
+    nvr -cc vsplit `greadlink -f $@ | xargs`
+    # nvr -c "tabedit `greadlink -f $@ | xargs`"
+  else
+    nvr -cc vsplit `readlink -f $@ | xargs`
+    # nvr -c "tabedit `readlink -f $@ | xargs`"
+  fi
+else
+  if [[ "$OSTYPE"  == "darwin"* ]]; then
+    printf ']51;["lua", "Tapi_Tabe", "%s"]' "`greadlink -f $@ | xargs`"
+  else
+    printf ']51;["lua", "Tapi_Tabe", "%s"]' "`readlink -f $@ | xargs`"
+  fi
+fi

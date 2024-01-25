@@ -14,11 +14,12 @@ FirstRun=false
 hinding_title_bar=false
 
 [Window]
-Height=70
+Height=92
 KeepAbove=false
+KeepOpen=false
 Screen=3
 ShowOnAllDesktops=false
 ShowTabBar=false
 ShowTitleBar=false
 ToggleToFocus=true
-Width=80
+Width=91

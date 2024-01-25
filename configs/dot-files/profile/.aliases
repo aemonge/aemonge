@@ -2,8 +2,8 @@
 
 # System
 alias open="xdg-open"
-alias xcopy="xclip -sel clip"
-alias xpaste="xclip -sel clip -o"
+alias xcopy="wl-copy"
+alias xpaste="wl-paste"
 alias ll='tree -Chl -L 3 --dirsfirst'
 
 # Use the trash men

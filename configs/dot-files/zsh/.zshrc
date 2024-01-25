@@ -20,6 +20,7 @@ BEFORE_NVIM(){
 AFTER_NVIM(){
     P10K_ZINIT
     ZINIT
+    ZINIT_ZERO_PLUGINS
     ZINIT_PLUGINS
     THEME
     PROFILE
@@ -97,7 +98,7 @@ ZINIT_PLUGINS_COMPLETIONS(){
 }
 
 ZINIT_ZERO_PLUGINS() {
-    zinit load mattberther/zsh-nodenv
+    eval "$(nodenv init - zsh)"
 }
 
 ZINIT_PLUGINS(){

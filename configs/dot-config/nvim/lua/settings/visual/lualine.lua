@@ -72,11 +72,11 @@ local diff = {
 
 local M = {
     "nvim-lualine/lualine.nvim",
-    after = "noice.nvim",
+    -- after = "noice.nvim",
     config = function()
         local disabled_filetypes, disabled_buftypes = require("settings.visual.raw-types")
         local material_theme = require("lualine.themes.material")
-        local winbar_bg = { bg = "#291E15" }
+        -- local winbar_bg = { bg = "#291E15" }
         local theme = {
             insert = {
                 a = { fg = "#7E98BA", bg = "#2E3C43" },
@@ -110,20 +110,20 @@ local M = {
                 y = { fg = "#CCCECF", bg = "#4F596E" },
                 z = material_theme.normal.z
             },
-            inactive_winbar = {
-                a = winbar_bg,
-                b = winbar_bg,
-                c = winbar_bg,
-                x = winbar_bg,
-                z = winbar_bg,
-            },
-            winbar = {
-                a = winbar_bg,
-                b = winbar_bg,
-                c = winbar_bg,
-                x = winbar_bg,
-                z = winbar_bg,
-            },
+            -- inactive_winbar = {
+            --     a = winbar_bg,
+            --     b = winbar_bg,
+            --     c = winbar_bg,
+            --     x = winbar_bg,
+            --     z = winbar_bg,
+            -- },
+            -- winbar = {
+            --     a = winbar_bg,
+            --     b = winbar_bg,
+            --     c = winbar_bg,
+            --     x = winbar_bg,
+            --     z = winbar_bg,
+            -- },
             inactive = {
                 a = { fg = "#CCCECF", bg = "none" },
                 c = { fg = "#CCCECF", bg = "none" },
@@ -132,17 +132,24 @@ local M = {
         }
 
         require("lualine").setup({
-            options = {
-                icons_enabled = true,
-                theme = theme,
-                always_visible = false,
+            options           = {
+                icons_enabled        = true,
+                theme                = theme,
+                always_visible       = false,
                 component_separators = { left = "", right = "" },
-                section_separators = { left = "", right = "" },
-                disabled_filetypes = disabled_filetypes,
-                disabled_buftypes = disabled_buftypes,
+                section_separators   = { left = "", right = "" },
+                disabled_filetypes   = disabled_filetypes,
+                disabled_buftypes    = disabled_buftypes,
+                condition            = function()
+                    return vim.fn.tabpagenr("$") > 1
+                end,
             },
-            sections = {
+            sections          = {
                 lualine_a = {
+                    {
+                        get_mode_symbol,
+                        color = { fg = "#CCCECF", bg = "#4F596E" }
+                    },
                 },
                 lualine_b = {
                     {
@@ -151,18 +158,38 @@ local M = {
                         draw_empty = true,
                         colored = false,
                         icon = "",
-                    }
+                    },
+                    diff
                 },
-                lualine_c = { diff, {
-                    require("noice").api.status.message.get,
-                    cond = require("noice").api.status.message.has,
-                } },
+                lualine_c = {
+                    { "nvim-tree", color = { bg = "#4f596e" } },
+                    {
+                        "filename",
+                        path = 0,
+                        color = {
+                            fg = "#cdcecf", bg = "#4f596e"
+                        }
+                    },
+                },
                 lualine_x = {
-                    { search_count, type = "lua_expr" }
+                    {
+
+                        breadcrumbs,
+                        color = {
+                            fg = "#EDDB8A", bg = "#4f596e"
+                        },
+                        always_visible = false,
+                    },
+                    diagnostics,
+                    -- {
+                    --     require("noice").api.status.message.get,
+                    --     cond = require("noice").api.status.message.has,
+                    -- },
                 },
                 lualine_y = {
+                    { search_count, type = "lua_expr" },
                     {
-                        "g:coc_status",
+                        -- "g:coc_status",
                         "bo:filetype",
                     },
                 },
@@ -189,47 +216,55 @@ local M = {
                     }
                 },
                 lualine_c = { "diff" },
-                lualine_x = {},
-                lualine_y = {
-                    "filetype"
-                },
-                lualine_z = {},
-            },
-            inactive_winbar = {
-                lualine_a = {},
-                lualine_b = {
+                lualine_x = {
                     {
                         "filename",
-                        path = 1,
+                        path = 3,
                         color = {
                             fg = "#CCCECF", bg = "none"
                         }
                     },
                 },
-                lualine_z = { diagnostics },
-            },
-            winbar = {
-                lualine_a = { get_mode_symbol },
-                lualine_b = { diagnostics },
-                lualine_c = {
-                    { "nvim-tree", color = { bg = "#4f596e" } },
-                    {
-                        "filename",
-                        path = 3,
-                        color = {
-                            fg = "#cdcecf", bg = "#4f596e"
-                        }
-                    },
+                lualine_y = {
+                    "filetype"
                 },
-                lualine_y = {},
-                lualine_z = { {
-                    breadcrumbs,
-                    color = {
-                        fg = "#EDDB8A", bg = "#4f596e"
-                    },
-                    always_visible = false
-                } },
-            }
+                lualine_z = {},
+            },
+            -- inactive_winbar = {
+            --     lualine_a = {},
+            --     lualine_b = {
+            --         {
+            --             "filename",
+            --             path = 1,
+            --             color = {
+            --                 fg = "#CCCECF", bg = "none"
+            --             }
+            --         },
+            --     },
+            --     lualine_z = { diagnostics },
+            -- },
+            -- winbar = {
+            --     lualine_a = { get_mode_symbol },
+            --     lualine_b = { diagnostics },
+            --     lualine_c = {
+            --         { "nvim-tree", color = { bg = "#4f596e" } },
+            --         {
+            --             "filename",
+            --             path = 3,
+            --             color = {
+            --                 fg = "#cdcecf", bg = "#4f596e"
+            --             }
+            --         },
+            --     },
+            --     lualine_y = {},
+            --     lualine_z = { {
+            --         breadcrumbs,
+            --         color = {
+            --             fg = "#EDDB8A", bg = "#4f596e"
+            --         },
+            --         always_visible = false
+            --     } },
+            -- }
         })
     end,
 }
