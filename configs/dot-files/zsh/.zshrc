@@ -112,6 +112,8 @@ ZINIT_PLUGINS(){
         zsh-users/zsh-completions \
         Tarrasch/zsh-autoenv \
         KulkarniKaustubh/fzf-dir-navigator \
+        unixorn/fzf-zsh-plugin \
+        Aloxaf/fzf-tab \
         dim-an/cod \
 
     # zsh-autosuggestions

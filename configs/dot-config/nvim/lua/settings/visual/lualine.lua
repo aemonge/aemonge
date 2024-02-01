@@ -1,16 +1,3 @@
-local function breadcrumbs()
-    local items = vim.b.coc_nav
-    local t = {}
-    for k, v in ipairs(items) do
-        t[#t + 1] = "" .. (type(v.label) == "string" and v.label .. "" or "")
-            .. (v.name or "")
-        if next(items, k) ~= nil then
-            t[#t + 1] = " "
-        end
-    end
-    return table.concat(t)
-end
-
 local function search_count()
     if vim.api.nvim_get_vvar("hlsearch") == 1 then
         local search_expr = vim.fn.getreg("/")
@@ -80,34 +67,34 @@ local M = {
         local theme = {
             insert = {
                 a = { fg = "#7E98BA", bg = "#2E3C43" },
-                b = { fg = "#7E98BA", bg = "#3B4252" },
-                y = { fg = "#CCCECF", bg = "#4F596E" },
+                b = { fg = "#7798A8", bg = "#152528" },
+                y = { fg = "#687175", bg = "#2E423C" },
                 z = material_theme.normal.z
             },
             visual = {
-                a = { bg = "#628B4A", fg = "#2E3C43" },
-                b = { fg = "#7E98BA", bg = "#3B4252" },
-                y = { fg = "#CCCECF", bg = "#4F596E" },
+                a = { bg = "#C2BF76", fg = "#2E3C43" },
+                b = { fg = "#7798A8", bg = "#152528" },
+                y = { fg = "#687175", bg = "#2E423C" },
                 z = material_theme.normal.z
             },
             replace = {
-                a = { bg = "#D16969", fg = "#2E3C43" },
-                b = { fg = "#7E98BA", bg = "#3B4252" },
-                y = { fg = "#CCCECF", bg = "#4F596E" },
+                a = { bg = "#422E30", fg = "#2E3C43" },
+                b = { fg = "#7798A8", bg = "#152528" },
+                y = { fg = "#687175", bg = "#2E423C" },
                 z = material_theme.normal.z
             },
             command = {
                 a = { bg = "#E5C07B", fg = "#2E3C43" },
-                b = { fg = "#7E98BA", bg = "#3B4252" },
-                y = { fg = "#CCCECF", bg = "#4F596E" },
+                b = { fg = "#7798A8", bg = "#152528" },
+                y = { fg = "#687175", bg = "#2E423C" },
                 z = material_theme.normal.z
             },
             normal = {
-                a = { fg = "#7E98BA", bg = "#2E3C43" },
-                b = { fg = "#7E98BA", bg = "#3B4252" },
-                c = { fg = "#CCCECF", bg = "#4F596E" },
-                x = { fg = "#CCCECF", bg = "#4F596E" },
-                y = { fg = "#CCCECF", bg = "#4F596E" },
+                a = { fg = "#7798A8", bg = "#2E3C43" },
+                b = { fg = "#7798A8", bg = "#152528" },
+                c = { fg = "#7798A8", bg = "#151929" },
+                x = { fg = "#7798A8", bg = "#152528" },
+                y = { fg = "#7798A8", bg = "#2E423C" },
                 z = material_theme.normal.z
             },
             -- inactive_winbar = {
@@ -148,48 +135,40 @@ local M = {
                 lualine_a = {
                     {
                         get_mode_symbol,
-                        color = { fg = "#CCCECF", bg = "#4F596E" }
+                        color = { fg = "#CCCECF", bg = "#2E2E42" }
                     },
-                },
-                lualine_b = {
                     {
                         "branch",
                         icons_enabled = true,
                         draw_empty = true,
                         colored = false,
                         icon = "",
-                    },
-                    diff
+                    }
+                },
+                lualine_b = {
+                    diagnostics
+                    -- diff
                 },
                 lualine_c = {
                     { "nvim-tree", color = { bg = "#4f596e" } },
                     {
                         "filename",
-                        path = 0,
-                        color = {
-                            fg = "#cdcecf", bg = "#4f596e"
-                        }
+                        path = 3,
+                        -- color = {
+                        --     fg = "#cdcecf", bg = "#4f596e"
+                        -- }
                     },
                 },
                 lualine_x = {
-                    {
-
-                        breadcrumbs,
-                        color = {
-                            fg = "#EDDB8A", bg = "#4f596e"
-                        },
-                        always_visible = false,
-                    },
-                    diagnostics,
+                    { search_count, type = "lua_expr" },
                     -- {
                     --     require("noice").api.status.message.get,
                     --     cond = require("noice").api.status.message.has,
                     -- },
                 },
                 lualine_y = {
-                    { search_count, type = "lua_expr" },
                     {
-                        -- "g:coc_status",
+                        "g:coc_status",
                         "bo:filetype",
                     },
                 },
@@ -200,7 +179,7 @@ local M = {
                             return vim.bo.filetype == "python"
                         end,
                         icon = "",
-                        color = { fg = "#3B4252", bg = "#7E98BA" }
+                        color = { fg = "#7798A8", bg = "#151929" },
                     }
                 }
             },

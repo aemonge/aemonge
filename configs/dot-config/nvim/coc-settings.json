@@ -19,6 +19,17 @@
     ],
     "grammarly.showExamples": true,
     "grammarly.showExplanation": true,
+    "grammarly.filetypes": [
+        "asciidoc",
+        "gitcommit",
+        "gitrebase",
+        "tex",
+        "plaintex",
+        "context",
+        "markdown",
+        "text",
+        "rst"
+    ],
 
     "coc.preferences.formatOnType": true,
     // YAML

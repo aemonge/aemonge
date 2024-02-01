@@ -1,11 +1,25 @@
 local M = {}
 
 local selected = {
-    bg = "#4f596e",
+    bg = "#151929" -- "#4f596e",
 }
 local unselected = {
     bg = "#152528"
 }
+
+
+local function breadcrumbs()
+    local items = vim.b.coc_nav
+    local t = {}
+    for k, v in ipairs(items) do
+        t[#t + 1] = "" .. (type(v.label) == "string" and v.label .. "" or "")
+            .. (v.name or "")
+        if next(items, k) ~= nil then
+            t[#t + 1] = " "
+        end
+    end
+    return table.concat(t)
+end
 
 local function getDiagnostics()
     -- Fetch diagnostics from different sources and aggregate them
@@ -40,9 +54,23 @@ table.insert(M, {
             custom_areas = {
                 right = function()
                     local result = {}
-                    table.insert(result, {
-                        text = ' ' .. '  ' .. os.date('%H:%M') .. ' ', guifg = "#EC5241"
-                    })
+
+                    -- Breadcrumbs
+                    local items = vim.b.coc_nav
+                    local t = {}
+                    for k, v in ipairs(items) do
+                        t[#t + 1] = "" .. (type(v.label) == "string" and v.label .. "" or "")
+                            .. (v.name or "")
+                        if next(items, k) ~= nil then
+                            t[#t + 1] = " "
+                        end
+                    end
+                    local breadcrumbs = table.concat(t)
+                    table.insert(result, { text = breadcrumbs, guifg = "#EC5241" })
+
+                    -- Clock
+                    table.insert(result, { text = ' ' .. '  ' .. os.date('%H:%M') .. ' ', guifg = "#EC5241" })
+
                     return result
                 end,
             },

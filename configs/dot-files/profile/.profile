@@ -4,10 +4,10 @@ ssh-add ~/.ssh/github > /dev/null 2>&1
 ssh-add ~/.ssh/gitlab > /dev/null 2>&1
 
 OPENAI_API_KEY=$(cat ~/.ssh/openai-api-key)
+LLM_API_KEY=$(cat ~/.ssh/perplexity-token)
 LLM_NVIM_API_TOKEN=$(cat ~/.ssh/hugging-face-key)
 OATMEAL_OPENAI_TOKEN=$OPENAI_API_KEY
 MOZ_TOKEN=$(cat ~/.ssh/moz_token)
-CUDA_VISIBLE_DEVICES=0
 CUDA_HOME="/opt/cuda"
 OLLAMA_MODELS=/home/ollama
 MOZ_ENABLE_WAYLAND=1
@@ -22,5 +22,6 @@ export CUDA_VISIBLE_DEVICES
 export CUDA_HOME
 export OLLAMA_MODELS
 export OPENAI_API_KEY
+export LLM_API_KEY
 export LLM_NVIM_API_TOKEN
 export OATMEAL_OPENAI_TOKEN

@@ -1,25 +1,27 @@
+[Animation]
+Frames=40
+
 [Appearance]
 BackgroundColorOpacity=88
 Skin=legacy
 Translucency=true
 
-[Behavior]
-OpenAfterStart=true
-RememberFullscreen=true
-
 [Dialogs]
+ConfirmQuit=false
 FirstRun=false
 
 [Notification Messages]
 hinding_title_bar=false
 
+[Shortcuts]
+toggle-window-state=none
+
 [Window]
-Height=92
+Height=51
 KeepAbove=false
 KeepOpen=false
 Screen=3
-ShowOnAllDesktops=false
 ShowTabBar=false
 ShowTitleBar=false
 ToggleToFocus=true
-Width=91
+Width=50

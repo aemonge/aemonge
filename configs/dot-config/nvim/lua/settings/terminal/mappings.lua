@@ -16,7 +16,7 @@ M.M = {
         ["<c-k>"] = { t("<C-\\><C-n>gt"), "Next tab" },
     },
 
-    ["<c-t>"] = { t("<C-\\><C-n>:lua NewTermTab()<cr>"), "New term tab" },
+    -- ["<C-S-T>"] = { t("<C-\\><C-n>:lua NewTermTab()<cr>"), "New term tab" },
 
     ["<c-w>"] = {
         name = "Split new Terminals",

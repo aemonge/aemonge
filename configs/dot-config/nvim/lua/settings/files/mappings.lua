@@ -7,6 +7,7 @@ M.M = {
     a = { "ggVGyg;", "Yank file contents" },
     p = { "ggVGpg;", "Replace file contents with clipboard" },
     c = { "ggVGdg;", "Clear file contents" },
+    S = { ":SudaRead<CR>", "SUda edit the file" },
     n = { ":g/^ *$/d<cr>", "Remove empty lines" }
 }
 

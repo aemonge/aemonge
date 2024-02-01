@@ -16,3 +16,6 @@ pipupgrade -s && pipupgrade -y
 
 echo "npm update -g"
 sudo npm update -g
+
+echo "zinit update"
+zinit update

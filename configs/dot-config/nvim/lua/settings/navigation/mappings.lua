@@ -48,7 +48,7 @@ M.M = {
         ["<c-k>"] = { "gt", "Next tab" },
     },
 
-    ["<c-t>"] = { ":lua NewTermTab()<cr>", "New term tab" },
+    ["<C-t>"] = { ":lua NewTermTab()<cr>", "New term tab" },
 
     ['_'] = { ":resize -2<cr>", "Decrease Horizontally" },
     ['+'] = { ":resize +3<cr>", "Increase Horizontally" },
