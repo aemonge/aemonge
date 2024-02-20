@@ -785,6 +785,22 @@ gem install --no-user-install --install-dir=./mason/packages \
 
 # 🐍 Python
 
+## Walrus operation and some magic sugar tricks
+
+Look for a success full code execution, or fail by raising the exception.
+
+```python
+try:
+    entity := db.entities.find({uuid: uudi}) or raise BaseException
+except BaseException as e:
+    raise Exception("some error just described here and only here") from e
+
+with db.entities.find({uuid: uudi}):
+    entity := db.entities.find({uuid: uudi}) or raise BaseException
+except BaseException as e:
+    raise Exception("some error just described here and only here") from e
+```
+
 ## Typing and useful lint and code checks
 
 Recommendations and Tweaks:
@@ -800,6 +816,28 @@ poetry add -G dev black flake8 flake8-docstrings \
 
 poetry add -G test ipdb mongomock pynguin pytest pytest-cov \
   pytest-describe pytest-lineno python-githooks toml vcrpy
+```
+
+### Check for missing keys and inform of them in `ValueError`
+
+```python
+if missing_keys := [
+    key
+    for key in [
+        "Facet",
+        "Panel Id",
+        "Production Multiplier",
+        "TSRF(Eapanel)",
+        "kW size",
+        "kW size (Cumulative)",
+        "kWh/yr",
+    ]
+    if key not in self._data_dict or self._data_dict[key] is None
+]:
+    raise ValueError(
+        f"Missing data in EnergyTable data type for keys: {missing_keys}",
+        self._data_dict,
+    )
 ```
 
 ## Libraries
@@ -1249,6 +1287,31 @@ class Cat(Animal):
 
   def eat(self):
     self.edible = self.edible[:-1]
+```
+
+### Pydantic model, base model, schema and the right types
+
+> (https://docs.pydantic.dev/latest/concepts/models/)
+
+To correctly configure pydantic to be performant use Base and BaseModel:
+
+```python
+class CompanyOrm(Base):
+    __tablename__ = 'companies'
+
+    id = Column(Integer, primary_key=True, nullable=False)
+    public_key = Column(String(20), index=True, nullable=False, unique=True)
+    name = Column(String(63), unique=True)
+    domains = Column(ARRAY(String(255)))
+
+
+class CompanyModel(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    public_key: Annotated[str, StringConstraints(max_length=20)]
+    name: Annotated[str, StringConstraints(max_length=63)]
+    domains: List[Annotated[str, StringConstraints(max_length=255)]]
 ```
 
 ### Pyright and pydantic attributes for class

@@ -1,3 +1,8 @@
+local function globalCondition()
+    -- If has tabs
+    return vim.fn.tabpagenr('$') > 1
+end
+
 local function search_count()
     if vim.api.nvim_get_vvar("hlsearch") == 1 then
         local search_expr = vim.fn.getreg("/")
@@ -33,12 +38,12 @@ end
 
 local diagnostics = {
     "diagnostics",
+    cond = globalCondition,
     sources = { "nvim_lsp", "nvim_diagnostic", "coc" },
     sections = { "error", "warn", "info", "hint" },
     symbols = { warn = " ", error = " ", info = " ", hint = "𥉉" },
     colored = true,
     update_in_insert = true,
-    always_visible = false,
     subject = function(data)
         local result = ""
         for name, count in pairs(data) do
@@ -122,7 +127,6 @@ local M = {
             options           = {
                 icons_enabled        = true,
                 theme                = theme,
-                always_visible       = false,
                 component_separators = { left = "", right = "" },
                 section_separators   = { left = "", right = "" },
                 disabled_filetypes   = disabled_filetypes,
@@ -135,14 +139,15 @@ local M = {
                 lualine_a = {
                     {
                         get_mode_symbol,
-                        color = { fg = "#CCCECF", bg = "#2E2E42" }
+                        color = { fg = "#CCCECF", bg = "#2E2E42" },
+                        cond = globalCondition,
                     },
                     {
                         "branch",
                         icons_enabled = true,
-                        draw_empty = true,
                         colored = false,
                         icon = "",
+                        cond = globalCondition,
                     }
                 },
                 lualine_b = {
@@ -150,17 +155,26 @@ local M = {
                     -- diff
                 },
                 lualine_c = {
-                    { "nvim-tree", color = { bg = "#4f596e" } },
+                    {
+                        "nvim-tree",
+                        color = { bg = "#4f596e" },
+                        cond = globalCondition,
+                    },
                     {
                         "filename",
                         path = 3,
+                        cond = globalCondition,
                         -- color = {
                         --     fg = "#cdcecf", bg = "#4f596e"
                         -- }
                     },
                 },
                 lualine_x = {
-                    { search_count, type = "lua_expr" },
+                    {
+                        search_count,
+                        type = "lua_expr",
+                        cond = globalCondition,
+                    },
                     -- {
                     --     require("noice").api.status.message.get,
                     --     cond = require("noice").api.status.message.has,
@@ -170,13 +184,14 @@ local M = {
                     {
                         "g:coc_status",
                         "bo:filetype",
+                        cond = globalCondition,
                     },
                 },
                 lualine_z = {
                     {
                         "swenv",
                         cond = function()
-                            return vim.bo.filetype == "python"
+                            return globalCondition() and vim.bo.filetype == "python"
                         end,
                         icon = "",
                         color = { fg = "#7798A8", bg = "#151929" },
@@ -191,22 +206,28 @@ local M = {
                         icons_enabled = true,
                         draw_empty = false,
                         icon = "",
-                        color = { fg = "#CCCECF", bg = "none" }
+                        color = { fg = "#CCCECF", bg = "none" },
+                        cond = globalCondition,
                     }
                 },
-                lualine_c = { "diff" },
+                lualine_c = { {
+                    "diff",
+                    cond = globalCondition,
+                } },
                 lualine_x = {
                     {
                         "filename",
                         path = 3,
                         color = {
                             fg = "#CCCECF", bg = "none"
-                        }
+                        },
+                        cond = globalCondition,
                     },
                 },
-                lualine_y = {
-                    "filetype"
-                },
+                lualine_y = { {
+                    "filetype",
+                    cond = globalCondition,
+                } },
                 lualine_z = {},
             },
             -- inactive_winbar = {
@@ -241,7 +262,6 @@ local M = {
             --         color = {
             --             fg = "#EDDB8A", bg = "#4f596e"
             --         },
-            --         always_visible = false
             --     } },
             -- }
         })

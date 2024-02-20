@@ -18,10 +18,7 @@ toggle-window-state=none
 
 [Window]
 Height=51
-KeepAbove=false
-KeepOpen=false
 Screen=3
 ShowTabBar=false
 ShowTitleBar=false
-ToggleToFocus=true
 Width=50
