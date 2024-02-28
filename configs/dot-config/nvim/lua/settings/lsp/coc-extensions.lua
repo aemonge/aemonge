@@ -32,6 +32,7 @@ M.list = {
         "coc-json",
         "coc-toml",
         "coc-markdown-preview-enhanced",
+        "coc-htmldjango" -- Jinja templates
     },
 
     ["tools_extensions"] = {

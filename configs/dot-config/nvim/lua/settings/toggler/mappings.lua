@@ -15,7 +15,9 @@ M.M = {
     k = { [[:let @/ ='󱌌'<cr>]], " Clear search " },
     b = { function() _breakpoints() end, "Toggle Breakpoints" },
     B = { "<cmd>lua require'dap'.clear_breakpoints()<CR>", "Clear Breakpoints" },
-    l = { ":Twilight<CR>", "Toggle Twilight" }
+    l = { ":Twilight<CR>", "Toggle Twilight" },
+    u = { ":UfoAttach<CR>", "Enable Ufo" },
+    U = { ":UfoDetach<CR>", "Disable Ufo" },
 }
 
 M.O = {

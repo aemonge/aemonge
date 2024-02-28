@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# Toggling compositing
+qdbus org.kde.KWin /Compositor suspend
+
+# Run flameshot and resume compositing
+if [ -x "$(command -v spectacle)" ]; then
+    spectacle && qdbus org.kde.KWin /Compositor resume
+fi

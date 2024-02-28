@@ -1,16 +1,32 @@
-#!/bin/sh
+#!/bin/bash
 
-if type nvr > /dev/null
-then
-  if [[ "$OSTYPE"  == "darwin"* ]]; then
-    nvr -cc vsplit `greadlink -f $@ | xargs`
+# Determine terminal size
+cols=$(tput cols)
+lines=$(tput lines)
+
+# Adjust to a 16:10 ratio
+adjusted_height=$(($lines * 16 ))
+adjusted_width=$(($cols * 10))
+
+# Decide on split or vsplit based on the adjusted comparison
+split_command="vsplit"
+if [ "$adjusted_height" -gt "$adjusted_width" ]; then
+    split_command="split"
+fi
+
+# Split
+if type nvr > /dev/null; then
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    # Use greadlink for macOS
+    nvr -cc "$split_command `greadlink -f $@ | xargs`"
     # nvr -c "tabedit `greadlink -f $@ | xargs`"
   else
-    nvr -cc vsplit `readlink -f $@ | xargs`
+    # Use readlink for other systems
+    nvr -cc "$split_command `readlink -f $@ | xargs`"
     # nvr -c "tabedit `readlink -f $@ | xargs`"
   fi
 else
-  if [[ "$OSTYPE"  == "darwin"* ]]; then
+  if [[ "$OSTYPE" == "darwin"* ]]; then
     printf ']51;["lua", "Tapi_Tabe", "%s"]' "`greadlink -f $@ | xargs`"
   else
     printf ']51;["lua", "Tapi_Tabe", "%s"]' "`readlink -f $@ | xargs`"
