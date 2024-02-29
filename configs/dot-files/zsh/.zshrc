@@ -109,11 +109,12 @@ ZINIT_PLUGINS(){
     zinit wait lucid light-mode for \
         zdharma-continuum/fast-syntax-highlighting \
         zdharma-continuum/history-search-multi-word \
+        3v1n0/zsh-bash-completions-fallback \
         zsh-users/zsh-completions \
+        z-shell/zsh-fancy-completions \
         Tarrasch/zsh-autoenv \
         KulkarniKaustubh/fzf-dir-navigator \
         unixorn/fzf-zsh-plugin \
-        Aloxaf/fzf-tab \
         dim-an/cod \
 
     # zsh-autosuggestions
