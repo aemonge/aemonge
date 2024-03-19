@@ -8,6 +8,8 @@ BEFORE(){
 
 AFTER(){
   alias vim="$EDITOR"
+  zinit load z-shell/zsh-startify
+  zsh-startify
 }
 
 BEFORE_NVIM(){
@@ -92,6 +94,25 @@ ZSH_HISTORY() {
 }
 
 ZINIT_PLUGINS_COMPLETIONS(){
+    export COMPLETION_WAITING_DOTS=1
+    zinit wait lucid light-mode for \
+        dim-an/cod \
+        3v1n0/zsh-bash-completions-fallback \
+        z-shell/F-Sy-H \
+        z-shell/zsh-fancy-completions \
+        z-shell/H-S-MW \
+        z-shell/zsh-tig-plugin \
+        z-shell/zsh-startify
+
+    # zsh-autosuggestions
+    zinit light zsh-users/zsh-autosuggestions
+    bindkey '^p' history-search-backward
+    bindkey '^o' history-search-forward
+    bindkey '^n' autosuggest-accept
+    bindkey '^e' autosuggest-execute
+    bindkey '^a' autosuggest-toggle
+    bindkey '^s' autosuggest-clear
+
     # Completion in ~/.zinit/completions
     autoload -U compinit && compinit
     compdef _oatmeal oatmeal
@@ -109,22 +130,11 @@ ZINIT_PLUGINS(){
     zinit wait lucid light-mode for \
         zdharma-continuum/fast-syntax-highlighting \
         zdharma-continuum/history-search-multi-word \
-        3v1n0/zsh-bash-completions-fallback \
-        zsh-users/zsh-completions \
-        z-shell/zsh-fancy-completions \
         Tarrasch/zsh-autoenv \
         KulkarniKaustubh/fzf-dir-navigator \
         unixorn/fzf-zsh-plugin \
-        dim-an/cod \
 
-    # zsh-autosuggestions
-    zinit light zsh-users/zsh-autosuggestions
-    bindkey '^p' history-search-backward
-    bindkey '^o' history-search-forward
-    bindkey '^n' autosuggest-accept
-    bindkey '^e' autosuggest-execute
-    bindkey '^a' autosuggest-toggle
-    bindkey '^s' autosuggest-clear
+    zinit light z-shell/zsh-diff-so-fancy
 
     ZINIT_PLUGINS_COMPLETIONS
 }

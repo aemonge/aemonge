@@ -1,0 +1,14 @@
+[Unit]
+Description=pCloud Sync Service
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/home/aemonge/.local/bin/pcloud-sync.sh
+Restart=on-failure
+User=aemonge
+Group=aemonge
+
+[Install]
+WantedBy=multi-user.target

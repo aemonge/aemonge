@@ -5,13 +5,28 @@
 
 ## Profile
 
-As a seasoned technical lead and solutions architect, I'm passionate about Python
-development and AI. My leadership style is rooted in technical excellence, empathy, and
-a coach-mentor approach. I'm seeking a Python Tech Lead role to apply these qualities
-and create impactful solutions. With over 15 years of experience, I've proven my
-architectural design skills across various languages, with a recent deep focus on
-Python. I'm a hands-on leader who thrives on solving complex problems and delivering
-value.
+As a seasoned Technical Lead and Solutions Architect, I am passionate about Python
+development, AI, and general backend, which are my primary areas of focus and interest.
+I am committed to continuously learning and improving my skills in these domains to
+become an even more proficient Python developer.
+
+With over 15 years of experience in the industry, I have honed my architectural design
+skills and demonstrated their transferability across various languages. My extensive
+background includes expertise in front-end development, DevOps, and other related
+fields, as detailed in my resume.
+
+In recent years, I have deepened my expertise in Python and FastAPI, gaining valuable
+experience in machine ops AI. I have successfully led projects such as building a
+company's software to generate solar panel installation proposals, utilizing Python,
+MongoDB, and Docker images hosted in Digital Ocean. Additionally, I have developed
+AI-driven solutions, like a Convolutional Neural Network (CNN) that identifies
+landmarks, significantly improving a tourism company's ability to promote local
+attractions and provide personalized travel recommendations.
+
+My leadership style is rooted in technical excellence, empathy, and a coach-mentor
+approach. As a hands-on leader, I thrive on solving complex problems and delivering
+value, always seeking opportunities to create impactful solutions in the realm of Python
+development, AI, and backend technologies.
 
 ## Work History
 

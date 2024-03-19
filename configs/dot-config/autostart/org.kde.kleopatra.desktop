@@ -1,0 +1,10 @@
+[Desktop Entry]
+Categories=Qt;KDE;Utility;
+Exec=kleopatra
+GenericName=Certificate Manager and Unified Crypto GUI
+Icon=kleopatra
+Name=Kleopatra
+StartupNotify=true
+Type=Application
+X-DBUS-ServiceName=org.kde.kleopatra
+X-DocPath=kleopatra/index.html

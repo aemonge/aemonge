@@ -17,8 +17,8 @@ hinding_title_bar=false
 toggle-window-state=none
 
 [Window]
-Height=51
-Screen=3
+Height=45
+Screen=2
 ShowTabBar=false
 ShowTitleBar=false
-Width=50
+Width=60
