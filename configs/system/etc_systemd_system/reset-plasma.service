@@ -1,4 +1,0 @@
-Description=Reset KDE Plasma
-
-[Service]
-ExecStart=/usr/bin/bash -c 'plasmashell --replace & disown'

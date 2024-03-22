@@ -1,2 +1,0 @@
-control + shift + esc
-    { kquitapp5 plasmashell || killall plasmashell;  kstart5 plasmashell }

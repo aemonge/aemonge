@@ -1,1 +1,0 @@
-ACTION=="add", SUBSYSTEM=="thunderbolt", ATTR{authorized}=="0", RUN+="/usr/local/bin/rtx-gpu-compute-only.sh", ATTR{authorized}="1"
