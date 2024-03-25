@@ -17,20 +17,10 @@ LOCAL_SYS_DIR="$USER_HOME/os/"
 
 sync_local_sys() {
     # Function to sync local system configurations
-    echo "rsync $LOCAL_SYS_DIR to /"
-    rsync -av --delete --exclude 'lost+found' \
+    echo "(root): rsync $LOCAL_SYS_DIR to /"
+    rsync -av --delete --exclude 'lost+found' --ignore-errors \
           --files-from=<(find $LOCAL_SYS_DIR -mindepth 1 -type f | sed "s#^$USER_HOME/os/##") \
           $LOCAL_SYS_DIR /
-}
-
-sync_to_pcloud() {
-    # Function to run rclone sync
-    echo "bidirectional rclone with src:$src dest:$REMOTE:$dest"
-    local src=$1
-    local dest=$2
-
-    sudo -u $USERNAME -- rclone sync "$src" "$REMOTE:$dest" --update --config "$USER_HOME/.config/rclone/rclone.conf"
-    sudo -u $USERNAME -- rclone sync "$REMOTE:$dest" "$src" --update --config "$USER_HOME/.config/rclone/rclone.conf"
 }
 
 cleanup() {
@@ -39,27 +29,30 @@ cleanup() {
     pkill -P $$
     fusermount -u "$MOUNT_POINT" || umount "$MOUNT_POINT"
 }
-
 trap cleanup SIGTERM SIGINT EXIT
 
 # Sync local system configurations first
-sync_local_sys
 for SRC in "${!CLOUD_DIRS[@]}"; do
+    echo "$USERNAME:" rclone bisync pcloud:${CLOUD_DIRS[$SRC]} "$SRC"
+    sudo -u $USERNAME -- rclone bisync pcloud:${CLOUD_DIRS[$SRC]} "$SRC" \
+    | sudo -u $USERNAME -- rclone bisync pcloud:${CLOUD_DIRS[$SRC]} "$SRC" --resync
+
     while inotifywait -r -e modify,create,delete,move "$SRC"; do
-        sync_to_pcloud "$SRC" "${CLOUD_DIRS[$SRC]}"
+        sudo -u $USERNAME -- rclone bisync pcloud:${CLOUD_DIRS[$SRC]} "$SRC"
     done &
 done
 
 # Monitor the local system directory for changes
+sync_local_sys
 while inotifywait -r -e modify,create,delete,move "$LOCAL_SYS_DIR"; do
     sync_local_sys
 done &
 
 # Mount pCloud directory
 MOUNT_POINT="$USER_HOME/cloud"
-mkdir -p "$MOUNT_POINT"
-chown "$USERNAME:$USERNAME" "$MOUNT_POINT"
-sudo -u $USERNAME -- rclone mount pcloud:/ "$MOUNT_POINT" --daemon --vfs-cache-mode full --config "$USER_HOME/.config/rclone/rclone.conf"
+sudo -u $USERNAME -- mkdir -p "$MOUNT_POINT"
+sudo -u $USERNAME -- rclone mount pcloud:/ "$MOUNT_POINT" \
+    --daemon --vfs-cache-mode full
 
 # Wait for all background processes to finish
 wait

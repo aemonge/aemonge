@@ -5,7 +5,8 @@ set -e
 echo "sudo pacman -Syu --noconfirm"
 sudo pacman -Syu --noconfirm
 
-echo "sudo aura -Ayu --noconfirm"
+echo "sudo aura -Aua && aura -Ayu --noconfirm"
+sudo aura -Aua
 sudo aura -Ayu --noconfirm
 
 echo "sudo snap refresh"
