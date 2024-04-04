@@ -2,7 +2,6 @@
 
 USERNAME="aemonge"
 USER_HOME="/home/$USERNAME"
-MOUNT_POINT="$USER_HOME/cloud"
 
 # Define directories to sync
 declare -A CLOUD_DIRS=(
@@ -19,8 +18,8 @@ declare -A CLOUD_DIRS=(
 for REMOTE_DIR in "${!CLOUD_DIRS[@]}"; do
     LOCAL_DIR=${CLOUD_DIRS[$REMOTE_DIR]}
     echo "Syncing $REMOTE_DIR to $LOCAL_DIR"
-    rclone bisync pcloud:$REMOTE_DIR $LOCAL_DIR \
-        | rclone bisync -v --resync pcloud:$REMOTE_DIR $LOCAL_DIR \
+    rclone bisync --checksum "pcloud:$REMOTE_DIR" "$LOCAL_DIR" ||
+        rclone bisync -v --resync --checksum "pcloud:$REMOTE_DIR" "$LOCAL_DIR"
 
 done
 
