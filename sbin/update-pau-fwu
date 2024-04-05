@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -e
-
 echo "sudo pacman -Syu --noconfirm"
 sudo pacman -Syu --noconfirm
 
@@ -17,9 +15,12 @@ sudo fwupdmgr refresh
 sudo fwupdmgr get-updates
 sudo fwupdmgr update -y
 
+echo "sudo pacman -Scc"
+sudo pacman -Scc
+
 # echo "pipupgrade -s && pipupgrade -y"
 # pipupgrade -s && pipupgrade -y
-#
+
 # echo "npm update -g"
 # sudo npm update
 
