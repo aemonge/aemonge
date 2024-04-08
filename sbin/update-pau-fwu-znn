@@ -1,4 +1,7 @@
-#!/bin/bash
+#!/bin/zsh
+
+echo "sudo pacman -Scc --noconfirm"
+sudo pacman -Scc --noconfirm
 
 echo "sudo pacman -Syu --noconfirm"
 sudo pacman -Syu --noconfirm
@@ -10,23 +13,23 @@ sudo aura -Ayu --noconfirm
 echo "sudo snap refresh"
 sudo snap refresh
 
+echo "sudo pacman -Scc --noconfirm"
+sudo pacman -Scc --noconfirm
+
 echo "fwupdmgr update -y"
 sudo fwupdmgr refresh
 sudo fwupdmgr get-updates
 sudo fwupdmgr update -y
 
-echo "sudo pacman -Scc"
-sudo pacman -Scc -y
-
-echo "User ZSH npm, zinit, ... 'source ~/.zshrc'"
-source "$HOME/.zshrc"
+# echo "User ZSH npm, zinit, ... 'HEADLESS=1 source ~/.zshrc'"
+HEADLESS=1 source $HOME/.zshrc
 
 echo "sudo npm update -g"
 sudo npm update
 
 echo "zinit self-update && zinit update"
 zinit self-update
-zinit update
+zinit update --parallel --quiet
 
 echo "neovim update: nvim --headless +'Lazy update | Lazy load coc.nvim | CocUpdateSync' +qall"
-nvim --headless +'Lazy update | Lazy load coc.nvim | CocUpdateSync' +qall
+nvim --headless +'Lazy update | Lazy load coc.nvim | CocUpdateSync' +qall 2>/dev/null
