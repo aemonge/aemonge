@@ -1,5 +1,6 @@
 # Bins
 bin/mongosh
+bin/sourcery
 
 # configs
 configs/unlinked/pcloud/data.db
