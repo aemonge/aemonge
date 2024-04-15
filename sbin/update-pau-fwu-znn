@@ -7,7 +7,6 @@ echo "sudo pacman -Syu --noconfirm"
 sudo pacman -Syu --noconfirm
 
 echo "sudo aura -Aua && aura -Ayu --noconfirm"
-sudo aura -Aua
 sudo aura -Ayu --noconfirm
 
 echo "sudo snap refresh"
@@ -31,5 +30,5 @@ echo "zinit self-update && zinit update"
 zinit self-update
 zinit update --parallel --quiet
 
-echo "neovim update: nvim --headless +'Lazy update | Lazy load coc.nvim | CocUpdateSync' +qall"
-nvim --headless +'Lazy update | Lazy load coc.nvim | CocUpdateSync' +qall 2>/dev/null
+echo "neovim update: nvim --headless +'Lazy update | Lazy load coc.nvim | CocUpdateSync | TSUpdate' +qall"
+nvim --headless +'Lazy update | Lazy load coc.nvim | CocUpdateSync | TSUpdate' +qall 2>/dev/null
