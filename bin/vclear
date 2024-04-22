@@ -1,9 +1,11 @@
 #!/bin/sh
 
-if ! type nvr > /dev/null; then
-  if [[ "$OSTYPE"  == "darwin"* ]]; then
-    printf ']51;["call", "ClearQuickfixList"]'
-  else
-    printf ']51;["call", "ClearQuickfixList"]'
-  fi
+if ! type nvr >/dev/null; then
+    nvr -c "ClearTerm()"
+else
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        printf ']51;["call", "ClearQuickfixList"]'
+    else
+        printf ']51;["call", "ClearQuickfixList"]'
+    fi
 fi

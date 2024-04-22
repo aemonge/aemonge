@@ -33,7 +33,7 @@ cleanup() {
 for REMOTE_DIR in "${!CLOUD_DIRS[@]}"; do
     LOCAL_DIR=${CLOUD_DIRS[$REMOTE_DIR]}
     echo "Syncing $REMOTE_DIR to $LOCAL_DIR"
-    rclone bisync --resync --checksum -u "pcloud:$REMOTE_DIR" "$LOCAL_DIR" &
+    rclone sync --check-first -P "pcloud:$REMOTE_DIR" "$LOCAL_DIR" &
     PIDS+=($!)
 done
 

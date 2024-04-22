@@ -6,7 +6,7 @@ sudo pacman -Scc --noconfirm
 echo "sudo pacman -Syu --noconfirm"
 sudo pacman -Syu --noconfirm
 
-echo "sudo aura -Aua && aura -Ayu --noconfirm"
+echo "aura -Ayu --noconfirm"
 sudo aura -Ayu --noconfirm
 
 echo "sudo snap refresh"
@@ -23,8 +23,8 @@ sudo fwupdmgr update -y
 # echo "User ZSH npm, zinit, ... 'HEADLESS=1 source ~/.zshrc'"
 HEADLESS=1 source $HOME/.zshrc
 
-echo "sudo npm update -g"
-sudo npm update
+echo "npm update -g"
+npm update -G
 
 echo "zinit self-update && zinit update"
 zinit self-update

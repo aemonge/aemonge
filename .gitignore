@@ -1,6 +1,16 @@
 # Bins
 bin/mongosh
 bin/sourcery
+bin/az*
+bin/pygmentize
+bin/node-gyp
+bin/nopt
+bin/npm
+bin/npx
+bin/prettier
+bin/semver
+bin/yarn
+bin/yarnpkg
 
 # configs
 configs/unlinked/pcloud/data.db
