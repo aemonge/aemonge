@@ -29,6 +29,9 @@ cleanup() {
     echo "Cleanup completed."
 }
 
+# Sync before
+sudo pcloud-root-sync.sh
+
 # Perform initial sync for each directory in parallel
 for REMOTE_DIR in "${!CLOUD_DIRS[@]}"; do
     LOCAL_DIR=${CLOUD_DIRS[$REMOTE_DIR]}

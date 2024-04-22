@@ -40,4 +40,7 @@ done
 # Wait for all background processes to finish
 wait
 
+# Sync before
+sudo pcloud-root-sync.sh
+
 echo "Sync completed."
