@@ -30,7 +30,8 @@ cleanup() {
 }
 
 # Sync before
-sudo pcloud-root-sync.sh
+echo "Syncing before..."
+sudo ~/profile/sbin/pcloud-root-sync.sh || exit 1
 
 # Perform initial sync for each directory in parallel
 for REMOTE_DIR in "${!CLOUD_DIRS[@]}"; do
