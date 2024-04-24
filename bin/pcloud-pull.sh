@@ -43,6 +43,6 @@ done
 wait
 
 # Sync before
-sudo pcloud-root-sync.sh
+sudo ~/profile/sbin/pcloud-root-sync.sh
 
 echo "Sync completed."
