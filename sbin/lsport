@@ -5,7 +5,7 @@ darwin)
     lsof -i "$1" | grep '(LISTEN)' | awk '{print $2}' | uniq
     ;;
 Linux)
-    ss -ltnp "sport = :8000" | awk 'NR>1{print $6}' | awk -F '[",]' '{print $2, $4}'
+    ss -ltnp "sport = :$1" | awk 'NR>1{print $6}' | awk -F '[",=]' '{print $5}' | xargs
     ;;
 *)
     echo "Unsupported operating system: $OS"
