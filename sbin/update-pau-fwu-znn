@@ -10,7 +10,9 @@ echo "aura -Ayu --noconfirm"
 sudo aura -Ayu --noconfirm
 
 echo "sudo snap refresh"
+sudo systemctl start snapd.apparmor.service snapd.service
 sudo snap refresh
+sudo systemctl stop snapd.apparmor.service snapd.service
 
 echo "sudo pacman -Scc --noconfirm"
 sudo pacman -Scc --noconfirm
