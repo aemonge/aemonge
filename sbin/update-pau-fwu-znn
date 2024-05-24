@@ -28,6 +28,9 @@ HEADLESS=1 source $HOME/.zshrc
 echo "npm update -g"
 npm update -G
 
+echo "cargo install-update -a"
+cargo install-update -a
+
 echo "zinit self-update && zinit update"
 zinit self-update
 zinit update --parallel --quiet
