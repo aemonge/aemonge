@@ -67,7 +67,7 @@ update_zinit() {
 
 update_neovim() {
     LOGFILE="/tmp/neovim_update.log"
-    echo "neovim update: nvim --headless +'Lazy update | Lazy load coc.nvim | CocUpdateSync | TSUpdate' +qall" | tee -a $LOGFILE
+    echo "neovim update: nvim --headless +'Lazy update | Lazy load coc.nvim | CocUpdateSync | TSUpdateSync' +qall" | tee -a $LOGFILE
 
     nvim --headless +'Lazy update' +qall 2>&1 | tee -a "$LOGFILE"
     nvim --headless +'Lazy load coc.nvim | CocUpdateSync' +qall 2>&1 | tee -a "$LOGFILE"
