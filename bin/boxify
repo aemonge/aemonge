@@ -1,0 +1,142 @@
+#!/bin/zsh
+
+# Function for the title subcommand
+title_subcommand() {
+    local padding=2
+    local width=$((COLUMNS - padding * 2))
+
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -p|--padding)
+                padding="$2"
+                width=$((COLUMNS - padding * 2))
+                shift 2
+                ;;
+            *)
+                break
+                ;;
+        esac
+    done
+
+    local message="$*"
+    local box_width=$((width - 2))  # Subtract 2 for left and right box borders
+
+    printf "\n%*s╭%s╮\n" $padding "" "$(printf '─%.0s' $(seq 1 $box_width))"
+
+    echo "$message" | fold -s -w $box_width | while read line; do
+        local line_padding=$(( (box_width - ${#line}) / 2 ))
+        printf "%*s│%*s%s%*s│\n" $padding "" $line_padding "" "$line" $(( box_width - ${#line} - line_padding )) ""
+    done
+
+    printf "%*s╰%s╯\n" $padding "" "$(printf '─%.0s' $(seq 1 $box_width))"
+}
+
+# Function for the subtitle subcommand
+subtitle_subcommand() {
+    local padding=4  # Default padding for subtitle is 4
+    local width=$((COLUMNS - padding * 2))
+
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -p|--padding)
+                padding="$2"
+                width=$((COLUMNS - padding * 2))
+                shift 2
+                ;;
+            *)
+                break
+                ;;
+        esac
+    done
+
+    local message="$*"
+    echo "$message" | fold -s -w $width | while read line; do
+        local dash_length=$(( (width - ${#line}) / 2 ))
+        local left_dashes=$(printf '%*s' "$dash_length" | tr ' ' '-')
+        local right_dashes="$left_dashes"
+        if [ $(( (width - ${#line}) % 2 )) -ne 0 ]; then
+            right_dashes="$right_dashes-"
+        fi
+        printf "\n%*s%s %s %s" $padding "" "$left_dashes" "$line" "$right_dashes"
+    done
+    printf "\n"
+}
+
+# Function for the run subcommand
+run_subcommand() {
+    local padding=6  # Default padding for run is 6
+    local width=$((COLUMNS - padding * 2))
+    local separator=""
+    local command=""
+
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -p|--padding)
+                padding="$2"
+                width=$((COLUMNS - padding * 2))
+                shift 2
+                ;;
+            -w|--width)
+                width="$2"
+                shift 2
+                ;;
+            -s|--separator)
+                separator="$2"
+                shift 2
+                ;;
+            --)
+                shift
+                command="$@"
+                break
+                ;;
+            *)
+                echo "Unknown option: $1"
+                print_usage
+                exit 1
+                ;;
+        esac
+    done
+
+    if [ -z "$command" ]; then
+        echo "Error: No command provided."
+        print_usage
+        exit 1
+    fi
+
+    # Run the command and capture its output
+    output=$(eval "$command")
+
+    # Add padding and word wrap
+    echo "$output" | fold -s -w $width | sed "s/^/$(printf '%*s' $padding)/"
+
+    if [ -n "$separator" ]; then
+        border=$(printf '%*s' $COLUMNS | tr ' ' "$separator")
+        echo "$border"
+    fi
+}
+
+# Main script logic
+if [ $# -eq 0 ]; then
+    print_usage
+    exit 1
+fi
+
+subcommand="$1"
+shift
+
+case "$subcommand" in
+    run)
+        run_subcommand "$@"
+        ;;
+    title)
+        title_subcommand "$@"
+        ;;
+    subtitle)
+        subtitle_subcommand "$@"
+        ;;
+    *)
+        echo "Unknown subcommand: $subcommand"
+        print_usage
+        exit 1
+        ;;
+esac
