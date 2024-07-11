@@ -65,5 +65,6 @@ meslo () {
 
 # meslo
 # iosevka_term
-zed_mono
+# zed_mono
+sudo aura -A ttf-iosevka-term-slab
 # sudo pacman -S ttc-iosevka
