@@ -31,10 +31,14 @@ update_aura() {
 }
 
 update_snap() {
-    echo "sudo snap refresh"
-    sudo systemctl start snapd.apparmor.service snapd.service
-    sudo snap refresh
-    sudo systemctl stop snapd.apparmor.service snapd.service snapd.socket
+    if [ command -v "snap" &> /dev/null ]; then
+        echo "sudo snap refresh"
+        sudo systemctl start snapd.apparmor.service snapd.service
+        sudo snap refresh
+        sudo systemctl stop snapd.apparmor.service snapd.service snapd.socket
+    else
+        echo "no snap package manager found"
+    fi
 }
 
 update_hardware() {
