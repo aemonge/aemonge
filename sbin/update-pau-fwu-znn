@@ -31,7 +31,7 @@ update_aura() {
 }
 
 update_snap() {
-    if [[ command -v snap &> /dev/null ]]; then
+    if [ command -v "snap" &> /dev/null ]; then
         echo "sudo snap refresh"
         sudo systemctl start snapd.apparmor.service snapd.service
         sudo snap refresh
