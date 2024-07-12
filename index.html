@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Andres Monge - CV - English</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <style>
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+        background-color: #c3bbab;
+      }
+      #pdf-viewer {
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+      }
+      canvas {
+        display: block;
+        margin: 0 auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="pdf-viewer"></div>
+    <script>
+      // Set the worker source
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js";
+
+      // The URL of the PDF
+      const url = "python-tech-lead_andres-monge.pdf";
+
+      // Load the PDF document
+      const loadingTask = pdfjsLib.getDocument(url);
+      loadingTask.promise.then(
+        function (pdf) {
+          console.log("PDF loaded");
+
+          // Fetch the first page
+          const pageNumber = 1;
+          pdf.getPage(pageNumber).then(function (page) {
+            const scale = 1.5;
+            const viewport = page.getViewport({ scale: scale });
+
+            // Prepare canvas using PDF page dimensions
+            const canvas = document.createElement("canvas");
+            const context = canvas.getContext("2d");
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+
+            // Render PDF page into canvas context
+            const renderContext = {
+              canvasContext: context,
+              viewport: viewport,
+            };
+            const renderTask = page.render(renderContext);
+
+            renderTask.promise.then(function () {
+              console.log("Page rendered");
+              document.getElementById("pdf-viewer").appendChild(canvas);
+            });
+          });
+        },
+        function (reason) {
+          // PDF loading error
+          console.error(reason);
+        }
+      );
+    </script>
+  </body>
+</html>

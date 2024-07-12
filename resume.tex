@@ -34,8 +34,14 @@
 \definecolor{leadershipbg}{HTML}{ECE9E5}
 \definecolor{webdevbg}{HTML}{CAC7C4}
 
+% Define the title
+\newcommand{\doctitle}{Andres Monge - CV - English}
+
+% Set the document title
+\title{\doctitle}
+
 \hypersetup{
-    pdftitle={Andres Monge - CV - English},
+    pdftitle={\doctitle},
     pdfauthor={Andres Monge},
     pdfsubject={CV},
     colorlinks=true,
@@ -108,10 +114,10 @@ I am seeking a \textbf{Python Tech Lead role} where I can apply these qualities 
     \textit{\small Origen, Madrid, Spain (2024)}
     \vspace{0.3cm}
     \begin{itemize}[leftmargin=*]
-        \item \textbf{Responsibilities:} Lorem ipsum dolor sit amet.
-        \item \textbf{Accomplishments:} Lorem ipsum dolor sit amet.
+        \item \textbf{Responsibilities:} I'm currently working on this company and project.
+        \item \textbf{Accomplishments:} I'm currently working on this company and project.
         \item \textbf{Technologies:} Python, FastAPI, Pydantic, Celery, SQL, Docker, Numpy, Pandas, Kubernetes.
-        \item \textbf{Personal Growth:} Lorem ipsum dolor sit amet.
+        \item \textbf{Personal Growth:} I'm currently working on this company and project.
     \end{itemize}
 
     \vspace{1cm}
@@ -174,14 +180,14 @@ I am seeking a \textbf{Python Tech Lead role} where I can apply these qualities 
 \begin{tikzpicture}
 % Define the rectangles with rounded corners
 \draw[fill=blue!80!background, rounded corners=5pt] (0,0) rectangle (6.5,2);
-\draw[fill=darkblue!80!background, rounded corners=5pt] (0,2) rectangle (6.5,4);
-\draw[fill=red!80!background, rounded corners=5pt] (4.5,0) rectangle (6.5,4);
+\draw[fill=darkblue!80!background, rounded corners=5pt] (0,1.6) rectangle (6.5,4);
+\draw[fill=red!80!background, rounded corners=5pt] (4,0) rectangle (6.5,4);
 
 % Add explanations below the squares as bullet points
 \node[anchor=north west, align=left] at (0, -0.5) {
     \textcolor{darkblue!80!background}{$\bullet$ 40\% Architectural investigation and spikes}\\
-    \textcolor{blue!80!background}{$\bullet$ 40\% Feature development and bugs fixing}\\
-    \textcolor{red!80!background}{$\bullet$ 20\% Tasks definition, refinment and planning}
+    \textcolor{blue!80!background}{$\bullet$ 30\% Feature development and bugs fixing}\\
+    \textcolor{red!80!background}{$\bullet$ 30\% Tasks definition, refinment and planning}
 };
 \end{tikzpicture}
 
@@ -209,7 +215,7 @@ I am seeking a \textbf{Python Tech Lead role} where I can apply these qualities 
 \newpage
 
 \fullwidthcolorbox{leadershipbg}{%
-\vspace{0.5cm}
+\vspace{0.3cm}
 
 \section*{\large LEADERSHIP - TECH LEAD AND MANAGER}
 \textbf{\textit{Senior Engineering Manager}}
@@ -256,14 +262,15 @@ I am seeking a \textbf{Python Tech Lead role} where I can apply these qualities 
     \item \textbf{Personal Growth:} Enhanced my skills in team coordination and solutions architecture.
 \end{itemize}
 \vspace{0.5cm}
-
-}
-\vspace{-0.6cm}
+}% End of previous \fullwidthcolorbox
+\begin{samepage}
+\vspace{-1cm}% Adjust this value as needed
 \fullwidthcolorbox{background}{%
 \vspace{0.5cm}
 \section*{\large WEB DEVELOPER}
+
 \textbf{\textit{Team Lead / Developer}}
-\textit{\small S|ngular / BBVA, Madrid, Spain (2013 - 2017)}
+\textit{\small S|NGULAR / BBVA, Madrid, Spain (2013 - 2017)}
 \vspace{0.3cm}
 \begin{itemize}[leftmargin=*]
     \item \textbf{Responsibilities:} Mentored developers to implement modules and components, instead of jQuery; Participated in the construction of
@@ -274,10 +281,48 @@ I am seeking a \textbf{Python Tech Lead role} where I can apply these qualities 
 \end{itemize}
 
 \vspace{0.5cm}
+
+\textbf{\textit{Developer / Architect}}
+\textit{\small Adesis (GFT), Madrid, Spain (2012 - 2013)}
+\vspace{0.3cm}
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Responsibilities:} Led the creation of robust software for the insurance sector, developing architectural components using front-end
+    skills and leading with backend skills; Developed a personal finance manager app using AngularJS and led a NodeJS (Sails) developer.
+    \item \textbf{Accomplishments:} Successfully developed a personal finance manager app and led a NodeJS developer.
+    \item \textbf{Technologies:} AngularJS, NodeJS (Sails).
+    \item \textbf{Personal Growth:} Gained valuable experience in front-end architecture and developed proficiency in AngularJS and NodeJS.
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{\textit{Developer}}
+\textit{\small C.B.I., Madrid, Spain (2010 - 2012)}
+\vspace{0.3cm}
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Responsibilities:} Developed end-to-end modules using BackboneJS and PHP for an ad-hoc SAP-like system.
+    \item \textbf{Accomplishments:} Created a unique plugin for data import/export from XLS into SQL, parsing the data according to the system
+    architecture and schemas.
+    \item \textbf{Technologies:} BackboneJS, PHP, WordPress.
+    \item \textbf{Personal Growth:} Enhanced my skills in client interaction and project management.
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{\textit{Freelance Developer}}
+\textit{\small Madrid, Spain (2008 - 2013)}
+\vspace{0.3cm}
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Responsibilities:} Developed custom websites for international clients using open-source back-end frameworks and vanilla front-
+    ends; Created ad-hoc themes and plugins to provide tailored tools for clients.
+    \item \textbf{Accomplishments:} Successfully delivered multiple websites including Universidad Rey Juan Carlos.
+    \item \textbf{Technologies:} Joomla, WordPress, Drupal, OsCommerce, PHP.
+    \item \textbf{Personal Growth:} Gained valuable experience in client interaction and developed proficiency in various CMS and e-commerce
+    platforms.
+\end{itemize}
+
+\vspace{0.5cm}
 }
 
-
-\vfill
-\hfill\footnotesize{Page \thepage{} of \pageref{LastPage}}
+\end{samepage}  % Add this line to close the samepage environment
 
 \end{document}
