@@ -1,5 +1,36 @@
 #!/bin/zsh
 
+boxify() {
+    echo "Usage: $(basename "$0") <subcommand> [options]"
+    echo
+    echo "Subcommands:"
+    echo "  run       Execute a command and format its output"
+    echo "  title     Display a message in a title box"
+    echo "  subtitle  Display a message as a subtitle"
+    echo
+    echo "Options:"
+    echo "  run:"
+    echo "    -p, --padding <n>    Set padding (default: 6)"
+    echo "    -w, --width <n>      Set width (default: COLUMNS - 2*padding)"
+    echo "    -s, --separator <c>  Set separator character"
+    echo "    -- <command>         Command to execute"
+    echo
+    echo "  title:"
+    echo "    -p, --padding <n>    Set padding (default: 2)"
+    echo "    <message>            Message to display in the title box"
+    echo
+    echo "  subtitle:"
+    echo "    -p, --padding <n>    Set padding (default: 4)"
+    echo "    <message>            Message to display as subtitle"
+    echo
+    echo "Examples:"
+    echo "  $(basename "$0") run -p 4 -s = -- ls -l"
+    echo "  $(basename "$0") title \"My Title\""
+    echo "  $(basename "$0") subtitle -p 6 \"My Subtitle\""
+    echo
+    echo "For more information, please refer to the script documentation."
+}
+
 # Function for the title subcommand
 title_subcommand() {
     local padding=2
@@ -100,7 +131,7 @@ run_subcommand() {
                 ;;
             *)
                 echo "Unknown option: $1"
-                print_usage
+                boxify
                 exit 1
                 ;;
         esac
@@ -108,7 +139,7 @@ run_subcommand() {
 
     if [ -z "$command" ]; then
         echo "Error: No command provided."
-        print_usage
+        boxify
         exit 1
     fi
 
@@ -126,7 +157,7 @@ run_subcommand() {
 
 # Main script logic
 if [ $# -eq 0 ]; then
-    print_usage
+    boxify
     exit 1
 fi
 
@@ -143,9 +174,13 @@ case "$subcommand" in
     subtitle)
         subtitle_subcommand "$@"
         ;;
+    help)
+        boxify
+        exit 0
+        ;;
     *)
         echo "Unknown subcommand: $subcommand"
-        print_usage
+        boxify
         exit 1
         ;;
 esac

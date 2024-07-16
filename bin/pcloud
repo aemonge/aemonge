@@ -1,0 +1,193 @@
+#!/bin/bash
+
+VERSION="0.0.1"
+
+USERNAME="aemonge"
+USER_HOME="/home/$USERNAME"
+MOUNT_POINT="$USER_HOME/cloud"
+SECRETS_MOUNT="$USER_HOME/secrets"
+TEMP_SECRETS="/tmp/secrets"
+
+# Define directories to sync
+declare -A CLOUD_DIRS=(
+    ["/os"]="$USER_HOME/os"
+    ["/settings"]="$USER_HOME/settings"
+    ["/media/images"]="$USER_HOME/images"
+    ["/media/videos"]="$USER_HOME/videos"
+    ["/media/music"]="$USER_HOME/music"
+    ["/documents/dev"]="$USER_HOME/documents"
+    ["/public"]="$USER_HOME/public"
+    ["/stash"]="$USER_HOME/stash"
+    ["/documents/studies/UNED"]="$USER_HOME/studies"
+)
+
+# Array to store PIDs of background processes
+PIDS=()
+
+function show_help() {
+    echo "pcloud - A unified pCloud management script"
+    echo ""
+    echo "This script provides various operations for managing pCloud, including"
+    echo "pulling, pushing, syncing, mounting the pCloud directory, and managing secrets."
+    echo ""
+    echo "Usage: pcloud [COMMAND]"
+    echo ""
+    echo "Commands:"
+    echo "  pull    Pull data from pCloud to local directories"
+    echo "  push    Push data from local directories to pCloud"
+    echo "  sync    Perform a bi-directional sync between pCloud and local directories"
+    echo "  mount   Mount the pCloud directory"
+    echo "  umount  Unmount the pCloud directory"
+    echo "  secret [timeout]  Mount secrets directory and unmount after timeout (default: 5 minutes)"
+    echo "  -h, --help    Show this help message and exit"
+    echo "  -v, --version Show version information and exit"
+    echo ""
+    echo "For more information, please refer to the script documentation."
+}
+
+function show_version() {
+    echo "pcloud version $VERSION"
+}
+
+function cleanup() {
+    # Kill all background processes
+    for pid in "${PIDS[@]}"; do
+        kill "$pid" 2>/dev/null
+    done
+    wait 2>/dev/null
+    echo "Cleanup completed."
+}
+
+function mount_pcloud() {
+    echo "Mounting pCloud directory"
+    rclone mount pcloud:/ $MOUNT_POINT --daemon --vfs-cache-mode full
+}
+
+function unmount_pcloud() {
+    echo "Un-mounting pCloud directory"
+    fusermount -u "$MOUNT_POINT" || umount "$MOUNT_POINT"
+}
+
+function sync_operation() {
+    local operation=$1
+    local source=$2
+    local dest=$3
+
+    for REMOTE_DIR in "${!CLOUD_DIRS[@]}"; do
+        LOCAL_DIR=${CLOUD_DIRS[$REMOTE_DIR]}
+        echo "Syncing $REMOTE_DIR to $LOCAL_DIR"
+        if [ "$operation" = "bisync" ]; then
+            rclone bisync --resync --checksum -u "$source:$REMOTE_DIR" "$dest" &
+        else
+            rclone sync --check-first -P "$source:$REMOTE_DIR" "$dest" &
+        fi
+        PIDS+=($!)
+    done
+
+    wait
+}
+
+function root_sync() {
+    echo "Syncing root..."
+    sudo ~/profile/sbin/pcloud-root-sync.sh || exit 1
+}
+
+function start_crypto() {
+    local password="$1"
+    expect -c "
+        spawn pcloudcc -k
+        expect \">\"
+        send \"startcrypto $password\r\"
+        expect \">\"
+        send \"quit\r\"
+        expect eof
+    "
+}
+
+function stop_crypto() {
+    expect -c "
+        spawn pcloudcc -k
+        expect \">\"
+        send \"stopcrypto\r\"
+        expect \">\"
+        send \"quit\r\"
+        expect eof
+    "
+}
+
+function mount_secrets() {
+    local timeout=${1:-300}  # Default timeout: 5 minutes (300 seconds)
+
+    # Check if ~/secrets is not empty
+    if [ "$(ls -A $SECRETS_MOUNT)" ]; then
+        echo "Moving existing content from $SECRETS_MOUNT to $TEMP_SECRETS"
+        mkdir -p $TEMP_SECRETS
+        mv $SECRETS_MOUNT/* $TEMP_SECRETS/
+    fi
+
+    # Fetch the password from KWallet
+    local password=$(kwallet-query -f "Secret Service" -r "pcloud" "kdewallet")
+
+    # Mount secrets
+    echo "Mounting secrets directory"
+    start_crypto "$password"
+
+    # Try to add content from /tmp/secrets to ~/secrets
+    if [ -d "$TEMP_SECRETS" ] && [ "$(ls -A $TEMP_SECRETS)" ]; then
+        echo "Syncing content from $TEMP_SECRETS to $SECRETS_MOUNT"
+        rsync -av $TEMP_SECRETS/ $SECRETS_MOUNT/
+        rm -rf $TEMP_SECRETS
+    fi
+
+    echo "Secrets mounted. Will automatically unmount in $timeout seconds."
+
+    # Set up unmount after timeout
+    (
+        sleep $timeout
+        unmount_secrets
+    ) &
+}
+
+function unmount_secrets() {
+    echo "Unmounting secrets directory"
+    stop_crypto
+    echo "Secrets unmounted"
+}
+
+
+trap cleanup INT TERM EXIT
+
+case "$1" in
+    pull)
+        sync_operation "sync" "pcloud" "$LOCAL_DIR"
+        root_sync
+        ;;
+    push)
+        root_sync
+        sync_operation "sync" "$LOCAL_DIR" "pcloud"
+        ;;
+    sync)
+        sync_operation "bisync" "pcloud" "$LOCAL_DIR"
+        ;;
+    mount)
+        mount_pcloud
+        ;;
+    umount)
+        unmount_pcloud
+        ;;
+    secret)
+        mount_secrets "$2"
+        ;;
+    -h|--help)
+        show_help
+        ;;
+    -v|--version)
+        show_version
+        ;;
+    *)
+        echo "Invalid command. Use 'pcloud --help' for usage information."
+        exit 1
+        ;;
+esac
+
+echo "Operation completed."

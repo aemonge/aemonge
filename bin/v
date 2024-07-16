@@ -1,0 +1,139 @@
+#!/bin/bash
+
+VERSION="0.0.1"
+
+function show_help() {
+    echo "v - A versatile Neovim wrapper script with term-multiplier powers"
+    echo ""
+    echo "  This script provides a convenient interface for various Neovim operations,"
+    echo "  including changing directories, opening files in split views, clearing the"
+    echo "  terminal, managing sessions, and more. It's designed to work seamlessly"
+    echo "  with both Neovim and terminal environments."
+    echo ""
+    echo "Usage: v [SUBCOMMAND] [ARGS]"
+    echo ""
+    echo "  Subcommands:"
+    echo "    cd              Change directory in Neovim"
+    echo "    split           Open file in split view"
+    echo "    clear           Clear terminal in Neovim"
+    echo "    session         Start a new Neovim session"
+    echo "    [no subcommand] Open file in Neovim"
+    echo ""
+    echo "Options:"
+    echo "  -h, --help      Show this help message and exit"
+    echo "  -v, --version   Show version information and exit"
+}
+
+function show_version() {
+    echo "v version $VERSION"
+}
+
+function vcd() {
+    if type nvr >/dev/null; then
+        nvr -c "cd $(pwd)"
+    else
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            printf '\033]7;%s\007' "$(pwd)"
+        else
+            printf '\033]7;%s\007' "$(pwd)"
+        fi
+    fi
+}
+
+function svim() {
+    cols=$(tput cols)
+    lines=$(tput lines)
+    adjusted_height=$((lines * 16 ))
+    adjusted_width=$((cols * 10))
+    split_command="split"
+    if [ "$adjusted_width" -gt "$adjusted_height" ]; then
+        split_command="vsplit"
+    fi
+
+    if type nvr > /dev/null; then
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            nvr -cc "$split_command $(greadlink -f "$@")"
+        else
+            nvr -cc "$split_command $(readlink -f "$@")"
+        fi
+    else
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            printf '\033]7;%s\007' "$(greadlink -f "$@")"
+        else
+            printf '\033]7;%s\007' "$(readlink -f "$@")"
+        fi
+    fi
+}
+
+function vclear() {
+    if type nvr >/dev/null; then
+        nvr -c ":TerminalClear"
+    else
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            printf '\033c'
+        else
+            printf '\033c'
+        fi
+    fi
+}
+
+function vim_func() {
+    if type nvr > /dev/null; then
+        if [[ "$OSTYPE"  == "darwin"* ]]; then
+            nvr --remote-tab "$(greadlink -f "$@")"
+        else
+            nvr --remote-tab "$(readlink -f "$@")"
+        fi
+    else
+        if [[ "$OSTYPE"  == "darwin"* ]]; then
+            printf '\033]7;%s\007' "$(greadlink -f "$@")"
+        else
+            printf '\033]7;%s\007' "$(readlink -f "$@")"
+        fi
+    fi
+}
+
+function vmux() {
+    cmd=(nvim +':terminal')
+    if [ $# -eq 0 ]; then
+        cmd+=("+startinsert")
+    else
+        for file in "$@"; do
+          cmd+=("+tabe $file")
+        done
+    fi
+
+    if [ -z "$NVIM" ]; then
+      "${cmd[@]}"
+    else
+      nvr -s --remote-tab "$@"
+    fi
+}
+
+case "$1" in
+    cd)
+        shift
+        vcd "$@"
+        ;;
+    split)
+        shift
+        svim "$@"
+        ;;
+    clear)
+        shift
+        vclear "$@"
+        ;;
+    session)
+        shift
+        vmux "$@"
+        ;;
+    -h|--help)
+        show_help
+        ;;
+    -v|--version)
+        show_version
+        ;;
+    *)
+        vim_func "$@"
+        ;;
+esac
