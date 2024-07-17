@@ -4,7 +4,7 @@ VERSION="0.0.1"
 
 USERNAME="aemonge"
 USER_HOME="/home/$USERNAME"
-MOUNT_POINT="$USER_HOME/cloud"
+MOUNT_POINT="/home/$USERNAME/.mounts/cloud"
 SECRETS_MOUNT="$USER_HOME/secrets"
 TEMP_SECRETS="/tmp/secrets"
 
@@ -60,26 +60,46 @@ function cleanup() {
 
 function mount_pcloud() {
     echo "Mounting pCloud directory"
+    mkdir -p $MOUNT_POINT
     rclone mount pcloud:/ $MOUNT_POINT --daemon --vfs-cache-mode full
+    xdg-open "$MOUNT_POINT"
 }
 
 function unmount_pcloud() {
     echo "Un-mounting pCloud directory"
     fusermount -u "$MOUNT_POINT" || umount "$MOUNT_POINT"
+    rmdir $MOUNT_POINT
 }
 
 function sync_operation() {
     local operation=$1
-    local source=$2
-    local dest=$3
+    local max_length=0
 
+    # First pass to determine max length
     for REMOTE_DIR in "${!CLOUD_DIRS[@]}"; do
         LOCAL_DIR=${CLOUD_DIRS[$REMOTE_DIR]}
-        echo "Syncing $REMOTE_DIR to $LOCAL_DIR"
-        if [ "$operation" = "bisync" ]; then
-            rclone bisync --resync --checksum -u "$source:$REMOTE_DIR" "$dest" &
+        if [ "$operation" = "pull" ]; then
+            current_length=$((${#REMOTE_DIR} + 15))  # 13 for "Pulling: pcloud:"
         else
-            rclone sync --check-first -P "$source:$REMOTE_DIR" "$dest" &
+            current_length=$((${#LOCAL_DIR} + 11))  # 9 for "Pushing: "
+        fi
+        if [ $current_length -gt $max_length ]; then
+            max_length=$current_length
+        fi
+    done
+
+    # Add a small buffer to max_length
+    max_length=$((max_length + 2))
+
+    # Second pass to perform sync and print aligned output
+    for REMOTE_DIR in "${!CLOUD_DIRS[@]}"; do
+        LOCAL_DIR=${CLOUD_DIRS[$REMOTE_DIR]}
+        if [ "$operation" = "pull" ]; then
+            printf "%-*s ➡️  %s\n" $max_length "Pulling: pcloud:$REMOTE_DIR" "$LOCAL_DIR"
+            rclone sync -q --check-first "pcloud:$REMOTE_DIR" "$LOCAL_DIR" &
+        elif [ "$operation" = "push" ]; then
+            printf "%-*s ➡️  %s\n" $max_length "Pushing: $LOCAL_DIR" "pcloud:$REMOTE_DIR"
+            rclone sync -q --check-first "$LOCAL_DIR" "pcloud:$REMOTE_DIR" &
         fi
         PIDS+=($!)
     done
@@ -88,8 +108,70 @@ function sync_operation() {
 }
 
 function root_sync() {
-    echo "Syncing root..."
-    sudo ~/profile/sbin/pcloud-root-sync.sh || exit 1
+    echo "Syncing os directory..."
+
+    function perform_sync() {
+        USERNAME="aemonge"
+        USER_HOME="/home/$USERNAME"
+        LOCAL_SYS_DIR="$USER_HOME/os/"
+
+        # Ensure running as root
+        if [[ $(id -u) -ne 0 ]]; then
+            echo "This script must be run as root"
+            return 1
+        fi
+
+        # 1. List all files under LOCAL_SYS_DIR
+        find "$LOCAL_SYS_DIR" -type f | while read -r local_file; do
+            # Extract the path after the LOCAL_SYS_DIR
+            relative_path="${local_file#$LOCAL_SYS_DIR}"
+            # Determine the corresponding system file path
+            system_file="/$relative_path"
+
+            # Check if the system file exists
+            if [[ -f $system_file ]]; then
+                # Compare file modification times
+                local_mtime=$(stat -c %Y "$local_file")
+                system_mtime=$(stat -c %Y "$system_file")
+
+                if [[ $local_mtime -gt $system_mtime ]]; then
+                    RECENT="$local_file"
+                    OLDER="$system_file"
+                else
+                    RECENT="$system_file"
+                    OLDER="$local_file"
+                fi
+
+                # Perform the rsync from $RECENT to $OLDER to update the older based on the most recent
+                # BUG: Unsure about this --no-o --no-g --no-p \
+                /usr/bin/rsync -a --delete --exclude 'lost+found' \
+                    --no-o --no-g --no-p \
+                    "$RECENT" "$(dirname "$OLDER")"
+            else
+                # The system file does not exist, so create it with root permissions
+                echo "System file $system_file does not exist. Creating it."
+                # Ensure the directory exists
+                mkdir -p "$(dirname "$system_file")"
+                # Copy the file
+                cp "$local_file" "$system_file"
+                # Optionally, set permissions explicitly. Since the script runs as root, files will be owned by root by default.
+                # chown root:root "$system_file"
+                # chmod <desired-permissions> "$system_file"
+            fi
+        done
+
+        # BUG: Sometimes the owner of the system file is not the same as the owner of the local file.
+        find $USER_HOME -user root -exec chown $USERNAME:$USERNAME {} \;
+    }
+
+    # Export the function so it's available to sudo
+    export -f perform_sync
+
+    # Call the function with sudo
+    sudo bash -c "$(declare -f perform_sync); perform_sync" || exit 1
+
+    # Unset the function after use
+    unset -f perform_sync
 }
 
 function start_crypto() {
@@ -140,6 +222,7 @@ function mount_secrets() {
     fi
 
     echo "Secrets mounted. Will automatically unmount in $timeout seconds."
+    xdg-open ~/secrets
 
     # Set up unmount after timeout
     (
@@ -159,15 +242,15 @@ trap cleanup INT TERM EXIT
 
 case "$1" in
     pull)
-        sync_operation "sync" "pcloud" "$LOCAL_DIR"
+        sync_operation "pull"
         root_sync
         ;;
     push)
         root_sync
-        sync_operation "sync" "$LOCAL_DIR" "pcloud"
+        sync_operation "push"
         ;;
     sync)
-        sync_operation "bisync" "pcloud" "$LOCAL_DIR"
+        echo "'bisync' operation is in beta. Please use 'pull' or 'push' instead."
         ;;
     mount)
         mount_pcloud
@@ -180,13 +263,15 @@ case "$1" in
         ;;
     -h|--help)
         show_help
+        exit 0
         ;;
     -v|--version)
         show_version
+        exit 0
         ;;
     *)
-        echo "Invalid command. Use 'pcloud --help' for usage information."
-        exit 1
+        show_help
+        exit 0
         ;;
 esac
 
