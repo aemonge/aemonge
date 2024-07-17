@@ -17,6 +17,7 @@ function show_help() {
     echo "    split           Open file in split view"
     echo "    clear           Clear terminal in Neovim"
     echo "    session         Start a new Neovim session"
+    echo "    quickedit       Open file for quick editing (auto-closes buffer)"
     echo "    [no subcommand] Open file in Neovim"
     echo ""
     echo "Options:"
@@ -75,6 +76,27 @@ function vclear() {
             printf '\033c'
         fi
     fi
+}
+
+function quickedit() {
+    local _readlink
+    local _opener
+
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        _readlink="greadlink"
+    else
+        _readlink="readlink"
+    fi
+
+    if type nvr > /dev/null; then
+        _opener=(nvr -c "setlocal bufhidden=wipe" --remote-tab-wait )
+    else
+        _opener=(printf '\033]7;%s\007')
+    fi
+
+    for file in "${@}"; do
+        "${_opener[@]}" "$("$_readlink" -f "${file}")"
+    done
 }
 
 function vim_func() {
@@ -136,6 +158,10 @@ case "$1" in
     session)
         shift
         session "$@"
+        ;;
+    quickedit)
+        shift
+        quickedit "$@"
         ;;
     -h|--help)
         show_help

@@ -67,8 +67,30 @@ function mount_pcloud() {
 
 function unmount_pcloud() {
     echo "Un-mounting pCloud directory"
+
+    # Try normal unmount first
     fusermount -u "$MOUNT_POINT" || umount "$MOUNT_POINT"
-    rmdir $MOUNT_POINT
+
+    # If normal unmount fails, try force unmount
+    if mountpoint -q "$MOUNT_POINT"; then
+        echo "Normal unmount failed. Attempting force unmount..."
+        fusermount -uz "$MOUNT_POINT" || umount -f "$MOUNT_POINT"
+    fi
+
+    # If it's still mounted, try lazy unmount
+    if mountpoint -q "$MOUNT_POINT"; then
+        echo "Force unmount failed. Attempting lazy unmount..."
+        umount -l "$MOUNT_POINT"
+    fi
+
+    # Check if unmount was successful
+    if ! mountpoint -q "$MOUNT_POINT"; then
+        echo "Successfully unmounted $MOUNT_POINT"
+        rmdir "$MOUNT_POINT"
+    else
+        echo "Failed to unmount $MOUNT_POINT. It may still be in use."
+        echo "You might need to close all applications using the mount point and try again."
+    fi
 }
 
 function sync_operation() {
