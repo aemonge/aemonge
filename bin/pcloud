@@ -35,7 +35,8 @@ function show_help() {
     echo "Commands:"
     echo "  pull    Pull data from pCloud to local directories"
     echo "  push    Push data from local directories to pCloud"
-    echo "  sync    Perform a bi-directional sync between pCloud and local directories"
+    echo "  bysync  Perform a bi-directional sync between pCloud and local directories"
+    echo "  sync    Sync data between pCloud and local directories"
     echo "  mount   Mount the pCloud directory"
     echo "  umount  Unmount the pCloud directory"
     echo "  secret [timeout]  Mount secrets directory and unmount after timeout (default: 5 minutes)"
@@ -271,8 +272,11 @@ case "$1" in
         root_sync
         sync_operation "push"
         ;;
-    sync)
+    bysync)
         echo "'bisync' operation is in beta. Please use 'pull' or 'push' instead."
+        ;;
+    sync)
+        root_sync
         ;;
     mount)
         mount_pcloud
