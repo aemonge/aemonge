@@ -59,8 +59,9 @@ update_cargo() {
 }
 
 update_npm() {
-    echo "npm update -g"
-    npm update -g
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+    [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+    nvm exec system npm update -g || sudo npm update -g
 }
 
 update_zinit() {
@@ -103,11 +104,6 @@ EOF
     echo "Zsh completions have been saved to ~/.zfunc/_update_pau_fwu_znn. Please ensure ~/.zfunc is in your fpath and restart your shell or run 'autoload -U compinit && compinit' to enable them."
 }
 
-pcloud_push() {
-    echo "pcloud push"
-    pcloud-push.sh
-}
-
 main() {
     if [ $# -eq 0 ]; then
         update_pacman
@@ -119,7 +115,6 @@ main() {
         update_npm
         update_zinit
         update_neovim
-        pcloud_push
     else
         for arg in "$@"; do
             case $arg in
@@ -133,7 +128,6 @@ main() {
                 npm) update_npm ;;
                 zinit) update_zinit ;;
                 neovim) update_neovim ;;
-                pcloud) pcloud_push ;;
                 completions) generate_completions; exit 0 ;;
                 *) echo "Unknown update: $arg"; show_help; exit 1 ;;
             esac
