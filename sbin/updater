@@ -2,6 +2,30 @@
 
 set -e
 
+title() {
+    if command -v "boxify" &> /dev/null; then
+        boxify title "$@"
+    else
+        echo "$@"
+    fi
+}
+
+subtitle() {
+    if command -v "boxify" &> /dev/null; then
+        boxify subtitle "$@"
+    else
+        echo "$@"
+    fi
+}
+
+padded() {
+    if command -v "boxify" &> /dev/null; then
+        boxify run -- "$@"
+    else
+        "$@"
+    fi
+}
+
 show_help() {
     echo "Usage: $0 [OPTION]"
     echo "Run system updates for various package managers."
@@ -24,92 +48,131 @@ show_help() {
 
 QUIET=false
 
+check_command() {
+    if ! command -v "$1" &> /dev/null; then
+        subtitle "Warning: $1 not found. Skipping $2." >&2
+        return 1
+    fi
+    return 0
+}
+
 update_pacman() {
-    $QUIET || echo "Running 'pacman -Syu'"
-    if [ $# -eq 0 ]; then
-        sudo pacman -Syu --noconfirm ${QUIET:+> /dev/null}
-    else
-        sudo pacman -Syu ${QUIET:+> /dev/null}
+    if check_command "pacman" "pacman update"; then
+        $QUIET || title "Running 'pacman -Syu'"
+        if [ $# -eq 0 ]; then
+            padded sudo pacman -Syu --noconfirm
+        else
+            padded sudo pacman -Syu
+        fi
     fi
 }
 
 update_aura() {
-    $QUIET || echo "Running 'aura -Ayu''"
-    if [ $# -eq 0 ]; then
-        sudo aura -Ayu --noconfirm ${QUIET:+> /dev/null}
-    else
-        sudo aura -Ayu ${QUIET:+> /dev/null}
+    if check_command "aura" "aura update"; then
+        $QUIET || title "Running 'aura -Ayu'"
+        if [ $# -eq 0 ]; then
+            padded sudo aura -Ayu --noconfirm
+        else
+            padded sudo aura -Ayu
+        fi
     fi
 }
 
 update_snap() {
-    if command -v "snap" &> /dev/null; then
-        $QUIET || echo "Running 'snap refresh'"
-        sudo systemctl start snapd.apparmor.service snapd.service ${QUIET:+> /dev/null}
-        sudo snap refresh ${QUIET:+> /dev/null}
-        sudo systemctl stop snapd.apparmor.service snapd.service snapd.socket ${QUIET:+> /dev/null}
+    if check_command "snap" "snap update" && check_command "systemctl" "systemd operations"; then
+        $QUIET || title "Running 'snap refresh'"
+        padded sudo systemctl start snapd.apparmor.service snapd.service
+        padded sudo snap refresh
+        padded sudo systemctl stop snapd.apparmor.service snapd.service snapd.socket
     else
-        $QUIET || echo "No 'systemctl status snapd.apparmor.service snapd.service'"
+        $QUIET || subtitle "No 'systemctl status snapd.apparmor.service snapd.service'"
     fi
 }
 
 update_hardware() {
-    $QUIET || echo "Running 'fwupdmgr refresh,get-updates,update'"
-    sudo fwupdmgr refresh ${QUIET:+> /dev/null} || true
-    sudo fwupdmgr get-updates ${QUIET:+> /dev/null} || true
-    sudo fwupdmgr update ${QUIET:+> /dev/null}
+    if check_command "fwupdmgr" "firmware update"; then
+        $QUIET || title "Running 'fwupdmgr refresh,get-updates,update'"
+        padded sudo fwupdmgr refresh  || true
+        padded sudo fwupdmgr get-updates  || true
+        padded sudo fwupdmgr update
+    fi
 }
 
 update_clam() {
-    $QUIET || echo "Running 'freshclam'"
-    sudo freshclam ${QUIET:+> /dev/null}
+    if check_command "freshclam" "ClamAV update"; then
+        $QUIET || title "Running 'freshclam'"
+        padded sudo freshclam
+    fi
 }
 
 update_cargo() {
-    # If cargo install-update fails, but cargo does exist then `cargo install cargo-update`
-    $QUIET || echo "Running: 'cargo install-update -a'"
-    cargo install-update -a ${QUIET:+> /dev/null}
+    if check_command "cargo" "cargo packages update"; then
+        $QUIET || title "Running: 'cargo install-update -a'"
+        if ! padded cargo install-update -a ; then
+            subtitle "Warning: cargo install-update failed. Attempting to install cargo-update..." >&2
+            padded cargo install cargo-update
+            padded cargo install-update -a
+        fi
+    fi
 }
 
 update_npm() {
-    $QUIET || echo "Running: 'nvm exec system npm update -g || npm update -g'"
-    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-    [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
-    nvm exec system npm update -g ${QUIET:+> /dev/null} || sudo npm update -g ${QUIET:+> /dev/null}
+    if check_command "npm" "npm packages update"; then
+        $QUIET || title "Running: 'nvm exec system npm update -g || npm update -g'"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+        [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+        nvm exec system npm update -g 2>/tmp/npm_error || sudo npm update -g 2>/tmp/npm_error2
+        $QUIET || cat /tmp/npm_error
+        $QUIET || cat /tmp/npm_error2
+    fi
 }
 
 update_zinit() {
-    $QUIET || echo "Running: 'zsh -ic \"zinit self-update\",\"update\"'"
-    zsh -ic "zinit self-update" ${QUIET:+> /dev/null}
-    zsh -ic "zinit update" ${QUIET:+> /dev/null}
+    if check_command "zsh" "zinit update"; then
+        $QUIET || title "Running: 'zsh -ic \"zinit self-update\",\"update -a\"'"
+        zsh -ic "zinit self-update"
+        zsh -ic "zinit update -a"
+    fi
 }
 
 update_neovim() {
-    $QUIET || echo "Running: 'nvim --headless +'Lazy update' +'Lazy load coc.nvim | CocUpdateSync' +'TSUpdateSync'"
-    LOGFILE="/tmp/neovim_update.log"
-    nvim --headless +'Lazy update' +qall ${QUIET:+> /dev/null} 2>&1
-    nvim --headless +'Lazy load coc.nvim | CocUpdateSync' +qall ${QUIET:+> /dev/null} 2>&1
-    nvim --headless +'TSUpdateSync' +qall ${QUIET:+> /dev/null} 2>&1
-    $QUIET || cat "$LOGFILE"
-    rm "$LOGFILE"
+    if check_command "nvim" "Neovim plugins update"; then
+        $QUIET || title "Running: 'nvim --headless +'Lazy update' +'Lazy load coc.nvim | CocUpdateSync' +'TSUpdateSync' +qall"
+        nvim --headless +'Lazy update' +qall
+        nvim --headless +'Lazy load coc.nvim | CocUpdateSync' +qall
+        nvim --headless +'TSUpdateSync' +qall
+    fi
 }
 
-
 shutdown_system() {
-    $QUIET || echo "All updates completed. Shutting down the system..."
-    sudo shutdown now
+    if check_command "shutdown" "system shutdown"; then
+        $QUIET || title "All updates completed. Shutting down the system..."
+        sudo shutdown now
+    fi
 }
 
 run_all_updates() {
-    update_pacman 0
-    update_aura 0
-    update_snap
-    update_hardware
-    update_clam
-    update_cargo
-    update_npm
-    update_zinit
-    update_neovim
+    if $QUIET; then
+        update_pacman 0 > /dev/null
+        update_aura 0 > /dev/null
+        update_snap > /dev/null
+        update_hardware > /dev/null
+        update_clam > /dev/null
+        update_cargo > /dev/null
+        update_npm > /dev/null
+        update_zinit > /dev/null
+        update_neovim > /dev/null
+    else
+        update_pacman 0
+        update_aura 0
+        update_snap
+        update_hardware
+        update_clam
+        update_cargo
+        update_npm
+        update_zinit
+        update_neovim
+    fi
 }
 
 generate_completions() {
@@ -140,7 +203,6 @@ EOF
 
 main() {
     local shutdown_after=false
-
     while [[ $# -gt 0 ]]; do
         case $1 in
             -q|--quiet)
@@ -160,24 +222,85 @@ main() {
                 ;;
         esac
     done
-
     if [ $shutdown_after = true ]; then
-        run_all_updates
+        if $QUIET; then
+            run_all_updates > /dev/null
+        else
+            run_all_updates
+        fi
         shutdown_system
     elif [ $# -eq 0 ]; then
-        run_all_updates
+        if $QUIET; then
+            run_all_updates > /dev/null
+        else
+            run_all_updates
+        fi
     else
         for arg in "$@"; do
             case $arg in
-                pacman) update_pacman 1 ;;
-                aura) update_aura 1 ;;
-                snap) update_snap ;;
-                hardware) update_hardware ;;
-                clam) update_clam ;;
-                cargo) update_cargo ;;
-                npm) update_npm ;;
-                zinit) update_zinit ;;
-                neovim) update_neovim ;;
+                pacman)
+                    if $QUIET; then
+                        update_pacman 1 > /dev/null
+                    else
+                        update_pacman 1
+                    fi
+                    ;;
+                aura)
+                    if $QUIET; then
+                        update_aura 1 > /dev/null
+                    else
+                        update_aura 1
+                    fi
+                    ;;
+                snap)
+                    if $QUIET; then
+                        update_snap > /dev/null
+                    else
+                        update_snap
+                    fi
+                    ;;
+                hardware)
+                    if $QUIET; then
+                        update_hardware > /dev/null
+                    else
+                        update_hardware
+                    fi
+                    ;;
+                clam)
+                    if $QUIET; then
+                        update_clam > /dev/null
+                    else
+                        update_clam
+                    fi
+                    ;;
+                cargo)
+                    if $QUIET; then
+                        update_cargo > /dev/null
+                    else
+                        update_cargo
+                    fi
+                    ;;
+                npm)
+                    if $QUIET; then
+                        update_npm > /dev/null
+                    else
+                        update_npm
+                    fi
+                    ;;
+                zinit)
+                    if $QUIET; then
+                        update_zinit > /dev/null
+                    else
+                        update_zinit
+                    fi
+                    ;;
+                neovim)
+                    if $QUIET; then
+                        update_neovim > /dev/null
+                    else
+                        update_neovim
+                    fi
+                    ;;
                 completions) generate_completions; exit 0 ;;
                 *) echo "Unknown update: $arg"; show_help; exit 1 ;;
             esac
