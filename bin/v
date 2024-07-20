@@ -3,7 +3,7 @@
 VERSION="0.0.1"
 
 function show_help() {
-    echo "v - A versatile Neovim wrapper script with term-multiplier powers"
+    echo "v - Versatile Neovim wrapper script with term-multiplier powers using neovim-remote"
     echo ""
     echo "  This script provides a convenient interface for various Neovim operations,"
     echo "  including changing directories, opening files in split views, clearing the"
@@ -78,22 +78,27 @@ function vclear() {
 }
 
 function vim_func() {
-    if type nvr > /dev/null; then
-        if [[ "$OSTYPE"  == "darwin"* ]]; then
-            nvr --remote-tab "$(greadlink -f "$@")"
-        else
-            nvr --remote-tab "$(readlink -f "$@")"
-        fi
+    local _readlink
+    local _opener
+
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        _readlink="greadlink"
     else
-        if [[ "$OSTYPE"  == "darwin"* ]]; then
-            printf '\033]7;%s\007' "$(greadlink -f "$@")"
-        else
-            printf '\033]7;%s\007' "$(readlink -f "$@")"
-        fi
+        _readlink="readlink"
     fi
+
+    if type nvr > /dev/null; then
+        _opener=(nvr --remote-tab)
+    else
+        _opener=(printf '\033]7;%s\007')
+    fi
+
+    for file in "${@}"; do
+        "${_opener[@]}" "$("$_readlink" -f "${file}")"
+    done
 }
 
-function vmux() {
+function session() {
     cmd=(nvim +':terminal')
     if [ $# -eq 0 ]; then
         cmd+=("+startinsert")
@@ -110,6 +115,11 @@ function vmux() {
     fi
 }
 
+if [ $# -eq 0 ]; then
+    show_help
+    exit 0
+fi
+
 case "$1" in
     cd)
         shift
@@ -125,7 +135,7 @@ case "$1" in
         ;;
     session)
         shift
-        vmux "$@"
+        session "$@"
         ;;
     -h|--help)
         show_help
