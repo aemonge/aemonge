@@ -18,6 +18,7 @@ function show_help() {
     echo "    clear           Clear terminal in Neovim"
     echo "    session         Start a new Neovim session"
     echo "    quickedit       Open file for quick editing (auto-closes buffer)"
+    echo "    completions     Generate zsh completions for this script"
     echo "    [no subcommand] Open file in Neovim"
     echo ""
     echo "Options:"
@@ -29,16 +30,60 @@ function show_version() {
     echo "v version $VERSION"
 }
 
-function vcd() {
-    if type nvr >/dev/null; then
-        nvr -c "cd $(pwd)"
-    else
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            printf '\033]7;%s\007' "$(pwd)"
-        else
-            printf '\033]7;%s\007' "$(pwd)"
-        fi
-    fi
+function generate_completions() {
+    local completions_file="$HOME/.zfunc/_v"
+    mkdir -p "$HOME/.zfunc"
+
+    echo "#compdef v" > "$completions_file"
+    echo "" >> "$completions_file"
+    echo "_v() {" >> "$completions_file"
+    echo "  local -a commands" >> "$completions_file"
+    echo "  commands=(" >> "$completions_file"
+    echo "    'cd'" >> "$completions_file"
+    echo "    'split'" >> "$completions_file"
+    echo "    'clear'" >> "$completions_file"
+    echo "    'session'" >> "$completions_file"
+    echo "    'quickedit'" >> "$completions_file"
+    echo "    'completions'" >> "$completions_file"
+    echo "  )" >> "$completions_file"
+    echo "" >> "$completions_file"
+    echo "  _arguments -C \\" >> "$completions_file"
+    echo "    '(-h --help)'{-h,--help}'[Show help message]' \\" >> "$completions_file"
+    echo "    '(-v --version)'{-v,--version}'[Show version information]' \\" >> "$completions_file"
+    echo "    '1: :->first_arg' \\" >> "$completions_file"
+    echo "    '*: :->args'" >> "$completions_file"
+    echo "" >> "$completions_file"
+    echo "  case \$state in" >> "$completions_file"
+    echo "    first_arg)" >> "$completions_file"
+    echo "      _alternative \\" >> "$completions_file"
+    echo "        'commands:command:(\${commands[@]})' \\" >> "$completions_file"
+    echo "        'files:file:_files'" >> "$completions_file"
+    echo "      ;;" >> "$completions_file"
+    echo "    args)" >> "$completions_file"
+    echo "      case \$words[1] in" >> "$completions_file"
+    echo "        cd)" >> "$completions_file"
+    echo "          _directories" >> "$completions_file"
+    echo "          ;;" >> "$completions_file"
+    echo "        split|quickedit|session)" >> "$completions_file"
+    echo "          _files" >> "$completions_file"
+    echo "          ;;" >> "$completions_file"
+    echo "        clear|completions)" >> "$completions_file"
+    echo "          # No further arguments for these commands" >> "$completions_file"
+    echo "          ;;" >> "$completions_file"
+    echo "        *)" >> "$completions_file"
+    echo "          _files" >> "$completions_file"
+    echo "          ;;" >> "$completions_file"
+    echo "      esac" >> "$completions_file"
+    echo "      ;;" >> "$completions_file"
+    echo "  esac" >> "$completions_file"
+    echo "}" >> "$completions_file"
+    echo "" >> "$completions_file"
+    echo "_v \"\$@\"" >> "$completions_file"
+
+    echo "Completions for 'v' script have been generated and stored in $completions_file"
+    echo "Please add the following line to your .zshrc if it's not already there:"
+    echo "  fpath=(~/.zfunc \$fpath)"
+    echo "Then restart your shell or run 'source ~/.zshrc'"
 }
 
 function svim() {
@@ -51,30 +96,10 @@ function svim() {
         split_command="vsplit"
     fi
 
-    if type nvr > /dev/null; then
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            nvr -cc "$split_command $(greadlink -f "$@")"
-        else
-            nvr -cc "$split_command $(readlink -f "$@")"
-        fi
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        nvr -cc "$split_command $(greadlink -f "$@")"
     else
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            printf '\033]7;%s\007' "$(greadlink -f "$@")"
-        else
-            printf '\033]7;%s\007' "$(readlink -f "$@")"
-        fi
-    fi
-}
-
-function vclear() {
-    if type nvr >/dev/null; then
-        nvr -c ":TerminalClear"
-    else
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            printf '\033c'
-        else
-            printf '\033c'
-        fi
+        nvr -cc "$split_command $(readlink -f "$@")"
     fi
 }
 
@@ -88,10 +113,10 @@ function quickedit() {
         _readlink="readlink"
     fi
 
-    if type nvr > /dev/null; then
+    if [ -n "$NVIM" ]; then
         _opener=(nvr -c "setlocal bufhidden=wipe" --remote-tab-wait )
     else
-        _opener=(printf '\033]7;%s\007')
+        _opener=(nvim)
     fi
 
     for file in "${@}"; do
@@ -109,10 +134,10 @@ function vim_func() {
         _readlink="readlink"
     fi
 
-    if type nvr > /dev/null; then
-        _opener=(nvr --remote-tab)
+    if [ -n "$NVIM" ]; then
+        _opener=(nvr -c "setlocal bufhidden=wipe" --remote-tab-wait )
     else
-        _opener=(printf '\033]7;%s\007')
+        _opener=(nvim)
     fi
 
     for file in "${@}"; do
@@ -130,10 +155,10 @@ function session() {
         done
     fi
 
-    if [ -z "$NVIM" ]; then
-      "${cmd[@]}"
-    else
+    if [ -n "$NVIM" ]; then
       nvr -s --remote-tab "$@"
+    else
+      "${cmd[@]}"
     fi
 }
 
@@ -142,18 +167,21 @@ if [ $# -eq 0 ]; then
     exit 0
 fi
 
+if ! command -v nvr >/dev/null; then
+    echo "Install neovim-remote"
+    exit 1
+fi
+
 case "$1" in
     cd)
-        shift
-        vcd "$@"
+        nvr -c "cd $(pwd)"
         ;;
     split)
         shift
         svim "$@"
         ;;
     clear)
-        shift
-        vclear "$@"
+        nvr -c ":TerminalClear"
         ;;
     session)
         shift
@@ -162,6 +190,9 @@ case "$1" in
     quickedit)
         shift
         quickedit "$@"
+        ;;
+    completions)
+        generate_completions
         ;;
     -h|--help)
         show_help
