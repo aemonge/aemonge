@@ -31,7 +31,7 @@ function show_version() {
     echo "v version $VERSION"
 }
 
-function generate_completions() {
+function completions() {
     local completions_file="$HOME/.zfunc/_v"
     mkdir -p "$HOME/.zfunc"
 
@@ -128,9 +128,13 @@ function quickedit() {
         _opener=(nvim)
     fi
 
+    files=()
     for file in "${@}"; do
-        "${_opener[@]}" "$("$_readlink" -f "${file}")"
+        files+=("$("$_readlink" -f "$file")")
     done
+
+    # Then, open all files at once
+    "${_opener[@]}" "${files[@]}"
 }
 
 function vim_func() {
@@ -149,63 +153,13 @@ function vim_func() {
         _opener=(nvim)
     fi
 
+    files=()
     for file in "${@}"; do
-        "${_opener[@]}" "$("$_readlink" -f "${file}")"
+        files+=("$("$_readlink" -f "$file")")
     done
-}
 
-function generate_completions() {
-    local completion_dir="$HOME/.zfunc"
-    local completion_file="$completion_dir/_v"
-
-    # Create the directory if it doesn't exist
-    mkdir -p "$completion_dir"
-
-    # Generate the completion function
-    {
-        echo "#compdef v"
-        echo ""
-        echo "_v() {"
-        echo "  local -a commands"
-        echo "  commands=("
-        echo "    'cd'"
-        echo "    'venv'"
-        echo "    'split'"
-        echo "    'clear'"
-        echo "    'session'"
-        echo "    'quickedit'"
-        echo "    'generate-completions'"
-        echo "  )"
-        echo ""
-        echo "  _arguments -C \\"
-        echo "    '(-h --help)'{-h,--help}'[Show help message]' \\"
-        echo "    '(-v --version)'{-v,--version}'[Show version information]' \\"
-        echo "    '1: :->cmds_or_files' \\"
-        echo "    '*:: :->args'"
-        echo ""
-        echo "  case \$state in"
-        echo "    cmds_or_files)"
-        echo "      _alternative \\"
-        echo "        'commands:v command:(\$commands)' \\"
-        echo "        'files:file:_files'"
-        echo "      ;;"
-        echo "    args)"
-        echo "      case \$words[1] in"
-        echo "        cd|split|quickedit|session|venv)"
-        echo "          _files"
-        echo "          ;;"
-        echo "      esac"
-        echo "      ;;"
-        echo "  esac"
-        echo "}"
-        echo ""
-        echo "_v"
-    } > "$completion_file"
-
-    echo "Completion function generated at $completion_file"
-    echo "Add the following line to your ~/.zshrc file if it's not already there:"
-    echo "fpath=(\$HOME/.zfunc \$fpath)"
-    echo "Then run 'autoload -U compinit && compinit' to reload completions"
+    # Then, open all files at once
+    "${_opener[@]}" "${files[@]}"
 }
 
 function session() {
@@ -221,6 +175,14 @@ function session() {
         for file in "$@"; do
           cmd+=("+tabe $file")
         done
+
+        files=()
+        for file in "${@}"; do
+            files+=("$("$_readlink" -f "$file")")
+        done
+
+        # Then, open all files at once
+        "${_opener[@]}" "${files[@]}"
     fi
 
     "${cmd[@]}"
@@ -287,7 +249,7 @@ case "$1" in
         quickedit "$@"
         ;;
     completions)
-        generate_completions
+        completions
         ;;
     -h|--help)
         show_help
