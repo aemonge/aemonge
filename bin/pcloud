@@ -15,10 +15,11 @@ declare -A CLOUD_DIRS=(
     ["/media/images"]="$USER_HOME/images"
     ["/media/videos"]="$USER_HOME/videos"
     ["/media/music"]="$USER_HOME/music"
-    ["/documents/dev"]="$USER_HOME/documents"
+    ["/documents/active"]="$USER_HOME/documents"
+    ["/documents/navi-dev-cheats"]="$USER_HOME/cheats"
     ["/public"]="$USER_HOME/public"
     ["/stash"]="$USER_HOME/stash"
-    ["/documents/studies/UNED"]="$USER_HOME/studies"
+    # ["/documents/studies/UNED"]="$USER_HOME/studies"
 )
 
 # Array to store PIDs of background processes
