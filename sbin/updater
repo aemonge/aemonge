@@ -139,9 +139,9 @@ update_zinit() {
 update_neovim() {
     if check_command "nvim" "Neovim plugins update"; then
         $QUIET || title "Running: 'nvim Lazy update; CocUpdateSync; TSUpdateSync'"
-        padded nvim --headless -c 'Lazy update' -c 'qa!'
-        padded nvim --headless -c 'CocUpdateSync' -c 'qa!'
-        padded nvim --headless -c 'TSUpdateSync' -c 'qa!'
+        nvim --headless -c 'lua require("lazy").update():wait()' -c 'qa!'
+        nvim --headless -c 'CocUpdateSync|qa!'
+        nvim --headless -c 'TSUpdateSync' -c 'qa!'
     fi
 }
 
@@ -176,30 +176,31 @@ run_all_updates() {
     fi
 }
 
-generate_completions() {
-    local completion_script=$(cat <<'EOF'
-#compdef updater
-
-_arguments \
-  '(-h --help help)'{-h,--help,help}'[Show help message]' \
-  '(-q --quiet)'{-q,--quiet}'[Disable all output except errors and warnings]' \
-  'pacman[Update using pacman]' \
-  'aura[Update using aura]' \
-  'snap[Update using snap]' \
-  'hardware[Update hardware firmware]' \
-  'clam[Update ClamAV database]' \
-  'cargo[Update cargo packages]' \
-  'npm[Update npm packages]' \
-  'zinit[Update zinit plugins]' \
-  'neovim[Update Neovim plugins]' \
-  'completions[Generate Zsh completions and save to ~/.zfunc]' \
-  'and-shutdown[Run all updates and then shutdown the system]'
-EOF
-    )
-
+completions() {
     mkdir -p ~/.zfunc
-    echo "$completion_script" > ~/.zfunc/_update_pau_fwu_znn
-    echo "Zsh completions have been saved to ~/.zfunc/_update_pau_fwu_znn. Please ensure ~/.zfunc is in your fpath and restart your shell or run 'autoload -U compinit && compinit' to enable them."
+    echo "#compdef updater" > ~/.zfunc/_updater
+    echo "" >> ~/.zfunc/_updater
+    echo "_updater() {" >> ~/.zfunc/_updater
+    echo "  local -a commands" >> ~/.zfunc/_updater
+    echo "  commands=(" >> ~/.zfunc/_updater
+    echo "    'pacman:Update using pacman'" >> ~/.zfunc/_updater
+    echo "    'aura:Update using aura'" >> ~/.zfunc/_updater
+    echo "    'snap:Update using snap'" >> ~/.zfunc/_updater
+    echo "    'hardware:Update hardware firmware'" >> ~/.zfunc/_updater
+    echo "    'clam:Update ClamAV database'" >> ~/.zfunc/_updater
+    echo "    'cargo:Update cargo packages'" >> ~/.zfunc/_updater
+    echo "    'npm:Update npm packages'" >> ~/.zfunc/_updater
+    echo "    'zinit:Update zinit plugins'" >> ~/.zfunc/_updater
+    echo "    'neovim:Update Neovim plugins'" >> ~/.zfunc/_updater
+    echo "    'completions:Generate Zsh completions'" >> ~/.zfunc/_updater
+    echo "    'and-shutdown:Run all updates and then shutdown'" >> ~/.zfunc/_updater
+    echo "  )" >> ~/.zfunc/_updater
+    echo "  _describe -t commands 'updater commands' commands" >> ~/.zfunc/_updater
+    echo "}" >> ~/.zfunc/_updater
+    echo "" >> ~/.zfunc/_updater
+    echo "_updater \"\$@\"" >> ~/.zfunc/_updater
+    echo "Zsh completions have been saved to ~/.zfunc/_updater."
+    echo "Please ensure ~/.zfunc is in your fpath and restart your shell or run 'autoload -U compinit && compinit' to enable them."
 }
 
 main() {
@@ -302,7 +303,7 @@ main() {
                         update_neovim
                     fi
                     ;;
-                completions) generate_completions; exit 0 ;;
+                completions) completions; exit 0 ;;
                 *) echo "Unknown update: $arg"; show_help; exit 1 ;;
             esac
         done
