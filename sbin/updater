@@ -40,6 +40,7 @@ show_help() {
     echo "  clam                Update ClamAV database"
     echo "  cargo               Update cargo packages"
     echo "  npm                 Update npm packages"
+    echo "  yarn                Update yarn packages"
     echo "  zinit               Update zinit plugins"
     echo "  neovim              Update Neovim plugins"
     echo "  completions         Generate Zsh completions and save to ~/.zfunc"
@@ -128,6 +129,13 @@ update_npm() {
     fi
 }
 
+update_yarn() {
+    if check_command "yarn" "yarn packages update"; then
+        $QUIET || title "Running: 'yarn global upgrade'"
+        padded yarn global upgrade
+    fi
+}
+
 update_zinit() {
     if check_command "zsh" "zinit update"; then
         $QUIET || title "Running: 'zsh -ic \"zinit self-update\",\"update -a\"'"
@@ -161,6 +169,7 @@ run_all_updates() {
         update_clam > /dev/null
         update_cargo > /dev/null
         update_npm > /dev/null
+        update_yarn > /dev/null
         update_zinit > /dev/null
         update_neovim > /dev/null
     else
@@ -171,6 +180,7 @@ run_all_updates() {
         update_clam
         update_cargo
         update_npm
+        update_yarn
         update_zinit
         update_neovim
     fi
@@ -190,6 +200,7 @@ completions() {
     echo "    'clam:Update ClamAV database'" >> ~/.zfunc/_updater
     echo "    'cargo:Update cargo packages'" >> ~/.zfunc/_updater
     echo "    'npm:Update npm packages'" >> ~/.zfunc/_updater
+    echo "    'yarn:Update yarn packages'" >> ~/.zfunc/_updater
     echo "    'zinit:Update zinit plugins'" >> ~/.zfunc/_updater
     echo "    'neovim:Update Neovim plugins'" >> ~/.zfunc/_updater
     echo "    'completions:Generate Zsh completions'" >> ~/.zfunc/_updater
@@ -280,6 +291,13 @@ main() {
                         update_cargo > /dev/null
                     else
                         update_cargo
+                    fi
+                    ;;
+                yarn)
+                    if $QUIET; then
+                        update_yarn > /dev/null
+                    else
+                        update_yarn
                     fi
                     ;;
                 npm)
