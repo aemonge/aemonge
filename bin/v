@@ -113,8 +113,15 @@ function quickedit() {
         _readlink="readlink"
     fi
 
-    if [ -n "$NVIM" ]; then
-        _opener=(nvr -c "setlocal bufhidden=wipe" --remote-tab-wait )
+    if type nvr > /dev/null && [ -n "$NVIM" ]; then
+        # _opener=(nvr -c "setlocal bufhidden=wipe" --remote-tab-wait )
+        _opener=(
+            nvr
+            -c "setlocal bufhidden=wipe"
+            -c "autocmd WinLeave <buffer> if tabpagenr('$') > 1 | tabprev | endif"
+            --remote-tab-wait
+        )
+
     else
         _opener=(nvim)
     fi
@@ -135,7 +142,7 @@ function vim_func() {
     fi
 
     if [ -n "$NVIM" ]; then
-        _opener=(nvr -c "setlocal bufhidden=wipe" --remote-tab-wait )
+        _opener=(nvr --remote-tab)
     else
         _opener=(nvim)
     fi
@@ -145,7 +152,65 @@ function vim_func() {
     done
 }
 
+function generate_completions() {
+    local completion_dir="$HOME/.zfunc"
+    local completion_file="$completion_dir/_v"
+
+    # Create the directory if it doesn't exist
+    mkdir -p "$completion_dir"
+
+    # Generate the completion function
+    {
+        echo "#compdef v"
+        echo ""
+        echo "_v() {"
+        echo "  local -a commands"
+        echo "  commands=("
+        echo "    'cd'"
+        echo "    'split'"
+        echo "    'clear'"
+        echo "    'session'"
+        echo "    'quickedit'"
+        echo "    'generate-completions'"
+        echo "  )"
+        echo ""
+        echo "  _arguments -C \\"
+        echo "    '(-h --help)'{-h,--help}'[Show help message]' \\"
+        echo "    '(-v --version)'{-v,--version}'[Show version information]' \\"
+        echo "    '1: :->cmds_or_files' \\"
+        echo "    '*:: :->args'"
+        echo ""
+        echo "  case \$state in"
+        echo "    cmds_or_files)"
+        echo "      _alternative \\"
+        echo "        'commands:v command:(\$commands)' \\"
+        echo "        'files:file:_files'"
+        echo "      ;;"
+        echo "    args)"
+        echo "      case \$words[1] in"
+        echo "        cd|split|quickedit|session)"
+        echo "          _files"
+        echo "          ;;"
+        echo "      esac"
+        echo "      ;;"
+        echo "  esac"
+        echo "}"
+        echo ""
+        echo "_v"
+    } > "$completion_file"
+
+    echo "Completion function generated at $completion_file"
+    echo "Add the following line to your ~/.zshrc file if it's not already there:"
+    echo "fpath=(\$HOME/.zfunc \$fpath)"
+    echo "Then run 'autoload -U compinit && compinit' to reload completions"
+}
+
 function session() {
+    if [ -n "$NVIM" ]; then
+        echo "Error: Cannot start a new Neovim session from within an existing Neovim instance."
+        exit 1
+    fi
+
     cmd=(nvim +':terminal')
     if [ $# -eq 0 ]; then
         cmd+=("+startinsert")
@@ -155,11 +220,7 @@ function session() {
         done
     fi
 
-    if [ -n "$NVIM" ]; then
-      nvr -s --remote-tab "$@"
-    else
-      "${cmd[@]}"
-    fi
+    "${cmd[@]}"
 }
 
 if [ $# -eq 0 ]; then
