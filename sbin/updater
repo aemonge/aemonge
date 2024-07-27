@@ -108,10 +108,10 @@ update_clam() {
 update_cargo() {
     if check_command "cargo" "cargo packages update"; then
         $QUIET || title "Running: 'cargo install-update -a'"
-        if ! padded cargo install-update -a ; then
+        if ! cargo install-update -a ; then
             subtitle "Warning: cargo install-update failed. Attempting to install cargo-update..." >&2
-            padded cargo install cargo-update
-            padded cargo install-update -a
+            cargo install cargo-update
+            cargo install-update -a
         fi
     fi
 }
@@ -121,7 +121,8 @@ update_npm() {
         $QUIET || title "Running: 'nvm exec system npm update -g || npm update -g'"
         [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
         [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
-        nvm exec system npm update -g 2>/tmp/npm_error || sudo npm update -g 2>/tmp/npm_error2
+        nvm exec system npm update -g 2>/tmp/npm_error \
+            || sudo npm update -g 2>/tmp/npm_error2
         $QUIET || cat /tmp/npm_error
         $QUIET || cat /tmp/npm_error2
     fi
@@ -137,24 +138,24 @@ update_zinit() {
 
 update_neovim() {
     if check_command "nvim" "Neovim plugins update"; then
-        $QUIET || title "Running: 'nvim --headless +'Lazy update' +'Lazy load coc.nvim | CocUpdateSync' +'TSUpdateSync' +qall"
-        nvim --headless +'Lazy update' +qall
-        nvim --headless +'Lazy load coc.nvim | CocUpdateSync' +qall
-        nvim --headless +'TSUpdateSync' +qall
+        $QUIET || title "Running: 'nvim Lazy update; CocUpdateSync; TSUpdateSync'"
+        padded nvim --headless -c 'Lazy update' -c 'qa!'
+        padded nvim --headless -c 'CocUpdateSync' -c 'qa!'
+        padded nvim --headless -c 'TSUpdateSync' -c 'qa!'
     fi
 }
 
 shutdown_system() {
     if check_command "shutdown" "system shutdown"; then
         $QUIET || title "All updates completed. Shutting down the system..."
-        sudo shutdown now
+        padded sudo shutdown now
     fi
 }
 
 run_all_updates() {
     if $QUIET; then
-        update_pacman 0 > /dev/null
-        update_aura 0 > /dev/null
+        update_pacman > /dev/null
+        update_aura > /dev/null
         update_snap > /dev/null
         update_hardware > /dev/null
         update_clam > /dev/null
@@ -163,8 +164,8 @@ run_all_updates() {
         update_zinit > /dev/null
         update_neovim > /dev/null
     else
-        update_pacman 0
-        update_aura 0
+        update_pacman
+        update_aura
         update_snap
         update_hardware
         update_clam
