@@ -14,6 +14,7 @@ function show_help() {
     echo ""
     echo "  Subcommands:"
     echo "    cd              Change directory in Neovim"
+    echo "    venv            Call the nvim set venv to change env in current v session"
     echo "    split           Open file in split view"
     echo "    clear           Clear terminal in Neovim"
     echo "    session         Start a new Neovim session"
@@ -40,6 +41,7 @@ function generate_completions() {
     echo "  local -a commands" >> "$completions_file"
     echo "  commands=(" >> "$completions_file"
     echo "    'cd'" >> "$completions_file"
+    echo "    'venv'" >> "$completions_file"
     echo "    'split'" >> "$completions_file"
     echo "    'clear'" >> "$completions_file"
     echo "    'session'" >> "$completions_file"
@@ -64,7 +66,7 @@ function generate_completions() {
     echo "        cd)" >> "$completions_file"
     echo "          _directories" >> "$completions_file"
     echo "          ;;" >> "$completions_file"
-    echo "        split|quickedit|session)" >> "$completions_file"
+    echo "        split|quickedit|session|venv)" >> "$completions_file"
     echo "          _files" >> "$completions_file"
     echo "          ;;" >> "$completions_file"
     echo "        clear|completions)" >> "$completions_file"
@@ -167,6 +169,7 @@ function generate_completions() {
         echo "  local -a commands"
         echo "  commands=("
         echo "    'cd'"
+        echo "    'venv'"
         echo "    'split'"
         echo "    'clear'"
         echo "    'session'"
@@ -188,7 +191,7 @@ function generate_completions() {
         echo "      ;;"
         echo "    args)"
         echo "      case \$words[1] in"
-        echo "        cd|split|quickedit|session)"
+        echo "        cd|split|quickedit|session|venv)"
         echo "          _files"
         echo "          ;;"
         echo "      esac"
@@ -223,6 +226,24 @@ function session() {
     "${cmd[@]}"
 }
 
+function venv() {
+    if [ -n "$NVIM" ]; then
+        if [ -n "$VIRTUAL_ENV_PROMPT" ]; then
+            nvr -c "lua require('swenv.api').set_venv('$VIRTUAL_ENV_PROMPT')"
+        elif [ -n "$(cat .venv)" ]; then
+            nvr -c "lua require('swenv.api').set_venv('$(cat .venv)')"
+        elif command -v poetry &>/dev/null; then
+            poetry_venv=$(poetry env list --full-path | grep 'Activated' | awk -F'/' '{print $NF}' | awk '{print $1}')
+            if [ -n "$poetry_venv" ]; then
+                nvr -c "lua require('swenv.api').set_venv('$poetry_venv')"
+            fi
+        fi
+    else
+        echo "Please start a v session: 'v session' "
+        exit 1
+    fi
+}
+
 if [ $# -eq 0 ]; then
     show_help
     exit 0
@@ -235,14 +256,27 @@ fi
 
 case "$1" in
     cd)
-        nvr -c "cd $(pwd)"
+        if [ -n "$NVIM" ]; then
+            nvr -c "cd $(pwd)"
+        else
+            echo "Please start a v session: 'v session' "
+            exit 1
+        fi
+        ;;
+    venv)
+        venv
         ;;
     split)
         shift
         svim "$@"
         ;;
     clear)
-        nvr -c ":TerminalClear"
+        if [ -n "$NVIM" ]; then
+            nvr -c ":TerminalClear"
+        else
+            echo "Please start a v session: 'v session' "
+            exit 1
+        fi
         ;;
     session)
         shift
