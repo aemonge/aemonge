@@ -39,7 +39,6 @@ show_help() {
     echo "  hardware            Update hardware firmware"
     echo "  clam                Update ClamAV database"
     echo "  cargo               Update cargo packages"
-    echo "  npm                 Update npm packages"
     echo "  yarn                Update yarn packages"
     echo "  zinit               Update zinit plugins"
     echo "  neovim              Update Neovim plugins"
@@ -117,21 +116,11 @@ update_cargo() {
     fi
 }
 
-update_npm() {
-    if check_command "npm" "npm packages update"; then
-        $QUIET || title "Running: 'nvm exec system npm update -g || npm update -g'"
-        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-        [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
-        nvm exec system npm update -g 2>/tmp/npm_error \
-            || sudo npm update -g 2>/tmp/npm_error2
-        $QUIET || cat /tmp/npm_error
-        $QUIET || cat /tmp/npm_error2
-    fi
-}
-
 update_yarn() {
     if check_command "yarn" "yarn packages update"; then
         $QUIET || title "Running: 'yarn global upgrade'"
+        padded yarn set version stable
+        padded yarn install
         padded yarn global upgrade
     fi
 }
@@ -168,7 +157,6 @@ run_all_updates() {
         update_hardware > /dev/null
         update_clam > /dev/null
         update_cargo > /dev/null
-        update_npm > /dev/null
         update_yarn > /dev/null
         update_zinit > /dev/null
         update_neovim > /dev/null
@@ -179,7 +167,6 @@ run_all_updates() {
         update_hardware
         update_clam
         update_cargo
-        update_npm
         update_yarn
         update_zinit
         update_neovim
@@ -199,7 +186,6 @@ completions() {
     echo "    'hardware:Update hardware firmware'" >> ~/.zfunc/_updater
     echo "    'clam:Update ClamAV database'" >> ~/.zfunc/_updater
     echo "    'cargo:Update cargo packages'" >> ~/.zfunc/_updater
-    echo "    'npm:Update npm packages'" >> ~/.zfunc/_updater
     echo "    'yarn:Update yarn packages'" >> ~/.zfunc/_updater
     echo "    'zinit:Update zinit plugins'" >> ~/.zfunc/_updater
     echo "    'neovim:Update Neovim plugins'" >> ~/.zfunc/_updater
@@ -298,13 +284,6 @@ main() {
                         update_yarn > /dev/null
                     else
                         update_yarn
-                    fi
-                    ;;
-                npm)
-                    if $QUIET; then
-                        update_npm > /dev/null
-                    else
-                        update_npm
                     fi
                     ;;
                 zinit)
