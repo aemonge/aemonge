@@ -5,22 +5,11 @@ VERSION="0.0.1"
 USERNAME="aemonge"
 USER_HOME="/home/$USERNAME"
 MOUNT_POINT="/home/$USERNAME/.mounts/cloud"
-SECRETS_MOUNT="$USER_HOME/secrets"
+SECRETS_MOUNT="/home/$USERNAME/.mounts/secret-cloud"
 TEMP_SECRETS="/tmp/secrets"
 
 # Define directories to sync
-declare -A CLOUD_DIRS=(
-    ["/os"]="$USER_HOME/os"
-    ["/settings"]="$USER_HOME/settings"
-    ["/media/images"]="$USER_HOME/images"
-    ["/media/videos"]="$USER_HOME/videos"
-    ["/media/music"]="$USER_HOME/music"
-    ["/documents/active"]="$USER_HOME/documents"
-    ["/documents/navi-dev-cheats"]="$USER_HOME/cheats"
-    ["/public"]="$USER_HOME/public"
-    ["/stash"]="$USER_HOME/stash"
-    # ["/documents/studies/UNED"]="$USER_HOME/studies"
-)
+source "/home/$USERNAME/.pcloud-structure"
 
 # Array to store PIDs of background processes
 PIDS=()
