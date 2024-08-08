@@ -39,6 +39,7 @@ show_help() {
     echo "  hardware            Update hardware firmware"
     echo "  clam                Update ClamAV database"
     echo "  cargo               Update cargo packages"
+    echo "  go                  Update go packages"
     echo "  yarn                Update yarn packages"
     echo "  zinit               Update zinit plugins"
     echo "  neovim              Update Neovim plugins"
@@ -116,6 +117,15 @@ update_cargo() {
     fi
 }
 
+update_go() {
+    if check_command "go" "go packages update"; then
+        $QUIET || title "Running: 'go-global-update'"
+        if ! go-global-update ; then
+            subtitle "Warning: go install-update failed." >&2
+        fi
+    fi
+}
+
 update_yarn() {
     if check_command "yarn" "yarn packages update"; then
         $QUIET || title "Running: 'yarn global upgrade'"
@@ -157,6 +167,7 @@ run_all_updates() {
         update_hardware > /dev/null
         update_clam > /dev/null
         update_cargo > /dev/null
+        update_go > /dev/null
         update_yarn > /dev/null
         update_zinit > /dev/null
         update_neovim > /dev/null
@@ -167,6 +178,7 @@ run_all_updates() {
         update_hardware
         update_clam
         update_cargo
+        update_go
         update_yarn
         update_zinit
         update_neovim
@@ -186,6 +198,7 @@ completions() {
     echo "    'hardware:Update hardware firmware'" >> ~/.zfunc/_updater
     echo "    'clam:Update ClamAV database'" >> ~/.zfunc/_updater
     echo "    'cargo:Update cargo packages'" >> ~/.zfunc/_updater
+    echo "    'go:Update go packages'" >> ~/.zfunc/_updater
     echo "    'yarn:Update yarn packages'" >> ~/.zfunc/_updater
     echo "    'zinit:Update zinit plugins'" >> ~/.zfunc/_updater
     echo "    'neovim:Update Neovim plugins'" >> ~/.zfunc/_updater
@@ -277,6 +290,13 @@ main() {
                         update_cargo > /dev/null
                     else
                         update_cargo
+                    fi
+                    ;;
+                go)
+                    if $QUIET; then
+                        update_go > /dev/null
+                    else
+                        update_go
                     fi
                     ;;
                 yarn)
