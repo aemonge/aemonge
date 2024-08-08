@@ -18,14 +18,6 @@ subtitle() {
     fi
 }
 
-padded() {
-    if command -v "boxify" &> /dev/null; then
-        boxify run -- "$@"
-    else
-        "$@"
-    fi
-}
-
 show_help() {
     echo "Usage: $0 [OPTION]"
     echo "Run system updates for various package managers."
@@ -40,7 +32,7 @@ show_help() {
     echo "  clam                Update ClamAV database"
     echo "  cargo               Update cargo packages"
     echo "  go                  Update go packages"
-    echo "  yarn                Update yarn packages"
+    echo "  npm                 Update npm packages"
     echo "  zinit               Update zinit plugins"
     echo "  neovim              Update Neovim plugins"
     echo "  completions         Generate Zsh completions and save to ~/.zfunc"
@@ -61,9 +53,9 @@ update_pacman() {
     if check_command "pacman" "pacman update"; then
         $QUIET || title "Running 'pacman -Syu'"
         if [ $# -eq 0 ]; then
-            padded sudo pacman -Syu --noconfirm
+            sudo pacman -Syu --noconfirm
         else
-            padded sudo pacman -Syu
+            sudo pacman -Syu
         fi
     fi
 }
@@ -72,9 +64,9 @@ update_aura() {
     if check_command "aura" "aura update"; then
         $QUIET || title "Running 'aura -Ayu'"
         if [ $# -eq 0 ]; then
-            padded sudo aura -Ayu --noconfirm
+            sudo aura -Ayu --noconfirm
         else
-            padded sudo aura -Ayu
+            sudo aura -Ayu
         fi
     fi
 }
@@ -82,9 +74,9 @@ update_aura() {
 update_snap() {
     if check_command "snap" "snap update" && check_command "systemctl" "systemd operations"; then
         $QUIET || title "Running 'snap refresh'"
-        padded sudo systemctl start snapd.apparmor.service snapd.service
-        padded sudo snap refresh
-        padded sudo systemctl stop snapd.apparmor.service snapd.service snapd.socket
+        sudo systemctl start snapd.apparmor.service snapd.service
+        sudo snap refresh
+        sudo systemctl stop snapd.apparmor.service snapd.service snapd.socket
     else
         $QUIET || subtitle "No 'systemctl status snapd.apparmor.service snapd.service'"
     fi
@@ -93,16 +85,16 @@ update_snap() {
 update_hardware() {
     if check_command "fwupdmgr" "firmware update"; then
         $QUIET || title "Running 'fwupdmgr refresh,get-updates,update'"
-        padded sudo fwupdmgr refresh  || true
-        padded sudo fwupdmgr get-updates  || true
-        padded sudo fwupdmgr update
+        sudo fwupdmgr refresh  || true
+        sudo fwupdmgr get-updates  || true
+        sudo fwupdmgr update
     fi
 }
 
 update_clam() {
     if check_command "freshclam" "ClamAV update"; then
         $QUIET || title "Running 'freshclam'"
-        padded sudo freshclam
+        sudo freshclam
     fi
 }
 
@@ -126,12 +118,10 @@ update_go() {
     fi
 }
 
-update_yarn() {
-    if check_command "yarn" "yarn packages update"; then
-        $QUIET || title "Running: 'yarn global upgrade'"
-        padded yarn set version stable
-        padded yarn install
-        padded yarn global upgrade
+update_npm() {
+    if check_command "npm" "npm packages update"; then
+        $QUIET || title "Running: 'npm update -g'"
+        npm update -g
     fi
 }
 
@@ -155,7 +145,7 @@ update_neovim() {
 shutdown_system() {
     if check_command "shutdown" "system shutdown"; then
         $QUIET || title "All updates completed. Shutting down the system..."
-        padded sudo shutdown now
+        sudo shutdown now
     fi
 }
 
@@ -168,7 +158,7 @@ run_all_updates() {
         update_clam > /dev/null
         update_cargo > /dev/null
         update_go > /dev/null
-        update_yarn > /dev/null
+        update_npm > /dev/null
         update_zinit > /dev/null
         update_neovim > /dev/null
     else
@@ -179,7 +169,7 @@ run_all_updates() {
         update_clam
         update_cargo
         update_go
-        update_yarn
+        update_npm
         update_zinit
         update_neovim
     fi
@@ -199,7 +189,7 @@ completions() {
     echo "    'clam:Update ClamAV database'" >> ~/.zfunc/_updater
     echo "    'cargo:Update cargo packages'" >> ~/.zfunc/_updater
     echo "    'go:Update go packages'" >> ~/.zfunc/_updater
-    echo "    'yarn:Update yarn packages'" >> ~/.zfunc/_updater
+    echo "    'npm:Update npm packages'" >> ~/.zfunc/_updater
     echo "    'zinit:Update zinit plugins'" >> ~/.zfunc/_updater
     echo "    'neovim:Update Neovim plugins'" >> ~/.zfunc/_updater
     echo "    'completions:Generate Zsh completions'" >> ~/.zfunc/_updater
@@ -299,11 +289,11 @@ main() {
                         update_go
                     fi
                     ;;
-                yarn)
+                npm)
                     if $QUIET; then
-                        update_yarn > /dev/null
+                        update_npm > /dev/null
                     else
-                        update_yarn
+                        update_npm
                     fi
                     ;;
                 zinit)
