@@ -133,8 +133,18 @@ function quickedit() {
     fi
 
     files=()
-    for file in "${@}"; do
-        files+=("$("$_readlink" -f "$file")")
+    for file in "$@"; do
+        # Get the full path of the file, using readlink with fallback to realpath
+        full_path=$(readlink -f "$file" 2>/dev/null || realpath -m "$file")
+
+        # Extract the directory path
+        dir_path=$(dirname "$full_path")
+
+        # Create the directory if it doesn't exist
+        mkdir -p "$dir_path"
+
+        # Add the file to the array
+        files+=("$full_path")
     done
 
     # Then, open all files at once
@@ -142,14 +152,7 @@ function quickedit() {
 }
 
 function vim_func() {
-    local _readlink
     local _opener
-
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        _readlink="greadlink"
-    else
-        _readlink="readlink"
-    fi
 
     if [ -n "$NVIM" ]; then
         _opener=(nvr --remote-tab)
@@ -158,11 +161,20 @@ function vim_func() {
     fi
 
     files=()
-    for file in "${@}"; do
-        files+=("$("$_readlink" -f "$file")")
+    for file in "$@"; do
+        # Get the full path of the file, using readlink with fallback to realpath
+        full_path=$(readlink -f "$file" 2>/dev/null || realpath -m "$file")
+
+        # Extract the directory path
+        dir_path=$(dirname "$full_path")
+
+        # Create the directory if it doesn't exist
+        mkdir -p "$dir_path"
+
+        # Add the file to the array
+        files+=("$full_path")
     done
 
-    # Then, open all files at once
     "${_opener[@]}" "${files[@]}"
 }
 
