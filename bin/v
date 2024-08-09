@@ -21,6 +21,7 @@ function show_help() {
     echo "    save            Using sessions.nvim save the current session"
     echo "    restore         Using sessions.nvim restore the last session"
     echo "    quickedit       Open file for quick editing (auto-closes buffer)"
+    echo "    bg              Open file in background tab in Neovim"
     echo "    completions     Generate zsh completions for this script"
     echo "    [no subcommand] Open file in Neovim"
     echo ""
@@ -50,6 +51,7 @@ function completions() {
     echo "    'save'" >> "$completions_file"
     echo "    'restore'" >> "$completions_file"
     echo "    'quickedit'" >> "$completions_file"
+    echo "    'bg'" >> "$completions_file"
     echo "    'completions'" >> "$completions_file"
     echo "  )" >> "$completions_file"
     echo "" >> "$completions_file"
@@ -70,7 +72,7 @@ function completions() {
     echo "        cd)" >> "$completions_file"
     echo "          _directories" >> "$completions_file"
     echo "          ;;" >> "$completions_file"
-    echo "        split|quickedit|save|restore|session|venv)" >> "$completions_file"
+    echo "        split|quickedit|bg|save|restore|session|venv)" >> "$completions_file"
     echo "          _files" >> "$completions_file"
     echo "          ;;" >> "$completions_file"
     echo "        clear|completions)" >> "$completions_file"
@@ -106,6 +108,43 @@ function svim() {
         nvr -cc "$split_command $(greadlink -f "$@")"
     else
         nvr -cc "$split_command $(readlink -f "$@")"
+    fi
+}
+
+function background() {
+    if [ -z "$NVIM" ]; then
+        echo "Please start a v session: 'v session'"
+        return 1
+    fi
+
+    files=()
+    count=0
+    for file in "$@"; do
+        # Get the full path of the file, using readlink with fallback to realpath
+        full_path=$(readlink -f "$file" 2>/dev/null || realpath -m "$file")
+
+        # Extract the directory path
+        dir_path=$(dirname "$full_path")
+
+        # Create the directory if it doesn't exist
+        mkdir -p "$dir_path"
+
+        # Add the file to the array
+        files+=("$full_path")
+        ((count++))
+    done
+
+    if [ ${#files[@]} -gt 0 ]; then
+        # Open all files in new tabs
+        nvr --remote-tab-silent "${files[@]}"
+
+        # Move back to the original tab
+        if [ $count -gt 0 ]; then
+            nvr -c "${count}tabp"
+        fi
+    else
+        echo "No files specified."
+        return 1
     fi
 }
 
@@ -306,6 +345,10 @@ case "$1" in
     quickedit)
         shift
         quickedit "$@"
+        ;;
+    bg)
+        shift
+        background "$@"
         ;;
     completions)
         completions
