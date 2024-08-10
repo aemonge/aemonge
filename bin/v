@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/zsh
 
 VERSION="0.0.1"
 
@@ -18,6 +18,8 @@ function show_help() {
     echo "    split           Open file in split view"
     echo "    clear           Clear terminal in Neovim"
     echo "    session         Start a new Neovim session"
+    echo "    save            Using sessions.nvim save the current session"
+    echo "    restore         Using sessions.nvim restore the last session"
     echo "    quickedit       Open file for quick editing (auto-closes buffer)"
     echo "    completions     Generate zsh completions for this script"
     echo "    [no subcommand] Open file in Neovim"
@@ -45,6 +47,8 @@ function completions() {
     echo "    'split'" >> "$completions_file"
     echo "    'clear'" >> "$completions_file"
     echo "    'session'" >> "$completions_file"
+    echo "    'save'" >> "$completions_file"
+    echo "    'restore'" >> "$completions_file"
     echo "    'quickedit'" >> "$completions_file"
     echo "    'completions'" >> "$completions_file"
     echo "  )" >> "$completions_file"
@@ -66,7 +70,7 @@ function completions() {
     echo "        cd)" >> "$completions_file"
     echo "          _directories" >> "$completions_file"
     echo "          ;;" >> "$completions_file"
-    echo "        split|quickedit|session|venv)" >> "$completions_file"
+    echo "        split|quickedit|save|restore|session|venv)" >> "$completions_file"
     echo "          _files" >> "$completions_file"
     echo "          ;;" >> "$completions_file"
     echo "        clear|completions)" >> "$completions_file"
@@ -162,6 +166,41 @@ function vim_func() {
     "${_opener[@]}" "${files[@]}"
 }
 
+function save() {
+    if [ -n "$NVIM" ]; then
+        if [ -n "$1" ]; then
+            nvr -c "SessionsSave! $1"
+            nvr -c "lua vim.notify(\"Session saved at $1\", vim.log.levels.INFO, {title= \"Session Management\"})"
+        else
+            nvr -c "SessionsSave!"
+            nvr -c "lua vim.notify(\"Default Session saved\", vim.log.levels.INFO, {title= \"Session Management\"})"
+        fi
+    else
+        echo "Please start a v session: 'v session'"
+        return 1
+    fi
+}
+
+function restore() {
+    if [ -n "$NVIM" ]; then
+        if [ -n "$1" ]; then
+            if [ -f "$1" ]; then
+                nvr -c "SessionsLoad! $1"
+                nvr -c "lua vim.notify(\"Session loaded from $1\", vim.log.levels.INFO, {title= \"Session Management\"})"
+            else
+                echo "Error: Specified session file does not exist."
+                return 1
+            fi
+        else
+            nvr -c "SessionsLoad!"
+            nvr -c "lua vim.notify(\"Default Session loaded\", vim.log.levels.INFO, {title= \"Session Management\"})"
+        fi
+    else
+        echo "Please start a v session: 'v session'"
+        return 1
+    fi
+}
+
 function session() {
     if [ -n "$NVIM" ]; then
         echo "Error: Cannot start a new Neovim session from within an existing Neovim instance."
@@ -239,6 +278,14 @@ case "$1" in
             echo "Please start a v session: 'v session' "
             exit 1
         fi
+        ;;
+    save)
+        shift
+        save "$@"
+        ;;
+    restore)
+        shift
+        restore "$@"
         ;;
     session)
         shift
