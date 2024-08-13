@@ -3,12 +3,12 @@
 VERSION="0.0.1"
 
 USERNAME="aemonge"
-USER_HOME="/home/$USERNAME"
 MOUNT_POINT="/home/$USERNAME/.mounts/cloud"
 SECRETS_MOUNT="/home/$USERNAME/.mounts/secret-cloud"
 TEMP_SECRETS="/tmp/secrets"
 
 # Define directories to sync
+# shellcheck source=/home/aemonge/.pcloud-structure
 source "/home/$USERNAME/.pcloud-structure"
 
 # Array to store PIDs of background processes
@@ -92,9 +92,9 @@ function sync_operation() {
     for REMOTE_DIR in "${!CLOUD_DIRS[@]}"; do
         LOCAL_DIR=${CLOUD_DIRS[$REMOTE_DIR]}
         if [ "$operation" = "pull" ]; then
-            current_length=$((${#REMOTE_DIR} + 15))  # 13 for "Pulling: pcloud:"
+            current_length=$((${#REMOTE_DIR} + 15)) # 13 for "Pulling: pcloud:"
         else
-            current_length=$((${#LOCAL_DIR} + 11))  # 9 for "Pushing: "
+            current_length=$((${#LOCAL_DIR} + 11)) # 9 for "Pushing: "
         fi
         if [ $current_length -gt $max_length ]; then
             max_length=$current_length
@@ -121,70 +121,94 @@ function sync_operation() {
 }
 
 function root_sync() {
-    echo "Syncing os directory..."
+    echo "Syncing to os directory..."
 
-    function perform_sync() {
-        USERNAME="aemonge"
-        USER_HOME="/home/$USERNAME"
-        LOCAL_SYS_DIR="$USER_HOME/os/"
+    perform_sync() {
+        local user_home
+        local username
+        local sync_source
+        local sync_target
 
-        # Ensure running as root
-        if [[ $(id -u) -ne 0 ]]; then
-            echo "This script must be run as root"
-            return 1
+        if [[ $EUID -eq 0 ]] && [[ -n $SUDO_USER ]]; then
+            username="$SUDO_USER"
+            user_home="/home/$SUDO_USER"
+            sync_source="/"
+            sync_target="$user_home/os"
+            echo "Running with sudo: syncing from $sync_source to $sync_target (excluding $user_home)"
+        else
+            username="$(whoami)"
+            user_home="$HOME"
+            sync_source="$user_home"
+            sync_target="$user_home/os/home/$username"
+            echo "Running without sudo: syncing from $sync_source to $sync_target"
         fi
 
-        # 1. List all files under LOCAL_SYS_DIR
-        find "$LOCAL_SYS_DIR" -type f | while read -r local_file; do
-            # Extract the path after the LOCAL_SYS_DIR
-            relative_path="${local_file#$LOCAL_SYS_DIR}"
-            # Determine the corresponding system file path
-            system_file="/$relative_path"
+        # Function to compare modification times
+        compare_times() {
+            local source="$1"
+            local target="$2"
+            local source_time
+            local target_time
 
-            # Check if the system file exists
-            if [[ -f $system_file ]]; then
-                # Compare file modification times
-                local_mtime=$(stat -c %Y "$local_file")
-                system_mtime=$(stat -c %Y "$system_file")
+            source_time=$(stat -c %Y "$source" 2>/dev/null || echo 0)
+            target_time=$(stat -c %Y "$target" 2>/dev/null || echo 0)
 
-                if [[ $local_mtime -gt $system_mtime ]]; then
-                    RECENT="$local_file"
-                    OLDER="$system_file"
-                else
-                    RECENT="$system_file"
-                    OLDER="$local_file"
-                fi
-
-                # Perform the rsync from $RECENT to $OLDER to update the older based on the most recent
-                # BUG: Unsure about this --no-o --no-g --no-p \
-                /usr/bin/rsync -a --delete --exclude 'lost+found' \
-                    --no-o --no-g --no-p \
-                    "$RECENT" "$(dirname "$OLDER")"
+            if [[ $source_time -gt $target_time ]]; then
+                return 0 # Source is newer
             else
-                # The system file does not exist, so create it with root permissions
-                echo "System file $system_file does not exist. Creating it."
-                # Ensure the directory exists
-                mkdir -p "$(dirname "$system_file")"
-                # Copy the file
-                cp "$local_file" "$system_file"
-                # Optionally, set permissions explicitly. Since the script runs as root, files will be owned by root by default.
-                # chown root:root "$system_file"
-                # chmod <desired-permissions> "$system_file"
+                return 1 # Target is newer or same age
             fi
-        done
+        }
 
-        # BUG: Sometimes the owner of the system file is not the same as the owner of the local file.
-        find $USER_HOME -user root -exec chown $USERNAME:$USERNAME {} \;
+        # Function to sync files
+        sync_file() {
+            local newer="$1"
+            local older="$2"
+
+            if compare_times "$newer" "$older"; then
+                [[ ! -f $older ]] && mkdir -p "$(dirname "$older")"
+                cp -p "$newer" "$older"
+            else
+                mkdir -p "$(dirname "$newer")"
+                cp -p "$older" "$newer"
+            fi
+        }
+
+        # Function to find and sync files
+        find_and_sync() {
+            local search_path="$1"
+            local exclude_pattern="$2"
+
+            if command -v fd >/dev/null 2>&1; then
+                # Use fd if available
+                fd --type f --hidden --follow --exclude "$exclude_pattern" . "$search_path" | while read -r source_file; do
+                    relative_path="${source_file#"$search_path"}"
+                    target_file="$sync_target$relative_path"
+                    sync_file "$source_file" "$target_file"
+                done
+            else
+                # Fallback to find
+                find "$search_path" -type f \
+                    ! -path "$exclude_pattern" | while read -r source_file; do
+                    relative_path="${source_file#"$search_path"}"
+                    target_file="$sync_target$relative_path"
+                    sync_file "$source_file" "$target_file"
+                done
+            fi
+        }
+
+        if [[ $EUID -eq 0 ]]; then
+            # When running with sudo, exclude the user's home directory and some system directories
+            exclude_pattern="$user_home/* /proc/* /sys/* /dev/* /run/* /tmp/* /mnt/* /media/* /lost+found"
+            find_and_sync "$sync_source" "$exclude_pattern"
+        else
+            # When running without sudo, only sync the user's home directory
+            find_and_sync "$sync_source" ""
+        fi
     }
 
-    # Export the function so it's available to sudo
-    export -f perform_sync
-
-    # Call the function with sudo
-    sudo bash -c "$(declare -f perform_sync); perform_sync" || exit 1
-
-    # Unset the function after use
-    unset -f perform_sync
+    # Call the function directly, sudo is handled within the function
+    perform_sync
 }
 
 function start_crypto() {
@@ -211,7 +235,7 @@ function stop_crypto() {
 }
 
 function mount_secrets() {
-    local timeout=${1:-300}  # Default timeout: 5 minutes (300 seconds)
+    local timeout=${1:-300} # Default timeout: 5 minutes (300 seconds)
 
     # Check if ~/secrets is not empty
     if [ "$(ls -A $SECRETS_MOUNT)" ]; then
@@ -221,7 +245,8 @@ function mount_secrets() {
     fi
 
     # Fetch the password from KWallet
-    local password=$(kwallet-query -f "Secret Service" -r "pcloud" "kdewallet")
+    local password
+    password=$(kwallet-query -f "Secret Service" -r "pcloud" "kdewallet")
 
     # Mount secrets
     echo "Mounting secrets directory"
@@ -239,7 +264,7 @@ function mount_secrets() {
 
     # Set up unmount after timeout
     (
-        sleep $timeout
+        sleep "$timeout"
         unmount_secrets
     ) &
 }
@@ -250,45 +275,44 @@ function unmount_secrets() {
     echo "Secrets unmounted"
 }
 
-
 trap cleanup INT TERM EXIT
 
 case "$1" in
-    pull)
-        sync_operation "pull"
-        root_sync
-        ;;
-    push)
-        root_sync
-        sync_operation "push"
-        ;;
-    bysync)
-        echo "'bisync' operation is in beta. Please use 'pull' or 'push' instead."
-        ;;
-    sync)
-        root_sync
-        ;;
-    mount)
-        mount_pcloud
-        ;;
-    umount)
-        unmount_pcloud
-        ;;
-    secret)
-        mount_secrets "$2"
-        ;;
-    -h|--help)
-        show_help
-        exit 0
-        ;;
-    -v|--version)
-        show_version
-        exit 0
-        ;;
-    *)
-        show_help
-        exit 0
-        ;;
+pull)
+    sync_operation "pull"
+    root_sync
+    ;;
+push)
+    root_sync
+    sync_operation "push"
+    ;;
+bysync)
+    echo "'bisync' operation is in beta. Please use 'pull' or 'push' instead."
+    ;;
+sync)
+    root_sync
+    ;;
+mount)
+    mount_pcloud
+    ;;
+umount)
+    unmount_pcloud
+    ;;
+secret)
+    mount_secrets "$2"
+    ;;
+-h | --help)
+    show_help
+    exit 0
+    ;;
+-v | --version)
+    show_version
+    exit 0
+    ;;
+*)
+    show_help
+    exit 0
+    ;;
 esac
 
 echo "Operation completed."
