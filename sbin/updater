@@ -35,6 +35,8 @@ show_help() {
     echo "  npm                 Update npm packages"
     echo "  zinit               Update zinit plugins"
     echo "  neovim              Update Neovim plugins"
+    echo "  pcloud              Pull pcloud updates"
+    echo "  bins                Update linked bins and sbins"
     echo "  completions         Generate Zsh completions and save to ~/.zfunc"
     echo "  and-shutdown        Run all updates and then shutdown the system"
 }
@@ -50,102 +52,169 @@ check_command() {
 }
 
 update_pacman() {
-    if check_command "pacman" "pacman update"; then
-        $QUIET || title "Running 'pacman -Syu'"
-        if [ $# -eq 0 ]; then
-            sudo pacman -Syu --noconfirm
-        else
-            sudo pacman -Syu
+    # Check if running as root (sudo), and if so proceed
+    if [[ $EUID -eq 0 ]]; then
+        if check_command "pacman" "pacman update"; then
+            $QUIET || title "Running 'pacman -Syu'"
+            if [ $# -eq 0 ]; then
+                pacman -Syu --noconfirm
+            else
+                pacman -Syu
+            fi
         fi
     fi
 }
 
 update_aura() {
-    if check_command "aura" "aura update"; then
-        $QUIET || title "Running 'aura -Ayu'"
-        if [ $# -eq 0 ]; then
-            sudo aura -Ayu --noconfirm
-        else
-            sudo aura -Ayu
+    # Check if running as root (sudo), and if so proceed
+    if [[ $EUID -eq 0 ]]; then
+        if check_command "aura" "aura update"; then
+            $QUIET || title "Running 'aura -Ayu'"
+            if [ $# -eq 0 ]; then
+                aura -Ayu --noconfirm
+            else
+                aura -Ayu
+            fi
         fi
     fi
 }
 
 update_snap() {
-    if check_command "snap" "snap update" && check_command "systemctl" "systemd operations"; then
-        $QUIET || title "Running 'snap refresh'"
-        sudo systemctl start snapd.apparmor.service snapd.service
-        sudo snap refresh
-        sudo systemctl stop snapd.apparmor.service snapd.service snapd.socket
-    else
-        $QUIET || subtitle "No 'systemctl status snapd.apparmor.service snapd.service'"
+    # Check if running as root (sudo), and if so proceed
+    if [[ $EUID -eq 0 ]]; then
+        if check_command "snap" "snap update" && check_command "systemctl" "systemd operations"; then
+            $QUIET || title "Running 'snap refresh'"
+            systemctl start snapd.apparmor.service snapd.service
+            snap refresh
+            systemctl stop snapd.apparmor.service snapd.service snapd.socket
+        else
+            $QUIET || subtitle "No 'systemctl status snapd.apparmor.service snapd.service'"
+        fi
     fi
 }
 
 update_hardware() {
-    if check_command "fwupdmgr" "firmware update"; then
-        $QUIET || title "Running 'fwupdmgr refresh,get-updates,update'"
-        sudo fwupdmgr refresh  || true
-        sudo fwupdmgr get-updates  || true
-        sudo fwupdmgr update
+    # Check if running as root (sudo), and if so proceed
+    if [[ $EUID -eq 0 ]]; then
+        if check_command "fwupdmgr" "firmware update"; then
+            $QUIET || title "Running 'fwupdmgr refresh,get-updates,update'"
+            fwupdmgr refresh  || true
+            fwupdmgr get-updates  || true
+            fwupdmgr update
+        fi
     fi
 }
 
 update_clam() {
-    if check_command "freshclam" "ClamAV update"; then
-        $QUIET || title "Running 'freshclam'"
-        sudo freshclam
+    # Check if running as root (sudo), and if so proceed
+    if [[ $EUID -eq 0 ]]; then
+        if check_command "freshclam" "ClamAV update"; then
+            $QUIET || title "Running 'freshclam'"
+            freshclam
+        fi
     fi
 }
 
 update_cargo() {
-    if check_command "cargo" "cargo packages update"; then
-        $QUIET || title "Running: 'cargo install-update -a'"
-        if ! cargo install-update -a ; then
-            subtitle "Warning: cargo install-update failed. Attempting to install cargo-update..." >&2
-            cargo install cargo-update
-            cargo install-update -a
+    # Check if running as root (sudo), and if so proceed
+    if [[ $EUID -ne 0 ]]; then
+        if check_command "cargo" "cargo packages update"; then
+            $QUIET || title "Running: 'cargo install-update -a'"
+            if ! cargo install-update -a ; then
+                subtitle "Warning: cargo install-update failed. Attempting to install cargo-update..." >&2
+                cargo install cargo-update
+                cargo install-update -a
+            fi
         fi
     fi
 }
 
 update_go() {
-    if check_command "go" "go packages update"; then
-        $QUIET || title "Running: 'go-global-update'"
-        if ! go-global-update ; then
-            subtitle "Warning: go install-update failed." >&2
+    # Check if running as root (sudo), and if so proceed
+    if [[ $EUID -ne 0 ]]; then
+        if check_command "go" "go packages update"; then
+            $QUIET || title "Running: 'go-global-update'"
+            if ! go-global-update ; then
+                subtitle "Warning: go install-update failed." >&2
+            fi
         fi
     fi
 }
 
 update_npm() {
-    if check_command "npm" "npm packages update"; then
-        $QUIET || title "Running: 'npm update -g'"
-        npm update -g
+    # Check if running as root (sudo), and if so proceed
+    if [[ $EUID -ne 0 ]]; then
+        if check_command "npm" "npm packages update"; then
+            $QUIET || title "Running: 'npm update -g'"
+            npm update -g
+        fi
     fi
 }
 
 update_zinit() {
-    if check_command "zsh" "zinit update"; then
-        $QUIET || title "Running: 'zsh -ic \"zinit self-update\",\"update -a\"'"
-        zsh -ic "zinit self-update"
-        zsh -ic "zinit update -a"
+    # Check if running as root (sudo), and if so proceed
+    if [[ $EUID -ne 0 ]]; then
+        if check_command "zsh" "zinit update"; then
+            $QUIET || title "Running: 'zsh -ic \"zinit self-update\",\"update -a\"'"
+            zsh -ic "zinit self-update"
+            zsh -ic "zinit update -a"
+        fi
+    fi
+}
+
+link_bins() {
+    local user_home
+    local target_bin
+    local target_sbin
+
+    $QUIET || title "Running: 'ln -s ~/usr/[bin|sbin] [~/.local|/usr/local]/[bin|sbin]'"
+
+    # Check if running as root (sudo), and if so proceed
+    if [[ $EUID -eq 0 ]] && [[ -n "$SUDO_USER" ]]; then
+        user_home="/home/$SUDO_USER"
+        target_bin="/usr/local/bin"
+        target_sbin="/usr/local/sbin"
+    else
+        user_home="$HOME"
+        target_bin="$HOME/.local/bin"
+        target_sbin="$HOME/.local/sbin"
+    fi
+
+    # Remove broken links in target directories
+    find "$target_bin" -xtype l -delete
+    find "$target_sbin" -xtype l -delete
+
+    # Link binaries
+    ln -sf "$user_home/usr/bin/"* "$target_bin/"
+    ln -sf "$user_home/usr/sbin/"* "$target_sbin/"
+}
+
+pull_pcloud() {
+    # Check if running as root (sudo), and if so proceed
+    if [[ $EUID -ne 0 ]]; then
+        if check_command "pcloud" "PCloud pulling updates"; then
+            $QUIET || title "Running: 'pcloud pull'"
+            pcloud pull
+        fi
     fi
 }
 
 update_neovim() {
-    if check_command "nvim" "Neovim plugins update"; then
-        $QUIET || title "Running: 'nvim Lazy update; CocUpdateSync; TSUpdateSync'"
-        nvim --headless -c 'lua require("lazy").update():wait()' -c 'qa!'
-        nvim --headless -c 'CocUpdateSync|qa!'
-        nvim --headless -c 'TSUpdateSync' -c 'qa!'
+    # Check if running as root (sudo), and if so proceed
+    if [[ $EUID -ne 0 ]]; then
+        if check_command "nvim" "Neovim plugins update"; then
+            $QUIET || title "Running: 'nvim Lazy update; CocUpdateSync; TSUpdateSync'"
+            nvim --headless -c 'lua require("lazy").update():wait()' -c 'qa!'
+            nvim --headless -c 'CocUpdateSync|qa!'
+            nvim --headless -c 'TSUpdateSync' -c 'qa!'
+        fi
     fi
 }
 
 shutdown_system() {
     if check_command "shutdown" "system shutdown"; then
         $QUIET || title "All updates completed. Shutting down the system..."
-        sudo shutdown now
+        shutdown now
     fi
 }
 
@@ -161,6 +230,8 @@ run_all_updates() {
         update_npm > /dev/null
         update_zinit > /dev/null
         update_neovim > /dev/null
+        pull_pcloud > /dev/null
+        link_bins > /dev/null
     else
         update_pacman
         update_aura
@@ -172,6 +243,8 @@ run_all_updates() {
         update_npm
         update_zinit
         update_neovim
+        pull_pcloud
+        link_bins
     fi
 }
 
@@ -192,6 +265,9 @@ completions() {
     echo "    'npm:Update npm packages'" >> ~/.zfunc/_updater
     echo "    'zinit:Update zinit plugins'" >> ~/.zfunc/_updater
     echo "    'neovim:Update Neovim plugins'" >> ~/.zfunc/_updater
+    echo "    'neovim:Update Neovim plugins'" >> ~/.zfunc/_updater
+    echo "    'pcloud:Pull pcloud updates'" >> ~/.zfunc/_updater
+    echo "    'bins:Update linked bins and sbins'" >> ~/.zfunc/_updater
     echo "    'completions:Generate Zsh completions'" >> ~/.zfunc/_updater
     echo "    'and-shutdown:Run all updates and then shutdown'" >> ~/.zfunc/_updater
     echo "  )" >> ~/.zfunc/_updater
@@ -301,6 +377,20 @@ main() {
                         update_zinit > /dev/null
                     else
                         update_zinit
+                    fi
+                    ;;
+                bins)
+                    if $QUIET; then
+                        link_bins > /dev/null
+                    else
+                        link_bins
+                    fi
+                    ;;
+                pcloud)
+                    if $QUIET; then
+                        pull_pcloud > /dev/null
+                    else
+                        pull_pcloud
                     fi
                     ;;
                 neovim)
