@@ -194,7 +194,7 @@ pull_pcloud() {
     if [[ $EUID -ne 0 ]]; then
         if check_command "pcloud" "PCloud pulling updates"; then
             $QUIET || title "Running: 'pcloud pull'"
-            pcloud pull
+            $QUIET && pcloud pull -q || pcloud pull
         fi
     fi
 }

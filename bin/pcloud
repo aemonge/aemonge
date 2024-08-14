@@ -6,6 +6,7 @@ USERNAME="aemonge"
 MOUNT_POINT="/home/$USERNAME/.mounts/cloud"
 SECRETS_MOUNT="/home/$USERNAME/.mounts/secret-cloud"
 TEMP_SECRETS="/tmp/secrets"
+QUIET=false
 
 # Define directories to sync
 # shellcheck source=/home/aemonge/.pcloud-structure
@@ -16,12 +17,16 @@ PIDS=()
 
 function show_help() {
     echo "pcloud - A unified pCloud management script"
-    echo ""
+    echo
     echo "This script provides various operations for managing pCloud, including"
     echo "pulling, pushing, syncing, mounting the pCloud directory, and managing secrets."
-    echo ""
+    echo
     echo "Usage: pcloud [COMMAND]"
-    echo ""
+    echo
+    echo "Options:"
+    echo "  -h, --help, help    Show this help message and exit"
+    echo "  -q, --quiet         Disable info and verbose output, show only errors and warnings"
+    echo
     echo "Commands:"
     echo "  pull    Pull data from pCloud to local directories"
     echo "  push    Push data from local directories to pCloud"
@@ -32,7 +37,7 @@ function show_help() {
     echo "  secret [timeout]  Mount secrets directory and unmount after timeout (default: 5 minutes)"
     echo "  -h, --help    Show this help message and exit"
     echo "  -v, --version Show version information and exit"
-    echo ""
+    echo
     echo "For more information, please refer to the script documentation."
 }
 
@@ -46,18 +51,17 @@ function cleanup() {
         kill "$pid" 2>/dev/null
     done
     wait 2>/dev/null
-    echo "Cleanup completed."
 }
 
 function mount_pcloud() {
-    echo "Mounting pCloud directory"
+    echo "🌨 Mounting pCloud directory"
     mkdir -p $MOUNT_POINT
     rclone mount pcloud:/ $MOUNT_POINT --daemon --vfs-cache-mode full
     xdg-open "$MOUNT_POINT"
 }
 
 function unmount_pcloud() {
-    echo "Un-mounting pCloud directory"
+    echo "⛅ Un-mounting pCloud directory"
 
     # Try normal unmount first
     fusermount -u "$MOUNT_POINT" || umount "$MOUNT_POINT"
@@ -76,7 +80,6 @@ function unmount_pcloud() {
 
     # Check if unmount was successful
     if ! mountpoint -q "$MOUNT_POINT"; then
-        echo "Successfully unmounted $MOUNT_POINT"
         rmdir "$MOUNT_POINT"
     else
         echo "Failed to unmount $MOUNT_POINT. It may still be in use."
@@ -108,10 +111,10 @@ function sync_operation() {
     for REMOTE_DIR in "${!CLOUD_DIRS[@]}"; do
         LOCAL_DIR=${CLOUD_DIRS[$REMOTE_DIR]}
         if [ "$operation" = "pull" ]; then
-            printf "%-*s ➡️  %s\n" $max_length "Pulling: pcloud:$REMOTE_DIR" "$LOCAL_DIR"
+            $QUIET || printf " %-*s %s\n" $max_length "pcloud:$REMOTE_DIR" "$LOCAL_DIR"
             rclone sync -q --check-first "pcloud:$REMOTE_DIR" "$LOCAL_DIR" &
         elif [ "$operation" = "push" ]; then
-            printf "%-*s ➡️  %s\n" $max_length "Pushing: $LOCAL_DIR" "pcloud:$REMOTE_DIR"
+            $QUIET || printf " %-*s %s\n" $max_length "$LOCAL_DIR" "pcloud:$REMOTE_DIR"
             rclone sync -q --check-first "$LOCAL_DIR" "pcloud:$REMOTE_DIR" &
         fi
         PIDS+=($!)
@@ -120,9 +123,7 @@ function sync_operation() {
     wait
 }
 
-function root_sync() {
-    echo "Syncing to os directory..."
-
+function file_sync() {
     perform_sync() {
         local user_home
         local username
@@ -132,16 +133,15 @@ function root_sync() {
         if [[ $EUID -eq 0 ]] && [[ -n $SUDO_USER ]]; then
             username="$SUDO_USER"
             user_home="/home/$SUDO_USER"
-            sync_source="/"
-            sync_target="$user_home/os"
-            echo "Running with sudo: syncing from $sync_source to $sync_target (excluding $user_home)"
+            sync_source="$user_home/os"
+            sync_target=""
         else
             username="$(whoami)"
             user_home="$HOME"
-            sync_source="$user_home"
-            sync_target="$user_home/os/home/$username"
-            echo "Running without sudo: syncing from $sync_source to $sync_target"
+            sync_source="$user_home/os/home/$username"
+            sync_target="$user_home"
         fi
+        $QUIET || echo "🔄 Syncing from $sync_source to ${sync_target:-/}"
 
         # Function to compare modification times
         compare_times() {
@@ -177,33 +177,33 @@ function root_sync() {
         # Function to find and sync files
         find_and_sync() {
             local search_path="$1"
-            local exclude_pattern="$2"
+            shift
+            local exclude_pattern=()
+            while (($#)); do
+                exclude_pattern+=("--exclude" "$1")
+                shift
+            done
 
+            $QUIET || echo "  fd --type f --hidden --follow" "${exclude_pattern[@]}" . "$search_path"
             if command -v fd >/dev/null 2>&1; then
-                # Use fd if available
-                fd --type f --hidden --follow --exclude "$exclude_pattern" . "$search_path" | while read -r source_file; do
-                    relative_path="${source_file#"$search_path"}"
-                    target_file="$sync_target$relative_path"
-                    sync_file "$source_file" "$target_file"
-                done
+                fd --type f --hidden --follow "${exclude_pattern[@]}" . "$search_path" |
+                    while read -r source_file; do
+                        relative_path="${source_file#"$search_path"}"
+                        target_file="$sync_target$relative_path"
+                        sync_file "$source_file" "$target_file"
+                    done
             else
-                # Fallback to find
-                find "$search_path" -type f \
-                    ! -path "$exclude_pattern" | while read -r source_file; do
-                    relative_path="${source_file#"$search_path"}"
-                    target_file="$sync_target$relative_path"
-                    sync_file "$source_file" "$target_file"
-                done
+                echo "'fd' is not installed. Please install it and try again."
+                exit 1
             fi
         }
 
         if [[ $EUID -eq 0 ]]; then
             # When running with sudo, exclude the user's home directory and some system directories
-            exclude_pattern="$user_home/* /proc/* /sys/* /dev/* /run/* /tmp/* /mnt/* /media/* /lost+found"
-            find_and_sync "$sync_source" "$exclude_pattern"
+            exclude_pattern=("$user_home" ".directory")
+            find_and_sync "$sync_source" "${exclude_pattern[@]}"
         else
-            # When running without sudo, only sync the user's home directory
-            find_and_sync "$sync_source" ""
+            find_and_sync "$sync_source"
         fi
     }
 
@@ -277,20 +277,51 @@ function unmount_secrets() {
 
 trap cleanup INT TERM EXIT
 
-case "$1" in
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+    -q | --quiet)
+        QUIET=true
+        shift
+        ;;
+    -h | --help)
+        show_help
+        exit 0
+        ;;
+    -v | --version)
+        show_version
+        exit 0
+        ;;
+    pull | push | sync | mount | umount | secret)
+        if [[ -z $command ]]; then
+            command="$1"
+        else
+            echo "Error: Multiple commands specified"
+            show_help
+            exit 1
+        fi
+        shift
+        ;;
+    *)
+        echo "Invalid option: $1"
+        show_help
+        exit 1
+        ;;
+    esac
+done
+
+# Execute the command
+case "$command" in
 pull)
     sync_operation "pull"
-    root_sync
+    file_sync
     ;;
 push)
-    root_sync
+    file_sync
     sync_operation "push"
     ;;
-bysync)
-    echo "'bisync' operation is in beta. Please use 'pull' or 'push' instead."
-    ;;
 sync)
-    root_sync
+    file_sync
     ;;
 mount)
     mount_pcloud
@@ -299,20 +330,16 @@ umount)
     unmount_pcloud
     ;;
 secret)
-    mount_secrets "$2"
+    mount_secrets "$1"
     ;;
--h | --help)
+"")
+    echo "Error: No command specified"
     show_help
-    exit 0
-    ;;
--v | --version)
-    show_version
-    exit 0
+    exit 1
     ;;
 *)
+    echo "Error: Unknown command '$command'"
     show_help
-    exit 0
+    exit 1
     ;;
 esac
-
-echo "Operation completed."
