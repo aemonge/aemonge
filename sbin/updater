@@ -3,7 +3,7 @@
 set -e
 
 title() {
-    if command -v "boxify" &> /dev/null; then
+    if command -v "boxify" &>/dev/null; then
         boxify title "$@"
     else
         echo "$@"
@@ -11,7 +11,7 @@ title() {
 }
 
 subtitle() {
-    if command -v "boxify" &> /dev/null; then
+    if command -v "boxify" &>/dev/null; then
         boxify subtitle "$@"
     else
         echo "$@"
@@ -44,7 +44,7 @@ show_help() {
 QUIET=false
 
 check_command() {
-    if ! command -v "$1" &> /dev/null; then
+    if ! command -v "$1" &>/dev/null; then
         subtitle "Warning: $1 not found. Skipping $2." >&2
         return 1
     fi
@@ -98,8 +98,8 @@ update_hardware() {
     if [[ $EUID -eq 0 ]]; then
         if check_command "fwupdmgr" "firmware update"; then
             $QUIET || title "Running 'fwupdmgr refresh,get-updates,update'"
-            fwupdmgr refresh  || true
-            fwupdmgr get-updates  || true
+            fwupdmgr refresh || true
+            fwupdmgr get-updates || true
             fwupdmgr update
         fi
     fi
@@ -120,7 +120,7 @@ update_cargo() {
     if [[ $EUID -ne 0 ]]; then
         if check_command "cargo" "cargo packages update"; then
             $QUIET || title "Running: 'cargo install-update -a'"
-            if ! cargo install-update -a ; then
+            if ! cargo install-update -a; then
                 subtitle "Warning: cargo install-update failed. Attempting to install cargo-update..." >&2
                 cargo install cargo-update
                 cargo install-update -a
@@ -134,7 +134,7 @@ update_go() {
     if [[ $EUID -ne 0 ]]; then
         if check_command "go" "go packages update"; then
             $QUIET || title "Running: 'go-global-update'"
-            if ! go-global-update ; then
+            if ! go-global-update; then
                 subtitle "Warning: go install-update failed." >&2
             fi
         fi
@@ -220,18 +220,18 @@ shutdown_system() {
 
 run_all_updates() {
     if $QUIET; then
-        update_pacman > /dev/null
-        update_aura > /dev/null
-        update_snap > /dev/null
-        update_hardware > /dev/null
-        update_clam > /dev/null
-        update_cargo > /dev/null
-        update_go > /dev/null
-        update_npm > /dev/null
-        update_zinit > /dev/null
-        update_neovim > /dev/null
-        pull_pcloud > /dev/null
-        link_bins > /dev/null
+        update_pacman >/dev/null
+        update_aura >/dev/null
+        update_snap >/dev/null
+        update_hardware >/dev/null
+        update_clam >/dev/null
+        update_cargo >/dev/null
+        update_go >/dev/null
+        update_npm >/dev/null
+        update_zinit >/dev/null
+        update_neovim >/dev/null
+        pull_pcloud >/dev/null
+        link_bins >/dev/null
     else
         update_pacman
         update_aura
@@ -250,31 +250,31 @@ run_all_updates() {
 
 completions() {
     mkdir -p ~/.zfunc
-    echo "#compdef updater" > ~/.zfunc/_updater
-    echo "" >> ~/.zfunc/_updater
-    echo "_updater() {" >> ~/.zfunc/_updater
-    echo "  local -a commands" >> ~/.zfunc/_updater
-    echo "  commands=(" >> ~/.zfunc/_updater
-    echo "    'pacman:Update using pacman'" >> ~/.zfunc/_updater
-    echo "    'aura:Update using aura'" >> ~/.zfunc/_updater
-    echo "    'snap:Update using snap'" >> ~/.zfunc/_updater
-    echo "    'hardware:Update hardware firmware'" >> ~/.zfunc/_updater
-    echo "    'clam:Update ClamAV database'" >> ~/.zfunc/_updater
-    echo "    'cargo:Update cargo packages'" >> ~/.zfunc/_updater
-    echo "    'go:Update go packages'" >> ~/.zfunc/_updater
-    echo "    'npm:Update npm packages'" >> ~/.zfunc/_updater
-    echo "    'zinit:Update zinit plugins'" >> ~/.zfunc/_updater
-    echo "    'neovim:Update Neovim plugins'" >> ~/.zfunc/_updater
-    echo "    'neovim:Update Neovim plugins'" >> ~/.zfunc/_updater
-    echo "    'pcloud:Pull pcloud updates'" >> ~/.zfunc/_updater
-    echo "    'bins:Update linked bins and sbins'" >> ~/.zfunc/_updater
-    echo "    'completions:Generate Zsh completions'" >> ~/.zfunc/_updater
-    echo "    'and-shutdown:Run all updates and then shutdown'" >> ~/.zfunc/_updater
-    echo "  )" >> ~/.zfunc/_updater
-    echo "  _describe -t commands 'updater commands' commands" >> ~/.zfunc/_updater
-    echo "}" >> ~/.zfunc/_updater
-    echo "" >> ~/.zfunc/_updater
-    echo "_updater \"\$@\"" >> ~/.zfunc/_updater
+    echo "#compdef updater" >~/.zfunc/_updater
+    echo "" >>~/.zfunc/_updater
+    echo "_updater() {" >>~/.zfunc/_updater
+    echo "  local -a commands" >>~/.zfunc/_updater
+    echo "  commands=(" >>~/.zfunc/_updater
+    echo "    'pacman:Update using pacman'" >>~/.zfunc/_updater
+    echo "    'aura:Update using aura'" >>~/.zfunc/_updater
+    echo "    'snap:Update using snap'" >>~/.zfunc/_updater
+    echo "    'hardware:Update hardware firmware'" >>~/.zfunc/_updater
+    echo "    'clam:Update ClamAV database'" >>~/.zfunc/_updater
+    echo "    'cargo:Update cargo packages'" >>~/.zfunc/_updater
+    echo "    'go:Update go packages'" >>~/.zfunc/_updater
+    echo "    'npm:Update npm packages'" >>~/.zfunc/_updater
+    echo "    'zinit:Update zinit plugins'" >>~/.zfunc/_updater
+    echo "    'neovim:Update Neovim plugins'" >>~/.zfunc/_updater
+    echo "    'neovim:Update Neovim plugins'" >>~/.zfunc/_updater
+    echo "    'pcloud:Pull pcloud updates'" >>~/.zfunc/_updater
+    echo "    'bins:Update linked bins and sbins'" >>~/.zfunc/_updater
+    echo "    'completions:Generate Zsh completions'" >>~/.zfunc/_updater
+    echo "    'and-shutdown:Run all updates and then shutdown'" >>~/.zfunc/_updater
+    echo "  )" >>~/.zfunc/_updater
+    echo "  _describe -t commands 'updater commands' commands" >>~/.zfunc/_updater
+    echo "}" >>~/.zfunc/_updater
+    echo "" >>~/.zfunc/_updater
+    echo "_updater \"\$@\"" >>~/.zfunc/_updater
     echo "Zsh completions have been saved to ~/.zfunc/_updater."
     echo "Please ensure ~/.zfunc is in your fpath and restart your shell or run 'autoload -U compinit && compinit' to enable them."
 }
@@ -283,125 +283,132 @@ main() {
     local shutdown_after=false
     while [[ $# -gt 0 ]]; do
         case $1 in
-            -q|--quiet)
-                QUIET=true
-                shift
-                ;;
-            -h|--help|help)
-                show_help
-                exit 0
-                ;;
-            and-shutdown)
-                shutdown_after=true
-                shift
-                ;;
-            *)
-                break
-                ;;
+        -q | --quiet)
+            QUIET=true
+            shift
+            ;;
+        -h | --help | help)
+            show_help
+            exit 0
+            ;;
+        and-shutdown)
+            shutdown_after=true
+            shift
+            ;;
+        *)
+            break
+            ;;
         esac
     done
     if [ $shutdown_after = true ]; then
         if $QUIET; then
-            run_all_updates > /dev/null
+            run_all_updates >/dev/null
         else
             run_all_updates
         fi
         shutdown_system
     elif [ $# -eq 0 ]; then
         if $QUIET; then
-            run_all_updates > /dev/null
+            run_all_updates >/dev/null
         else
             run_all_updates
         fi
     else
         for arg in "$@"; do
             case $arg in
-                pacman)
-                    if $QUIET; then
-                        update_pacman 1 > /dev/null
-                    else
-                        update_pacman 1
-                    fi
-                    ;;
-                aura)
-                    if $QUIET; then
-                        update_aura 1 > /dev/null
-                    else
-                        update_aura 1
-                    fi
-                    ;;
-                snap)
-                    if $QUIET; then
-                        update_snap > /dev/null
-                    else
-                        update_snap
-                    fi
-                    ;;
-                hardware)
-                    if $QUIET; then
-                        update_hardware > /dev/null
-                    else
-                        update_hardware
-                    fi
-                    ;;
-                clam)
-                    if $QUIET; then
-                        update_clam > /dev/null
-                    else
-                        update_clam
-                    fi
-                    ;;
-                cargo)
-                    if $QUIET; then
-                        update_cargo > /dev/null
-                    else
-                        update_cargo
-                    fi
-                    ;;
-                go)
-                    if $QUIET; then
-                        update_go > /dev/null
-                    else
-                        update_go
-                    fi
-                    ;;
-                npm)
-                    if $QUIET; then
-                        update_npm > /dev/null
-                    else
-                        update_npm
-                    fi
-                    ;;
-                zinit)
-                    if $QUIET; then
-                        update_zinit > /dev/null
-                    else
-                        update_zinit
-                    fi
-                    ;;
-                bins)
-                    if $QUIET; then
-                        link_bins > /dev/null
-                    else
-                        link_bins
-                    fi
-                    ;;
-                pcloud)
-                    if $QUIET; then
-                        pull_pcloud > /dev/null
-                    else
-                        pull_pcloud
-                    fi
-                    ;;
-                neovim)
-                    if $QUIET; then
-                        update_neovim > /dev/null
-                    else
-                        update_neovim
-                    fi
-                    ;;
-                completions) completions; exit 0 ;;
-                *) echo "Unknown update: $arg"; show_help; exit 1 ;;
+            pacman)
+                if $QUIET; then
+                    update_pacman 1 >/dev/null
+                else
+                    update_pacman 1
+                fi
+                ;;
+            aura)
+                if $QUIET; then
+                    update_aura 1 >/dev/null
+                else
+                    update_aura 1
+                fi
+                ;;
+            snap)
+                if $QUIET; then
+                    update_snap >/dev/null
+                else
+                    update_snap
+                fi
+                ;;
+            hardware)
+                if $QUIET; then
+                    update_hardware >/dev/null
+                else
+                    update_hardware
+                fi
+                ;;
+            clam)
+                if $QUIET; then
+                    update_clam >/dev/null
+                else
+                    update_clam
+                fi
+                ;;
+            cargo)
+                if $QUIET; then
+                    update_cargo >/dev/null
+                else
+                    update_cargo
+                fi
+                ;;
+            go)
+                if $QUIET; then
+                    update_go >/dev/null
+                else
+                    update_go
+                fi
+                ;;
+            npm)
+                if $QUIET; then
+                    update_npm >/dev/null
+                else
+                    update_npm
+                fi
+                ;;
+            zinit)
+                if $QUIET; then
+                    update_zinit >/dev/null
+                else
+                    update_zinit
+                fi
+                ;;
+            bins)
+                if $QUIET; then
+                    link_bins >/dev/null
+                else
+                    link_bins
+                fi
+                ;;
+            pcloud)
+                if $QUIET; then
+                    pull_pcloud >/dev/null
+                else
+                    pull_pcloud
+                fi
+                ;;
+            neovim)
+                if $QUIET; then
+                    update_neovim >/dev/null
+                else
+                    update_neovim
+                fi
+                ;;
+            completions)
+                completions
+                exit 0
+                ;;
+            *)
+                echo "Unknown update: $arg"
+                show_help
+                exit 1
+                ;;
             esac
         done
     fi
