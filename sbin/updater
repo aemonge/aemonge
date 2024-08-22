@@ -34,6 +34,7 @@ show_help() {
     echo "  go                  Update go packages"
     echo "  npm                 Update npm packages"
     echo "  zinit               Update zinit plugins"
+    echo "  clean-dev           Clean (nvim, zinit, treesitter, coc) dev packages"
     echo "  neovim              Update Neovim plugins"
     echo "  pcloud              Pull pcloud updates"
     echo "  bins                Update linked bins and sbins"
@@ -162,6 +163,26 @@ update_zinit() {
     fi
 }
 
+clean_dev() {
+    # Check if running as root (sudo), and if so proceed
+    if [[ $EUID -ne 0 ]]; then
+        $QUIET || title "Removing cache and state data from neovim, go, node, zinit, coc, treesitter, and yarn"
+        rm -rf ~/.cache/nvim
+        rm -rf ~/.cargo/.package-cache
+        rm -rf ~/.config/coc
+        rm -rf ~/.local/share/coc
+        rm -rf ~/.local/share/nvim
+        rm -rf ~/.local/share/nvim-treesitter
+        rm -rf ~/.vim/bundle
+        rm -rf ~/.vim/plugged
+        rm -rf ~/.zinit
+        rm -rf ~/.local/share/zinit
+        npm cache clean --force
+        yarn cache clean
+        go clean -cache -modcache -i -r
+    fi
+}
+
 link_bins() {
     local user_home
     local target_bin
@@ -264,6 +285,7 @@ completions() {
     echo "    'go:Update go packages'" >>~/.zfunc/_updater
     echo "    'npm:Update npm packages'" >>~/.zfunc/_updater
     echo "    'zinit:Update zinit plugins'" >>~/.zfunc/_updater
+    echo "    'clean-dev:Clean dev packages'" >>~/.zfunc/_updater
     echo "    'neovim:Update Neovim plugins'" >>~/.zfunc/_updater
     echo "    'neovim:Update Neovim plugins'" >>~/.zfunc/_updater
     echo "    'pcloud:Pull pcloud updates'" >>~/.zfunc/_updater
@@ -377,6 +399,13 @@ main() {
                     update_zinit >/dev/null
                 else
                     update_zinit
+                fi
+                ;;
+            clean-dev)
+                if $QUIET; then
+                    clean_dev >/dev/null
+                else
+                    clean_dev
                 fi
                 ;;
             bins)
