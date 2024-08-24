@@ -33,6 +33,7 @@ show_help() {
     echo "  cargo               Update cargo packages"
     echo "  go                  Update go packages"
     echo "  npm                 Update npm packages"
+    echo "  pip                 Update pipx packages"
     echo "  zinit               Update zinit plugins"
     echo "  clean-dev           Clean (nvim, zinit, treesitter, coc) dev packages"
     echo "  neovim              Update Neovim plugins"
@@ -138,6 +139,16 @@ update_go() {
             if ! go-global-update; then
                 subtitle "Warning: go install-update failed." >&2
             fi
+        fi
+    fi
+}
+
+update_pip() {
+    # Check if running as root (sudo), and if so proceed
+    if [[ $EUID -ne 0 ]]; then
+        if check_command "pipx" "pipx package updates"; then
+            $QUIET || title "Running: 'pipx upgrade-all'"
+            pipx upgrade-all
         fi
     fi
 }
@@ -249,6 +260,7 @@ run_all_updates() {
         update_cargo >/dev/null
         update_go >/dev/null
         update_npm >/dev/null
+        update_pip >/dev/null
         update_zinit >/dev/null
         update_neovim >/dev/null
         pull_pcloud >/dev/null
@@ -262,6 +274,7 @@ run_all_updates() {
         update_cargo
         update_go
         update_npm
+        update_pip
         update_zinit
         update_neovim
         pull_pcloud
@@ -284,6 +297,7 @@ completions() {
     echo "    'cargo:Update cargo packages'" >>~/.zfunc/_updater
     echo "    'go:Update go packages'" >>~/.zfunc/_updater
     echo "    'npm:Update npm packages'" >>~/.zfunc/_updater
+    echo "    'pip:Update pipx packages'" >>~/.zfunc/_updater
     echo "    'zinit:Update zinit plugins'" >>~/.zfunc/_updater
     echo "    'clean-dev:Clean dev packages'" >>~/.zfunc/_updater
     echo "    'neovim:Update Neovim plugins'" >>~/.zfunc/_updater
@@ -385,6 +399,13 @@ main() {
                     update_go >/dev/null
                 else
                     update_go
+                fi
+                ;;
+            pip)
+                if $QUIET; then
+                    update_pip >/dev/null
+                else
+                    update_pip
                 fi
                 ;;
             npm)
