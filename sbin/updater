@@ -241,10 +241,10 @@ update_neovim() {
     # Check if running as root (sudo), and if so proceed
     if [[ $EUID -ne 0 ]]; then
         if check_command "nvim" "Neovim plugins update"; then
-            $QUIET || title "Running: 'nvim Lazy update; CocUpdateSync; TSUpdateSync'"
+            $QUIET || title "Running: 'nvim Lazy update; CocUpdateSync; TSUpdateSync' with 'timetout 20s'"
             nvim --headless -c 'lua require("lazy").update():wait()' -c 'qa!'
-            nvim --headless -c 'CocUpdateSync|qa!'
-            nvim --headless -c 'TSUpdateSync' -c 'qa!'
+            nvim --headless -c 'CocUpdateSync' -c 'qa!'
+            timeout 20s nvim --headless -c 'TSUpdateSync' -c 'qa!'
         fi
     fi
 }
