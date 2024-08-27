@@ -195,7 +195,7 @@ clean_dev() {
         GO111MODULE=off go clean -cache -modcache -i -r
     else
         pacman -Scc
-        # pacman -Rns $(pacman -Qtdq)
+        pacman -Rns $(pacman -Qtdq)
         journalctl --vacuum-time=2weeks
         find /var/log -type f -name '*.log' -delete
         pacman-mirrors --fasttrack
