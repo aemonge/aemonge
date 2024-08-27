@@ -178,10 +178,7 @@ clean_dev() {
     # Check if running as root (sudo), and if so proceed
     if [[ $EUID -ne 0 ]]; then
         $QUIET || title "Removing cache and state data from neovim, go, node, zinit, coc, treesitter, and yarn"
-        rm -rf ~/.cache/nvim
-        rm -rf ~/.cache/thumbnails/*
-        rm -rf ~/.cache/kde-cache-*
-        rm -rf ~/.cargo/.package-cache
+        rm -rf ~/.cache
         rm -rf ~/.config/coc
         rm -rf ~/.local/share/coc
         rm -rf ~/.local/share/nvim
