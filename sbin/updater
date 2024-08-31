@@ -179,6 +179,8 @@ clean_dev() {
     if [[ $EUID -ne 0 ]]; then
         $QUIET || title "Removing cache and state data from neovim, go, node, zinit, coc, treesitter, and yarn"
         rm -rf ~/.cache/nvim
+        rm -rf ~/.cache/thumbnails/*
+        rm -rf ~/.cache/kde-cache-*
         rm -rf ~/.cargo/.package-cache
         rm -rf ~/.config/coc
         rm -rf ~/.local/share/coc
@@ -190,7 +192,14 @@ clean_dev() {
         rm -rf ~/.local/share/zinit
         npm cache clean --force
         yarn cache clean
-        go clean -cache -modcache -i -r
+        GO111MODULE=off go clean -cache -modcache -i -r
+    else
+        pacman -Scc
+        # pacman -Rns $(pacman -Qtdq)
+        journalctl --vacuum-time=2weeks
+        find /var/log -type f -name '*.log' -delete
+        pacman-mirrors --fasttrack
+        pacman -Syyu
     fi
 }
 
