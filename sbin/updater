@@ -187,9 +187,15 @@ clean_dev() {
         rm -rf ~/.vim/plugged
         rm -rf ~/.zinit
         rm -rf ~/.local/share/zinit
-        npm cache clean --force
-        yarn cache clean
-        GO111MODULE=off go clean -cache -modcache -i -r || true
+        if check_command "npm" "npm cache clean --force"; then
+            npm cache clean --force
+        fi
+        if check_command "yarn" "yarn cache clean"; then
+            yarn cache clean
+        fi
+        if check_command "go" "go clean -cache"; then
+            GO111MODULE=off go clean -cache -modcache -i -r
+        fi
     else
         pacman -Scc
         pacman -Rns $(pacman -Qtdq)
