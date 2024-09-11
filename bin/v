@@ -214,6 +214,9 @@ function vim_func() {
         files+=("$full_path")
     done
 
+    # If neovim sees only a single buffer, we will open this files with cwd as a new project.
+    nvr -c "if len(getbufinfo({'buflisted':1})) == 1 | cd $(pwd) | endif"
+
     "${_opener[@]}" "${files[@]}"
 }
 
@@ -296,6 +299,15 @@ function venv() {
     fi
 }
 
+function vcd() {
+    if [ -n "$NVIM" ]; then
+        nvr -c "cd $(pwd)"
+    else
+        echo "Please start a v session: 'v session' "
+        exit 1
+    fi
+}
+
 if [ $# -eq 0 ]; then
     show_help
     exit 0
@@ -308,12 +320,7 @@ fi
 
 case "$1" in
     cd)
-        if [ -n "$NVIM" ]; then
-            nvr -c "cd $(pwd)"
-        else
-            echo "Please start a v session: 'v session' "
-            exit 1
-        fi
+        vcd
         ;;
     venv)
         venv
