@@ -35,7 +35,7 @@ show_help() {
     echo "  npm                 Update npm packages"
     echo "  pip                 Update pipx packages"
     echo "  zinit               Update zinit plugins"
-    echo "  clean-dev           Clean (nvim, zinit, treesitter, coc) dev packages"
+    echo "  clean-dev           Clean (nvim, zinit, treesitter, mason) dev packages"
     echo "  neovim              Update Neovim plugins"
     echo "  pcloud              Pull pcloud updates"
     echo "  bins                Update linked bins and sbins"
@@ -68,8 +68,8 @@ update_pacman() {
 }
 
 update_aura() {
-    # Check if running as root (sudo), and if so proceed
-    if [[ $EUID -eq 0 ]]; then
+    # Check if running as user, and if so proceed
+    if [[ $EUID -ne 0 ]]; then
         if check_command "aura" "aura update"; then
             $QUIET || title "Running 'aura -Ayu'"
             if [ $# -eq 0 ]; then
@@ -118,7 +118,7 @@ update_clam() {
 }
 
 update_cargo() {
-    # Check if running as root (sudo), and if so proceed
+    # Check if running as user, and if so proceed
     if [[ $EUID -ne 0 ]]; then
         if check_command "cargo" "cargo packages update"; then
             $QUIET || title "Running: 'cargo install-update -a'"
@@ -132,7 +132,7 @@ update_cargo() {
 }
 
 update_go() {
-    # Check if running as root (sudo), and if so proceed
+    # Check if running as user, and if so proceed
     if [[ $EUID -ne 0 ]]; then
         if check_command "go" "go packages update"; then
             $QUIET || title "Running: 'go-global-update'"
@@ -144,7 +144,7 @@ update_go() {
 }
 
 update_pip() {
-    # Check if running as root (sudo), and if so proceed
+    # Check if running as user, and if so proceed
     if [[ $EUID -ne 0 ]]; then
         if check_command "pipx" "pipx package updates"; then
             $QUIET || title "Running: 'pipx upgrade-all'"
@@ -154,7 +154,7 @@ update_pip() {
 }
 
 update_npm() {
-    # Check if running as root (sudo), and if so proceed
+    # Check if running as user, and if so proceed
     if [[ $EUID -ne 0 ]]; then
         if check_command "npm" "npm packages update"; then
             $QUIET || title "Running: 'npm update -g'"
@@ -164,7 +164,7 @@ update_npm() {
 }
 
 update_zinit() {
-    # Check if running as root (sudo), and if so proceed
+    # Check if running as user, and if so proceed
     if [[ $EUID -ne 0 ]]; then
         if check_command "zsh" "zinit update"; then
             $QUIET || title "Running: 'zsh -ic \"zinit self-update\",\"update -a\"'"
@@ -175,9 +175,9 @@ update_zinit() {
 }
 
 clean_dev() {
-    # Check if running as root (sudo), and if so proceed
+    # Check if running as user, and if so proceed
     if [[ $EUID -ne 0 ]]; then
-        $QUIET || title "Removing cache and state data from neovim, go, node, zinit, coc, treesitter, and yarn"
+        $QUIET || title "Removing cache and state data from neovim, go, node, zinit, mason, treesitter, and yarn"
         rm -rf ~/.cache
         rm -rf ~/.config/coc
         rm -rf ~/.local/share/coc
@@ -189,7 +189,7 @@ clean_dev() {
         rm -rf ~/.local/share/zinit
         npm cache clean --force
         yarn cache clean
-        GO111MODULE=off go clean -cache -modcache -i -r
+        GO111MODULE=off go clean -cache -modcache -i -r || true
     else
         pacman -Scc
         pacman -Rns $(pacman -Qtdq)
@@ -228,7 +228,7 @@ link_bins() {
 }
 
 pull_pcloud() {
-    # Check if running as root (sudo), and if so proceed
+    # Check if running as user, and if so proceed
     if [[ $EUID -ne 0 ]]; then
         if check_command "pcloud" "PCloud pulling updates"; then
             $QUIET || title "Running: 'pcloud pull'"
@@ -238,12 +238,12 @@ pull_pcloud() {
 }
 
 update_neovim() {
-    # Check if running as root (sudo), and if so proceed
+    # Check if running as user, and if so proceed
     if [[ $EUID -ne 0 ]]; then
         if check_command "nvim" "Neovim plugins update"; then
-            $QUIET || title "Running: 'nvim Lazy update; CocUpdateSync; TSUpdateSync' with 'timetout 20s'"
+            $QUIET || title "Running: 'nvim Lazy update; MasonUpdate; TSUpdateSync' with 'timetout 20s'"
             nvim --headless -c 'lua require("lazy").update():wait()' -c 'qa!'
-            nvim --headless -c 'CocUpdateSync' -c 'qa!'
+            nvim --headless -c 'MasonUpdate' -c 'qa!'
             timeout 20s nvim --headless -c 'TSUpdateSync' -c 'qa!'
         fi
     fi
