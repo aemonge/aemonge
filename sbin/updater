@@ -73,9 +73,11 @@ update_aura() {
         if check_command "aura" "aura update"; then
             $QUIET || title "Running 'aura -Ayu'"
             if [ $# -eq 0 ]; then
-                aura -Ayu --noconfirm
+                aura -Ayu --noconfirm \
+                || subtitle "aura failed"
             else
-                aura -Ayu
+                aura -Ayu \
+                || subtitle "aura failed"
             fi
         fi
     fi

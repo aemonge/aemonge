@@ -14,6 +14,7 @@ function show_help() {
     echo ""
     echo "  Subcommands:"
     echo "    cd              Change directory in Neovim"
+    echo "    chat            Start a new Neovim (CodeCompanionChat) session"
     echo "    venv            Call the nvim set venv to change env in current v session"
     echo "    split           Open file in split view"
     echo "    clear           Clear terminal in Neovim"
@@ -44,6 +45,7 @@ function completions() {
     echo "  local -a commands" >> "$completions_file"
     echo "  commands=(" >> "$completions_file"
     echo "    'cd'" >> "$completions_file"
+    echo "    'chat'" >> "$completions_file"
     echo "    'venv'" >> "$completions_file"
     echo "    'split'" >> "$completions_file"
     echo "    'clear'" >> "$completions_file"
@@ -72,10 +74,10 @@ function completions() {
     echo "        cd)" >> "$completions_file"
     echo "          _directories" >> "$completions_file"
     echo "          ;;" >> "$completions_file"
-    echo "        split|quickedit|bg|save|restore|session|venv)" >> "$completions_file"
+    echo "        split|quickedit|bg)" >> "$completions_file"
     echo "          _files" >> "$completions_file"
     echo "          ;;" >> "$completions_file"
-    echo "        clear|completions)" >> "$completions_file"
+    echo "        clear|completions|chat|save|restore|session|venv)" >> "$completions_file"
     echo "          # No further arguments for these commands" >> "$completions_file"
     echo "          ;;" >> "$completions_file"
     echo "        *)" >> "$completions_file"
@@ -108,6 +110,14 @@ function svim() {
         nvr -cc "$split_command $(greadlink -f "$@")"
     else
         nvr -cc "$split_command $(readlink -f "$@")"
+    fi
+}
+
+function chat() {
+    if [ -z "$NVIM" ]; then
+        nvim +":CodeCompanionChat" +"bd 1" +"autocmd User CodeCompanionChatClosed qa!"
+    else
+        nvr -cc "CodeCompanionChat"
     fi
 }
 
@@ -340,6 +350,10 @@ case "$1" in
     save)
         shift
         save "$@"
+        ;;
+    chat)
+        shift
+        chat
         ;;
     restore)
         shift
