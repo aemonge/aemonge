@@ -4,8 +4,7 @@ VERSION="0.0.1"
 
 USERNAME="aemonge"
 MOUNT_POINT="/home/$USERNAME/.mounts/cloud"
-SECRETS_MOUNT="/home/$USERNAME/.mounts/secret-cloud"
-TEMP_SECRETS="/tmp/secrets"
+SMOUNT_POINT="/home/$USERNAME/.mounts/scloud"
 QUIET=false
 
 # Define directories to sync
@@ -28,13 +27,15 @@ function show_help() {
     echo "  -q, --quiet         Disable info and verbose output, show only errors and warnings"
     echo
     echo "Commands:"
-    echo "  pull    Pull data from pCloud to local directories"
-    echo "  push    Push data from local directories to pCloud"
-    echo "  bysync  Perform a bi-directional sync between pCloud and local directories"
-    echo "  sync    Sync data between pCloud and local directories"
-    echo "  mount   Mount the pCloud directory"
-    echo "  umount  Unmount the pCloud directory"
-    echo "  secret [timeout]  Mount secrets directory and unmount after timeout (default: 5 minutes)"
+    echo "  pull         Pull data from pCloud to local directories"
+    echo "  push         Push data from local directories to pCloud"
+    echo "  bysync       Perform a bi-directional sync between pCloud and local directories"
+    echo "  sync         Sync data between pCloud and local directories"
+    echo "  mount        Mount the pCloud directory"
+    echo "  umount       Unmount the pCloud directory"
+    echo "  smount       Mount the spCloud directory"
+    echo "  sumount      Unmount the spCloud directory"
+    echo "  completions  Generate zsh completions for this script"
     echo "  -h, --help    Show this help message and exit"
     echo "  -v, --version Show version information and exit"
     echo
@@ -43,6 +44,59 @@ function show_help() {
 
 function show_version() {
     echo "pcloud version $VERSION"
+}
+
+function completions() {
+    local completions_file="$HOME/.zfunc/_pcloud"
+    mkdir -p "$HOME/.zfunc"
+
+    echo "#compdef pcloud" >"$completions_file"
+    echo "" >>"$completions_file"
+    echo "_pcloud() {" >>"$completions_file"
+    echo "  local -a commands" >>"$completions_file"
+    echo "  commands=(" >>"$completions_file"
+    echo "    'pull:Pull data from pCloud to local directories'" >>"$completions_file"
+    echo "    'push:Push data from local directories to pCloud'" >>"$completions_file"
+    echo "    'bysync:Perform a bi-directional sync between pCloud and local directories'" >>"$completions_file"
+    echo "    'sync:Sync data between pCloud and local directories'" >>"$completions_file"
+    echo "    'mount:Mount the pCloud directory'" >>"$completions_file"
+    echo "    'umount:Unmount the pCloud directory'" >>"$completions_file"
+    echo "    'smount:Mount the spCloud directory'" >>"$completions_file"
+    echo "    'sumount:Unmount the spCloud directory'" >>"$completions_file"
+    echo "    'completions:Generate zsh completions for this script'" >>"$completions_file"
+    echo "    'help:Show help message'" >>"$completions_file"
+    echo "  )" >>"$completions_file"
+    echo "" >>"$completions_file"
+    echo "  _arguments -C \\" >>"$completions_file"
+    echo "    '(-h --help)'{-h,--help}'[Show help message]' \\" >>"$completions_file"
+    echo "    '(-q --quiet)'{-q,--quiet}'[Disable info and verbose output, show only errors and warnings]' \\" >>"$completions_file"
+    echo "    '(-v --version)'{-v,--version}'[Show version information]' \\" >>"$completions_file"
+    echo "    '1: :->first_arg' \\" >>"$completions_file"
+    echo "    '*: :->args'" >>"$completions_file"
+    echo "" >>"$completions_file"
+    echo "  case \$state in" >>"$completions_file"
+    echo "    first_arg)" >>"$completions_file"
+    echo "      _describe -t commands 'pcloud commands' commands" >>"$completions_file"
+    echo "      ;;" >>"$completions_file"
+    echo "    args)" >>"$completions_file"
+    echo "      case \$words[1] in" >>"$completions_file"
+    echo "        pull|push|bysync|sync|mount|umount|smount|sumount|completions|help)" >>"$completions_file"
+    echo "          # No further arguments for these commands" >>"$completions_file"
+    echo "          ;;" >>"$completions_file"
+    echo "        *)" >>"$completions_file"
+    echo "          _files" >>"$completions_file"
+    echo "          ;;" >>"$completions_file"
+    echo "      esac" >>"$completions_file"
+    echo "      ;;" >>"$completions_file"
+    echo "  esac" >>"$completions_file"
+    echo "}" >>"$completions_file"
+    echo "" >>"$completions_file"
+    echo "_pcloud \"\$@\"" >>"$completions_file"
+
+    echo "Completions for 'pcloud' script have been generated and stored in $completions_file"
+    echo "Please add the following line to your .zshrc if it's not already there:"
+    echo "  fpath=(~/.zfunc \$fpath)"
+    echo "Then restart your shell or run 'source ~/.zshrc'"
 }
 
 function cleanup() {
@@ -234,45 +288,43 @@ function stop_crypto() {
     "
 }
 
-function mount_secrets() {
-    local timeout=${1:-300} # Default timeout: 5 minutes (300 seconds)
+function unmount_secrets() {
+    echo "󰦝 ⛅ Un-mounting spCloud directory"
 
-    # Check if ~/secrets is not empty
-    if [ "$(ls -A $SECRETS_MOUNT)" ]; then
-        echo "Moving existing content from $SECRETS_MOUNT to $TEMP_SECRETS"
-        mkdir -p $TEMP_SECRETS
-        mv $SECRETS_MOUNT/* $TEMP_SECRETS/
+    # Try normal unmount first
+    fusermount -u "$SMOUNT_POINT" || umount "$SMOUNT_POINT"
+
+    # If normal unmount fails, try force unmount
+    if mountpoint -q "$SMOUNT_POINT"; then
+        echo "Normal unmount failed. Attempting force unmount..."
+        fusermount -uz "$SMOUNT_POINT" || umount -f "$SMOUNT_POINT"
     fi
 
-    # Fetch the password from KWallet
-    local password
-    password=$(kwallet-query -f "Secret Service" -r "pcloud" "kdewallet")
-
-    # Mount secrets
-    echo "Mounting secrets directory"
-    start_crypto "$password"
-
-    # Try to add content from /tmp/secrets to ~/secrets
-    if [ -d "$TEMP_SECRETS" ] && [ "$(ls -A $TEMP_SECRETS)" ]; then
-        echo "Syncing content from $TEMP_SECRETS to $SECRETS_MOUNT"
-        rsync -av $TEMP_SECRETS/ $SECRETS_MOUNT/
-        rm -rf $TEMP_SECRETS
+    # If it's still mounted, try lazy unmount
+    if mountpoint -q "$SMOUNT_POINT"; then
+        echo "Force unmount failed. Attempting lazy unmount..."
+        umount -l "$SMOUNT_POINT"
     fi
 
-    echo "Secrets mounted. Will automatically unmount in $timeout seconds."
-    xdg-open ~/secrets
-
-    # Set up unmount after timeout
-    (
-        sleep "$timeout"
-        unmount_secrets
-    ) &
+    # Check if unmount was successful
+    if ! mountpoint -q "$SMOUNT_POINT"; then
+        rmdir "$SMOUNT_POINT"
+    else
+        echo "Failed to unmount $SMOUNT_POINT. It may still be in use."
+        echo "You might need to close all applications using the mount point and try again."
+    fi
 }
 
-function unmount_secrets() {
-    echo "Unmounting secrets directory"
-    stop_crypto
-    echo "Secrets unmounted"
+function mount_secrets() {
+    echo "󰦝 🌨 Mounting spCloud directory"
+    mkdir -p $SMOUNT_POINT
+    rclone mount pcloud-secrets: $SMOUNT_POINT --daemon --vfs-cache-mode full
+    xdg-open "$SMOUNT_POINT"
+    if ! { sleep 3m && pcloud sumount; }; then
+        msg="⚠️  ⚠️  Failed to unmount secrets directory after 3 minutes."
+        echo "$msg" | wall
+        notify-send "Unmount Timeout" "$msg" --icon=dialog-warning
+    fi
 }
 
 trap cleanup INT TERM EXIT
@@ -292,7 +344,7 @@ while [[ $# -gt 0 ]]; do
         show_version
         exit 0
         ;;
-    pull | push | sync | mount | umount | secret)
+    pull | push | sync | mount | umount | secret | smount | sumount | completions)
         if [[ -z $command ]]; then
             command="$1"
         else
@@ -329,8 +381,14 @@ mount)
 umount)
     unmount_pcloud
     ;;
-secret)
-    mount_secrets "$1"
+smount)
+    mount_secrets
+    ;;
+sumount)
+    unmount_secrets
+    ;;
+completions)
+    completions
     ;;
 "")
     echo "Error: No command specified"
