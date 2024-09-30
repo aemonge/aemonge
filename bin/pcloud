@@ -14,6 +14,32 @@ source "/home/$USERNAME/.pcloud-structure"
 # Array to store PIDs of background processes
 PIDS=()
 
+# Rclone config encryption hanlding
+ENCRYPTION_KEY=$(openssl rand -base64 32)
+TEMP_FILE="/tmp/rclone_pass_$(openssl rand -hex 8)"
+export ENCRYPTION_KEY
+export TEMP_FILE
+
+encrypt_password() {
+    echo "$1" | openssl enc -aes-256-cbc -pbkdf2 -iter 100000 -a -salt -pass pass:"$ENCRYPTION_KEY"
+}
+
+decrypt_password() {
+    local encryption_key="$1"
+    local temp_file="$2"
+    printf '%s' "openssl enc -d -aes-256-cbc -pbkdf2 -iter 100000 -a -salt -pass pass:$encryption_key -in $temp_file"
+}
+
+cache_password() {
+    if [ ! -f "$TEMP_FILE" ]; then
+        read -s -p "Enter your rclone config password: " RCLONE_PASSWORD
+        echo >&2 # Print a newline after password input
+        encrypt_password "$RCLONE_PASSWORD" >"$TEMP_FILE"
+    else
+        echo "Using cached password from $TEMP_FILE" >&2
+    fi
+}
+
 function show_help() {
     echo "pcloud - A unified pCloud management script"
     echo
@@ -101,6 +127,10 @@ function completions() {
 
 function cleanup() {
     # Kill all background processes
+    shred -u "$TEMP_FILE"
+    unset ENCRYPTION_KEY
+    unset TEMP_FILE
+
     for pid in "${PIDS[@]}"; do
         kill "$pid" 2>/dev/null
     done
@@ -109,8 +139,11 @@ function cleanup() {
 
 function mount_pcloud() {
     echo "🌨 Mounting pCloud directory"
+
     mkdir -p $MOUNT_POINT
-    rclone mount pcloud:/ $MOUNT_POINT --daemon --vfs-cache-mode full
+    rclone mount pcloud:/ $MOUNT_POINT \
+        --daemon --vfs-cache-mode full \
+        --password-command="$(decrypt_password "$ENCRYPTION_KEY" "$TEMP_FILE")"
     xdg-open "$MOUNT_POINT"
 }
 
@@ -166,10 +199,14 @@ function sync_operation() {
         LOCAL_DIR=${CLOUD_DIRS[$REMOTE_DIR]}
         if [ "$operation" = "pull" ]; then
             $QUIET || printf " %-*s %s\n" $max_length "pcloud:$REMOTE_DIR" "$LOCAL_DIR"
-            rclone sync -q --check-first "pcloud:$REMOTE_DIR" "$LOCAL_DIR" &
+            rclone sync \
+                -q --check-first "pcloud:$REMOTE_DIR" "$LOCAL_DIR" \
+                --password-command="$(decrypt_password "$ENCRYPTION_KEY" "$TEMP_FILE")"
         elif [ "$operation" = "push" ]; then
             $QUIET || printf " %-*s %s\n" $max_length "$LOCAL_DIR" "pcloud:$REMOTE_DIR"
-            rclone sync -q --check-first "$LOCAL_DIR" "pcloud:$REMOTE_DIR" &
+            rclone sync \
+                -q --check-first "$LOCAL_DIR" "pcloud:$REMOTE_DIR" \
+                --password-command="$(decrypt_password "$ENCRYPTION_KEY" "$TEMP_FILE")"
         fi
         PIDS+=($!)
     done
@@ -318,8 +355,13 @@ function unmount_secrets() {
 function mount_secrets() {
     echo "󰦝 🌨 Mounting spCloud directory"
     mkdir -p $SMOUNT_POINT
-    rclone mount pcloud-secrets: $SMOUNT_POINT --daemon --vfs-cache-mode full
+
+    rclone mount pcloud-secrets: $SMOUNT_POINT \
+        --daemon --vfs-cache-mode full \
+        --password-command="$(decrypt_password "$ENCRYPTION_KEY" "$TEMP_FILE")"
+
     xdg-open "$SMOUNT_POINT"
+
     if ! { sleep 3m && pcloud sumount; }; then
         msg="⚠️  ⚠️  Failed to unmount secrets directory after 3 minutes."
         echo "$msg" | wall
@@ -365,10 +407,12 @@ done
 # Execute the command
 case "$command" in
 pull)
+    cache_password
     sync_operation "pull"
     file_sync
     ;;
 push)
+    cache_password
     file_sync
     sync_operation "push"
     ;;
@@ -376,15 +420,19 @@ sync)
     file_sync
     ;;
 mount)
+    cache_password
     mount_pcloud
     ;;
 umount)
+    cache_password
     unmount_pcloud
     ;;
 smount)
+    cache_password
     mount_secrets
     ;;
 sumount)
+    cache_password
     unmount_secrets
     ;;
 completions)
