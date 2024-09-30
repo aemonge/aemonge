@@ -225,7 +225,9 @@ function vim_func() {
     done
 
     # If neovim sees only a single buffer, we will open this files with cwd as a new project.
-    nvr -c "if len(getbufinfo({'buflisted':1})) == 1 | cd $(pwd) | endif"
+    if [ -n "$NVIM" ]; then
+        nvr -c "if len(getbufinfo({'buflisted':1})) == 1 | cd $(pwd) | endif"
+    fi
 
     "${_opener[@]}" "${files[@]}"
 }
