@@ -32,7 +32,7 @@ show_help() {
     echo "  clam                Update ClamAV database"
     echo "  cargo               Update cargo packages"
     echo "  go                  Update go packages"
-    echo "  npm                 Update npm packages"
+    echo "  pnpm                Update pnpm packages"
     echo "  pip                 Update pipx packages"
     echo "  zinit               Update zinit plugins"
     echo "  clean-dev           Clean (nvim, zinit, treesitter, mason) dev packages"
@@ -155,12 +155,12 @@ update_pip() {
     fi
 }
 
-update_npm() {
+update_pnpm() {
     # Check if running as user, and if so proceed
     if [[ $EUID -ne 0 ]]; then
-        if check_command "npm" "npm packages update"; then
-            $QUIET || title "Running: 'npm update -g'"
-            npm update -g
+        if check_command "pnpm" "pnpm packages update"; then
+            $QUIET || title "Running: 'pnpm update -g'"
+            pnpm update -g
         fi
     fi
 }
@@ -189,8 +189,8 @@ clean_dev() {
         rm -rf ~/.vim/plugged
         rm -rf ~/.zinit
         rm -rf ~/.local/share/zinit
-        if check_command "npm" "npm cache clean --force"; then
-            npm cache clean --force
+        if check_command "pnpm" "pnpm cache clean --force"; then
+            pnpm cache clean --force
         fi
         if check_command "yarn" "yarn cache clean"; then
             yarn cache clean
@@ -276,7 +276,7 @@ run_all_updates() {
         update_clam >/dev/null
         update_cargo >/dev/null
         update_go >/dev/null
-        update_npm >/dev/null
+        update_pnpm >/dev/null
         update_pip >/dev/null
         update_zinit >/dev/null
         update_neovim >/dev/null
@@ -290,7 +290,7 @@ run_all_updates() {
         update_clam
         update_cargo
         update_go
-        update_npm
+        update_pnpm
         update_pip
         update_zinit
         update_neovim
@@ -313,7 +313,7 @@ completions() {
     echo "    'clam:Update ClamAV database'" >>~/.zfunc/_updater
     echo "    'cargo:Update cargo packages'" >>~/.zfunc/_updater
     echo "    'go:Update go packages'" >>~/.zfunc/_updater
-    echo "    'npm:Update npm packages'" >>~/.zfunc/_updater
+    echo "    'pnpm:Update pnpm packages'" >>~/.zfunc/_updater
     echo "    'pip:Update pipx packages'" >>~/.zfunc/_updater
     echo "    'zinit:Update zinit plugins'" >>~/.zfunc/_updater
     echo "    'clean-dev:Clean dev packages'" >>~/.zfunc/_updater
@@ -425,11 +425,11 @@ main() {
                     update_pip
                 fi
                 ;;
-            npm)
+            pnpm)
                 if $QUIET; then
-                    update_npm >/dev/null
+                    update_pnpm >/dev/null
                 else
-                    update_npm
+                    update_pnpm
                 fi
                 ;;
             zinit)
