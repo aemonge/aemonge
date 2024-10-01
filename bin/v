@@ -235,11 +235,19 @@ function vim_func() {
 function save() {
     if [ -n "$NVIM" ]; then
         if [ -n "$1" ]; then
-            nvr -c "SessionsSave! $1"
-            nvr -c "lua vim.notify(\"Session saved at $1\", vim.log.levels.INFO, {title= \"Session Management\"})"
+            nvr -c "cd $(pwd)" \
+                -c "split | terminal"\
+                -c "SessionsSave! $1" \
+                -c "bd!" \
+                -c "lua vim.defer_fn(function() vim.cmd('startinsert') end, 100)" \
+                -c "lua vim.notify(\"Session saved at $1\", vim.log.levels.OFF, {title= \"Session Management\"})"
         else
-            nvr -c "SessionsSave!"
-            nvr -c "lua vim.notify(\"Default Session saved\", vim.log.levels.INFO, {title= \"Session Management\"})"
+            nvr -c "cd $(pwd)" \
+                -c "split | terminal"\
+                -c "SessionsSave!" \
+                -c "bd!" \
+                -c "lua vim.defer_fn(function() vim.cmd('startinsert') end, 100)" \
+                -c "lua vim.notify(\"Default Session saved\", vim.log.levels.OFF, {title= \"Session Management\"})"
         fi
     else
         echo "Please start a v session: 'v session'"
@@ -251,15 +259,23 @@ function restore() {
     if [ -n "$NVIM" ]; then
         if [ -n "$1" ]; then
             if [ -f "$1" ]; then
-                nvr -c "SessionsLoad! $1"
-                nvr -c "lua vim.notify(\"Session loaded from $1\", vim.log.levels.INFO, {title= \"Session Management\"})"
+                nvr -c "cd $(pwd)" \
+                    -c "SessionsLoad! $1" \
+                    -c "winc w" \
+                    -c "bd!" \
+                    -c "lua vim.defer_fn(function() vim.cmd('startinsert') end, 100)" \
+                    -c "lua vim.notify(\"Session loaded from $1\", vim.log.levels.INFO, {title= \"Session Management\"})"
             else
                 echo "Error: Specified session file does not exist."
                 return 1
             fi
         else
-            nvr -c "SessionsLoad!"
-            nvr -c "lua vim.notify(\"Default Session loaded\", vim.log.levels.INFO, {title= \"Session Management\"})"
+            nvr -c "cd $(pwd)" \
+                -c "SessionsLoad!" \
+                -c "winc w" \
+                -c "bd!" \
+                -c "lua vim.defer_fn(function() vim.cmd('startinsert') end, 100)" \
+                -c "lua vim.notify(\"Default Session loaded\", vim.log.levels.INFO, {title= \"Session Management\"})"
         fi
     else
         echo "Please start a v session: 'v session'"
