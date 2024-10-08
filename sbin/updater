@@ -189,14 +189,14 @@ clean_dev() {
         rm -rf ~/.vim/plugged
         rm -rf ~/.zinit
         rm -rf ~/.local/share/zinit
-        if check_command "pnpm" "pnpm cache clean --force"; then
-            pnpm cache clean --force
+        if check_command "pnpm" "pnpm cache delete"; then
+            pnpm cache delete
         fi
         if check_command "yarn" "yarn cache clean"; then
-            yarn cache clean
+            yarn cache clean || true
         fi
         if check_command "aura" "aura check"; then
-            aura check
+            aura check || true
         fi
         if check_command "go" "go clean -cache"; then
             GO111MODULE=off go clean -cache -modcache -i -r

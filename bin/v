@@ -115,9 +115,9 @@ function svim() {
 
 function chat() {
     if [ -z "$NVIM" ]; then
-        nvim +":CodeCompanionChat" +"bd 1" +"autocmd User CodeCompanionChatClosed qa!"
+        nvim +":terminal aichat"
     else
-        nvr -cc "CodeCompanionChat"
+        nvr -cc ":tabenew terminal aichat"
     fi
 }
 
@@ -206,7 +206,7 @@ function vim_func() {
     if [ -n "$NVIM" ]; then
         _opener=(nvr --remote-tab)
     else
-        _opener=(nvim)
+        _opener=(nvim -p)
     fi
 
     files=()
