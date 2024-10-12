@@ -22,6 +22,7 @@ function show_help() {
     echo "    save            Using sessions.nvim save the current session"
     echo "    restore         Using sessions.nvim restore the last session"
     echo "    quickedit       Open file for quick editing (auto-closes buffer)"
+    echo "    quickedit_split Combine quickedit and split"
     echo "    bg              Open file in background tab in Neovim"
     echo "    completions     Generate zsh completions for this script"
     echo "    [no subcommand] Open file in Neovim"
@@ -53,6 +54,7 @@ function completions() {
     echo "    'save'" >> "$completions_file"
     echo "    'restore'" >> "$completions_file"
     echo "    'quickedit'" >> "$completions_file"
+    echo "    'quickedit_split'" >> "$completions_file"
     echo "    'bg'" >> "$completions_file"
     echo "    'completions'" >> "$completions_file"
     echo "  )" >> "$completions_file"
@@ -74,7 +76,7 @@ function completions() {
     echo "        cd)" >> "$completions_file"
     echo "          _directories" >> "$completions_file"
     echo "          ;;" >> "$completions_file"
-    echo "        split|quickedit|bg)" >> "$completions_file"
+    echo "        split|quickedit|quickedit_split|bg)" >> "$completions_file"
     echo "          _files" >> "$completions_file"
     echo "          ;;" >> "$completions_file"
     echo "        clear|completions|chat|save|restore|session|venv)" >> "$completions_file"
@@ -99,8 +101,8 @@ function completions() {
 function svim() {
     cols=$(tput cols)
     lines=$(tput lines)
-    adjusted_height=$((lines * 16 ))
-    adjusted_width=$((cols * 10))
+    adjusted_height=$((lines * 19 ))
+    adjusted_width=$((cols * 7))
     split_command="split"
     if [ "$adjusted_width" -gt "$adjusted_height" ]; then
         split_command="vsplit"
@@ -156,6 +158,59 @@ function background() {
         echo "No files specified."
         return 1
     fi
+}
+
+function quickedit_split() {
+    local _readlink
+    local _opener
+
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        _readlink="greadlink"
+    else
+        _readlink="readlink"
+    fi
+
+
+    cols=$(tput cols)
+    lines=$(tput lines)
+    adjusted_height=$((lines * 19 ))
+    adjusted_width=$((cols * 7))
+    split_command="split"
+    if [ "$adjusted_width" -gt "$adjusted_height" ]; then
+        split_command="vsplit"
+    fi
+
+    if type nvr > /dev/null && [ -n "$NVIM" ]; then
+        # _opener=(nvr -c "setlocal bufhidden=wipe" --remote-tab-wait )
+        _opener=(
+            nvr
+            -c "setlocal bufhidden=wipe"
+            -c "autocmd WinLeave <buffer> if tabpagenr('$') > 1 | tabprev | endif"
+            -c "startinsert"
+            -cc $split_command
+            --remote-wait-silent
+        )
+    else
+        _opener=(nvim)
+    fi
+
+    files=()
+    for file in "$@"; do
+        # Get the full path of the file, using readlink with fallback to realpath
+        full_path=$(readlink -f "$file" 2>/dev/null || realpath -m "$file")
+
+        # Extract the directory path
+        dir_path=$(dirname "$full_path")
+
+        # Create the directory if it doesn't exist
+        mkdir -p "$dir_path"
+
+        # Add the file to the array
+        files+=("$full_path")
+    done
+
+    # Then, open all files at once
+    "${_opener[@]}" "${files[@]}"
 }
 
 function quickedit() {
@@ -380,6 +435,10 @@ case "$1" in
     session)
         shift
         session "$@"
+        ;;
+    quickedit_split)
+        shift
+        quickedit_split "$@"
         ;;
     quickedit)
         shift
