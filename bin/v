@@ -171,14 +171,14 @@ function quickedit_split() {
     fi
 
 
-    cols=$(tput cols)
-    lines=$(tput lines)
-    adjusted_height=$((lines * 19 ))
-    adjusted_width=$((cols * 7))
-    split_command="split"
-    if [ "$adjusted_width" -gt "$adjusted_height" ]; then
-        split_command="vsplit"
-    fi
+    # cols=$(tput cols)
+    # lines=$(tput lines)
+    # adjusted_height=$((lines * 19 ))
+    # adjusted_width=$((cols * 7))
+    split_command="split"  # Just split by default
+    # if [ "$adjusted_width" -gt "$adjusted_height" ]; then
+    #     split_command="vsplit"
+    # fi
 
     if type nvr > /dev/null && [ -n "$NVIM" ]; then
         # _opener=(nvr -c "setlocal bufhidden=wipe" --remote-tab-wait )
