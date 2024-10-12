@@ -117,7 +117,7 @@ function chat() {
     if [ -z "$NVIM" ]; then
         nvim +":terminal aichat"
     else
-        nvr -cc ":tabenew terminal aichat"
+        nvr -cc ":tabenew | :terminal aichat"
     fi
 }
 
