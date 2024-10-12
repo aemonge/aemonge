@@ -186,7 +186,7 @@ function quickedit_split() {
             nvr
             -c "setlocal bufhidden=wipe"
             -c "autocmd WinLeave <buffer> if tabpagenr('$') > 1 | tabprev | endif"
-            -c "startinsert"
+            -c "startinsert!"
             -cc $split_command
             --remote-wait-silent
         )
