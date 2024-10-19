@@ -185,7 +185,6 @@ function quickedit_split() {
         _opener=(
             nvr
             -c "setlocal bufhidden=wipe"
-            -c "autocmd WinLeave <buffer> if tabpagenr('$') > 1 | tabprev | endif"
             -c "startinsert!"
             -cc $split_command
             --remote-wait-silent
@@ -224,11 +223,9 @@ function quickedit() {
     fi
 
     if type nvr > /dev/null && [ -n "$NVIM" ]; then
-        # _opener=(nvr -c "setlocal bufhidden=wipe" --remote-tab-wait )
         _opener=(
             nvr
             -c "setlocal bufhidden=wipe"
-            -c "autocmd WinLeave <buffer> if tabpagenr('$') > 1 | tabprev | endif"
             --remote-tab-wait
         )
 
@@ -346,19 +343,9 @@ function session() {
 
     cmd=(nvim +':terminal')
     if [ $# -eq 0 ]; then
-        cmd+=("+startinsert")
+        cmd=(nvim +':terminal' +':startinsert')
     else
-        for file in "$@"; do
-          cmd+=("+tabe $file")
-        done
-
-        files=()
-        for file in "${@}"; do
-            files+=("$("$_readlink" -f "$file")")
-        done
-
-        # Then, open all files at once
-        "${_opener[@]}" "${files[@]}"
+        cmd=(nvim +":cd $@" +':terminal' +':startinsert')
     fi
 
     "${cmd[@]}"
