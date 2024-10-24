@@ -152,6 +152,10 @@ update_pip() {
             $QUIET || title "Running: 'pipx upgrade-all'"
             pipx upgrade-all
         fi
+        if check_command "pdm" "pdm self update"; then
+            $QUIET || title "Running: 'pdm self update'"
+            pdm self update
+        fi
     fi
 }
 
