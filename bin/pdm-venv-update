@@ -1,7 +1,0 @@
-#!/bin/bash
-
-set -euo pipefail
-
-if [ ! -f .venv ]; then
-    pdm venv list | tail -1 | awk -F '/' '{print $NF}' >.venv
-fi
