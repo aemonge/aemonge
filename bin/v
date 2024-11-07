@@ -445,6 +445,10 @@ case "$1" in
         show_version
         ;;
     *)
-        vim_func "$@"
+        if [ -z "$NVIM" ] && [ -d "$@" ]; then;
+            v session "$@"
+        else
+            vim_func "$@"
+        fi
         ;;
 esac
