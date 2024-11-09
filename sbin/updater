@@ -196,18 +196,16 @@ clean_dev() {
         if check_command "pnpm" "pnpm cache delete"; then
             pnpm cache delete
         fi
-        if check_command "yarn" "yarn cache clean"; then
-            yarn cache clean || true
-        fi
-        if check_command "aura" "aura check"; then
-            aura check || true
+        if check_command "aura" "aura -Cc 0 && aura -Cy"; then
+            aura -Cc 0 --noconfirm || true
+            aura -Cy --noconfirm || true
         fi
         if check_command "go" "go clean -cache"; then
             GO111MODULE=off go clean -cache -modcache -i -r
         fi
     else
-        pacman -Scc
-        pacman -Rns $(pacman -Qtdq)
+        pacman -Scc --noconfirm
+        pacman -Rns $(pacman -Qtdq) --noconfirm
         journalctl --vacuum-time=2weeks
         find /var/log -type f -name '*.log' -delete
         pacman-mirrors --fasttrack
