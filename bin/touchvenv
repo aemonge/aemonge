@@ -8,5 +8,9 @@ if [ ! -f .venv ]; then
         venv=$(pdm venv list | tail -1 | awk -F '/' '{print $NF}')
     fi
 
-    echo $venv > .venv
+    if [ -z "$venv" ]; then
+        echo "No venv found, nor pdm venv list"
+    else
+        echo $venv >.venv
+    fi
 fi
