@@ -14,18 +14,16 @@ function show_help() {
     echo ""
     echo "  Subcommands:"
     echo "    cd              Change directory in Neovim"
-    echo "    chat            Start a new Neovim (CodeCompanionChat) session"
-    echo "    venv            Call the nvim set venv to change env in current v session"
+    echo "    venv            Call the nvim set venv to change  env in current v session"
     echo "    split           Open file in split view"
     echo "    clear           Clear terminal in Neovim"
-    echo "    session         Start a new Neovim session"
     echo "    save            Using sessions.nvim save the current session"
     echo "    restore         Using sessions.nvim restore the last session"
     echo "    quickedit       Open file for quick editing (auto-closes buffer)"
     echo "    quickedit_split Combine quickedit and split"
     echo "    bg              Open file in background tab in Neovim"
     echo "    completions     Generate zsh completions for this script"
-    echo "    [no subcommand] Open file in Neovim"
+    echo "    [no subcommand] Open file in Neovim or create a session if first argument is a directory"
     echo ""
     echo "Options:"
     echo "  -h, --help      Show this help message and exit"
@@ -46,11 +44,9 @@ function completions() {
     echo "  local -a commands" >> "$completions_file"
     echo "  commands=(" >> "$completions_file"
     echo "    'cd'" >> "$completions_file"
-    echo "    'chat'" >> "$completions_file"
     echo "    'venv'" >> "$completions_file"
     echo "    'split'" >> "$completions_file"
     echo "    'clear'" >> "$completions_file"
-    echo "    'session'" >> "$completions_file"
     echo "    'save'" >> "$completions_file"
     echo "    'restore'" >> "$completions_file"
     echo "    'quickedit'" >> "$completions_file"
@@ -79,7 +75,7 @@ function completions() {
     echo "        split|quickedit|quickedit_split|bg)" >> "$completions_file"
     echo "          _files" >> "$completions_file"
     echo "          ;;" >> "$completions_file"
-    echo "        clear|completions|chat|save|restore|session|venv)" >> "$completions_file"
+    echo "        clear|save|restore|venv)" >> "$completions_file"
     echo "          # No further arguments for these commands" >> "$completions_file"
     echo "          ;;" >> "$completions_file"
     echo "        *)" >> "$completions_file"
@@ -115,17 +111,9 @@ function svim() {
     fi
 }
 
-function chat() {
-    if [ -z "$NVIM" ]; then
-        nvim +":terminal aichat"
-    else
-        nvr -cc ":tabenew | :terminal aichat"
-    fi
-}
-
 function background() {
     if [ -z "$NVIM" ]; then
-        echo "Please start a v session: 'v session'"
+        echo "Please start a v session: 'v .'"
         return 1
     fi
 
@@ -302,7 +290,7 @@ function save() {
                 -c "lua vim.notify(\"Default Session saved\", vim.log.levels.OFF, {title= \"Session Management\"})"
         fi
     else
-        echo "Please start a v session: 'v session'"
+        echo "Please start a v session: 'v .'"
         return 1
     fi
 }
@@ -330,7 +318,7 @@ function restore() {
                 -c "lua vim.notify(\"Default Session loaded\", vim.log.levels.INFO, {title= \"Session Management\"})"
         fi
     else
-        echo "Please start a v session: 'v session'"
+        echo "Please start a v session: 'v .'"
         return 1
     fi
 }
@@ -351,6 +339,7 @@ function session() {
     "${cmd[@]}"
 }
 
+
 function venv() {
     if [ -n "$NVIM" ]; then
         if [ -n "$VIRTUAL_ENV_PROMPT" ]; then
@@ -364,7 +353,7 @@ function venv() {
             fi
         fi
     else
-        echo "Please start a v session: 'v session' "
+        echo "Please start a v session: 'v .' "
         exit 1
     fi
 }
@@ -373,7 +362,7 @@ function vcd() {
     if [ -n "$NVIM" ]; then
         nvr -c "cd $(pwd)"
     else
-        echo "Please start a v session: 'v session' "
+        echo "Please start a v session: 'v .' "
         exit 1
     fi
 }
@@ -403,7 +392,7 @@ case "$1" in
         if [ -n "$NVIM" ]; then
             nvr -c ":TerminalClear"
         else
-            echo "Please start a v session: 'v session' "
+            echo "Please start a v session: 'v .' "
             exit 1
         fi
         ;;
@@ -411,17 +400,9 @@ case "$1" in
         shift
         save "$@"
         ;;
-    chat)
-        shift
-        chat
-        ;;
     restore)
         shift
         restore "$@"
-        ;;
-    session)
-        shift
-        session "$@"
         ;;
     quickedit_split)
         shift
@@ -446,7 +427,7 @@ case "$1" in
         ;;
     *)
         if [ -z "$NVIM" ] && [ -d "$@" ]; then;
-            v session "$@"
+            session "$@"
         else
             vim_func "$@"
         fi
