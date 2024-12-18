@@ -1,11 +1,13 @@
 #!/bin/bash
 
-VERSION="0.0.1"
+VERSION="0.1.0"
 
 USERNAME="aemonge"
 MOUNT_POINT="/home/$USERNAME/.mounts/cloud"
 SMOUNT_POINT="/home/$USERNAME/.mounts/scloud"
 QUIET=false
+
+set -euo pipefail
 
 # Define directories to sync
 # shellcheck source=/home/aemonge/.pcloud-structure
@@ -32,7 +34,7 @@ decrypt_password() {
 
 cache_password() {
     if [ ! -f "$TEMP_FILE" ]; then
-        read -s -p "Enter your rclone config password: " RCLONE_PASSWORD
+        read -rs -p "Enter your rclone config password: " RCLONE_PASSWORD
         echo >&2 # Print a newline after password input
         encrypt_password "$RCLONE_PASSWORD" >"$TEMP_FILE"
     else
@@ -44,7 +46,7 @@ function show_help() {
     echo "pcloud - A unified pCloud management script"
     echo
     echo "This script provides various operations for managing pCloud, including"
-    echo "pulling, pushing, syncing, mounting the pCloud directory, and managing secrets."
+    echo "pulling, pushing, mounting the pCloud directory, and managing secrets."
     echo
     echo "Usage: pcloud [COMMAND]"
     echo
@@ -55,8 +57,6 @@ function show_help() {
     echo "Commands:"
     echo "  pull         Pull data from pCloud to local directories"
     echo "  push         Push data from local directories to pCloud"
-    echo "  bysync       Perform a bi-directional sync between pCloud and local directories"
-    echo "  sync         Sync data between pCloud and local directories"
     echo "  mount        Mount the pCloud directory"
     echo "  umount       Unmount the pCloud directory"
     echo "  smount       Mount the spCloud directory"
@@ -77,14 +77,13 @@ function completions() {
     mkdir -p "$HOME/.zfunc"
 
     echo "#compdef pcloud" >"$completions_file"
+    # shellcheck disable=SC2129
     echo "" >>"$completions_file"
     echo "_pcloud() {" >>"$completions_file"
     echo "  local -a commands" >>"$completions_file"
     echo "  commands=(" >>"$completions_file"
     echo "    'pull:Pull data from pCloud to local directories'" >>"$completions_file"
     echo "    'push:Push data from local directories to pCloud'" >>"$completions_file"
-    echo "    'bysync:Perform a bi-directional sync between pCloud and local directories'" >>"$completions_file"
-    echo "    'sync:Sync data between pCloud and local directories'" >>"$completions_file"
     echo "    'mount:Mount the pCloud directory'" >>"$completions_file"
     echo "    'umount:Unmount the pCloud directory'" >>"$completions_file"
     echo "    'smount:Mount the spCloud directory'" >>"$completions_file"
@@ -106,7 +105,7 @@ function completions() {
     echo "      ;;" >>"$completions_file"
     echo "    args)" >>"$completions_file"
     echo "      case \$words[1] in" >>"$completions_file"
-    echo "        pull|push|bysync|sync|mount|umount|smount|sumount|completions|help)" >>"$completions_file"
+    echo "        pull|push|mount|umount|smount|sumount|completions|help)" >>"$completions_file"
     echo "          # No further arguments for these commands" >>"$completions_file"
     echo "          ;;" >>"$completions_file"
     echo "        *)" >>"$completions_file"
@@ -172,134 +171,6 @@ function unmount_pcloud() {
         echo "Failed to unmount $MOUNT_POINT. It may still be in use."
         echo "You might need to close all applications using the mount point and try again."
     fi
-}
-
-function sync_operation() {
-    local operation=$1
-    local max_length=0
-
-    # First pass to determine max length
-    for REMOTE_DIR in "${!CLOUD_DIRS[@]}"; do
-        LOCAL_DIR=${CLOUD_DIRS[$REMOTE_DIR]}
-        if [ "$operation" = "pull" ]; then
-            current_length=$((${#REMOTE_DIR} + 15)) # 13 for "Pulling: pcloud:"
-        else
-            current_length=$((${#LOCAL_DIR} + 11)) # 9 for "Pushing: "
-        fi
-        if [ $current_length -gt $max_length ]; then
-            max_length=$current_length
-        fi
-    done
-
-    # Add a small buffer to max_length
-    max_length=$((max_length + 2))
-
-    # Second pass to perform sync and print aligned output
-    for REMOTE_DIR in "${!CLOUD_DIRS[@]}"; do
-        LOCAL_DIR=${CLOUD_DIRS[$REMOTE_DIR]}
-        if [ "$operation" = "pull" ]; then
-            $QUIET || printf " %-*s %s\n" $max_length "pcloud:$REMOTE_DIR" "$LOCAL_DIR"
-            rclone sync \
-                -q --check-first "pcloud:$REMOTE_DIR" "$LOCAL_DIR" \
-                --password-command="$(decrypt_password "$ENCRYPTION_KEY" "$TEMP_FILE")"
-        elif [ "$operation" = "push" ]; then
-            $QUIET || printf " %-*s %s\n" $max_length "$LOCAL_DIR" "pcloud:$REMOTE_DIR"
-            rclone sync \
-                -q --check-first "$LOCAL_DIR" "pcloud:$REMOTE_DIR" \
-                --password-command="$(decrypt_password "$ENCRYPTION_KEY" "$TEMP_FILE")"
-        fi
-        PIDS+=($!)
-    done
-
-    wait
-}
-
-function file_sync() {
-    perform_sync() {
-        local user_home
-        local username
-        local sync_source
-        local sync_target
-
-        if [[ $EUID -eq 0 ]] && [[ -n $SUDO_USER ]]; then
-            username="$SUDO_USER"
-            user_home="/home/$SUDO_USER"
-            sync_source="$user_home/os"
-            sync_target=""
-        else
-            username="$(whoami)"
-            user_home="$HOME"
-            sync_source="$user_home/os/home/$username"
-            sync_target="$user_home"
-        fi
-        $QUIET || echo "🔄 Syncing from $sync_source to ${sync_target:-/}"
-
-        # Function to compare modification times
-        compare_times() {
-            local source="$1"
-            local target="$2"
-            local source_time
-            local target_time
-
-            source_time=$(stat -c %Y "$source" 2>/dev/null || echo 0)
-            target_time=$(stat -c %Y "$target" 2>/dev/null || echo 0)
-
-            if [[ $source_time -gt $target_time ]]; then
-                return 0 # Source is newer
-            else
-                return 1 # Target is newer or same age
-            fi
-        }
-
-        # Function to sync files
-        sync_file() {
-            local newer="$1"
-            local older="$2"
-
-            if compare_times "$newer" "$older"; then
-                [[ ! -f $older ]] && mkdir -p "$(dirname "$older")"
-                cp -p "$newer" "$older"
-            else
-                mkdir -p "$(dirname "$newer")"
-                cp -p "$older" "$newer"
-            fi
-        }
-
-        # Function to find and sync files
-        find_and_sync() {
-            local search_path="$1"
-            shift
-            local exclude_pattern=()
-            while (($#)); do
-                exclude_pattern+=("--exclude" "$1")
-                shift
-            done
-
-            $QUIET || echo "  fd --type f --hidden --follow" "${exclude_pattern[@]}" . "$search_path"
-            if command -v fd >/dev/null 2>&1; then
-                fd --type f --hidden --follow "${exclude_pattern[@]}" . "$search_path" |
-                    while read -r source_file; do
-                        relative_path="${source_file#"$search_path"}"
-                        target_file="$sync_target$relative_path"
-                        sync_file "$source_file" "$target_file"
-                    done
-            else
-                echo "'fd' is not installed. Please install it and try again."
-                exit 1
-            fi
-        }
-
-        if [[ $EUID -eq 0 ]]; then
-            # When running with sudo, exclude the user's home directory and some system directories
-            exclude_pattern=("$user_home" ".directory")
-            find_and_sync "$sync_source" "${exclude_pattern[@]}"
-        else
-            find_and_sync "$sync_source"
-        fi
-    }
-
-    # Call the function directly, sudo is handled within the function
-    perform_sync
 }
 
 function start_crypto() {
@@ -369,9 +240,73 @@ function mount_secrets() {
     fi
 }
 
+sync_paths_by() {
+    local direction=$1
+    local pids=()
+
+    # Function to run rclone command
+    run_rclone() {
+        local cmd="$1"
+        local src="$2"
+        local dest="$3"
+        local item_type="$4"
+        local item_path="$5"
+
+        $cmd \
+            --password-command="$(decrypt_password "$ENCRYPTION_KEY" "$TEMP_FILE")" \
+            --transfers 32 --checkers 16 --buffer-size 64M --s3-chunk-size 128M --fast-list \
+            --update --copy-links --quiet \
+            "$src" "$dest"
+
+        local status=$?
+        if [ $status -ne 0 ]; then
+            if [[ "$direction" == "push" && "$cmd" == *"sync"* && $status -eq 3 ]]; then
+                echo "Warning: Some files were not found during push. This is normal if files were deleted locally." >&2
+                return 0
+            else
+                echo "Error: Failed to $direction $item_type $item_path" >&2
+                return $status
+            fi
+        fi
+    }
+
+    # Sync files
+    for cloud_path in "${!SETTINGS_FILES[@]}"; do
+        local local_path="${SETTINGS_FILES[$cloud_path]}"
+
+        if [ "$direction" = "pull" ]; then
+            run_rclone "rclone copy" "pcloud:$cloud_path" "$(dirname "$local_path")" "file" "$local_path" &
+        else
+            run_rclone "rclone copy" "$local_path" "pcloud:$(dirname "$cloud_path")/" "file" "$local_path" &
+        fi
+        pids+=($!)
+    done
+
+    # Sync directories
+    for cloud_path in "${!SETTINGS_DIRS[@]}"; do
+        local local_path="${SETTINGS_DIRS[$cloud_path]}"
+
+        if [ "$direction" = "pull" ]; then
+            run_rclone "rclone sync" "pcloud:$cloud_path" "$local_path" "directory" "$local_path" &
+        else
+            run_rclone "rclone sync" "$local_path" "pcloud:$cloud_path" "directory" "$local_path" &
+        fi
+        pids+=($!)
+    done
+
+    # Wait for all background processes to complete
+    local exit_status=0
+    for pid in "${pids[@]}"; do
+        wait "$pid" || exit_status=$?
+    done
+
+    return $exit_status
+}
+
 trap cleanup INT TERM EXIT
 
 # Parse arguments
+command=""
 while [[ $# -gt 0 ]]; do
     case $1 in
     -q | --quiet)
@@ -386,8 +321,8 @@ while [[ $# -gt 0 ]]; do
         show_version
         exit 0
         ;;
-    pull | push | sync | mount | umount | secret | smount | sumount | completions)
-        if [[ -z $command ]]; then
+    pull | push | mount | umount | secret | smount | sumount | completions)
+        if [[ -z $command ]]; then # HERE ???
             command="$1"
         else
             echo "Error: Multiple commands specified"
@@ -408,16 +343,11 @@ done
 case "$command" in
 pull)
     cache_password
-    sync_operation "pull"
-    file_sync
+    sync_paths_by "pull"
     ;;
 push)
     cache_password
-    file_sync
-    sync_operation "push"
-    ;;
-sync)
-    file_sync
+    sync_paths_by "push"
     ;;
 mount)
     cache_password

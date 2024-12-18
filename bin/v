@@ -14,6 +14,7 @@ function show_help() {
     echo ""
     echo "  Subcommands:"
     echo "    cd              Change directory in Neovim"
+    echo "    reset_venv      Call the nvim set reset the current  venv"
     echo "    venv            Call the nvim set venv to change  env in current v session"
     echo "    split           Open file in split view"
     echo "    clear           Clear terminal in Neovim"
@@ -45,6 +46,7 @@ function completions() {
     echo "  commands=(" >> "$completions_file"
     echo "    'cd'" >> "$completions_file"
     echo "    'venv'" >> "$completions_file"
+    echo "    'reset_venv'" >> "$completions_file"
     echo "    'split'" >> "$completions_file"
     echo "    'clear'" >> "$completions_file"
     echo "    'save'" >> "$completions_file"
@@ -75,7 +77,7 @@ function completions() {
     echo "        split|quickedit|quickedit_split|bg)" >> "$completions_file"
     echo "          _files" >> "$completions_file"
     echo "          ;;" >> "$completions_file"
-    echo "        clear|save|restore|venv)" >> "$completions_file"
+    echo "        clear|save|restore|venv|reset_venv)" >> "$completions_file"
     echo "          # No further arguments for these commands" >> "$completions_file"
     echo "          ;;" >> "$completions_file"
     echo "        *)" >> "$completions_file"
@@ -340,6 +342,15 @@ function session() {
 }
 
 
+function reset_venv() {
+    if [ -n "$NVIM" ]; then
+        nvr -c "lua require('swenv.api').reset_venv()"
+    else
+        echo "Please start a v session: 'v .' "
+        exit 1
+    fi
+}
+
 function venv() {
     if [ -n "$NVIM" ]; then
         if [ -n "$VIRTUAL_ENV_PROMPT" ]; then
@@ -380,6 +391,9 @@ fi
 case "$1" in
     cd)
         vcd
+        ;;
+    reset_venv)
+        reset_venv
         ;;
     venv)
         venv
