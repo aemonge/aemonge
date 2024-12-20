@@ -25,8 +25,7 @@ show_help() {
     echo "Options:"
     echo "  -h, --help, help    Show this help message and exit"
     echo "  -q, --quiet         Disable info and verbose output, show only errors and warnings"
-    echo "  pacman              Update using pacman"
-    echo "  aura                Update using aura"
+    echo "  pamac               Update using Manajaro 'pamac'"
     echo "  snap                Update using snap"
     echo "  hardware            Update hardware firmware"
     echo "  clam                Update ClamAV database"
@@ -53,46 +52,30 @@ check_command() {
     return 0
 }
 
-update_pacman() {
-    # Check if running as root (sudo), and if so proceed
-    if [[ $EUID -eq 0 ]]; then
-        if check_command "pacman" "pacman update"; then
-            $QUIET || title "Running 'pacman -Syu'"
+update_pamac() {
+    # Check if NOT running as root (sudo), and if so proceed
+    if [[ $EUID -ne 0 ]]; then
+        if check_command "pamac" "pamac update"; then
+            $QUIET || title "Running 'pamac update --aur --no-confirm'"
             if [ $# -eq 0 ]; then
-                pacman -Syu --noconfirm
+                pamac update --aur --no-confirm
             else
-                pacman -Syu
-            fi
-        fi
-    fi
-}
-
-update_aura() {
-    # Check if running as user, and if so proceed
-    if [[ $EUID -eq 0 ]]; then
-        if check_command "aura" "aura update"; then
-            $QUIET || title "Running 'aura -Ayu'"
-            if [ $# -eq 0 ]; then
-                aura -Ayu --noconfirm \
-                || subtitle "aura failed"
-            else
-                aura -Ayu \
-                || subtitle "aura failed"
+                pamac update --aur
             fi
         fi
     fi
 }
 
 update_snap() {
-    # Check if running as root (sudo), and if so proceed
     if [[ $EUID -eq 0 ]]; then
         if check_command "snap" "snap update" && check_command "systemctl" "systemd operations"; then
-            $QUIET || title "Running 'snap refresh'"
+            $QUIET || title "Running 'pamac upgrade --enable-snap --no-confirm'"
             systemctl start snapd.apparmor.service snapd.service
-            snap refresh
+            pamac upgrade --enable-snap --no-confirm
             systemctl stop snapd.apparmor.service snapd.service snapd.socket
         else
             $QUIET || subtitle "No 'systemctl status snapd.apparmor.service snapd.service'"
+            $QUIET || subtitle "pamac install snapd libpamac-snap-plugin"
         fi
     fi
 }
@@ -174,42 +157,51 @@ update_zinit() {
     if [[ $EUID -ne 0 ]]; then
         if check_command "zsh" "zinit update"; then
             $QUIET || title "Running: 'zsh -ic \"zinit self-update\",\"update -a\"'"
-            zsh -ic "zinit self-update"
-            zsh -ic "zinit update -a --parallel"
+            if $QUIET; then
+                zsh -f -ic "setopt no_monitor; source ~/.zinit && \
+                zinit self-update --quiet  >/dev/null 2>&1 && \
+                zinit update --all --parallel --quiet >/dev/null 2>&1 && \
+                wait" >/dev/null 2>&1
+            else
+                zsh -f -ic "source ~/.zinit && \
+                zinit self-update && \
+                zinit update --all --parallel && \
+                wait"
+            fi
         fi
     fi
 }
 
 clean_dev() {
-    # Check if running as user, and if so proceed
-    if [[ $EUID -ne 0 ]]; then
-        $QUIET || title "Removing cache and state data from neovim, go, node, zinit, mason, treesitter, and yarn"
-        rm -rf ~/.cache
-        rm -rf ~/.config/coc
-        rm -rf ~/.local/share/coc
-        rm -rf ~/.local/share/nvim
-        rm -rf ~/.local/share/nvim-treesitter
-        rm -rf ~/.vim/bundle
-        rm -rf ~/.vim/plugged
-        rm -rf ~/.zinit
-        rm -rf ~/.local/share/zinit
-        if check_command "pnpm" "pnpm cache delete"; then
-            pnpm cache delete
-        fi
-        if check_command "go" "go clean -cache"; then
-            GO111MODULE=off go clean -cache -modcache -i -r
-        fi
-    else
-        pacman -Scc --noconfirm
-        pacman -Rns $(pacman -Qtdq) --noconfirm
+    if [[ $EUID -eq 0 ]]; then
+        $QUIET || title "Cleaning system packages and logs"
+        pamac clean --no-confirm
+        pamac remove --orphans --no-confirm
         journalctl --vacuum-time=2weeks
         find /var/log -type f -name '*.log' -delete
-        pacman-mirrors --fasttrack
-        pacman -Syyu
-        if check_command "aura" "aura -Cc 0 && aura -Cy"; then
-            aura -Cc 0 --noconfirm || true
-            aura -Cy --noconfirm || true
-        fi
+    else
+        $QUIET || title "Removing cache and state data from development tools"
+        local dirs_to_remove=(
+            ~/.cache
+            ~/.config/coc
+            ~/.local/share/{coc,nvim,nvim-treesitter,zinit}
+            ~/.vim/{bundle,plugged}
+            ~/.zinit
+        )
+        rm -rf "${dirs_to_remove[@]}"
+
+        local commands=(
+            "pnpm:pnpm cache clean --force"
+            "go:GO111MODULE=off go clean -cache -modcache -i -r"
+        )
+
+        for cmd in "${commands[@]}"; do
+            IFS=: read -r tool command <<<"$cmd"
+            if check_command "$tool" "$command"; then
+                $QUIET || echo "Cleaning $tool cache"
+                eval "$command"
+            fi
+        done
     fi
 }
 
@@ -254,10 +246,11 @@ update_neovim() {
     # Check if running as user, and if so proceed
     if [[ $EUID -ne 0 ]]; then
         if check_command "nvim" "Neovim plugins update"; then
-            $QUIET || title "Running: 'nvim Lazy update; MasonUpdate; TSUpdateSync' with 'timetout 20s'"
-            nvim --headless -c 'lua require("lazy").update():wait()' -c 'qa!'
-            nvim --headless -c 'MasonUpdate' -c 'qa!'
-            timeout 20s nvim --headless -c 'TSUpdateSync' -c 'qa!'
+            $QUIET || title "Running: 'nvim Lazy update; TSUpdateSync' with 'timetout 20s'"
+            nvim --headless -c 'lua require("lazy").update():wait()' -c 'qa!' \
+                $($QUIET && echo '> /dev/null')
+            nvim --headless -c 'TSUpdateSync | qa!' \
+                $($QUIET && echo '> /dev/null')
         fi
     fi
 }
@@ -308,8 +301,7 @@ completions() {
     echo "_updater() {" >>~/.zfunc/_updater
     echo "  local -a commands" >>~/.zfunc/_updater
     echo "  commands=(" >>~/.zfunc/_updater
-    echo "    'pacman:Update using pacman'" >>~/.zfunc/_updater
-    echo "    'aura:Update using aura'" >>~/.zfunc/_updater
+    echo "    'pamac:Update using pamac'" >>~/.zfunc/_updater
     echo "    'snap:Update using snap'" >>~/.zfunc/_updater
     echo "    'hardware:Update hardware firmware'" >>~/.zfunc/_updater
     echo "    'clam:Update ClamAV database'" >>~/.zfunc/_updater
