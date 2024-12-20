@@ -36,7 +36,6 @@ show_help() {
     echo "  zinit               Update zinit plugins"
     echo "  clean-dev           Clean (nvim, zinit, treesitter, mason) dev packages"
     echo "  neovim              Update Neovim plugins"
-    echo "  pcloud              Pull pcloud updates"
     echo "  bins                Update linked bins and sbins"
     echo "  completions         Generate Zsh completions and save to ~/.zfunc"
     echo "  and-shutdown        Run all updates and then shutdown the system"
@@ -54,13 +53,15 @@ check_command() {
 
 update_pamac() {
     # Check if NOT running as root (sudo), and if so proceed
-    if [[ $EUID -ne 0 ]]; then
+    if [[ $EUID -eq 0 ]]; then
         if check_command "pamac" "pamac update"; then
-            $QUIET || title "Running 'pamac update --aur --no-confirm'"
+            $QUIET || title "Running 'pamac {upgrade,update} --refresh --aur --no-confirm'"
             if [ $# -eq 0 ]; then
-                pamac update --aur --no-confirm
+                pamac update --refresh --aur --no-confirm
+                pamac upgrade --aur --no-confirm
             else
-                pamac update --aur
+                pamac update --refresh --aur
+                pamac upgrade --aur 
             fi
         fi
     fi
@@ -71,7 +72,7 @@ update_snap() {
         if check_command "snap" "snap update" && check_command "systemctl" "systemd operations"; then
             $QUIET || title "Running 'pamac upgrade --enable-snap --no-confirm'"
             systemctl start snapd.apparmor.service snapd.service
-            pamac upgrade --enable-snap --no-confirm
+            pamac update --enable-snap --no-confirm
             systemctl stop snapd.apparmor.service snapd.service snapd.socket
         else
             $QUIET || subtitle "No 'systemctl status snapd.apparmor.service snapd.service'"
@@ -206,14 +207,10 @@ clean_dev() {
 }
 
 link_bins() {
-    local user_home
-    local target_bin
-    local target_sbin
+    $QUIET || title "Linking binaries from ~/usr/[bin|sbin] to [~/.local|/usr/local]/[bin|sbin]"
 
-    $QUIET || title "Running: 'ln -s ~/usr/[bin|sbin] [~/.local|/usr/local]/[bin|sbin]'"
-
-    # Check if running as root (sudo), and if so proceed
-    if [[ $EUID -eq 0 ]] && [[ -n "$SUDO_USER" ]]; then
+    local user_home target_bin target_sbin
+    if [[ $EUID -eq 0 && -n "$SUDO_USER" ]]; then
         user_home="/home/$SUDO_USER"
         target_bin="/usr/local/bin"
         target_sbin="/usr/local/sbin"
@@ -223,23 +220,20 @@ link_bins() {
         target_sbin="$HOME/.local/sbin"
     fi
 
-    # Remove broken links in target directories
-    find "$target_bin" -xtype l -delete
-    find "$target_sbin" -xtype l -delete
+    local dirs=("$target_bin" "$target_sbin")
+    for dir in "${dirs[@]}"; do
+        [[ -d "$dir" ]] || mkdir -p "$dir"
+        find "$dir" -xtype l -delete
+    done
 
-    # Link binaries
-    ln -sf "$user_home/usr/bin/"* "$target_bin/"
-    ln -sf "$user_home/usr/sbin/"* "$target_sbin/"
-}
-
-pull_pcloud() {
-    # Check if running as user, and if so proceed
-    if [[ $EUID -ne 0 ]]; then
-        if check_command "pcloud" "PCloud pulling updates"; then
-            $QUIET || title "Running: 'pcloud pull'"
-            $QUIET && pcloud pull -q || pcloud pull
+    local src_dirs=("$user_home/usr/bin" "$user_home/usr/sbin")
+    local dest_dirs=("$target_bin" "$target_sbin")
+    for i in {0..1}; do
+        if [[ -d "${src_dirs[$i]}" ]]; then
+            find "${src_dirs[$i]}" -type f -executable -print0 | 
+                xargs -0 -I {} ln -sf {} "${dest_dirs[$i]}/"
         fi
-    fi
+    done
 }
 
 update_neovim() {
@@ -274,7 +268,6 @@ run_all_updates() {
         update_pip >/dev/null
         update_zinit >/dev/null
         update_neovim >/dev/null
-        pull_pcloud >/dev/null
         link_bins >/dev/null
     else
         update_pamac
@@ -287,7 +280,6 @@ run_all_updates() {
         update_pip
         update_zinit
         update_neovim
-        pull_pcloud
         link_bins
     fi
 }
@@ -311,7 +303,6 @@ completions() {
     echo "    'clean-dev:Clean dev packages'" >>~/.zfunc/_updater
     echo "    'neovim:Update Neovim plugins'" >>~/.zfunc/_updater
     echo "    'neovim:Update Neovim plugins'" >>~/.zfunc/_updater
-    echo "    'pcloud:Pull pcloud updates'" >>~/.zfunc/_updater
     echo "    'bins:Update linked bins and sbins'" >>~/.zfunc/_updater
     echo "    'completions:Generate Zsh completions'" >>~/.zfunc/_updater
     echo "    'and-shutdown:Run all updates and then shutdown'" >>~/.zfunc/_updater
@@ -361,11 +352,11 @@ main() {
     else
         for arg in "$@"; do
             case $arg in
-            pacman)
+            pamac)
                 if $QUIET; then
-                    update_pacman 1 >/dev/null
+                    update_pamac 1 >/dev/null
                 else
-                    update_pacman 1
+                    update_pamac 1
                 fi
                 ;;
             aura)
@@ -443,13 +434,6 @@ main() {
                     link_bins >/dev/null
                 else
                     link_bins
-                fi
-                ;;
-            pcloud)
-                if $QUIET; then
-                    pull_pcloud >/dev/null
-                else
-                    pull_pcloud
                 fi
                 ;;
             neovim)
