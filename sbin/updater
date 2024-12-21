@@ -264,8 +264,7 @@ shutdown_system() {
 
 run_all_updates() {
     if $QUIET; then
-        update_pacman >/dev/null
-        update_aura >/dev/null
+        update_pamac >/dev/null
         update_snap >/dev/null
         update_hardware >/dev/null
         update_clam >/dev/null
@@ -278,8 +277,7 @@ run_all_updates() {
         pull_pcloud >/dev/null
         link_bins >/dev/null
     else
-        update_pacman
-        update_aura
+        update_pamac
         update_snap
         update_hardware
         update_clam
