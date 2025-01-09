@@ -3,8 +3,9 @@
 VERSION="0.1.0"
 
 USERNAME="aemonge"
-MOUNT_POINT="/home/$USERNAME/.mounts/cloud"
-SMOUNT_POINT="/home/$USERNAME/.mounts/scloud"
+MOUNT_ROOT="/home/$USERNAME/.mounts"
+MOUNT_POINT="$MOUNT_ROOT/cloud"
+SMOUNT_POINT="$MOUNT_ROOT/scloud"
 QUIET=false
 
 set -euo pipefail
@@ -137,40 +138,61 @@ function cleanup() {
 }
 
 function mount_pcloud() {
-    echo "🌨 Mounting pCloud directory"
+    echo "🌨 Mounting pCloud directories and secrets"
 
-    mkdir -p $MOUNT_POINT
-    rclone mount pcloud:/ $MOUNT_POINT \
-        --daemon --vfs-cache-mode full \
-        --password-command="$(decrypt_password "$ENCRYPTION_KEY" "$TEMP_FILE")"
-    xdg-open "$MOUNT_POINT"
+    # Function to mount a single directory
+    mount_directory() {
+        local remote_name=$1
+        local mount_point=$2
+
+        mkdir -p "$mount_point"
+        rclone mount "$remote_name" "$mount_point" \
+            --daemon --vfs-cache-mode full \
+            --password-command="$(decrypt_password "$ENCRYPTION_KEY" "$TEMP_FILE")"
+    }
+
+    # Mount both directories
+    mount_directory "pcloud:/" "$MOUNT_POINT"
+    mount_directory "pcloud-secrets:/" "$SMOUNT_POINT"
+
+    # Open the main mount point in the default file manager
+    xdg-open "$MOUNT_ROOT"
 }
 
 function unmount_pcloud() {
-    echo "⛅ Un-mounting pCloud directory"
+    echo "⛅ Un-mounting pCloud directories and secrets"
 
-    # Try normal unmount first
-    fusermount -u "$MOUNT_POINT" || umount "$MOUNT_POINT"
+    # Function to unmount a single mount point
+    unmount_point() {
+        local mount_point=$1
 
-    # If normal unmount fails, try force unmount
-    if mountpoint -q "$MOUNT_POINT"; then
-        echo "Normal unmount failed. Attempting force unmount..."
-        fusermount -uz "$MOUNT_POINT" || umount -f "$MOUNT_POINT"
-    fi
+        # Try normal unmount first
+        fusermount -u "$mount_point" || umount "$mount_point"
 
-    # If it's still mounted, try lazy unmount
-    if mountpoint -q "$MOUNT_POINT"; then
-        echo "Force unmount failed. Attempting lazy unmount..."
-        umount -l "$MOUNT_POINT"
-    fi
+        # If normal unmount fails, try force unmount
+        if mountpoint -q "$mount_point"; then
+            echo "Normal unmount failed. Attempting force unmount..."
+            fusermount -uz "$mount_point" || umount -f "$mount_point"
+        fi
 
-    # Check if unmount was successful
-    if ! mountpoint -q "$MOUNT_POINT"; then
-        rmdir "$MOUNT_POINT"
-    else
-        echo "Failed to unmount $MOUNT_POINT. It may still be in use."
-        echo "You might need to close all applications using the mount point and try again."
-    fi
+        # If it's still mounted, try lazy unmount
+        if mountpoint -q "$mount_point"; then
+            echo "Force unmount failed. Attempting lazy unmount..."
+            umount -l "$mount_point"
+        fi
+
+        # Check if unmount was successful
+        if ! mountpoint -q "$mount_point"; then
+            rmdir "$mount_point"
+        else
+            echo "Failed to unmount $mount_point. It may still be in use."
+            echo "You might need to close all applications using the mount point and try again."
+        fi
+    }
+
+    # Unmount both mount points
+    unmount_point "$MOUNT_POINT"
+    unmount_point "$SMOUNT_POINT"
 }
 
 function start_crypto() {
@@ -196,53 +218,10 @@ function stop_crypto() {
     "
 }
 
-function unmount_secrets() {
-    echo "󰦝 ⛅ Un-mounting spCloud directory"
-
-    # Try normal unmount first
-    fusermount -u "$SMOUNT_POINT" || umount "$SMOUNT_POINT"
-
-    # If normal unmount fails, try force unmount
-    if mountpoint -q "$SMOUNT_POINT"; then
-        echo "Normal unmount failed. Attempting force unmount..."
-        fusermount -uz "$SMOUNT_POINT" || umount -f "$SMOUNT_POINT"
-    fi
-
-    # If it's still mounted, try lazy unmount
-    if mountpoint -q "$SMOUNT_POINT"; then
-        echo "Force unmount failed. Attempting lazy unmount..."
-        umount -l "$SMOUNT_POINT"
-    fi
-
-    # Check if unmount was successful
-    if ! mountpoint -q "$SMOUNT_POINT"; then
-        rmdir "$SMOUNT_POINT"
-    else
-        echo "Failed to unmount $SMOUNT_POINT. It may still be in use."
-        echo "You might need to close all applications using the mount point and try again."
-    fi
-}
-
-function mount_secrets() {
-    echo "󰦝 🌨 Mounting spCloud directory"
-    mkdir -p $SMOUNT_POINT
-
-    rclone mount pcloud-secrets: $SMOUNT_POINT \
-        --daemon --vfs-cache-mode full \
-        --password-command="$(decrypt_password "$ENCRYPTION_KEY" "$TEMP_FILE")"
-
-    xdg-open "$SMOUNT_POINT"
-
-    if ! { sleep 3m && pcloud sumount; }; then
-        msg="⚠️  ⚠️  Failed to unmount secrets directory after 3 minutes."
-        echo "$msg" | wall
-        notify-send "Unmount Timeout" "$msg" --icon=dialog-warning
-    fi
-}
-
 sync_paths_by() {
     local direction=$1
     local pids=()
+    local exit_status=0
 
     # Function to run rclone command
     run_rclone() {
@@ -270,32 +249,42 @@ sync_paths_by() {
         fi
     }
 
-    # Sync files
-    for cloud_path in "${!SETTINGS_FILES[@]}"; do
-        local local_path="${SETTINGS_FILES[$cloud_path]}"
+    # Function to sync items (files or directories)
+    sync_items() {
+        local -n items=$1 # Use nameref to pass associative arrays
+        local remote_prefix=$2
+        local cmd=$3
+        local item_type=$4
 
-        if [ "$direction" = "pull" ]; then
-            run_rclone "rclone copy" "pcloud:$cloud_path" "$(dirname "$local_path")" "file" "$local_path" &
-        else
-            run_rclone "rclone copy" "$local_path" "pcloud:$(dirname "$cloud_path")/" "file" "$local_path" &
-        fi
-        pids+=($!)
-    done
+        for cloud_path in "${!items[@]}"; do
+            local local_path="${items[$cloud_path]}"
+
+            if [ "$direction" = "pull" ]; then
+                if [ "$item_type" = "file" ]; then
+                    run_rclone "$cmd" "$remote_prefix:$cloud_path" "$(dirname "$local_path")" "$item_type" "$local_path" &
+                else
+                    run_rclone "$cmd" "$remote_prefix:$cloud_path" "$local_path" "$item_type" "$local_path" &
+                fi
+            else
+                if [ "$item_type" = "file" ]; then
+                    run_rclone "$cmd" "$local_path" "$remote_prefix:$(dirname "$cloud_path")/" "$item_type" "$local_path " &
+                else
+                    run_rclone "$cmd" "$local_path" "$remote_prefix:$cloud_path" "$item_type" "$local_path" &
+                fi
+            fi
+            pids+=($!)
+        done
+    }
+
+    # Sync files
+    sync_items SETTINGS_FILES "pcloud" "rclone copy" "file"
+    sync_items SECRET_FILES "pcloud-secrets" "rclone copy" "file"
 
     # Sync directories
-    for cloud_path in "${!SETTINGS_DIRS[@]}"; do
-        local local_path="${SETTINGS_DIRS[$cloud_path]}"
-
-        if [ "$direction" = "pull" ]; then
-            run_rclone "rclone sync" "pcloud:$cloud_path" "$local_path" "directory" "$local_path" &
-        else
-            run_rclone "rclone sync" "$local_path" "pcloud:$cloud_path" "directory" "$local_path" &
-        fi
-        pids+=($!)
-    done
+    sync_items SETTINGS_DIRS "pcloud" "rclone sync" "directory"
+    sync_items SECRET_DIRS "pcloud-secrets" "rclone sync" "directory"
 
     # Wait for all background processes to complete
-    local exit_status=0
     for pid in "${pids[@]}"; do
         wait "$pid" || exit_status=$?
     done
@@ -356,14 +345,6 @@ mount)
 umount)
     cache_password
     unmount_pcloud
-    ;;
-smount)
-    cache_password
-    mount_secrets
-    ;;
-sumount)
-    cache_password
-    unmount_secrets
     ;;
 completions)
     completions

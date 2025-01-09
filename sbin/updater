@@ -57,10 +57,21 @@ update_pamac() {
         if check_command "pamac" "pamac update"; then
             $QUIET || title "Running 'pamac {upgrade,update} --refresh --aur --no-confirm'"
             if [ $# -eq 0 ]; then
-                pamac update --refresh --aur --no-confirm
+                pamac update --no-confirm
+                pamac upgrade --no-confirm
+            else
+                pamac update
+                pamac upgrade
+            fi
+        fi
+    else
+        if check_command "pamac" "pamac update"; then
+            $QUIET || title "Running 'pamac {upgrade,update} --refresh --aur --no-confirm'"
+            if [ $# -eq 0 ]; then
+                pamac update --aur --no-confirm
                 pamac upgrade --aur --no-confirm
             else
-                pamac update --refresh --aur
+                pamac update --aur
                 pamac upgrade --aur 
             fi
         fi
@@ -148,7 +159,7 @@ update_pnpm() {
     if [[ $EUID -ne 0 ]]; then
         if check_command "pnpm" "pnpm packages update"; then
             $QUIET || title "Running: 'pnpm update -g'"
-            pnpm update -g
+            pnpm update -g || true
         fi
     fi
 }
