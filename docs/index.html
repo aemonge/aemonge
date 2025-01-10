@@ -39,6 +39,9 @@ Ops/Ruby) and new ones which are recently acquired."
             background: #b8ae9e;
             padding: 10px;
             text-align: center;
+            position: sticky;
+            z-index: 99999;
+            top: 0;
         }
 
         nav a {
@@ -66,9 +69,9 @@ Ops/Ruby) and new ones which are recently acquired."
 
         iframe#articleWrapper {
             background: #b8ae9e;
-            width: calc(100vw - 60px);
-            height: 100vh;
-            margin: 0 30px 20px;
+            width: 100vw;
+            height: calc(100vh - 45px);
+            margin: 0;
             border: none;
             background: white;
         }
@@ -76,8 +79,8 @@ Ops/Ruby) and new ones which are recently acquired."
 
     <body>
         <nav>
-            <a class="active" href="#resume">resume</a>
-            <a href="#articles">articles</a>
+            <a class="active" href="#articles">articles</a>
+            <a href="#resume">resume</a>
         </nav>
 
         <div id="content">
@@ -180,7 +183,7 @@ Ops/Ruby) and new ones which are recently acquired."
                 link.click();
             });
 
-            showResume();
+            showArticles();
         </script>
     </body>
 </html>
