@@ -101,6 +101,8 @@ EOF
 
 # Group articles by category and generate the navigation bar
 declare -A categories
+first_article_loaded=false
+first_article_url=""
 for file in $(find "$ARTICLES_DIR" -name "*.qmd"); do
     # Skip empty .qmd files
     if [[ ! -s "$file" ]]; then
@@ -112,7 +114,16 @@ for file in $(find "$ARTICLES_DIR" -name "*.qmd"); do
     relative_path="${file#$ARTICLES_DIR/}"
     output_dir="/articles/$(dirname "$relative_path")"
     file_name=$(basename "$file" .qmd)
-    categories["$category"]+="<a href=\"$output_dir/$file_name.html\" target=\"article-frame\">$category | $title</a>"
+    article_url="$output_dir/$file_name.html"
+
+    # Add the article to the navigation bar
+    categories["$category"]+="<a href=\"$article_url\" target=\"article-frame\">$category | $title</a>"
+
+    # Set the first article as the pre-loaded article
+    if [[ "$first_article_loaded" == false ]]; then
+        first_article_url="$article_url"
+        first_article_loaded=true
+    fi
 done
 
 # Add articles to the navigation bar
@@ -120,9 +131,11 @@ for category in "${!categories[@]}"; do
     echo "${categories[$category]}" >>"$ARTICLES_INDEX"
 done
 
+# Write the rest of the HTML with the pre-loaded article
+# <iframe id="article-frame" src="$first_article_url" name="article-frame"></iframe>
 cat <<EOF >>"$ARTICLES_INDEX"
     </div>
-    <iframe id="article-frame" src="" name="article-frame"></iframe>
+    <iframe id="article-frame" src="/articles/features/annotations_performance.html" name="article-frame"></iframe>
   </body>
 </html>
 EOF
