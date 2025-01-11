@@ -1,5 +1,23 @@
 #!/bin/bash
 
+# echo "Checking for pamac dependencies..."
+# pamac install python-numpy
+# pamac install texlive-fontsextra texlive-fontsrecommended
+# pamac install texlive-latexextra
+# pamac install texlive-fontsextra
+# pamac install python-pydantic
+# pamac install python-nbformat
+# pamac install python-jupyter-client python-jupyter-ydoc
+# pamac install jupyter
+# pamac install quarto-cli-bin
+# pamac install python-jupyter
+# pamac install python-jupyter-core
+# pamac install jupyter-nbformat
+# pamac install jupyter-console jupyter
+# pamac install jupyter-console jupyter-lsp
+# pamac install texlive-fontsextra texlive-fontutils
+# pamac install texlive-plaingeneric
+
 # Define the articles directory
 ARTICLES_DIR="$HOME/articles"
 
