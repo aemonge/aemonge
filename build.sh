@@ -3,6 +3,10 @@
 # Define the articles directory
 ARTICLES_DIR="$HOME/articles"
 
+# Log file for failed articles
+FAILED_ARTICLES_LOG="failed_articles.log"
+>"$FAILED_ARTICLES_LOG" # Clear the log file
+
 # --------------
 # Build the resume PDF
 mv docs/avatar.png .
@@ -21,6 +25,8 @@ mv avatar.png docs/.
 # Render articles with Quarto
 mkdir -p docs/articles
 find "$ARTICLES_DIR" -name "*.qmd" | while read -r file; do
+    error=false
+
     # Skip empty .qmd files
     if [[ ! -s "$file" ]]; then
         echo "Skipping empty file: $file"
@@ -34,7 +40,15 @@ find "$ARTICLES_DIR" -name "*.qmd" | while read -r file; do
 
     # Render the article
     echo "Rendering $file..."
-    quarto render "$file" --to html -o "$file_name.html" --css '/articles.css' || exit 1
+    quarto render "$file" --to html -o "$file_name.html" --css '/articles.css' || {
+        echo "Failed to render: $file" >>"$FAILED_ARTICLES_LOG"
+        error=true
+    }
+
+    # Skip further processing if rendering failed
+    if $error; then
+        continue
+    fi
 
     # Replace the paths in the rendered HTML file
     sed -i "s|${file_name}_files|/articles|g" "$file_name.html"
@@ -47,77 +61,48 @@ done
 # Generate the articles index page dynamically
 ARTICLES_INDEX="docs/articles/index.html"
 
-cat <<EOF >"$ARTICLES_INDEX"
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>Articles | Andres Monge</title>
-    <style>
-      body {
-        background: #b8ae9e;
-        color: #3d2b59;
-        font-family: Arial, sans-serif;
-        margin: 0;
-        padding: 0;
-      }
-      a {
-        color: #3d2b59;
-        text-decoration: none;
-      }
-      a:hover {
-        color: #005e86;
-        text-decoration: underline;
-      }
-      .nav-bar {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        padding: 10px 0px;
-      }
-      .nav-bar a {
-        padding: 5px 10px;
-        border-radius: 5px;
-        background: #e0d6c6;
-      }
-      .nav-bar a:hover {
-        background: #d0c6b6;
-      }
-
-      iframe#article-frame {
-          width: calc(100vw - 6px);
-          height: calc(100vh - 100px);
-          border: 3px solid #005e86;
-      }
-
-      iframe#article-frame body h1 {
-          color: blue;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="nav-bar">
-EOF
+# Load the template
+if [[ ! -f "./docs/articles_template.html" ]]; then
+    echo "Error: Template file './docs/articles_template.html' not found."
+    exit 1
+fi
+TEMPLATE=$(cat ./docs/articles_template.html)
 
 # Group articles by category and generate the navigation bar
-declare -A categories
+NAVIGATION=""
 first_article_loaded=false
 first_article_url=""
-for file in $(find "$ARTICLES_DIR" -name "*.qmd"); do
-    # Skip empty .qmd files
-    if [[ ! -s "$file" ]]; then
-        continue
+
+# Find all rendered HTML files
+RENDERED_FILES=$(find "docs/articles" -name "*.html" | grep -v "index.html")
+if [[ -z "$RENDERED_FILES" ]]; then
+    echo "Warning: No articles were rendered. Skipping index generation."
+    exit 0
+fi
+
+# Function to generate article name from file path
+generate_article_name() {
+    local file_path="$1"
+    # Extract the base name (e.g., "generic_http_responses.html")
+    local base_name=$(basename "$file_path" .html)
+    # Replace underscores with spaces and capitalize words
+    echo "$base_name" | tr '_' ' ' | sed -e 's/\b\(.\)/\u\1/g'
+}
+
+# Process each rendered article
+declare -A categories
+for file in $RENDERED_FILES; do
+    # Extract the relative path and category
+    relative_path="${file#docs/articles/}"
+    category=$(dirname "$relative_path")
+    article_name=$(generate_article_name "$file")
+    article_url="/articles/$relative_path"
+
+    # Add the article to its category
+    if [[ -z "${categories[$category]}" ]]; then
+        categories[$category]=""
     fi
-
-    category=$(basename "$(dirname "$file")")
-    title=$(basename "$file" .qmd | tr '-' ' ' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
-    relative_path="${file#$ARTICLES_DIR/}"
-    output_dir="/articles/$(dirname "$relative_path")"
-    file_name=$(basename "$file" .qmd)
-    article_url="$output_dir/$file_name.html"
-
-    # Add the article to the navigation bar
-    categories["$category"]+="<a href=\"$article_url\" target=\"article-frame\">$category | $title</a>"
+    categories[$category]+="<a href=\"$article_url\" target=\"article-frame\">$article_name</a>"
 
     # Set the first article as the pre-loaded article
     if [[ "$first_article_loaded" == false ]]; then
@@ -126,18 +111,25 @@ for file in $(find "$ARTICLES_DIR" -name "*.qmd"); do
     fi
 done
 
-# Add articles to the navigation bar
+# Generate the navigation bar with categories
 for category in "${!categories[@]}"; do
-    echo "${categories[$category]}" >>"$ARTICLES_INDEX"
+    NAVIGATION+="<div class=\"subcategory\" onclick=\"toggleCategory(this)\">$category</div>"
+    NAVIGATION+="<div class=\"articles\">${categories[$category]}</div>"
 done
 
-# Write the rest of the HTML with the pre-loaded article
-# <iframe id="article-frame" src="$first_article_url" name="article-frame"></iframe>
-cat <<EOF >>"$ARTICLES_INDEX"
-    </div>
-    <iframe id="article-frame" src="/articles/features/annotations_performance.html" name="article-frame"></iframe>
-  </body>
-</html>
-EOF
+# Debugging: Print the generated NAVIGATION
+echo "Generated NAVIGATION: $NAVIGATION"
 
-echo "Build completed successfully!"
+# Replace placeholders in the template
+TEMPLATE=${TEMPLATE//'{{NAVIGATION}}'/"$NAVIGATION"}
+TEMPLATE=${TEMPLATE//'{{FIRST_ARTICLE_URL}}'/"$first_article_url"}
+
+# Write the final HTML to the articles index page
+echo "$TEMPLATE" >"$ARTICLES_INDEX"
+
+# Check if any articles failed to render
+if [[ -s "$FAILED_ARTICLES_LOG" ]]; then
+    echo "Build completed with errors. Check $FAILED_ARTICLES_LOG for details."
+else
+    echo "Build completed successfully!"
+fi
