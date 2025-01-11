@@ -1,99 +1,186 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="title" content="Andres Monge | Technical Lead / Solution Architect"/>
-    <meta name="description"
-    content="
-A trained **technical lead** and engineer **manager** who is passionate about the new wave for AI development. Looking to enter into the field of **neural network engineering**, using my previous skills in web (JavaScript/DevOps/Ruby) and new ones which are recently acquired.
+    <head>
+        <meta charset="utf-8" />
+        <meta
+            name="title"
+            content="Andres Monge | Technical Lead / Solution Architect"
+        />
+        <meta
+            name="description"
+            content="A trained **technical lead** and engineer **manager** who is passionate about the new wave for AI develop
+ment. Looking to enter into the field of **neural network engineering**, using my previous skills in web (JavaScript/Dev
+Ops/Ruby) and new ones which are recently acquired."
+        />
+        <title>Andres Monge | Technical Lead / Solution Architect</title>
 
-I provide value by translating KPI's or any business requirements into meaningful and **planned chunks of technical tasks**. Furthermore, I take ownership of the **architecture and spike** research, allowing my team to stay focused. I unblock the team by kick staring projects and proof of concepts, and dive deep into complex solutions.
+        <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.6.347/build/pdf.min.js"></script>
+    </head>
 
-I constantly try to take the extra effort to make my solutions follow a **functional declarative and O.O. paradigm**, since I found that saves times eventually.
-"
-  />
-    <title> Andres Monge | Technical Lead / Solution Architect </title>
-
-    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.6.347/build/pdf.min.js" ></script>
-  </head>
-
-  <style>
-    body {
-      background:#303030;
-    }
-
-    #render {
-      cursor: pointer;
-      max-width: 1024px;
-      display: block;
-      margin: 0 auto;
-      border: 3px solid #005e86;
-      border-bottom: 0;
-    }
-
-    #render > div:last-child canvas {
-      border-bottom: 3px solid #005e86;
-    }
-  </style>
-
-  <body>
-    <div id="render">
-  </body>
-
-  <script type="text/javascript">
-    function renderPDF(url, canvasContainer) {
-
-      function renderPage(page) {
-        let viewport = page.getViewport({scale: .5})
-        const DPI = 72;
-        const PRINT_OUTPUT_SCALE = DPI/72;
-        const scale = canvasContainer.clientWidth / viewport.width;
-        const canvas = document.createElement('canvas')
-
-        const ctx = canvas.getContext('2d')
-        viewport = page.getViewport({scale})
-
-        canvas.width = Math.floor(viewport.width * PRINT_OUTPUT_SCALE);
-        canvas.height = Math.floor(viewport.height * PRINT_OUTPUT_SCALE);
-        canvas.style.width = '100%';
-
-        canvas.style.transform = 'scale(1,1)';
-        canvas.style.transformOrigin = '0% 0%';
-
-        const canvasWrapper = document.createElement('div');
-
-        canvasWrapper.style.width = '100%';
-        canvasWrapper.style.height = '100%';
-
-        canvasWrapper.appendChild(canvas);
-
-        const renderContext = {
-          canvasContext: ctx,
-          viewport,
+    <style>
+        body {
+            background: #b8ae9e;
+            border: 0;
+            margin: 0;
         }
 
-        canvasContainer.appendChild(canvasWrapper)
+        #render {
+            max-width: 1024px;
+            cursor: pointer;
+            max-width: 1024px;
+            display: block;
+            margin: 0 auto;
+            margin-bottom: 30px;
+            border: 2px solid #005e86;
+        }
 
-        page.render(renderContext)
-      }
+        /* Navigation Bar Styles */
+        nav {
+            background: #b8ae9e;
+            padding: 10px;
+            text-align: center;
+        }
 
-      function renderPages(pdfDoc) {
-        for (let num = 1; num <= pdfDoc.numPages; num += 1)
-          pdfDoc.getPage(num).then(renderPage)
-      }
+        nav a {
+            color: #3d2b59;
+            text-decoration: none;
+            margin: 0 20px;
+            font-size: 18px;
+        }
 
-      pdfjsLib.disableWorker = true
-      pdfjsLib.getDocument(url).promise.then(renderPages)
-    }
+        nav a:active,
+        nav a.active,
+        nav a:hover {
+            text-decoration: none;
+            color: #005e86;
+            border-bottom: 3px solid #005e86;
+        }
 
-    renderPDF("python-tech-lead_andres-monge.pdf", document.querySelector('#render')) //div element
-        document.querySelector('#render').addEventListener('click', () => {
-          let link=document.createElement('a');
-          document.body.appendChild(link);
-          link.target="_blank"
-          link.href="python-tech-lead_andres-monge.pdf" ;
-          link.click();
-        });
-  </script>
+        /* Iframe Styles */
+        #content {
+            margin: 0px auto;
+            padding: 0px;
+            background: #b8ae9e;
+            color: #3d2b59;
+        }
 
+        iframe#articleWrapper {
+            background: #b8ae9e;
+            width: calc(100vw - 60px);
+            height: 100vh;
+            margin: 0 30px 20px;
+            border: none;
+            background: white;
+        }
+    </style>
+
+    <body>
+        <nav>
+            <a class="active" href="#resume">resume</a>
+            <a href="#articles">articles</a>
+        </nav>
+
+        <div id="content">
+            <div id="render"></div>
+            <iframe id="articleWrapper" style="display: none"></iframe>
+        </div>
+
+        <script type="text/javascript">
+            // Include the PDF.js library
+            const pdfjsLib = window['pdfjs-dist/build/pdf'];
+
+            const resumeLink = document.querySelector('a[href="#resume"]');
+            const articlesLink = document.querySelector('a[href="#articles"]');
+
+            // Check if the links are not null
+            if (resumeLink && articlesLink) {
+                // Add event listeners to the links
+                resumeLink.addEventListener('click', showResume);
+                articlesLink.addEventListener('click', showArticles);
+            }
+
+            // Function to show the resume
+            function showResume() {
+                if (articlesLink && resumeLink) {
+                    articlesLink.classList.remove('active');
+                    resumeLink.classList.add('active');
+                }
+                document.getElementById('render').style.display = 'block';
+                document.getElementById('articleWrapper').style.display = 'none';
+                renderPDF(
+                    'python-tech-lead_andres-monge.pdf',
+                    document.querySelector('#render'),
+                );
+            }
+
+            // Function to show the articles
+            function showArticles() {
+                if (articlesLink && resumeLink) {
+                    articlesLink.classList.add('active');
+                    resumeLink.classList.remove('active');
+                }
+                document.getElementById('render').style.display = 'none';
+                document.getElementById('articleWrapper').style.display = 'block';
+                document.getElementById('articleWrapper').src = 'articles/index.html';
+            }
+
+            // PDF rendering logic
+            function renderPDF(url, canvasContainer) {
+                function renderPage(page) {
+                    let viewport = page.getViewport({ scale: 0.5 });
+                    const DPI = 72;
+                    const PRINT_OUTPUT_SCALE = DPI / 72;
+                    const scale = canvasContainer.clientWidth / viewport.width;
+                    const canvas = document.createElement('canvas');
+
+                    const ctx = canvas.getContext('2d');
+                    viewport = page.getViewport({ scale });
+
+                    canvas.width = Math.floor(viewport.width * PRINT_OUTPUT_SCALE);
+                    canvas.height = Math.floor(viewport.height * PRINT_OUTPUT_SCALE);
+                    canvas.style.width = '100%';
+
+                    canvas.style.transform = 'scale(1,1)';
+                    canvas.style.transformOrigin = '0% 0%';
+
+                    const canvasWrapper = document.createElement('div');
+
+                    canvasWrapper.style.width = '100%';
+                    canvasWrapper.style.height = '100%';
+
+                    canvasWrapper.appendChild(canvas);
+
+                    const renderContext = {
+                        canvasContext: ctx,
+                        viewport,
+                    };
+
+                    canvasContainer.appendChild(canvasWrapper);
+
+                    page.render(renderContext);
+                }
+
+                function renderPages(pdfDoc) {
+                    for (let num = 1; num <= pdfDoc.numPages; num += 1)
+                        pdfDoc.getPage(num).then(renderPage);
+                }
+
+                pdfjsLib.disableWorker = true;
+                pdfjsLib.getDocument(url).promise.then(renderPages, (error) => {
+                    console.error('Error loading PDF:', error);
+                });
+            }
+
+            // Add click event to open the PDF in a new tab
+            document.querySelector('#render').addEventListener('click', () => {
+                let link = document.createElement('a');
+                document.body.appendChild(link);
+                link.target = '_blank';
+                link.href = 'python-tech-lead_andres-monge.pdf';
+                link.click();
+            });
+
+            showResume();
+        </script>
+    </body>
 </html>
