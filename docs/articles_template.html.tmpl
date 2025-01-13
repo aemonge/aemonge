@@ -72,13 +72,24 @@
     </head>
     <body>
         <div class="nav-bar">
-            <h3>Python</h3>
-            {{NAVIGATION}}
+            {{- range (datasource "nav") }}
+                <h3>{{ .language }}</h3>
+                {{- range .articles }}
+                    <div class="subcategory" onclick="toggleCategory(this)">
+                        {{ .category }}
+                    </div>
+                    <div class="articles">
+                        {{- range .articles }}
+                            <a href="{{ .url }}" target="article-frame">{{ .name }}</a>
+                        {{- end }}
+                    </div>
+                {{- end }}
+            {{- end }}
         </div>
         <iframe
             id="article-frame"
-            src="{{FIRST_ARTICLE_URL}}"
             name="article-frame"
+            src="/articles_home.html"
         ></iframe>
     </body>
 </html>
