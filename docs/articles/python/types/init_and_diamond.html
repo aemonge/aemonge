@@ -133,7 +133,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="generic-classes-in-python" class="level2">
 <h2 class="anchored" data-anchor-id="generic-classes-in-python">Generic Classes in Python</h2>
 <p>Generic classes allow you to write code that can work with different types while maintaining type safety. They are implemented using the <code>typing</code> module.</p>
-<div id="9438f64c" class="cell" data-execution_count="1">
+<div id="96fbedf0" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> TypeVar, Generic, Any</span>
@@ -156,7 +156,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="the-diamond-problem" class="level2">
 <h2 class="anchored" data-anchor-id="the-diamond-problem">The Diamond Problem</h2>
 <p>The diamond problem occurs in multiple inheritance when a class inherits from two classes that have a common ancestor. Python resolves this using the Method Resolution Order (MRO).</p>
-<div id="1c1847bc" class="cell" data-execution_count="2">
+<div id="17565a90" class="cell" data-execution_count="2">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Base:</span>
@@ -186,7 +186,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="combining-generics-and-inheritance" class="level2">
 <h2 class="anchored" data-anchor-id="combining-generics-and-inheritance">Combining Generics and Inheritance</h2>
 <p>When combining generic classes with inheritance, it’s important to maintain proper type information:</p>
-<div id="021f5ea5" class="cell" data-execution_count="3">
+<div id="514a9719" class="cell" data-execution_count="3">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> TypeVar, Generic</span>
@@ -219,7 +219,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="best-practices-for-multiple-inheritance-initialization" class="level2">
 <h2 class="anchored" data-anchor-id="best-practices-for-multiple-inheritance-initialization">Best Practices for Multiple Inheritance Initialization</h2>
 <p>Correctly initializing a child class in multiple inheritance scenarios is crucial. Here’s how to properly manage the <code>__init__</code> method with type annotations:</p>
-<div id="54c2b4ca" class="cell" data-execution_count="4">
+<div id="0f4cd258" class="cell" data-execution_count="4">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Any</span>
@@ -261,7 +261,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ol>
 <p>However, it’s important to note that using <code>super()</code> requires consistent use throughout the inheritance chain for it to work correctly. If some classes in the hierarchy use <code>super()</code> while others use explicit parent class calls, it can lead to unexpected behavior.</p>
 <p>Here’s an example demonstrating the use of <code>super()</code>:</p>
-<div id="1deb2024" class="cell" data-execution_count="5">
+<div id="dcd266bb" class="cell" data-execution_count="5">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Base:</span>
@@ -296,7 +296,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="advanced-example-solving-the-diamond-problem-with-generics" class="level2">
 <h2 class="anchored" data-anchor-id="advanced-example-solving-the-diamond-problem-with-generics">Advanced Example: Solving the Diamond Problem with Generics</h2>
 <p>Here’s a more complex example demonstrating how to solve the diamond problem while using generic classes and proper type annotations:</p>
-<div id="5183be23" class="cell" data-execution_count="6">
+<div id="bdb2d0a1" class="cell" data-execution_count="6">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> TypeVar, Generic</span>
