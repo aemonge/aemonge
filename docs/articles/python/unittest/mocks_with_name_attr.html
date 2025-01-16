@@ -71,7 +71,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="/articles/libs/bootstrap/bootstrap.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 
 
-<link rel="stylesheet" href="/articles.css">
+<link rel="stylesheet" href="/assets/style.css">
 </head>
 
 <body>
@@ -89,7 +89,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
   </ul></li>
   </ul>
-<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="../../../../../usr/mocks_with_name_attr.html"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="../../../../usr/docs/mocks_with_name_attr.html"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
 </div>
 <main class="content" id="quarto-document-content">
 
@@ -132,7 +132,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Since the <code>name</code> attribute is not directly supported by the <code>Mock</code> constructor, you need to use alternative methods to achieve this. Here are the two main approaches:</p>
 <section id="using-configure_mock" class="level4">
 <h4 class="anchored" data-anchor-id="using-configure_mock">Using <code>configure_mock</code></h4>
-<div id="cf371886" class="cell" data-execution_count="1">
+<div id="33e8597a" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> unittest.mock <span class="im">import</span> MagicMock</span>
@@ -148,7 +148,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="setting-the-name-attribute-after-creation" class="level4">
 <h4 class="anchored" data-anchor-id="setting-the-name-attribute-after-creation">Setting the name attribute after creation</h4>
-<div id="32c78a12" class="cell" data-execution_count="2">
+<div id="42bb0ce2" class="cell" data-execution_count="2">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>mock <span class="op">=</span> MagicMock()</span>
@@ -164,7 +164,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="example-setting-names-for-mocked-objects" class="level3">
 <h3 class="anchored" data-anchor-id="example-setting-names-for-mocked-objects">Example: Setting Names for Mocked Objects</h3>
 <p>When you need to create a list of mocked objects with specific names, you can follow the second approach. Here’s an example:</p>
-<div id="8cf1e1ff" class="cell" data-execution_count="3">
+<div id="4d3d36a2" class="cell" data-execution_count="3">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> unittest.mock <span class="im">import</span> Mock, patch</span>
@@ -182,7 +182,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-display" data-execution_count="3">
-<pre><code>&lt;unittest.mock._patch at 0x7f76a5ac35c0&gt;</code></pre>
+<pre><code>&lt;unittest.mock._patch at 0x7f7d1c317f80&gt;</code></pre>
 </div>
 </div>
 <p>This approach ensures that each item in the <code>items</code> list has a <code>metadata.name</code> attribute set correctly, which is essential for identifying and debugging the mocked objects in your tests.</p>
