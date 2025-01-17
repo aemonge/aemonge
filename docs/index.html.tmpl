@@ -2,13 +2,47 @@
 <html>
 <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="title" content="Andres Monge | Python Technical Lead" />
     <meta name="description" content="Python Technical Lead specializing in machine learning, MLOps, and architectural design." />
     <title>Andres Monge | Python Technical Lead</title>
     <link rel="stylesheet" type="text/css" href="assets/style.css" />
+    <link rel="stylesheet" type="text/css" href="assets/burger_responsive_menu.css" />
 </head>
 
 <body>
+    <nav class="navbar" id="navbar">
+        <ul class="nav-menu">
+            <li class="nav-item">
+                <a href="home.html" target="articleWrapper" class="nav-link">Andres Monge</a>
+            </li>
+            <li class="nav-item">
+                <a href="python-tech-lead_andres-monge.pdf" target="_blank" class="nav-link">Resume/CV</a>
+            </li>
+            {{- range (datasource "nav") }}
+            <li class="nav-item">
+                <a href="#" class="nav-link">{{ .language }}</a>
+                <ul class="submenu">
+                    {{- range .articles }}
+                    <li><a href="#">{{ .category }}</a>
+                        <ul>
+                            {{- range .articles }}
+                            <li><a href="{{ .url }}" target="articleWrapper">{{ .name }}</a></li>
+                            {{- end }}
+                        </ul>
+                    </li>
+                    {{- end }}
+                </ul>
+            </li>
+            {{- end }}
+        </ul>
+        <a href="#navbar" class="hamburger">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </a>
+    </nav>
+
     <div class="sidebar">
         <div class="sidebar-header">
             <img src="avatar.png" alt="Andres Monge" class="avatar"/>

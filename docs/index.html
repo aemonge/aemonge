@@ -2,13 +2,86 @@
 <html>
 <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="title" content="Andres Monge | Python Technical Lead" />
     <meta name="description" content="Python Technical Lead specializing in machine learning, MLOps, and architectural design." />
     <title>Andres Monge | Python Technical Lead</title>
     <link rel="stylesheet" type="text/css" href="assets/style.css" />
+    <link rel="stylesheet" type="text/css" href="assets/burger_responsive_menu.css" />
 </head>
 
 <body>
+    <nav class="navbar" id="navbar">
+        <ul class="nav-menu">
+            <li class="nav-item">
+                <a href="home.html" target="articleWrapper" class="nav-link">Andres Monge</a>
+            </li>
+            <li class="nav-item">
+                <a href="python-tech-lead_andres-monge.pdf" target="_blank" class="nav-link">Resume/CV</a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">unix</a>
+                <ul class="submenu">
+                    <li><a href="#">network</a>
+                        <ul>
+                            <li><a href="/articles/unix/network/networkless_commands.html" target="articleWrapper">networkless commands</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">python</a>
+                <ul class="submenu">
+                    <li><a href="#">asyncio</a>
+                        <ul>
+                            <li><a href="/articles/python/asyncio/async.html" target="articleWrapper">async</a></li>
+                        </ul>
+                    </li>
+                    <li><a href="#">fastapi</a>
+                        <ul>
+                            <li><a href="/articles/python/fastapi/generic_responses.html" target="articleWrapper">generic responses</a></li>
+                        </ul>
+                    </li>
+                    <li><a href="#">funtools</a>
+                        <ul>
+                            <li><a href="/articles/python/funtools/partial.html" target="articleWrapper">partial</a></li>
+                            <li><a href="/articles/python/funtools/unpacking_literals.html" target="articleWrapper">unpacking literals</a></li>
+                        </ul>
+                    </li>
+                    <li><a href="#">numpy</a>
+                        <ul>
+                            <li><a href="/articles/python/numpy/downsampling.html" target="articleWrapper">downsampling</a></li>
+                        </ul>
+                    </li>
+                    <li><a href="#">performance</a>
+                        <ul>
+                            <li><a href="/articles/python/performance/annotations.html" target="articleWrapper">annotations</a></li>
+                            <li><a href="/articles/python/performance/build.html" target="articleWrapper">build</a></li>
+                            <li><a href="/articles/python/performance/timeit.html" target="articleWrapper">timeit</a></li>
+                        </ul>
+                    </li>
+                    <li><a href="#">types</a>
+                        <ul>
+                            <li><a href="/articles/python/types/dataclass.html" target="articleWrapper">dataclass</a></li>
+                            <li><a href="/articles/python/types/diamond_issue.html" target="articleWrapper">diamond issue</a></li>
+                            <li><a href="/articles/python/types/down-cast.html" target="articleWrapper">down-cast</a></li>
+                        </ul>
+                    </li>
+                    <li><a href="#">unittest</a>
+                        <ul>
+                            <li><a href="/articles/python/unittest/mock_name_attr.html" target="articleWrapper">mock name attr</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+        <a href="#navbar" class="hamburger">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </a>
+    </nav>
+
     <div class="sidebar">
         <div class="sidebar-header">
             <img src="avatar.png" alt="Andres Monge" class="avatar"/>
@@ -34,20 +107,20 @@
                 <summary class="subcategory">
                     asyncio
                 </summary>
-                    <a class="link" href="/articles/python/asyncio/async_loop_and_gather.html" target="articleWrapper">async loop and gather</a>
+                    <a class="link" href="/articles/python/asyncio/async.html" target="articleWrapper">async</a>
             </details>
             <details name="articles">
                 <summary class="subcategory">
-                    features
+                    fastapi
                 </summary>
-                    <a class="link" href="/articles/python/features/annotations_performance.html" target="articleWrapper">annotations performance</a>
-                    <a class="link" href="/articles/python/features/build_performance.html" target="articleWrapper">build performance</a>
+                    <a class="link" href="/articles/python/fastapi/generic_responses.html" target="articleWrapper">generic responses</a>
             </details>
             <details name="articles">
                 <summary class="subcategory">
                     funtools
                 </summary>
                     <a class="link" href="/articles/python/funtools/partial.html" target="articleWrapper">partial</a>
+                    <a class="link" href="/articles/python/funtools/unpacking_literals.html" target="articleWrapper">unpacking literals</a>
             </details>
             <details name="articles">
                 <summary class="subcategory">
@@ -59,28 +132,23 @@
                 <summary class="subcategory">
                     performance
                 </summary>
+                    <a class="link" href="/articles/python/performance/annotations.html" target="articleWrapper">annotations</a>
+                    <a class="link" href="/articles/python/performance/build.html" target="articleWrapper">build</a>
                     <a class="link" href="/articles/python/performance/timeit.html" target="articleWrapper">timeit</a>
-            </details>
-            <details name="articles">
-                <summary class="subcategory">
-                    pydantic
-                </summary>
-                    <a class="link" href="/articles/python/pydantic/generic_http_responses.html" target="articleWrapper">generic http responses</a>
             </details>
             <details name="articles">
                 <summary class="subcategory">
                     types
                 </summary>
                     <a class="link" href="/articles/python/types/dataclass.html" target="articleWrapper">dataclass</a>
-                    <a class="link" href="/articles/python/types/downcast.html" target="articleWrapper">downcast</a>
-                    <a class="link" href="/articles/python/types/init_and_diamond.html" target="articleWrapper">init and diamond</a>
-                    <a class="link" href="/articles/python/types/literals_and_list_unpacking.html" target="articleWrapper">literals and list unpacking</a>
+                    <a class="link" href="/articles/python/types/diamond_issue.html" target="articleWrapper">diamond issue</a>
+                    <a class="link" href="/articles/python/types/down-cast.html" target="articleWrapper">down-cast</a>
             </details>
             <details name="articles">
                 <summary class="subcategory">
                     unittest
                 </summary>
-                    <a class="link" href="/articles/python/unittest/mocks_with_name_attr.html" target="articleWrapper">mocks with name attr</a>
+                    <a class="link" href="/articles/python/unittest/mock_name_attr.html" target="articleWrapper">mock name attr</a>
             </details>
         </details>
     </div>
