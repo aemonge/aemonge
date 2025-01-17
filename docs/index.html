@@ -4,7 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="title" content="Andres Monge | Python Technical Lead" />
-    <meta name="description" content="Python Technical Lead specializing in machine learning, MLOps, and architectural design." />
+    <meta name="description" content="Python Technical Lead specializing in machine learning, MLOps, and architectural d
+esign." />
     <title>Andres Monge | Python Technical Lead</title>
     <link rel="stylesheet" type="text/css" href="assets/style.css" />
     <link rel="stylesheet" type="text/css" href="assets/burger_responsive_menu.css" />
@@ -12,6 +13,16 @@
 
 <body>
     <nav class="navbar" id="navbar">
+        <div class="navbar-brand">
+            <img src="avatar.png" alt="Andres Monge" class="navbar-avatar" />
+            <span class="navbar-name">Andres Monge</span>
+        </div>
+        <input type="checkbox" id="hamburger-toggle" class="hamburger-toggle">
+        <label for="hamburger-toggle" class="hamburger">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </label>
         <ul class="nav-menu">
             <li class="nav-item">
                 <a href="home.html" target="articleWrapper" class="nav-link">Andres Monge</a>
@@ -20,9 +31,12 @@
                 <a href="python-tech-lead_andres-monge.pdf" target="_blank" class="nav-link">Resume/CV</a>
             </li>
             <li class="nav-item">
-                <a href="#" class="nav-link">unix</a>
+                <input type="checkbox" id="submenu-toggle-unix" class="submenu-toggle">
+                <label for="submenu-toggle-unix" class="nav-link">unix</label>
                 <ul class="submenu">
-                    <li><a href="#">network</a>
+                    <li>
+                        <input type="checkbox" id="submenu-toggle-network" class="submenu-toggle">
+                        <label for="submenu-toggle-network" class="subcategory">network</label>
                         <ul>
                             <li><a href="/articles/unix/network/networkless_commands.html" target="articleWrapper">networkless commands</a></li>
                         </ul>
@@ -30,44 +44,59 @@
                 </ul>
             </li>
             <li class="nav-item">
-                <a href="#" class="nav-link">python</a>
+                <input type="checkbox" id="submenu-toggle-python" class="submenu-toggle">
+                <label for="submenu-toggle-python" class="nav-link">python</label>
                 <ul class="submenu">
-                    <li><a href="#">asyncio</a>
+                    <li>
+                        <input type="checkbox" id="submenu-toggle-asyncio" class="submenu-toggle">
+                        <label for="submenu-toggle-asyncio" class="subcategory">asyncio</label>
                         <ul>
                             <li><a href="/articles/python/asyncio/async.html" target="articleWrapper">async</a></li>
                         </ul>
                     </li>
-                    <li><a href="#">fastapi</a>
+                    <li>
+                        <input type="checkbox" id="submenu-toggle-fastapi" class="submenu-toggle">
+                        <label for="submenu-toggle-fastapi" class="subcategory">fastapi</label>
                         <ul>
                             <li><a href="/articles/python/fastapi/generic_responses.html" target="articleWrapper">generic responses</a></li>
                         </ul>
                     </li>
-                    <li><a href="#">funtools</a>
+                    <li>
+                        <input type="checkbox" id="submenu-toggle-funtools" class="submenu-toggle">
+                        <label for="submenu-toggle-funtools" class="subcategory">funtools</label>
                         <ul>
                             <li><a href="/articles/python/funtools/partial.html" target="articleWrapper">partial</a></li>
                             <li><a href="/articles/python/funtools/unpacking_literals.html" target="articleWrapper">unpacking literals</a></li>
                         </ul>
                     </li>
-                    <li><a href="#">numpy</a>
+                    <li>
+                        <input type="checkbox" id="submenu-toggle-numpy" class="submenu-toggle">
+                        <label for="submenu-toggle-numpy" class="subcategory">numpy</label>
                         <ul>
                             <li><a href="/articles/python/numpy/downsampling.html" target="articleWrapper">downsampling</a></li>
                         </ul>
                     </li>
-                    <li><a href="#">performance</a>
+                    <li>
+                        <input type="checkbox" id="submenu-toggle-performance" class="submenu-toggle">
+                        <label for="submenu-toggle-performance" class="subcategory">performance</label>
                         <ul>
                             <li><a href="/articles/python/performance/annotations.html" target="articleWrapper">annotations</a></li>
                             <li><a href="/articles/python/performance/build.html" target="articleWrapper">build</a></li>
                             <li><a href="/articles/python/performance/timeit.html" target="articleWrapper">timeit</a></li>
                         </ul>
                     </li>
-                    <li><a href="#">types</a>
+                    <li>
+                        <input type="checkbox" id="submenu-toggle-types" class="submenu-toggle">
+                        <label for="submenu-toggle-types" class="subcategory">types</label>
                         <ul>
                             <li><a href="/articles/python/types/dataclass.html" target="articleWrapper">dataclass</a></li>
                             <li><a href="/articles/python/types/diamond_issue.html" target="articleWrapper">diamond issue</a></li>
                             <li><a href="/articles/python/types/down-cast.html" target="articleWrapper">down-cast</a></li>
                         </ul>
                     </li>
-                    <li><a href="#">unittest</a>
+                    <li>
+                        <input type="checkbox" id="submenu-toggle-unittest" class="submenu-toggle">
+                        <label for="submenu-toggle-unittest" class="subcategory">unittest</label>
                         <ul>
                             <li><a href="/articles/python/unittest/mock_name_attr.html" target="articleWrapper">mock name attr</a></li>
                         </ul>
@@ -75,11 +104,6 @@
                 </ul>
             </li>
         </ul>
-        <a href="#navbar" class="hamburger">
-            <span class="bar"></span>
-            <span class="bar"></span>
-            <span class="bar"></span>
-        </a>
     </nav>
 
     <div class="sidebar">

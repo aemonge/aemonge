@@ -4,7 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="title" content="Andres Monge | Python Technical Lead" />
-    <meta name="description" content="Python Technical Lead specializing in machine learning, MLOps, and architectural design." />
+    <meta name="description" content="Python Technical Lead specializing in machine learning, MLOps, and architectural d
+esign." />
     <title>Andres Monge | Python Technical Lead</title>
     <link rel="stylesheet" type="text/css" href="assets/style.css" />
     <link rel="stylesheet" type="text/css" href="assets/burger_responsive_menu.css" />
@@ -12,6 +13,16 @@
 
 <body>
     <nav class="navbar" id="navbar">
+        <div class="navbar-brand">
+            <img src="avatar.png" alt="Andres Monge" class="navbar-avatar" />
+            <span class="navbar-name">Andres Monge</span>
+        </div>
+        <input type="checkbox" id="hamburger-toggle" class="hamburger-toggle">
+        <label for="hamburger-toggle" class="hamburger">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </label>
         <ul class="nav-menu">
             <li class="nav-item">
                 <a href="home.html" target="articleWrapper" class="nav-link">Andres Monge</a>
@@ -21,10 +32,13 @@
             </li>
             {{- range (datasource "nav") }}
             <li class="nav-item">
-                <a href="#" class="nav-link">{{ .language }}</a>
+                <input type="checkbox" id="submenu-toggle-{{ .language }}" class="submenu-toggle">
+                <label for="submenu-toggle-{{ .language }}" class="nav-link">{{ .language }}</label>
                 <ul class="submenu">
                     {{- range .articles }}
-                    <li><a href="#">{{ .category }}</a>
+                    <li>
+                        <input type="checkbox" id="submenu-toggle-{{ .category }}" class="submenu-toggle">
+                        <label for="submenu-toggle-{{ .category }}" class="subcategory">{{ .category }}</label>
                         <ul>
                             {{- range .articles }}
                             <li><a href="{{ .url }}" target="articleWrapper">{{ .name }}</a></li>
@@ -36,11 +50,6 @@
             </li>
             {{- end }}
         </ul>
-        <a href="#navbar" class="hamburger">
-            <span class="bar"></span>
-            <span class="bar"></span>
-            <span class="bar"></span>
-        </a>
     </nav>
 
     <div class="sidebar">
