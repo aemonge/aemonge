@@ -145,7 +145,7 @@ body.fullcontent {
     padding: 2rem;
     margin-top: 1.5rem;
     margin-bottom: 0;
-    background: white;
+    background: var(--white);
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(61, 43, 89, 0.1);
 }
@@ -154,7 +154,7 @@ body.fullcontent {
 .landing-content {
     padding: 2rem;
     margin: 1.5rem 1.5rem 1.5rem 0;
-    background: white;
+    background: var(--white);
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
@@ -172,7 +172,7 @@ body.fullcontent {
 
 .tech-item {
     background: var(--secondary-color);
-    color: white;
+    color: var(--white);
     padding: 0.5rem 1rem;
     border-radius: 4px;
     font-size: 0.9rem;
