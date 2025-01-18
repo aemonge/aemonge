@@ -6,109 +6,86 @@
     <meta name="description" content="Python Technical Lead specializing in machine learning, MLOps, and architectural design." />
     <title>Andres Monge | Python Technical Lead</title>
     <link rel="stylesheet" type="text/css" href="assets/style.css" />
-    <script src="assets/viewer.js"></script>
-    <script src="assets/pageviewer.js"></script>
-    <script src="assets/pdf.min.js"></script>
 </head>
 
 <body>
     <div class="sidebar">
         <div class="sidebar-header">
             <img src="avatar.png" alt="Andres Monge" class="avatar"/>
-            <h2 class="name">Andres Monge</h2>
-            <a class="nav-item" href="#resume" onclick="showResume()">Resume/CV</a>
+            <h2 class="name" onclick="showHome()">
+                <a href="home.html" target="articleWrapper">Andres Monge</a>
+            </h2>
+            <a class="nav-item" target="_blank" href="python-tech-lead_andres-monge.pdf">
+                download Resume/CV
+            </a>
         </div>
-        
-        <div class="articles-nav">
-                <h3 class="navigation-language">unix</h3>
-                    <div class="subcategory" onclick="toggleCategory(this)">
-                        network
-                    </div>
-                    <div class="articles">
-                            <a href="articles//articles/unix/network/networkless_commands.html" target="articleWrapper">networkless commands</a>
-                    </div>
-                <h3 class="navigation-language">python</h3>
-                    <div class="subcategory" onclick="toggleCategory(this)">
-                        asyncio
-                    </div>
-                    <div class="articles">
-                            <a href="articles//articles/python/asyncio/async_loop_and_gather.html" target="articleWrapper">async loop and gather</a>
-                    </div>
-                    <div class="subcategory" onclick="toggleCategory(this)">
-                        features
-                    </div>
-                    <div class="articles">
-                            <a href="articles//articles/python/features/annotations_performance.html" target="articleWrapper">annotations performance</a>
-                            <a href="articles//articles/python/features/types_and_build_performace__mojo.html" target="articleWrapper">types and build performace  mojo</a>
-                    </div>
-                    <div class="subcategory" onclick="toggleCategory(this)">
-                        funtools
-                    </div>
-                    <div class="articles">
-                            <a href="articles//articles/python/funtools/partial.html" target="articleWrapper">partial</a>
-                    </div>
-                    <div class="subcategory" onclick="toggleCategory(this)">
-                        numpy
-                    </div>
-                    <div class="articles">
-                            <a href="articles//articles/python/numpy/downsampling.html" target="articleWrapper">downsampling</a>
-                    </div>
-                    <div class="subcategory" onclick="toggleCategory(this)">
-                        performance
-                    </div>
-                    <div class="articles">
-                            <a href="articles//articles/python/performance/timeit.html" target="articleWrapper">timeit</a>
-                    </div>
-                    <div class="subcategory" onclick="toggleCategory(this)">
-                        pydantic
-                    </div>
-                    <div class="articles">
-                            <a href="articles//articles/python/pydantic/generic_http_responses.html" target="articleWrapper">generic http responses</a>
-                    </div>
-                    <div class="subcategory" onclick="toggleCategory(this)">
-                        types
-                    </div>
-                    <div class="articles">
-                            <a href="articles//articles/python/types/dataclass.html" target="articleWrapper">dataclass</a>
-                            <a href="articles//articles/python/types/downcast.html" target="articleWrapper">downcast</a>
-                            <a href="articles//articles/python/types/init_and_diamond.html" target="articleWrapper">init and diamond</a>
-                            <a href="articles//articles/python/types/literals_and_list_unpacking.html" target="articleWrapper">literals and list unpacking</a>
-                    </div>
-                    <div class="subcategory" onclick="toggleCategory(this)">
-                        unittest
-                    </div>
-                    <div class="articles">
-                            <a href="articles//articles/python/unittest/mocks_with_name_attr.html" target="articleWrapper">mocks with name attr</a>
-                    </div>
-        </div>
+        <details class="articles-nav" name="languages">
+            <summary class="navigation-language">unix</summary>
+            <details name="articles">
+                <summary class="subcategory">
+                    network
+                </summary>
+                    <a class="link" href="/articles/unix/network/networkless_commands.html" target="articleWrapper">networkless commands</a>
+            </details>
+        </details>
+        <details class="articles-nav" name="languages">
+            <summary class="navigation-language">python</summary>
+            <details name="articles">
+                <summary class="subcategory">
+                    asyncio
+                </summary>
+                    <a class="link" href="/articles/python/asyncio/async_loop_and_gather.html" target="articleWrapper">async loop and gather</a>
+            </details>
+            <details name="articles">
+                <summary class="subcategory">
+                    features
+                </summary>
+                    <a class="link" href="/articles/python/features/annotations_performance.html" target="articleWrapper">annotations performance</a>
+                    <a class="link" href="/articles/python/features/build_performance.html" target="articleWrapper">build performance</a>
+            </details>
+            <details name="articles">
+                <summary class="subcategory">
+                    funtools
+                </summary>
+                    <a class="link" href="/articles/python/funtools/partial.html" target="articleWrapper">partial</a>
+            </details>
+            <details name="articles">
+                <summary class="subcategory">
+                    numpy
+                </summary>
+                    <a class="link" href="/articles/python/numpy/downsampling.html" target="articleWrapper">downsampling</a>
+            </details>
+            <details name="articles">
+                <summary class="subcategory">
+                    performance
+                </summary>
+                    <a class="link" href="/articles/python/performance/timeit.html" target="articleWrapper">timeit</a>
+            </details>
+            <details name="articles">
+                <summary class="subcategory">
+                    pydantic
+                </summary>
+                    <a class="link" href="/articles/python/pydantic/generic_http_responses.html" target="articleWrapper">generic http responses</a>
+            </details>
+            <details name="articles">
+                <summary class="subcategory">
+                    types
+                </summary>
+                    <a class="link" href="/articles/python/types/dataclass.html" target="articleWrapper">dataclass</a>
+                    <a class="link" href="/articles/python/types/downcast.html" target="articleWrapper">downcast</a>
+                    <a class="link" href="/articles/python/types/init_and_diamond.html" target="articleWrapper">init and diamond</a>
+                    <a class="link" href="/articles/python/types/literals_and_list_unpacking.html" target="articleWrapper">literals and list unpacking</a>
+            </details>
+            <details name="articles">
+                <summary class="subcategory">
+                    unittest
+                </summary>
+                    <a class="link" href="/articles/python/unittest/mocks_with_name_attr.html" target="articleWrapper">mocks with name attr</a>
+            </details>
+        </details>
     </div>
-
-    <div id="content">
-        <div id="home-content" class="landing-content">
-            <h1>Welcome to Andres Monge's Digital Playground! 🚀</h1>
-            <div class="intro-section">
-                <h2>Code Wizard & Problem Solver</h2>
-                <p>Hey there! I'm Andres, a Python enthusiast and tech lead who loves turning complex challenges into elegant solutions. When I'm not crafting code, you can find me exploring the latest in machine learning and MLOps.</p>
-            </div>
-
-            <div class="sections-overview">
-                <div class="connect-section">
-                    <h2>Let's Connect!</h2>
-                    <p>Curious about my adventures in the tech world? Check out these digital footprints:</p>
-                    <ul>
-                        <li><a href="https://github.com/aemonge/" target="_blank">📚 GitHub</a> - Where my code comes to life</li>
-                        <li><a href="https://www.linkedin.com/in/aemonge/" target="_blank">💼 LinkedIn</a> - My professional journey</li>
-                        <li><a href="https://stackoverflow.com/users/1360897/aemonge" target="_blank">🏆 Stack Overflow</a> - Problem-solving in action</li>
-                        <li><a href="https://pypi.org/user/aemonge/" target="_blank">📦 PyPI</a> - My contributions to the Python ecosystem</li>
-                    </ul>
-                    <p>Feel free to explore and reach out if you want to chat about Python, tech leadership, or anything in between. Let's build something awesome together! 💻✨</p>
-                </div>
-            </div>
-        </div>
-        <div id="render"></div>
-        <iframe id="articleWrapper" style="display: none"></iframe>
+    <div class="iframe-container">
+        <iframe id="content" name="articleWrapper" src="home.html"> </iframe>
     </div>
-
-    <script src="assets/index.js"></script>
 </body>
 </html>
