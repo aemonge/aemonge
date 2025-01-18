@@ -33,24 +33,23 @@ clean_up() {
     echo "Cleaning up non-.qmd files in $ARTICLES_DIR..."
     find "$ARTICLES_DIR" -type f ! -name "*.qmd" -exec rm -f {} \; >/dev/null 2>&1
     find "$ARTICLES_DIR" -type d -name "*_files" -exec rm -Rf {} \; >/dev/null 2>&1
+    rm ./articles_navigation.json
     echo "Clean-up completed!"
 }
 
 # Build the resume PDF
 build_resume() {
     echo "Building resume..."
-    mv docs/avatar.png .
     pdflatex resume.tex
     rm resume.aux resume.log resume.out
-    mv resume.pdf docs/python-tech-lead_andres-monge.pdf
-    mv avatar.png docs/.
+    mv resume.pdf python-tech-lead_andres-monge.pdf
     echo "Resume build completed!"
 }
 
 # Render articles with Quarto
 render_articles() {
     echo "Rendering articles..."
-    mkdir -p docs/articles
+    mkdir -p articles
     find "$ARTICLES_DIR" -name "*.qmd" | while read -r file; do
         error=false
 
@@ -61,13 +60,13 @@ render_articles() {
         fi
 
         relative_path="${file#$ARTICLES_DIR/}"
-        output_dir="docs/articles/$(dirname "$relative_path")"
+        output_dir="articles/$(dirname "$relative_path")"
         file_name=$(basename "$file" .qmd)
         mkdir -p "$output_dir"
 
         # Render the article
         echo "Rendering $file..."
-        quarto render "$file" --to html -o "$file_name.html" --css '/articles.css' || {
+        quarto render "$file" --to html -o "$file_name.html" --css '/assets/style.css' || {
             echo "Failed to render: $file" >>"$FAILED_ARTICLES_LOG"
             error=true
         }
@@ -144,11 +143,10 @@ generate_navigation_data() {
 # Generate the articles index page using Gomplate
 generate_index() {
     echo "Generating articles index page..."
-    local ARTICLES_INDEX="docs/articles/index.html"
 
     # Check if the template file exists
-    if [[ ! -f "./docs/articles_template.html.tmpl" ]]; then
-        echo "Error: Template file './docs/articles_template.html.tmpl' not found." | tee -a "$FAILED_ARTICLES_LOG"
+    if [[ ! -f "./index.html.tmpl" ]]; then
+        echo "Error: Template file './index.html.tmpl' not found." | tee -a "$FAILED_ARTICLES_LOG"
         exit 1
     fi
 
@@ -178,21 +176,21 @@ ED_ARTICLES_LOG"
           ))
         }))
       })
-    ' >./docs/articles_navigation.json
-    echo "Navigation data saved to ./docs/articles_navigation.json"
+    ' >./articles_navigation.json
+    echo "Navigation data saved to ./articles_navigation.json"
 
     # Render the index page using Gomplate
     echo "Rendering index page with Gomplate..."
     if ! gomplate \
-        -d nav=./docs/articles_navigation.json \
-        -f ./docs/articles_template.html.tmpl \
-        -o "$ARTICLES_INDEX"; then
+        -d nav=./articles_navigation.json \
+        -f ./index.html.tmpl \
+        -o "index.html"; then
         echo "Error: Failed to render index page. Check $FAILED_ARTICLES_LOG for details." | tee -a "$FAILED_ARTICLES_LO
 G"
         exit 1
     fi
 
-    echo "Index generation completed! in $ARTICLES_INDEX"
+    echo "Index generation completed! in index.html"
 }
 
 # Check for failed articles

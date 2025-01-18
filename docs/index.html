@@ -1,189 +1,114 @@
 <!doctype html>
 <html>
-    <head>
-        <meta charset="utf-8" />
-        <meta
-            name="title"
-            content="Andres Monge | Technical Lead / Solution Architect"
-        />
-        <meta
-            name="description"
-            content="A trained **technical lead** and engineer **manager** who is passionate about the new wave for AI develop
-ment. Looking to enter into the field of **neural network engineering**, using my previous skills in web (JavaScript/Dev
-Ops/Ruby) and new ones which are recently acquired."
-        />
-        <title>Andres Monge | Technical Lead / Solution Architect</title>
+<head>
+    <meta charset="utf-8" />
+    <meta name="title" content="Andres Monge | Python Technical Lead" />
+    <meta name="description" content="Python Technical Lead specializing in machine learning, MLOps, and architectural design." />
+    <title>Andres Monge | Python Technical Lead</title>
+    <link rel="stylesheet" type="text/css" href="assets/style.css" />
+    <script src="assets/viewer.js"></script>
+    <script src="assets/pageviewer.js"></script>
+    <script src="assets/pdf.min.js"></script>
+</head>
 
-        <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.6.347/build/pdf.min.js"></script>
-    </head>
-
-    <style>
-        body {
-            background: #b8ae9e;
-            border: 0;
-            margin: 0;
-        }
-
-        #render {
-            max-width: 1024px;
-            cursor: pointer;
-            max-width: 1024px;
-            display: block;
-            margin: 0 auto;
-            margin-bottom: 30px;
-            border: 2px solid #005e86;
-        }
-
-        /* Navigation Bar Styles */
-        nav {
-            background: #b8ae9e;
-            padding: 10px;
-            text-align: center;
-            position: sticky;
-            z-index: 99999;
-            top: 0;
-        }
-
-        nav a {
-            color: #3d2b59;
-            text-decoration: none;
-            margin: 0 20px;
-            font-size: 18px;
-        }
-
-        nav a:active,
-        nav a.active,
-        nav a:hover {
-            text-decoration: none;
-            color: #005e86;
-            border-bottom: 3px solid #005e86;
-        }
-
-        /* Iframe Styles */
-        #content {
-            margin: 0px auto;
-            padding: 0px;
-            background: #b8ae9e;
-            color: #3d2b59;
-        }
-
-        iframe#articleWrapper {
-            background: #b8ae9e;
-            width: 100vw;
-            height: calc(100vh - 45px);
-            margin: 0;
-            border: none;
-            background: white;
-        }
-    </style>
-
-    <body>
-        <nav>
-            <a class="active" href="#articles">articles</a>
-            <a href="#resume">resume</a>
-        </nav>
-
-        <div id="content">
-            <div id="render"></div>
-            <iframe id="articleWrapper" style="display: none"></iframe>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <img src="avatar.png" alt="Andres Monge" class="avatar"/>
+            <h2 class="name">Andres Monge</h2>
+            <a class="nav-item" href="#resume" onclick="showResume()">Resume/CV</a>
         </div>
+        
+        <div class="articles-nav">
+                <h3 class="navigation-language">unix</h3>
+                    <div class="subcategory" onclick="toggleCategory(this)">
+                        network
+                    </div>
+                    <div class="articles">
+                            <a href="articles//articles/unix/network/networkless_commands.html" target="articleWrapper">networkless commands</a>
+                    </div>
+                <h3 class="navigation-language">python</h3>
+                    <div class="subcategory" onclick="toggleCategory(this)">
+                        asyncio
+                    </div>
+                    <div class="articles">
+                            <a href="articles//articles/python/asyncio/async_loop_and_gather.html" target="articleWrapper">async loop and gather</a>
+                    </div>
+                    <div class="subcategory" onclick="toggleCategory(this)">
+                        features
+                    </div>
+                    <div class="articles">
+                            <a href="articles//articles/python/features/annotations_performance.html" target="articleWrapper">annotations performance</a>
+                            <a href="articles//articles/python/features/types_and_build_performace__mojo.html" target="articleWrapper">types and build performace  mojo</a>
+                    </div>
+                    <div class="subcategory" onclick="toggleCategory(this)">
+                        funtools
+                    </div>
+                    <div class="articles">
+                            <a href="articles//articles/python/funtools/partial.html" target="articleWrapper">partial</a>
+                    </div>
+                    <div class="subcategory" onclick="toggleCategory(this)">
+                        numpy
+                    </div>
+                    <div class="articles">
+                            <a href="articles//articles/python/numpy/downsampling.html" target="articleWrapper">downsampling</a>
+                    </div>
+                    <div class="subcategory" onclick="toggleCategory(this)">
+                        performance
+                    </div>
+                    <div class="articles">
+                            <a href="articles//articles/python/performance/timeit.html" target="articleWrapper">timeit</a>
+                    </div>
+                    <div class="subcategory" onclick="toggleCategory(this)">
+                        pydantic
+                    </div>
+                    <div class="articles">
+                            <a href="articles//articles/python/pydantic/generic_http_responses.html" target="articleWrapper">generic http responses</a>
+                    </div>
+                    <div class="subcategory" onclick="toggleCategory(this)">
+                        types
+                    </div>
+                    <div class="articles">
+                            <a href="articles//articles/python/types/dataclass.html" target="articleWrapper">dataclass</a>
+                            <a href="articles//articles/python/types/downcast.html" target="articleWrapper">downcast</a>
+                            <a href="articles//articles/python/types/init_and_diamond.html" target="articleWrapper">init and diamond</a>
+                            <a href="articles//articles/python/types/literals_and_list_unpacking.html" target="articleWrapper">literals and list unpacking</a>
+                    </div>
+                    <div class="subcategory" onclick="toggleCategory(this)">
+                        unittest
+                    </div>
+                    <div class="articles">
+                            <a href="articles//articles/python/unittest/mocks_with_name_attr.html" target="articleWrapper">mocks with name attr</a>
+                    </div>
+        </div>
+    </div>
 
-        <script type="text/javascript">
-            // Include the PDF.js library
-            const pdfjsLib = window['pdfjs-dist/build/pdf'];
+    <div id="content">
+        <div id="home-content" class="landing-content">
+            <h1>Welcome to Andres Monge's Digital Playground! 🚀</h1>
+            <div class="intro-section">
+                <h2>Code Wizard & Problem Solver</h2>
+                <p>Hey there! I'm Andres, a Python enthusiast and tech lead who loves turning complex challenges into elegant solutions. When I'm not crafting code, you can find me exploring the latest in machine learning and MLOps.</p>
+            </div>
 
-            const resumeLink = document.querySelector('a[href="#resume"]');
-            const articlesLink = document.querySelector('a[href="#articles"]');
+            <div class="sections-overview">
+                <div class="connect-section">
+                    <h2>Let's Connect!</h2>
+                    <p>Curious about my adventures in the tech world? Check out these digital footprints:</p>
+                    <ul>
+                        <li><a href="https://github.com/aemonge/" target="_blank">📚 GitHub</a> - Where my code comes to life</li>
+                        <li><a href="https://www.linkedin.com/in/aemonge/" target="_blank">💼 LinkedIn</a> - My professional journey</li>
+                        <li><a href="https://stackoverflow.com/users/1360897/aemonge" target="_blank">🏆 Stack Overflow</a> - Problem-solving in action</li>
+                        <li><a href="https://pypi.org/user/aemonge/" target="_blank">📦 PyPI</a> - My contributions to the Python ecosystem</li>
+                    </ul>
+                    <p>Feel free to explore and reach out if you want to chat about Python, tech leadership, or anything in between. Let's build something awesome together! 💻✨</p>
+                </div>
+            </div>
+        </div>
+        <div id="render"></div>
+        <iframe id="articleWrapper" style="display: none"></iframe>
+    </div>
 
-            // Check if the links are not null
-            if (resumeLink && articlesLink) {
-                // Add event listeners to the links
-                resumeLink.addEventListener('click', showResume);
-                articlesLink.addEventListener('click', showArticles);
-            }
-
-            // Function to show the resume
-            function showResume() {
-                if (articlesLink && resumeLink) {
-                    articlesLink.classList.remove('active');
-                    resumeLink.classList.add('active');
-                }
-                document.getElementById('render').style.display = 'block';
-                document.getElementById('articleWrapper').style.display = 'none';
-                renderPDF(
-                    'python-tech-lead_andres-monge.pdf',
-                    document.querySelector('#render'),
-                );
-            }
-
-            // Function to show the articles
-            function showArticles() {
-                if (articlesLink && resumeLink) {
-                    articlesLink.classList.add('active');
-                    resumeLink.classList.remove('active');
-                }
-                document.getElementById('render').style.display = 'none';
-                document.getElementById('articleWrapper').style.display = 'block';
-                document.getElementById('articleWrapper').src = 'articles/index.html';
-            }
-
-            // PDF rendering logic
-            function renderPDF(url, canvasContainer) {
-                function renderPage(page) {
-                    let viewport = page.getViewport({ scale: 0.5 });
-                    const DPI = 72;
-                    const PRINT_OUTPUT_SCALE = DPI / 72;
-                    const scale = canvasContainer.clientWidth / viewport.width;
-                    const canvas = document.createElement('canvas');
-
-                    const ctx = canvas.getContext('2d');
-                    viewport = page.getViewport({ scale });
-
-                    canvas.width = Math.floor(viewport.width * PRINT_OUTPUT_SCALE);
-                    canvas.height = Math.floor(viewport.height * PRINT_OUTPUT_SCALE);
-                    canvas.style.width = '100%';
-
-                    canvas.style.transform = 'scale(1,1)';
-                    canvas.style.transformOrigin = '0% 0%';
-
-                    const canvasWrapper = document.createElement('div');
-
-                    canvasWrapper.style.width = '100%';
-                    canvasWrapper.style.height = '100%';
-
-                    canvasWrapper.appendChild(canvas);
-
-                    const renderContext = {
-                        canvasContext: ctx,
-                        viewport,
-                    };
-
-                    canvasContainer.appendChild(canvasWrapper);
-
-                    page.render(renderContext);
-                }
-
-                function renderPages(pdfDoc) {
-                    for (let num = 1; num <= pdfDoc.numPages; num += 1)
-                        pdfDoc.getPage(num).then(renderPage);
-                }
-
-                pdfjsLib.disableWorker = true;
-                pdfjsLib.getDocument(url).promise.then(renderPages, (error) => {
-                    console.error('Error loading PDF:', error);
-                });
-            }
-
-            // Add click event to open the PDF in a new tab
-            document.querySelector('#render').addEventListener('click', () => {
-                let link = document.createElement('a');
-                document.body.appendChild(link);
-                link.target = '_blank';
-                link.href = 'python-tech-lead_andres-monge.pdf';
-                link.click();
-            });
-
-            showArticles();
-        </script>
-    </body>
+    <script src="assets/index.js"></script>
+</body>
 </html>
