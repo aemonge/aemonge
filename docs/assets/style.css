@@ -2,7 +2,7 @@
     --primary-color: #3d2b59;
     --secondary-color: #005e86;
     --background-color: #f6f2ee;
-    --white: #f8f8f8;
+    --white: #f6f6f6;
     --sidebar-bg: #f4f1ea;
     --hover-color: rgba(61, 43, 89, 0.08);
     --text-color: #3d2b59;
@@ -19,10 +19,17 @@ body {
     overflow: hidden;
     display: flex;
     font-family: var(--font-primary);
-    background: var(--background-color);
     color: var(--text-color);
     font-size: 16px;
     line-height: 1.6;
+}
+
+body.main {
+    background-color: var(--background-color);
+    background-image: url("/assets/background_blend.jpg");
+    background-size: cover;
+    background-attachment: fixed;
+    opacity: 0.85;
 }
 
 h1,
@@ -125,7 +132,6 @@ body.fullcontent {
     display: block;
     overflow: auto;
     height: auto;
-    padding-right: 1.5rem;
 }
 
 .quarto-container {
@@ -137,25 +143,27 @@ body.fullcontent {
 #quarto-content {
     width: 100%;
     display: inline-block;
-    padding-bottom: 1.5rem;
 }
 
 #quarto-document-content {
     position: unset;
     padding: 2rem;
-    margin-top: 1.5rem;
     margin-bottom: 0;
+    margin-top: 0;
     background: var(--white);
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(61, 43, 89, 0.1);
 }
 
 /* Landing Page Content */
+body.landing {
+    background: var(--background-color);
+}
 .landing-content {
     padding: 2rem;
-    margin: 1.5rem 1.5rem 1.5rem 0;
     background: var(--white);
     border-radius: 8px;
+    overflow-y: auto;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 .connect-section a {
