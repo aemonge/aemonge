@@ -7,6 +7,11 @@
         flex-direction: column;
     }
 
+    body.landing {
+        overflow: auto;
+        display: unset;
+    }
+
     .navbar {
         display: flex;
         justify-content: space-between;
