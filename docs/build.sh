@@ -3,6 +3,7 @@
 # echo "Checking for pamac dependencies..."
 # pamac build gomplate-bin
 # pamac install python-numpy
+# pamac install python-loguru
 # pamac install texlive-fontsextra texlive-fontsrecommended
 # pamac install texlive-latexextra
 # pamac install texlive-fontsextra
