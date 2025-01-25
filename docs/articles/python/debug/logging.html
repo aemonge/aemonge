@@ -112,8 +112,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<section id="logging-in-python-with-loguru" class="level2">
-<h2 class="anchored" data-anchor-id="logging-in-python-with-loguru">Logging in Python with Loguru</h2>
 <p>Logging is an essential part of any application, providing insights into its runtime behavior. Python’s built-in <code>logging</code> module is powerful but can be cumbersome to configure. Enter <strong>Loguru</strong>, a third-party logging library that simplifies logging with a more intuitive API and rich features.</p>
 <section id="why-loguru" class="level3">
 <h3 class="anchored" data-anchor-id="why-loguru">Why Loguru?</h3>
@@ -131,7 +129,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="custom-log-format" class="level4">
 <h4 class="anchored" data-anchor-id="custom-log-format">Custom Log Format</h4>
 <p>You can define a custom format for your logs using Loguru’s formatting syntax. For example, to include the log level, timestamp, and message:</p>
-<div id="a4a0b129" class="cell" data-execution_count="1">
+<div id="4b6faaba" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> loguru <span class="im">import</span> logger</span>
@@ -142,37 +140,37 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>logger.info(<span class="st">"Custom format logging!"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>2025-01-21T18:27:27.117486+0100 | INFO | Custom format logging!</code></pre>
+<pre><code>2025-01-22T13:24:12.977677+0100 | INFO | Custom format logging!</code></pre>
 </div>
 </div>
 </section>
 <section id="log-levels" class="level4">
 <h4 class="anchored" data-anchor-id="log-levels">Log Levels</h4>
 <p>Loguru supports the standard log levels: <code>TRACE</code>, <code>DEBUG</code>, <code>INFO</code>, <code>WARNING</code>, <code>ERROR</code>, and <code>CRITICAL</code>. You can set the log level globally or per handler:</p>
-<div id="cda08be3" class="cell" data-execution_count="2">
+<div id="3e4d43cb" class="cell" data-execution_count="2">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>logger.add(sys.stdout, level<span class="op">=</span><span class="st">"DEBUG"</span>)</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>logger.debug(<span class="st">"This is a debug message."</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>2025-01-21T18:27:27.127822+0100 | DEBUG | This is a debug message.
-2025-01-21 18:27:27.127 | DEBUG    | __main__:&lt;module&gt;:2 - This is a debug message.</code></pre>
+<pre><code>2025-01-22T13:24:12.989152+0100 | DEBUG | This is a debug message.
+2025-01-22 13:24:12.989 | DEBUG    | __main__:&lt;module&gt;:2 - This is a debug message.</code></pre>
 </div>
 </div>
 </section>
 <section id="adding-handlers" class="level4">
 <h4 class="anchored" data-anchor-id="adding-handlers">Adding Handlers</h4>
 <p>You can add multiple handlers to log to different destinations, such as files, with different formats or levels:</p>
-<div id="328fec5a" class="cell" data-execution_count="3">
+<div id="2a9013b8" class="cell" data-execution_count="3">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>logger.add(<span class="st">"file.log"</span>, level<span class="op">=</span><span class="st">"INFO"</span>, rotation<span class="op">=</span><span class="st">"10 MB"</span>)</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>logger.info(<span class="st">"This log will go to both the console and a file."</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>2025-01-21T18:27:27.137543+0100 | INFO | This log will go to both the console and a file.
-2025-01-21 18:27:27.137 | INFO     | __main__:&lt;module&gt;:2 - This log will go to both the console and a file.</code></pre>
+<pre><code>2025-01-22T13:24:12.999141+0100 | INFO | This log will go to both the console and a file.
+2025-01-22 13:24:12.999 | INFO     | __main__:&lt;module&gt;:2 - This log will go to both the console and a file.</code></pre>
 </div>
 </div>
 </section>
@@ -182,7 +180,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="exception-logging" class="level4">
 <h4 class="anchored" data-anchor-id="exception-logging">Exception Logging</h4>
 <p>Loguru automatically captures exceptions and logs them with tracebacks. However, you can trim the traceback logs to make them more concise:</p>
-<div id="bd5dcfd5" class="cell" data-execution_count="4">
+<div id="68a373e7" class="cell" data-execution_count="4">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
@@ -191,10 +189,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    logger.opt(exception<span class="op">=</span>(<span class="va">None</span>, <span class="va">False</span>, <span class="va">False</span>)).error(<span class="st">"An error occurred!"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stderr">
-<pre><code>--- Logging error in Loguru Handler #81 ---
-Record was: {'elapsed': datetime.timedelta(seconds=1724, microseconds=663614), 'exception': (type=None, value=False, traceback=False), 'extra': {}, 'file': (name='1334436161.py', path='/tmp/ipykernel_1062176/1334436161.py'), 'function': '&lt;module&gt;', 'level': (name='ERROR', no=40, icon='❌'), 'line': 4, 'message': 'An error occurred!', 'module': '1334436161', 'name': '__main__', 'process': (id=1062176, name='MainProcess'), 'thread': (id=140641856473984, name='MainThread'), 'time': datetime(2025, 1, 21, 18, 27, 27, 142919, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600), 'CET'))}
+<pre><code>--- Logging error in Loguru Handler #1 ---
+Record was: {'elapsed': datetime.timedelta(microseconds=32452), 'exception': (type=None, value=False, traceback=False), 'extra': {}, 'file': (name='1334436161.py', path='/tmp/ipykernel_461593/1334436161.py'), 'function': '&lt;module&gt;', 'level': (name='ERROR', no=40, icon='❌'), 'line': 4, 'message': 'An error occurred!', 'module': '1334436161', 'name': '__main__', 'process': (id=461593, name='MainProcess'), 'thread': (id=140718392707968, name='MainThread'), 'time': datetime(2025, 1, 22, 13, 24, 13, 4598, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600), 'CET'))}
 Traceback (most recent call last):
-  File "/tmp/ipykernel_1062176/1334436161.py", line 2, in &lt;module&gt;
+  File "/tmp/ipykernel_461593/1334436161.py", line 2, in &lt;module&gt;
     1 / 0
     ~~^~~
 ZeroDivisionError: division by zero
@@ -215,10 +213,10 @@ Traceback (most recent call last):
                 ^^^^^^^^^^^
 AttributeError: 'bool' object has no attribute 'tb_frame'
 --- End of logging error ---
---- Logging error in Loguru Handler #82 ---
-Record was: {'elapsed': datetime.timedelta(seconds=1724, microseconds=663614), 'exception': (type=None, value=False, traceback=False), 'extra': {}, 'file': (name='1334436161.py', path='/tmp/ipykernel_1062176/1334436161.py'), 'function': '&lt;module&gt;', 'level': (name='ERROR', no=40, icon='❌'), 'line': 4, 'message': 'An error occurred!', 'module': '1334436161', 'name': '__main__', 'process': (id=1062176, name='MainProcess'), 'thread': (id=140641856473984, name='MainThread'), 'time': datetime(2025, 1, 21, 18, 27, 27, 142919, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600), 'CET'))}
+--- Logging error in Loguru Handler #2 ---
+Record was: {'elapsed': datetime.timedelta(microseconds=32452), 'exception': (type=None, value=False, traceback=False), 'extra': {}, 'file': (name='1334436161.py', path='/tmp/ipykernel_461593/1334436161.py'), 'function': '&lt;module&gt;', 'level': (name='ERROR', no=40, icon='❌'), 'line': 4, 'message': 'An error occurred!', 'module': '1334436161', 'name': '__main__', 'process': (id=461593, name='MainProcess'), 'thread': (id=140718392707968, name='MainThread'), 'time': datetime(2025, 1, 22, 13, 24, 13, 4598, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600), 'CET'))}
 Traceback (most recent call last):
-  File "/tmp/ipykernel_1062176/1334436161.py", line 2, in &lt;module&gt;
+  File "/tmp/ipykernel_461593/1334436161.py", line 2, in &lt;module&gt;
     1 / 0
     ~~^~~
 ZeroDivisionError: division by zero
@@ -239,10 +237,10 @@ Traceback (most recent call last):
                 ^^^^^^^^^^^
 AttributeError: 'bool' object has no attribute 'tb_frame'
 --- End of logging error ---
---- Logging error in Loguru Handler #83 ---
-Record was: {'elapsed': datetime.timedelta(seconds=1724, microseconds=663614), 'exception': (type=None, value=False, traceback=False), 'extra': {}, 'file': (name='1334436161.py', path='/tmp/ipykernel_1062176/1334436161.py'), 'function': '&lt;module&gt;', 'level': (name='ERROR', no=40, icon='❌'), 'line': 4, 'message': 'An error occurred!', 'module': '1334436161', 'name': '__main__', 'process': (id=1062176, name='MainProcess'), 'thread': (id=140641856473984, name='MainThread'), 'time': datetime(2025, 1, 21, 18, 27, 27, 142919, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600), 'CET'))}
+--- Logging error in Loguru Handler #3 ---
+Record was: {'elapsed': datetime.timedelta(microseconds=32452), 'exception': (type=None, value=False, traceback=False), 'extra': {}, 'file': (name='1334436161.py', path='/tmp/ipykernel_461593/1334436161.py'), 'function': '&lt;module&gt;', 'level': (name='ERROR', no=40, icon='❌'), 'line': 4, 'message': 'An error occurred!', 'module': '1334436161', 'name': '__main__', 'process': (id=461593, name='MainProcess'), 'thread': (id=140718392707968, name='MainThread'), 'time': datetime(2025, 1, 22, 13, 24, 13, 4598, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600), 'CET'))}
 Traceback (most recent call last):
-  File "/tmp/ipykernel_1062176/1334436161.py", line 2, in &lt;module&gt;
+  File "/tmp/ipykernel_461593/1334436161.py", line 2, in &lt;module&gt;
     1 / 0
     ~~^~~
 ZeroDivisionError: division by zero
@@ -269,15 +267,15 @@ AttributeError: 'bool' object has no attribute 'tb_frame'
 <section id="asynchronous-logging" class="level4">
 <h4 class="anchored" data-anchor-id="asynchronous-logging">Asynchronous Logging</h4>
 <p>Loguru supports asynchronous logging, which can improve performance in I/O-bound applications:</p>
-<div id="91618396" class="cell" data-execution_count="5">
+<div id="a8190bec" class="cell" data-execution_count="5">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>logger.add(<span class="st">"async_log.log"</span>, enqueue<span class="op">=</span><span class="va">True</span>)</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>logger.info(<span class="st">"This log is written asynchronously."</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>2025-01-21T18:27:27.155910+0100 | INFO | This log is written asynchronously.
-2025-01-21 18:27:27.155 | INFO     | __main__:&lt;module&gt;:2 - This log is written asynchronously.</code></pre>
+<pre><code>2025-01-22T13:24:13.056776+0100 | INFO | This log is written asynchronously.
+2025-01-22 13:24:13.056 | INFO     | __main__:&lt;module&gt;:2 - This log is written asynchronously.</code></pre>
 </div>
 </div>
 </section>
@@ -285,23 +283,23 @@ AttributeError: 'bool' object has no attribute 'tb_frame'
 <section id="colorful-logs-easier-to-read" class="level3">
 <h3 class="anchored" data-anchor-id="colorful-logs-easier-to-read">Colorful Logs: Easier to Read</h3>
 <p>Colorful logs are not just visually appealing; they make logs easier to read and debug. Loguru supports colorized logs out of the box, allowing you to differentiate log levels at a glance. For example:</p>
-<div id="aaad0dc0" class="cell" data-execution_count="6">
+<div id="7c57e90e" class="cell" data-execution_count="6">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>logger.add(sys.stdout, colorize<span class="op">=</span><span class="va">True</span>, <span class="bu">format</span><span class="op">=</span><span class="st">"&lt;green&gt;</span><span class="sc">{time}</span><span class="st">&lt;/green&gt; | &lt;level&gt;</span><span class="sc">{level}</span><span class="st">&lt;/level&gt; | &lt;cyan&gt;</span><span class="sc">{message}</span><span class="st">&lt;/cyan&gt;"</span>)</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>logger.info(<span class="st">"This is a colorful info log!"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>2025-01-21T18:27:27.164738+0100 | INFO | This is a colorful info log!
-2025-01-21 18:27:27.164 | INFO     | __main__:&lt;module&gt;:2 - This is a colorful info log!
-2025-01-21T18:27:27.164738+0100 | INFO | This is a colorful info log!</code></pre>
+<pre><code>2025-01-22T13:24:13.065976+0100 | INFO | This is a colorful info log!
+2025-01-22 13:24:13.065 | INFO     | __main__:&lt;module&gt;:2 - This is a colorful info log!
+2025-01-22T13:24:13.065976+0100 | INFO | This is a colorful info log!</code></pre>
 </div>
 </div>
 </section>
 <section id="sending-logs-to-a-remote-server" class="level3">
 <h3 class="anchored" data-anchor-id="sending-logs-to-a-remote-server">Sending Logs to a Remote Server</h3>
 <p>You can use Loguru to send logs to a remote server via an API. Here’s a quick example using the <code>requests</code> library:</p>
-<div id="67780bf0" class="cell" data-execution_count="7">
+<div id="cb94b407" class="cell" data-execution_count="7">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> requests</span>
@@ -317,32 +315,32 @@ AttributeError: 'bool' object has no attribute 'tb_frame'
 <span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>logger.info(<span class="st">"This log will be sent to a remote server."</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>2025-01-21T18:27:27.173852+0100 | INFO | This log will be sent to a remote server.
-2025-01-21 18:27:27.173 | INFO     | __main__:&lt;module&gt;:11 - This log will be sent to a remote server.
-2025-01-21T18:27:27.173852+0100 | INFO | This log will be sent to a remote server.</code></pre>
+<pre><code>2025-01-22T13:24:13.138604+0100 | INFO | This log will be sent to a remote server.
+2025-01-22 13:24:13.138 | INFO     | __main__:&lt;module&gt;:11 - This log will be sent to a remote server.
+2025-01-22T13:24:13.138604+0100 | INFO | This log will be sent to a remote server.</code></pre>
 </div>
 </div>
 </section>
 <section id="saving-logs-to-a-file" class="level3">
 <h3 class="anchored" data-anchor-id="saving-logs-to-a-file">Saving Logs to a File</h3>
 <p>Loguru makes it easy to save logs to a file. You can specify the file path, rotation, and retention policies. Here’s an example:</p>
-<div id="8ee8fd09" class="cell" data-execution_count="8">
+<div id="67b25781" class="cell" data-execution_count="8">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>logger.add(<span class="st">"logs/app.log"</span>, rotation<span class="op">=</span><span class="st">"10 MB"</span>, retention<span class="op">=</span><span class="st">"30 days"</span>)</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>logger.info(<span class="st">"This log will be saved to a file."</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>2025-01-21T18:27:27.767079+0100 | INFO | This log will be saved to a file.
-2025-01-21 18:27:27.767 | INFO     | __main__:&lt;module&gt;:2 - This log will be saved to a file.
-2025-01-21T18:27:27.767079+0100 | INFO | This log will be saved to a file.</code></pre>
+<pre><code>2025-01-22T13:24:13.989268+0100 | INFO | This log will be saved to a file.
+2025-01-22 13:24:13.989 | INFO     | __main__:&lt;module&gt;:2 - This log will be saved to a file.
+2025-01-22T13:24:13.989268+0100 | INFO | This log will be saved to a file.</code></pre>
 </div>
 </div>
 </section>
 <section id="final-code" class="level3">
 <h3 class="anchored" data-anchor-id="final-code">Final Code</h3>
 <p>Here’s a complete example of a custom logger using Loguru, with advanced features like custom formatting, exception handling, and asynchronous logging:</p>
-<div id="9b2afe65" class="cell" data-execution_count="9">
+<div id="4448b371" class="cell" data-execution_count="9">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
@@ -549,7 +547,6 @@ AttributeError: 'bool' object has no attribute 'tb_frame'
 <p>Loguru simplifies logging in Python with its intuitive API and powerful features. Whether you need basic logging or advanced customization, Loguru has you covered. The final code provided demonstrates how to create a custom logger with Loguru, complete with custom formatting, exception handling, and asynchronous logging.</p>
 <!-- -->
 
-</section>
 </section>
 
 </main>
@@ -1035,335 +1032,333 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a><span class="co">    code-annotations: true</span></span>
 <span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
 <span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a><span class="fu">## Logging in Python with Loguru</span></span>
-<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>Logging is an essential part of any application, providing insights into its </span>
-<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>runtime behavior. Python's built-in <span class="in">`logging`</span> module is powerful but can be </span>
-<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>cumbersome to configure. Enter **Loguru**, a third-party logging library that </span>
-<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>simplifies logging with a more intuitive API and rich features.</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>Logging is an essential part of any application, providing insights into its </span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>runtime behavior. Python's built-in <span class="in">`logging`</span> module is powerful but can be </span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>cumbersome to configure. Enter **Loguru**, a third-party logging library that </span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>simplifies logging with a more intuitive API and rich features.</span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a><span class="fu">### Why Loguru?</span></span>
 <span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a><span class="fu">### Why Loguru?</span></span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>Loguru offers several advantages over the standard <span class="in">`logging`</span> module:</span>
 <span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>Loguru offers several advantages over the standard <span class="in">`logging`</span> module:</span>
-<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Simpler API**: No need for handlers, formatters, or loggers. Just import and log.</span>
-<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Rich Formatting**: Easily customize log formats with colors, timestamps, and more.</span>
-<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Exception Handling**: Automatically captures and logs exceptions with tracebacks.</span>
-<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Asynchronous Logging**: Supports asynchronous logging out of the box.</span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Simpler API**: No need for handlers, formatters, or loggers. Just import and log.</span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Rich Formatting**: Easily customize log formats with colors, timestamps, and more.</span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Exception Handling**: Automatically captures and logs exceptions with tracebacks.</span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Asynchronous Logging**: Supports asynchronous logging out of the box.</span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a><span class="fu">### Customizing Loguru</span></span>
 <span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a><span class="fu">### Customizing Loguru</span></span>
-<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a>Loguru allows you to customize the log format, level, and output destinations. </span>
-<span id="cb18-33"><a href="#cb18-33" aria-hidden="true" tabindex="-1"></a>Here's how to configure it:</span>
+<span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a>Loguru allows you to customize the log format, level, and output destinations. </span>
+<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a>Here's how to configure it:</span>
+<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-33"><a href="#cb18-33" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Custom Log Format</span></span>
 <span id="cb18-34"><a href="#cb18-34" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-35"><a href="#cb18-35" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Custom Log Format</span></span>
-<span id="cb18-36"><a href="#cb18-36" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-37"><a href="#cb18-37" aria-hidden="true" tabindex="-1"></a>You can define a custom format for your logs using Loguru's formatting syntax. </span>
-<span id="cb18-38"><a href="#cb18-38" aria-hidden="true" tabindex="-1"></a>For example, to include the log level, timestamp, and message:</span>
-<span id="cb18-39"><a href="#cb18-39" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-42"><a href="#cb18-42" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
-<span id="cb18-43"><a href="#cb18-43" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> loguru <span class="im">import</span> logger</span>
-<span id="cb18-44"><a href="#cb18-44" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
-<span id="cb18-45"><a href="#cb18-45" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-46"><a href="#cb18-46" aria-hidden="true" tabindex="-1"></a>logger.remove()  <span class="co"># Remove default handler</span></span>
-<span id="cb18-47"><a href="#cb18-47" aria-hidden="true" tabindex="-1"></a>logger.add(sys.stdout, <span class="bu">format</span><span class="op">=</span><span class="st">"</span><span class="sc">{time}</span><span class="st"> | </span><span class="sc">{level}</span><span class="st"> | </span><span class="sc">{message}</span><span class="st">"</span>)</span>
-<span id="cb18-48"><a href="#cb18-48" aria-hidden="true" tabindex="-1"></a>logger.info(<span class="st">"Custom format logging!"</span>)</span>
-<span id="cb18-49"><a href="#cb18-49" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-35"><a href="#cb18-35" aria-hidden="true" tabindex="-1"></a>You can define a custom format for your logs using Loguru's formatting syntax. </span>
+<span id="cb18-36"><a href="#cb18-36" aria-hidden="true" tabindex="-1"></a>For example, to include the log level, timestamp, and message:</span>
+<span id="cb18-37"><a href="#cb18-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-40"><a href="#cb18-40" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb18-41"><a href="#cb18-41" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> loguru <span class="im">import</span> logger</span>
+<span id="cb18-42"><a href="#cb18-42" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
+<span id="cb18-43"><a href="#cb18-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-44"><a href="#cb18-44" aria-hidden="true" tabindex="-1"></a>logger.remove()  <span class="co"># Remove default handler</span></span>
+<span id="cb18-45"><a href="#cb18-45" aria-hidden="true" tabindex="-1"></a>logger.add(sys.stdout, <span class="bu">format</span><span class="op">=</span><span class="st">"</span><span class="sc">{time}</span><span class="st"> | </span><span class="sc">{level}</span><span class="st"> | </span><span class="sc">{message}</span><span class="st">"</span>)</span>
+<span id="cb18-46"><a href="#cb18-46" aria-hidden="true" tabindex="-1"></a>logger.info(<span class="st">"Custom format logging!"</span>)</span>
+<span id="cb18-47"><a href="#cb18-47" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-48"><a href="#cb18-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-49"><a href="#cb18-49" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Log Levels</span></span>
 <span id="cb18-50"><a href="#cb18-50" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-51"><a href="#cb18-51" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Log Levels</span></span>
-<span id="cb18-52"><a href="#cb18-52" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-53"><a href="#cb18-53" aria-hidden="true" tabindex="-1"></a>Loguru supports the standard log levels: <span class="in">`TRACE`</span>, <span class="in">`DEBUG`</span>, <span class="in">`INFO`</span>, <span class="in">`WARNING`</span>, </span>
-<span id="cb18-54"><a href="#cb18-54" aria-hidden="true" tabindex="-1"></a><span class="in">`ERROR`</span>, and <span class="in">`CRITICAL`</span>. You can set the log level globally or per handler:</span>
-<span id="cb18-55"><a href="#cb18-55" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-58"><a href="#cb18-58" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
-<span id="cb18-59"><a href="#cb18-59" aria-hidden="true" tabindex="-1"></a>logger.add(sys.stdout, level<span class="op">=</span><span class="st">"DEBUG"</span>)</span>
-<span id="cb18-60"><a href="#cb18-60" aria-hidden="true" tabindex="-1"></a>logger.debug(<span class="st">"This is a debug message."</span>)</span>
-<span id="cb18-61"><a href="#cb18-61" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-51"><a href="#cb18-51" aria-hidden="true" tabindex="-1"></a>Loguru supports the standard log levels: <span class="in">`TRACE`</span>, <span class="in">`DEBUG`</span>, <span class="in">`INFO`</span>, <span class="in">`WARNING`</span>, </span>
+<span id="cb18-52"><a href="#cb18-52" aria-hidden="true" tabindex="-1"></a><span class="in">`ERROR`</span>, and <span class="in">`CRITICAL`</span>. You can set the log level globally or per handler:</span>
+<span id="cb18-53"><a href="#cb18-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-56"><a href="#cb18-56" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb18-57"><a href="#cb18-57" aria-hidden="true" tabindex="-1"></a>logger.add(sys.stdout, level<span class="op">=</span><span class="st">"DEBUG"</span>)</span>
+<span id="cb18-58"><a href="#cb18-58" aria-hidden="true" tabindex="-1"></a>logger.debug(<span class="st">"This is a debug message."</span>)</span>
+<span id="cb18-59"><a href="#cb18-59" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-60"><a href="#cb18-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-61"><a href="#cb18-61" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Adding Handlers</span></span>
 <span id="cb18-62"><a href="#cb18-62" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-63"><a href="#cb18-63" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Adding Handlers</span></span>
-<span id="cb18-64"><a href="#cb18-64" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-65"><a href="#cb18-65" aria-hidden="true" tabindex="-1"></a>You can add multiple handlers to log to different destinations, such as files, </span>
-<span id="cb18-66"><a href="#cb18-66" aria-hidden="true" tabindex="-1"></a>with different formats or levels:</span>
-<span id="cb18-67"><a href="#cb18-67" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-70"><a href="#cb18-70" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
-<span id="cb18-71"><a href="#cb18-71" aria-hidden="true" tabindex="-1"></a>logger.add(<span class="st">"file.log"</span>, level<span class="op">=</span><span class="st">"INFO"</span>, rotation<span class="op">=</span><span class="st">"10 MB"</span>)</span>
-<span id="cb18-72"><a href="#cb18-72" aria-hidden="true" tabindex="-1"></a>logger.info(<span class="st">"This log will go to both the console and a file."</span>)</span>
-<span id="cb18-73"><a href="#cb18-73" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-63"><a href="#cb18-63" aria-hidden="true" tabindex="-1"></a>You can add multiple handlers to log to different destinations, such as files, </span>
+<span id="cb18-64"><a href="#cb18-64" aria-hidden="true" tabindex="-1"></a>with different formats or levels:</span>
+<span id="cb18-65"><a href="#cb18-65" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-68"><a href="#cb18-68" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb18-69"><a href="#cb18-69" aria-hidden="true" tabindex="-1"></a>logger.add(<span class="st">"file.log"</span>, level<span class="op">=</span><span class="st">"INFO"</span>, rotation<span class="op">=</span><span class="st">"10 MB"</span>)</span>
+<span id="cb18-70"><a href="#cb18-70" aria-hidden="true" tabindex="-1"></a>logger.info(<span class="st">"This log will go to both the console and a file."</span>)</span>
+<span id="cb18-71"><a href="#cb18-71" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-72"><a href="#cb18-72" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-73"><a href="#cb18-73" aria-hidden="true" tabindex="-1"></a><span class="fu">### Advanced Features</span></span>
 <span id="cb18-74"><a href="#cb18-74" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-75"><a href="#cb18-75" aria-hidden="true" tabindex="-1"></a><span class="fu">### Advanced Features</span></span>
+<span id="cb18-75"><a href="#cb18-75" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Exception Logging</span></span>
 <span id="cb18-76"><a href="#cb18-76" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-77"><a href="#cb18-77" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Exception Logging</span></span>
-<span id="cb18-78"><a href="#cb18-78" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-79"><a href="#cb18-79" aria-hidden="true" tabindex="-1"></a>Loguru automatically captures exceptions and logs them with tracebacks. </span>
-<span id="cb18-80"><a href="#cb18-80" aria-hidden="true" tabindex="-1"></a>However, you can trim the traceback logs to make them more concise:</span>
-<span id="cb18-81"><a href="#cb18-81" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-84"><a href="#cb18-84" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
-<span id="cb18-85"><a href="#cb18-85" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
-<span id="cb18-86"><a href="#cb18-86" aria-hidden="true" tabindex="-1"></a>    <span class="dv">1</span> <span class="op">/</span> <span class="dv">0</span></span>
-<span id="cb18-87"><a href="#cb18-87" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> <span class="pp">ZeroDivisionError</span>:</span>
-<span id="cb18-88"><a href="#cb18-88" aria-hidden="true" tabindex="-1"></a>    logger.opt(exception<span class="op">=</span>(<span class="va">None</span>, <span class="va">False</span>, <span class="va">False</span>)).error(<span class="st">"An error occurred!"</span>)</span>
-<span id="cb18-89"><a href="#cb18-89" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-77"><a href="#cb18-77" aria-hidden="true" tabindex="-1"></a>Loguru automatically captures exceptions and logs them with tracebacks. </span>
+<span id="cb18-78"><a href="#cb18-78" aria-hidden="true" tabindex="-1"></a>However, you can trim the traceback logs to make them more concise:</span>
+<span id="cb18-79"><a href="#cb18-79" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-82"><a href="#cb18-82" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb18-83"><a href="#cb18-83" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
+<span id="cb18-84"><a href="#cb18-84" aria-hidden="true" tabindex="-1"></a>    <span class="dv">1</span> <span class="op">/</span> <span class="dv">0</span></span>
+<span id="cb18-85"><a href="#cb18-85" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> <span class="pp">ZeroDivisionError</span>:</span>
+<span id="cb18-86"><a href="#cb18-86" aria-hidden="true" tabindex="-1"></a>    logger.opt(exception<span class="op">=</span>(<span class="va">None</span>, <span class="va">False</span>, <span class="va">False</span>)).error(<span class="st">"An error occurred!"</span>)</span>
+<span id="cb18-87"><a href="#cb18-87" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-88"><a href="#cb18-88" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-89"><a href="#cb18-89" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Asynchronous Logging</span></span>
 <span id="cb18-90"><a href="#cb18-90" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-91"><a href="#cb18-91" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Asynchronous Logging</span></span>
-<span id="cb18-92"><a href="#cb18-92" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-93"><a href="#cb18-93" aria-hidden="true" tabindex="-1"></a>Loguru supports asynchronous logging, which can improve performance in </span>
-<span id="cb18-94"><a href="#cb18-94" aria-hidden="true" tabindex="-1"></a>I/O-bound applications:</span>
-<span id="cb18-95"><a href="#cb18-95" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-98"><a href="#cb18-98" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
-<span id="cb18-99"><a href="#cb18-99" aria-hidden="true" tabindex="-1"></a>logger.add(<span class="st">"async_log.log"</span>, enqueue<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb18-100"><a href="#cb18-100" aria-hidden="true" tabindex="-1"></a>logger.info(<span class="st">"This log is written asynchronously."</span>)</span>
-<span id="cb18-101"><a href="#cb18-101" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-91"><a href="#cb18-91" aria-hidden="true" tabindex="-1"></a>Loguru supports asynchronous logging, which can improve performance in </span>
+<span id="cb18-92"><a href="#cb18-92" aria-hidden="true" tabindex="-1"></a>I/O-bound applications:</span>
+<span id="cb18-93"><a href="#cb18-93" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-96"><a href="#cb18-96" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb18-97"><a href="#cb18-97" aria-hidden="true" tabindex="-1"></a>logger.add(<span class="st">"async_log.log"</span>, enqueue<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb18-98"><a href="#cb18-98" aria-hidden="true" tabindex="-1"></a>logger.info(<span class="st">"This log is written asynchronously."</span>)</span>
+<span id="cb18-99"><a href="#cb18-99" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-100"><a href="#cb18-100" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-101"><a href="#cb18-101" aria-hidden="true" tabindex="-1"></a><span class="fu">### Colorful Logs: Easier to Read</span></span>
 <span id="cb18-102"><a href="#cb18-102" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-103"><a href="#cb18-103" aria-hidden="true" tabindex="-1"></a><span class="fu">### Colorful Logs: Easier to Read</span></span>
-<span id="cb18-104"><a href="#cb18-104" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-105"><a href="#cb18-105" aria-hidden="true" tabindex="-1"></a>Colorful logs are not just visually appealing; they make logs easier to read </span>
-<span id="cb18-106"><a href="#cb18-106" aria-hidden="true" tabindex="-1"></a>and debug. Loguru supports colorized logs out of the box, allowing you to </span>
-<span id="cb18-107"><a href="#cb18-107" aria-hidden="true" tabindex="-1"></a>differentiate log levels at a glance. For example:</span>
-<span id="cb18-108"><a href="#cb18-108" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-111"><a href="#cb18-111" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
-<span id="cb18-112"><a href="#cb18-112" aria-hidden="true" tabindex="-1"></a>logger.add(sys.stdout, colorize<span class="op">=</span><span class="va">True</span>, <span class="bu">format</span><span class="op">=</span><span class="st">"&lt;green&gt;</span><span class="sc">{time}</span><span class="st">&lt;/green&gt; | &lt;level&gt;</span><span class="sc">{level}</span><span class="st">&lt;/level&gt; | &lt;cyan&gt;</span><span class="sc">{message}</span><span class="st">&lt;/cyan&gt;"</span>)</span>
-<span id="cb18-113"><a href="#cb18-113" aria-hidden="true" tabindex="-1"></a>logger.info(<span class="st">"This is a colorful info log!"</span>)</span>
-<span id="cb18-114"><a href="#cb18-114" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-103"><a href="#cb18-103" aria-hidden="true" tabindex="-1"></a>Colorful logs are not just visually appealing; they make logs easier to read </span>
+<span id="cb18-104"><a href="#cb18-104" aria-hidden="true" tabindex="-1"></a>and debug. Loguru supports colorized logs out of the box, allowing you to </span>
+<span id="cb18-105"><a href="#cb18-105" aria-hidden="true" tabindex="-1"></a>differentiate log levels at a glance. For example:</span>
+<span id="cb18-106"><a href="#cb18-106" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-109"><a href="#cb18-109" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb18-110"><a href="#cb18-110" aria-hidden="true" tabindex="-1"></a>logger.add(sys.stdout, colorize<span class="op">=</span><span class="va">True</span>, <span class="bu">format</span><span class="op">=</span><span class="st">"&lt;green&gt;</span><span class="sc">{time}</span><span class="st">&lt;/green&gt; | &lt;level&gt;</span><span class="sc">{level}</span><span class="st">&lt;/level&gt; | &lt;cyan&gt;</span><span class="sc">{message}</span><span class="st">&lt;/cyan&gt;"</span>)</span>
+<span id="cb18-111"><a href="#cb18-111" aria-hidden="true" tabindex="-1"></a>logger.info(<span class="st">"This is a colorful info log!"</span>)</span>
+<span id="cb18-112"><a href="#cb18-112" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-113"><a href="#cb18-113" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-114"><a href="#cb18-114" aria-hidden="true" tabindex="-1"></a><span class="fu">### Sending Logs to a Remote Server</span></span>
 <span id="cb18-115"><a href="#cb18-115" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-116"><a href="#cb18-116" aria-hidden="true" tabindex="-1"></a><span class="fu">### Sending Logs to a Remote Server</span></span>
-<span id="cb18-117"><a href="#cb18-117" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-118"><a href="#cb18-118" aria-hidden="true" tabindex="-1"></a>You can use Loguru to send logs to a remote server via an API. Here's a quick </span>
-<span id="cb18-119"><a href="#cb18-119" aria-hidden="true" tabindex="-1"></a>example using the <span class="in">`requests`</span> library:</span>
-<span id="cb18-120"><a href="#cb18-120" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-123"><a href="#cb18-123" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
-<span id="cb18-124"><a href="#cb18-124" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> requests</span>
-<span id="cb18-125"><a href="#cb18-125" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> loguru <span class="im">import</span> logger</span>
-<span id="cb18-126"><a href="#cb18-126" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-127"><a href="#cb18-127" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> send_log_to_server(message):</span>
-<span id="cb18-128"><a href="#cb18-128" aria-hidden="true" tabindex="-1"></a>    url <span class="op">=</span> <span class="st">"https://example.com/api/logs"</span></span>
-<span id="cb18-129"><a href="#cb18-129" aria-hidden="true" tabindex="-1"></a>    payload <span class="op">=</span> {<span class="st">"message"</span>: message}</span>
-<span id="cb18-130"><a href="#cb18-130" aria-hidden="true" tabindex="-1"></a>    response <span class="op">=</span> requests.post(url, json<span class="op">=</span>payload)</span>
-<span id="cb18-131"><a href="#cb18-131" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> response.status_code</span>
-<span id="cb18-132"><a href="#cb18-132" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-133"><a href="#cb18-133" aria-hidden="true" tabindex="-1"></a>logger.add(send_log_to_server, level<span class="op">=</span><span class="st">"INFO"</span>)</span>
-<span id="cb18-134"><a href="#cb18-134" aria-hidden="true" tabindex="-1"></a>logger.info(<span class="st">"This log will be sent to a remote server."</span>)</span>
-<span id="cb18-135"><a href="#cb18-135" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-116"><a href="#cb18-116" aria-hidden="true" tabindex="-1"></a>You can use Loguru to send logs to a remote server via an API. Here's a quick </span>
+<span id="cb18-117"><a href="#cb18-117" aria-hidden="true" tabindex="-1"></a>example using the <span class="in">`requests`</span> library:</span>
+<span id="cb18-118"><a href="#cb18-118" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-121"><a href="#cb18-121" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb18-122"><a href="#cb18-122" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> requests</span>
+<span id="cb18-123"><a href="#cb18-123" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> loguru <span class="im">import</span> logger</span>
+<span id="cb18-124"><a href="#cb18-124" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-125"><a href="#cb18-125" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> send_log_to_server(message):</span>
+<span id="cb18-126"><a href="#cb18-126" aria-hidden="true" tabindex="-1"></a>    url <span class="op">=</span> <span class="st">"https://example.com/api/logs"</span></span>
+<span id="cb18-127"><a href="#cb18-127" aria-hidden="true" tabindex="-1"></a>    payload <span class="op">=</span> {<span class="st">"message"</span>: message}</span>
+<span id="cb18-128"><a href="#cb18-128" aria-hidden="true" tabindex="-1"></a>    response <span class="op">=</span> requests.post(url, json<span class="op">=</span>payload)</span>
+<span id="cb18-129"><a href="#cb18-129" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> response.status_code</span>
+<span id="cb18-130"><a href="#cb18-130" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-131"><a href="#cb18-131" aria-hidden="true" tabindex="-1"></a>logger.add(send_log_to_server, level<span class="op">=</span><span class="st">"INFO"</span>)</span>
+<span id="cb18-132"><a href="#cb18-132" aria-hidden="true" tabindex="-1"></a>logger.info(<span class="st">"This log will be sent to a remote server."</span>)</span>
+<span id="cb18-133"><a href="#cb18-133" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-134"><a href="#cb18-134" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-135"><a href="#cb18-135" aria-hidden="true" tabindex="-1"></a><span class="fu">### Saving Logs to a File</span></span>
 <span id="cb18-136"><a href="#cb18-136" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-137"><a href="#cb18-137" aria-hidden="true" tabindex="-1"></a><span class="fu">### Saving Logs to a File</span></span>
-<span id="cb18-138"><a href="#cb18-138" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-139"><a href="#cb18-139" aria-hidden="true" tabindex="-1"></a>Loguru makes it easy to save logs to a file. You can specify the file path, </span>
-<span id="cb18-140"><a href="#cb18-140" aria-hidden="true" tabindex="-1"></a>rotation, and retention policies. Here's an example:</span>
-<span id="cb18-141"><a href="#cb18-141" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-144"><a href="#cb18-144" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
-<span id="cb18-145"><a href="#cb18-145" aria-hidden="true" tabindex="-1"></a>logger.add(<span class="st">"logs/app.log"</span>, rotation<span class="op">=</span><span class="st">"10 MB"</span>, retention<span class="op">=</span><span class="st">"30 days"</span>)</span>
-<span id="cb18-146"><a href="#cb18-146" aria-hidden="true" tabindex="-1"></a>logger.info(<span class="st">"This log will be saved to a file."</span>)</span>
-<span id="cb18-147"><a href="#cb18-147" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-137"><a href="#cb18-137" aria-hidden="true" tabindex="-1"></a>Loguru makes it easy to save logs to a file. You can specify the file path, </span>
+<span id="cb18-138"><a href="#cb18-138" aria-hidden="true" tabindex="-1"></a>rotation, and retention policies. Here's an example:</span>
+<span id="cb18-139"><a href="#cb18-139" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-142"><a href="#cb18-142" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb18-143"><a href="#cb18-143" aria-hidden="true" tabindex="-1"></a>logger.add(<span class="st">"logs/app.log"</span>, rotation<span class="op">=</span><span class="st">"10 MB"</span>, retention<span class="op">=</span><span class="st">"30 days"</span>)</span>
+<span id="cb18-144"><a href="#cb18-144" aria-hidden="true" tabindex="-1"></a>logger.info(<span class="st">"This log will be saved to a file."</span>)</span>
+<span id="cb18-145"><a href="#cb18-145" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-146"><a href="#cb18-146" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-147"><a href="#cb18-147" aria-hidden="true" tabindex="-1"></a><span class="fu">### Final Code</span></span>
 <span id="cb18-148"><a href="#cb18-148" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-149"><a href="#cb18-149" aria-hidden="true" tabindex="-1"></a><span class="fu">### Final Code</span></span>
-<span id="cb18-150"><a href="#cb18-150" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-151"><a href="#cb18-151" aria-hidden="true" tabindex="-1"></a>Here’s a complete example of a custom logger using Loguru, with advanced </span>
-<span id="cb18-152"><a href="#cb18-152" aria-hidden="true" tabindex="-1"></a>features like custom formatting, exception handling, and asynchronous logging:</span>
-<span id="cb18-153"><a href="#cb18-153" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-156"><a href="#cb18-156" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
-<span id="cb18-157"><a href="#cb18-157" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
-<span id="cb18-158"><a href="#cb18-158" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
-<span id="cb18-159"><a href="#cb18-159" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Any, NoReturn</span>
+<span id="cb18-149"><a href="#cb18-149" aria-hidden="true" tabindex="-1"></a>Here’s a complete example of a custom logger using Loguru, with advanced </span>
+<span id="cb18-150"><a href="#cb18-150" aria-hidden="true" tabindex="-1"></a>features like custom formatting, exception handling, and asynchronous logging:</span>
+<span id="cb18-151"><a href="#cb18-151" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-154"><a href="#cb18-154" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb18-155"><a href="#cb18-155" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb18-156"><a href="#cb18-156" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
+<span id="cb18-157"><a href="#cb18-157" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Any, NoReturn</span>
+<span id="cb18-158"><a href="#cb18-158" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-159"><a href="#cb18-159" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> loguru <span class="im">import</span> logger <span class="im">as</span> loguru_logger</span>
 <span id="cb18-160"><a href="#cb18-160" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-161"><a href="#cb18-161" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> loguru <span class="im">import</span> logger <span class="im">as</span> loguru_logger</span>
-<span id="cb18-162"><a href="#cb18-162" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-163"><a href="#cb18-163" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-164"><a href="#cb18-164" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> format_record(record: Any) <span class="op">-&gt;</span> <span class="bu">str</span>:</span>
-<span id="cb18-165"><a href="#cb18-165" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
-<span id="cb18-166"><a href="#cb18-166" aria-hidden="true" tabindex="-1"></a><span class="co">    Format the log record.</span></span>
-<span id="cb18-167"><a href="#cb18-167" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-168"><a href="#cb18-168" aria-hidden="true" tabindex="-1"></a><span class="co">    Parameters</span></span>
-<span id="cb18-169"><a href="#cb18-169" aria-hidden="true" tabindex="-1"></a><span class="co">    ----------</span></span>
-<span id="cb18-170"><a href="#cb18-170" aria-hidden="true" tabindex="-1"></a><span class="co">    record : Any</span></span>
-<span id="cb18-171"><a href="#cb18-171" aria-hidden="true" tabindex="-1"></a><span class="co">        The log record.</span></span>
-<span id="cb18-172"><a href="#cb18-172" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-173"><a href="#cb18-173" aria-hidden="true" tabindex="-1"></a><span class="co">    Returns</span></span>
-<span id="cb18-174"><a href="#cb18-174" aria-hidden="true" tabindex="-1"></a><span class="co">    -------</span></span>
-<span id="cb18-175"><a href="#cb18-175" aria-hidden="true" tabindex="-1"></a><span class="co">    str</span></span>
-<span id="cb18-176"><a href="#cb18-176" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
-<span id="cb18-177"><a href="#cb18-177" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Precompute the level name with the colon</span></span>
-<span id="cb18-178"><a href="#cb18-178" aria-hidden="true" tabindex="-1"></a>    level_with_colon <span class="op">=</span> <span class="ss">f"</span><span class="sc">{</span>record[<span class="st">'level'</span>]<span class="sc">.</span>name<span class="sc">}</span><span class="ss">:"</span></span>
-<span id="cb18-179"><a href="#cb18-179" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-180"><a href="#cb18-180" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Format the message</span></span>
-<span id="cb18-181"><a href="#cb18-181" aria-hidden="true" tabindex="-1"></a>    msg <span class="op">=</span> <span class="ss">f"&lt;level&gt;</span><span class="sc">{</span>level_with_colon<span class="sc">:&lt;9}</span><span class="ss">&lt;/level&gt; "</span></span>
-<span id="cb18-182"><a href="#cb18-182" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> record[<span class="st">"level"</span>].name <span class="kw">in</span> [<span class="st">"TRACE"</span>, <span class="st">"INFO"</span>, <span class="st">"ERROR"</span>]:</span>
-<span id="cb18-183"><a href="#cb18-183" aria-hidden="true" tabindex="-1"></a>        msg <span class="op">+=</span> <span class="ss">f"&lt;italic&gt;</span><span class="sc">{</span>record[<span class="st">'time'</span>]<span class="sc">:</span>DD<span class="op">/</span>MMM<span class="op">/</span>YY HH<span class="sc">:</span>mm<span class="sc">:</span>ss<span class="sc">.</span>SSS<span class="sc">}</span><span class="ss">&lt;/italic&gt; - "</span></span>
-<span id="cb18-184"><a href="#cb18-184" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-185"><a href="#cb18-185" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> record[<span class="st">"level"</span>].name <span class="kw">in</span> [<span class="st">"TRACE"</span>, <span class="st">"DEBUG"</span>, <span class="st">"WARNING"</span>]:</span>
-<span id="cb18-186"><a href="#cb18-186" aria-hidden="true" tabindex="-1"></a>        msg <span class="op">+=</span> <span class="ss">f"&lt;underline&gt;</span><span class="sc">{</span>record[<span class="st">'name'</span>]<span class="sc">}</span><span class="ss">:</span><span class="sc">{</span>record[<span class="st">'line'</span>]<span class="sc">}</span><span class="ss">&lt;/underline&gt; - "</span></span>
-<span id="cb18-187"><a href="#cb18-187" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-188"><a href="#cb18-188" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Use the color tags specified in your level definitions</span></span>
-<span id="cb18-189"><a href="#cb18-189" aria-hidden="true" tabindex="-1"></a>    color_tags <span class="op">=</span> {</span>
-<span id="cb18-190"><a href="#cb18-190" aria-hidden="true" tabindex="-1"></a>        <span class="st">"TRACE"</span>: <span class="st">"cyan"</span>,</span>
-<span id="cb18-191"><a href="#cb18-191" aria-hidden="true" tabindex="-1"></a>        <span class="st">"DEBUG"</span>: <span class="st">"blue"</span>,</span>
-<span id="cb18-192"><a href="#cb18-192" aria-hidden="true" tabindex="-1"></a>        <span class="st">"INFO"</span>: <span class="st">"green"</span>,</span>
-<span id="cb18-193"><a href="#cb18-193" aria-hidden="true" tabindex="-1"></a>        <span class="st">"WARNING"</span>: <span class="st">"magenta"</span>,</span>
-<span id="cb18-194"><a href="#cb18-194" aria-hidden="true" tabindex="-1"></a>        <span class="st">"ERROR"</span>: <span class="st">"yellow"</span>,</span>
-<span id="cb18-195"><a href="#cb18-195" aria-hidden="true" tabindex="-1"></a>        <span class="st">"CRITICAL"</span>: <span class="st">"red"</span>,</span>
-<span id="cb18-196"><a href="#cb18-196" aria-hidden="true" tabindex="-1"></a>    }</span>
-<span id="cb18-197"><a href="#cb18-197" aria-hidden="true" tabindex="-1"></a>    color_tag <span class="op">=</span> color_tags.get(record[<span class="st">"level"</span>].name, <span class="st">""</span>)</span>
+<span id="cb18-161"><a href="#cb18-161" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-162"><a href="#cb18-162" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> format_record(record: Any) <span class="op">-&gt;</span> <span class="bu">str</span>:</span>
+<span id="cb18-163"><a href="#cb18-163" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
+<span id="cb18-164"><a href="#cb18-164" aria-hidden="true" tabindex="-1"></a><span class="co">    Format the log record.</span></span>
+<span id="cb18-165"><a href="#cb18-165" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-166"><a href="#cb18-166" aria-hidden="true" tabindex="-1"></a><span class="co">    Parameters</span></span>
+<span id="cb18-167"><a href="#cb18-167" aria-hidden="true" tabindex="-1"></a><span class="co">    ----------</span></span>
+<span id="cb18-168"><a href="#cb18-168" aria-hidden="true" tabindex="-1"></a><span class="co">    record : Any</span></span>
+<span id="cb18-169"><a href="#cb18-169" aria-hidden="true" tabindex="-1"></a><span class="co">        The log record.</span></span>
+<span id="cb18-170"><a href="#cb18-170" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-171"><a href="#cb18-171" aria-hidden="true" tabindex="-1"></a><span class="co">    Returns</span></span>
+<span id="cb18-172"><a href="#cb18-172" aria-hidden="true" tabindex="-1"></a><span class="co">    -------</span></span>
+<span id="cb18-173"><a href="#cb18-173" aria-hidden="true" tabindex="-1"></a><span class="co">    str</span></span>
+<span id="cb18-174"><a href="#cb18-174" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
+<span id="cb18-175"><a href="#cb18-175" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Precompute the level name with the colon</span></span>
+<span id="cb18-176"><a href="#cb18-176" aria-hidden="true" tabindex="-1"></a>    level_with_colon <span class="op">=</span> <span class="ss">f"</span><span class="sc">{</span>record[<span class="st">'level'</span>]<span class="sc">.</span>name<span class="sc">}</span><span class="ss">:"</span></span>
+<span id="cb18-177"><a href="#cb18-177" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-178"><a href="#cb18-178" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Format the message</span></span>
+<span id="cb18-179"><a href="#cb18-179" aria-hidden="true" tabindex="-1"></a>    msg <span class="op">=</span> <span class="ss">f"&lt;level&gt;</span><span class="sc">{</span>level_with_colon<span class="sc">:&lt;9}</span><span class="ss">&lt;/level&gt; "</span></span>
+<span id="cb18-180"><a href="#cb18-180" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> record[<span class="st">"level"</span>].name <span class="kw">in</span> [<span class="st">"TRACE"</span>, <span class="st">"INFO"</span>, <span class="st">"ERROR"</span>]:</span>
+<span id="cb18-181"><a href="#cb18-181" aria-hidden="true" tabindex="-1"></a>        msg <span class="op">+=</span> <span class="ss">f"&lt;italic&gt;</span><span class="sc">{</span>record[<span class="st">'time'</span>]<span class="sc">:</span>DD<span class="op">/</span>MMM<span class="op">/</span>YY HH<span class="sc">:</span>mm<span class="sc">:</span>ss<span class="sc">.</span>SSS<span class="sc">}</span><span class="ss">&lt;/italic&gt; - "</span></span>
+<span id="cb18-182"><a href="#cb18-182" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-183"><a href="#cb18-183" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> record[<span class="st">"level"</span>].name <span class="kw">in</span> [<span class="st">"TRACE"</span>, <span class="st">"DEBUG"</span>, <span class="st">"WARNING"</span>]:</span>
+<span id="cb18-184"><a href="#cb18-184" aria-hidden="true" tabindex="-1"></a>        msg <span class="op">+=</span> <span class="ss">f"&lt;underline&gt;</span><span class="sc">{</span>record[<span class="st">'name'</span>]<span class="sc">}</span><span class="ss">:</span><span class="sc">{</span>record[<span class="st">'line'</span>]<span class="sc">}</span><span class="ss">&lt;/underline&gt; - "</span></span>
+<span id="cb18-185"><a href="#cb18-185" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-186"><a href="#cb18-186" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Use the color tags specified in your level definitions</span></span>
+<span id="cb18-187"><a href="#cb18-187" aria-hidden="true" tabindex="-1"></a>    color_tags <span class="op">=</span> {</span>
+<span id="cb18-188"><a href="#cb18-188" aria-hidden="true" tabindex="-1"></a>        <span class="st">"TRACE"</span>: <span class="st">"cyan"</span>,</span>
+<span id="cb18-189"><a href="#cb18-189" aria-hidden="true" tabindex="-1"></a>        <span class="st">"DEBUG"</span>: <span class="st">"blue"</span>,</span>
+<span id="cb18-190"><a href="#cb18-190" aria-hidden="true" tabindex="-1"></a>        <span class="st">"INFO"</span>: <span class="st">"green"</span>,</span>
+<span id="cb18-191"><a href="#cb18-191" aria-hidden="true" tabindex="-1"></a>        <span class="st">"WARNING"</span>: <span class="st">"magenta"</span>,</span>
+<span id="cb18-192"><a href="#cb18-192" aria-hidden="true" tabindex="-1"></a>        <span class="st">"ERROR"</span>: <span class="st">"yellow"</span>,</span>
+<span id="cb18-193"><a href="#cb18-193" aria-hidden="true" tabindex="-1"></a>        <span class="st">"CRITICAL"</span>: <span class="st">"red"</span>,</span>
+<span id="cb18-194"><a href="#cb18-194" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb18-195"><a href="#cb18-195" aria-hidden="true" tabindex="-1"></a>    color_tag <span class="op">=</span> color_tags.get(record[<span class="st">"level"</span>].name, <span class="st">""</span>)</span>
+<span id="cb18-196"><a href="#cb18-196" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-197"><a href="#cb18-197" aria-hidden="true" tabindex="-1"></a>    msg <span class="op">+=</span> <span class="ss">f"&lt;</span><span class="sc">{</span>color_tag<span class="sc">}</span><span class="ss">&gt;</span><span class="sc">{</span>record[<span class="st">'message'</span>]<span class="sc">}</span><span class="ss">&lt;/</span><span class="sc">{</span>color_tag<span class="sc">}</span><span class="ss">&gt;</span><span class="ch">\n</span><span class="ss">"</span></span>
 <span id="cb18-198"><a href="#cb18-198" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-199"><a href="#cb18-199" aria-hidden="true" tabindex="-1"></a>    msg <span class="op">+=</span> <span class="ss">f"&lt;</span><span class="sc">{</span>color_tag<span class="sc">}</span><span class="ss">&gt;</span><span class="sc">{</span>record[<span class="st">'message'</span>]<span class="sc">}</span><span class="ss">&lt;/</span><span class="sc">{</span>color_tag<span class="sc">}</span><span class="ss">&gt;</span><span class="ch">\n</span><span class="ss">"</span></span>
+<span id="cb18-199"><a href="#cb18-199" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> msg</span>
 <span id="cb18-200"><a href="#cb18-200" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-201"><a href="#cb18-201" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> msg</span>
-<span id="cb18-202"><a href="#cb18-202" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-203"><a href="#cb18-203" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-204"><a href="#cb18-204" aria-hidden="true" tabindex="-1"></a>loguru_logger.remove() </span>
-<span id="cb18-205"><a href="#cb18-205" aria-hidden="true" tabindex="-1"></a>loguru_logger.add(</span>
-<span id="cb18-206"><a href="#cb18-206" aria-hidden="true" tabindex="-1"></a>    sys.stdout,</span>
-<span id="cb18-207"><a href="#cb18-207" aria-hidden="true" tabindex="-1"></a>    <span class="bu">format</span><span class="op">=</span>format_record,</span>
-<span id="cb18-208"><a href="#cb18-208" aria-hidden="true" tabindex="-1"></a>    level<span class="op">=</span>os.getenv(<span class="st">"LOG_LEVEL"</span>, <span class="st">"INFO"</span>),</span>
-<span id="cb18-209"><a href="#cb18-209" aria-hidden="true" tabindex="-1"></a>    colorize<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb18-210"><a href="#cb18-210" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb18-211"><a href="#cb18-211" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-212"><a href="#cb18-212" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-213"><a href="#cb18-213" aria-hidden="true" tabindex="-1"></a>loguru_logger.level(<span class="st">"TRACE"</span>, color<span class="op">=</span><span class="st">"&lt;cyan&gt;"</span>)</span>
-<span id="cb18-214"><a href="#cb18-214" aria-hidden="true" tabindex="-1"></a>loguru_logger.level(<span class="st">"DEBUG"</span>, color<span class="op">=</span><span class="st">"&lt;blue&gt;"</span>)</span>
-<span id="cb18-215"><a href="#cb18-215" aria-hidden="true" tabindex="-1"></a>loguru_logger.level(<span class="st">"INFO"</span>, color<span class="op">=</span><span class="st">"&lt;green&gt;"</span>)</span>
-<span id="cb18-216"><a href="#cb18-216" aria-hidden="true" tabindex="-1"></a>loguru_logger.level(<span class="st">"WARNING"</span>, color<span class="op">=</span><span class="st">"&lt;magenta&gt;"</span>)</span>
-<span id="cb18-217"><a href="#cb18-217" aria-hidden="true" tabindex="-1"></a>loguru_logger.level(<span class="st">"ERROR"</span>, color<span class="op">=</span><span class="st">"&lt;yellow&gt;"</span>)</span>
-<span id="cb18-218"><a href="#cb18-218" aria-hidden="true" tabindex="-1"></a>loguru_logger.level(<span class="st">"CRITICAL"</span>, color<span class="op">=</span><span class="st">"&lt;red&gt;"</span>)</span>
-<span id="cb18-219"><a href="#cb18-219" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-220"><a href="#cb18-220" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-221"><a href="#cb18-221" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> FancyLogError(<span class="pp">Exception</span>):</span>
-<span id="cb18-222"><a href="#cb18-222" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Exception from FancyLogger."""</span></span>
-<span id="cb18-223"><a href="#cb18-223" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-224"><a href="#cb18-224" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-225"><a href="#cb18-225" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> FancyLogger:</span>
-<span id="cb18-226"><a href="#cb18-226" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""A example of a Fancy."""</span></span>
-<span id="cb18-227"><a href="#cb18-227" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-228"><a href="#cb18-228" aria-hidden="true" tabindex="-1"></a>    <span class="at">@staticmethod</span></span>
-<span id="cb18-229"><a href="#cb18-229" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> trace(<span class="op">*</span>args: <span class="bu">object</span>, <span class="op">**</span>kwargs: <span class="bu">object</span>) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
-<span id="cb18-230"><a href="#cb18-230" aria-hidden="true" tabindex="-1"></a>        <span class="co">"""</span></span>
-<span id="cb18-231"><a href="#cb18-231" aria-hidden="true" tabindex="-1"></a><span class="co">        Log a trace message, with file, line and date-time.</span></span>
-<span id="cb18-232"><a href="#cb18-232" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-233"><a href="#cb18-233" aria-hidden="true" tabindex="-1"></a><span class="co">        Parameters</span></span>
-<span id="cb18-234"><a href="#cb18-234" aria-hidden="true" tabindex="-1"></a><span class="co">        ----------</span></span>
-<span id="cb18-235"><a href="#cb18-235" aria-hidden="true" tabindex="-1"></a><span class="co">        *args: object</span></span>
-<span id="cb18-236"><a href="#cb18-236" aria-hidden="true" tabindex="-1"></a><span class="co">            The message(s) to log.</span></span>
-<span id="cb18-237"><a href="#cb18-237" aria-hidden="true" tabindex="-1"></a><span class="co">        **kwargs: object</span></span>
-<span id="cb18-238"><a href="#cb18-238" aria-hidden="true" tabindex="-1"></a><span class="co">            The kwargs sent to loguru.</span></span>
-<span id="cb18-239"><a href="#cb18-239" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-240"><a href="#cb18-240" aria-hidden="true" tabindex="-1"></a><span class="co">        Returns</span></span>
-<span id="cb18-241"><a href="#cb18-241" aria-hidden="true" tabindex="-1"></a><span class="co">        -------</span></span>
-<span id="cb18-242"><a href="#cb18-242" aria-hidden="true" tabindex="-1"></a><span class="co">        None</span></span>
-<span id="cb18-243"><a href="#cb18-243" aria-hidden="true" tabindex="-1"></a><span class="co">        """</span></span>
-<span id="cb18-244"><a href="#cb18-244" aria-hidden="true" tabindex="-1"></a>        msg <span class="op">=</span> <span class="st">" "</span>.join(<span class="bu">map</span>(<span class="bu">str</span>, args))</span>
-<span id="cb18-245"><a href="#cb18-245" aria-hidden="true" tabindex="-1"></a>        loguru_logger.opt(depth<span class="op">=</span><span class="dv">1</span>).trace(msg, <span class="op">**</span>kwargs)</span>
-<span id="cb18-246"><a href="#cb18-246" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-247"><a href="#cb18-247" aria-hidden="true" tabindex="-1"></a>    <span class="at">@staticmethod</span></span>
-<span id="cb18-248"><a href="#cb18-248" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> debug(<span class="op">*</span>args: <span class="bu">object</span>, <span class="op">**</span>kwargs: <span class="bu">object</span>) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
-<span id="cb18-249"><a href="#cb18-249" aria-hidden="true" tabindex="-1"></a>        <span class="co">"""</span></span>
-<span id="cb18-250"><a href="#cb18-250" aria-hidden="true" tabindex="-1"></a><span class="co">        Log a debug message, with file and line.</span></span>
-<span id="cb18-251"><a href="#cb18-251" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-252"><a href="#cb18-252" aria-hidden="true" tabindex="-1"></a><span class="co">        Parameters</span></span>
-<span id="cb18-253"><a href="#cb18-253" aria-hidden="true" tabindex="-1"></a><span class="co">        ----------</span></span>
-<span id="cb18-254"><a href="#cb18-254" aria-hidden="true" tabindex="-1"></a><span class="co">        *args: object</span></span>
-<span id="cb18-255"><a href="#cb18-255" aria-hidden="true" tabindex="-1"></a><span class="co">            The message(s) to log.</span></span>
-<span id="cb18-256"><a href="#cb18-256" aria-hidden="true" tabindex="-1"></a><span class="co">        **kwargs: object</span></span>
-<span id="cb18-257"><a href="#cb18-257" aria-hidden="true" tabindex="-1"></a><span class="co">            The kwargs sent to loguru.</span></span>
-<span id="cb18-258"><a href="#cb18-258" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-259"><a href="#cb18-259" aria-hidden="true" tabindex="-1"></a><span class="co">        Returns</span></span>
-<span id="cb18-260"><a href="#cb18-260" aria-hidden="true" tabindex="-1"></a><span class="co">        -------</span></span>
-<span id="cb18-261"><a href="#cb18-261" aria-hidden="true" tabindex="-1"></a><span class="co">        None</span></span>
-<span id="cb18-262"><a href="#cb18-262" aria-hidden="true" tabindex="-1"></a><span class="co">        """</span></span>
-<span id="cb18-263"><a href="#cb18-263" aria-hidden="true" tabindex="-1"></a>        msg <span class="op">=</span> <span class="st">" "</span>.join(<span class="bu">map</span>(<span class="bu">str</span>, args))</span>
-<span id="cb18-264"><a href="#cb18-264" aria-hidden="true" tabindex="-1"></a>        loguru_logger.opt(depth<span class="op">=</span><span class="dv">1</span>).debug(msg, <span class="op">**</span>kwargs)</span>
-<span id="cb18-265"><a href="#cb18-265" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-266"><a href="#cb18-266" aria-hidden="true" tabindex="-1"></a>    <span class="at">@staticmethod</span></span>
-<span id="cb18-267"><a href="#cb18-267" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> info(<span class="op">*</span>args: <span class="bu">object</span>, <span class="op">**</span>kwargs: <span class="bu">object</span>) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
-<span id="cb18-268"><a href="#cb18-268" aria-hidden="true" tabindex="-1"></a>        <span class="co">"""</span></span>
-<span id="cb18-269"><a href="#cb18-269" aria-hidden="true" tabindex="-1"></a><span class="co">        Log a info message, with date-time.</span></span>
-<span id="cb18-270"><a href="#cb18-270" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-271"><a href="#cb18-271" aria-hidden="true" tabindex="-1"></a><span class="co">        Parameters</span></span>
-<span id="cb18-272"><a href="#cb18-272" aria-hidden="true" tabindex="-1"></a><span class="co">        ----------</span></span>
-<span id="cb18-273"><a href="#cb18-273" aria-hidden="true" tabindex="-1"></a><span class="co">        *args: object</span></span>
-<span id="cb18-274"><a href="#cb18-274" aria-hidden="true" tabindex="-1"></a><span class="co">            The message(s) to log.</span></span>
-<span id="cb18-275"><a href="#cb18-275" aria-hidden="true" tabindex="-1"></a><span class="co">        **kwargs: object</span></span>
-<span id="cb18-276"><a href="#cb18-276" aria-hidden="true" tabindex="-1"></a><span class="co">            The kwargs sent to loguru.</span></span>
-<span id="cb18-277"><a href="#cb18-277" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-278"><a href="#cb18-278" aria-hidden="true" tabindex="-1"></a><span class="co">        Returns</span></span>
-<span id="cb18-279"><a href="#cb18-279" aria-hidden="true" tabindex="-1"></a><span class="co">        -------</span></span>
-<span id="cb18-280"><a href="#cb18-280" aria-hidden="true" tabindex="-1"></a><span class="co">        None</span></span>
-<span id="cb18-281"><a href="#cb18-281" aria-hidden="true" tabindex="-1"></a><span class="co">        """</span></span>
-<span id="cb18-282"><a href="#cb18-282" aria-hidden="true" tabindex="-1"></a>        msg <span class="op">=</span> <span class="st">" "</span>.join(<span class="bu">map</span>(<span class="bu">str</span>, args))</span>
-<span id="cb18-283"><a href="#cb18-283" aria-hidden="true" tabindex="-1"></a>        loguru_logger.info(msg, <span class="op">**</span>kwargs)</span>
-<span id="cb18-284"><a href="#cb18-284" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-285"><a href="#cb18-285" aria-hidden="true" tabindex="-1"></a>    <span class="at">@staticmethod</span></span>
-<span id="cb18-286"><a href="#cb18-286" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> warning(<span class="op">*</span>args: <span class="bu">object</span>, <span class="op">**</span>kwargs: <span class="bu">object</span>) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
-<span id="cb18-287"><a href="#cb18-287" aria-hidden="true" tabindex="-1"></a>        <span class="co">"""</span></span>
-<span id="cb18-288"><a href="#cb18-288" aria-hidden="true" tabindex="-1"></a><span class="co">        Log a warning message, with line and file.</span></span>
-<span id="cb18-289"><a href="#cb18-289" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-290"><a href="#cb18-290" aria-hidden="true" tabindex="-1"></a><span class="co">        Parameters</span></span>
-<span id="cb18-291"><a href="#cb18-291" aria-hidden="true" tabindex="-1"></a><span class="co">        ----------</span></span>
-<span id="cb18-292"><a href="#cb18-292" aria-hidden="true" tabindex="-1"></a><span class="co">        *args: object</span></span>
-<span id="cb18-293"><a href="#cb18-293" aria-hidden="true" tabindex="-1"></a><span class="co">            The message(s) to log.</span></span>
-<span id="cb18-294"><a href="#cb18-294" aria-hidden="true" tabindex="-1"></a><span class="co">        **kwargs: object</span></span>
-<span id="cb18-295"><a href="#cb18-295" aria-hidden="true" tabindex="-1"></a><span class="co">            The kwargs sent to loguru.</span></span>
-<span id="cb18-296"><a href="#cb18-296" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-297"><a href="#cb18-297" aria-hidden="true" tabindex="-1"></a><span class="co">        Returns</span></span>
-<span id="cb18-298"><a href="#cb18-298" aria-hidden="true" tabindex="-1"></a><span class="co">        -------</span></span>
-<span id="cb18-299"><a href="#cb18-299" aria-hidden="true" tabindex="-1"></a><span class="co">        None</span></span>
-<span id="cb18-300"><a href="#cb18-300" aria-hidden="true" tabindex="-1"></a><span class="co">        """</span></span>
-<span id="cb18-301"><a href="#cb18-301" aria-hidden="true" tabindex="-1"></a>        msg <span class="op">=</span> <span class="st">" "</span>.join(<span class="bu">map</span>(<span class="bu">str</span>, args))</span>
-<span id="cb18-302"><a href="#cb18-302" aria-hidden="true" tabindex="-1"></a>        loguru_logger.opt(depth<span class="op">=</span><span class="dv">1</span>).warning(msg, <span class="op">**</span>kwargs)</span>
-<span id="cb18-303"><a href="#cb18-303" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-304"><a href="#cb18-304" aria-hidden="true" tabindex="-1"></a>    <span class="at">@staticmethod</span></span>
-<span id="cb18-305"><a href="#cb18-305" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> error(<span class="op">*</span>args: <span class="bu">object</span>, <span class="op">**</span>kwargs: <span class="bu">object</span>) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
-<span id="cb18-306"><a href="#cb18-306" aria-hidden="true" tabindex="-1"></a>        <span class="co">"""</span></span>
-<span id="cb18-307"><a href="#cb18-307" aria-hidden="true" tabindex="-1"></a><span class="co">        Log an error message and raises an exception, with date-time.</span></span>
-<span id="cb18-308"><a href="#cb18-308" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-309"><a href="#cb18-309" aria-hidden="true" tabindex="-1"></a><span class="co">        Parameters</span></span>
-<span id="cb18-310"><a href="#cb18-310" aria-hidden="true" tabindex="-1"></a><span class="co">        ----------</span></span>
-<span id="cb18-311"><a href="#cb18-311" aria-hidden="true" tabindex="-1"></a><span class="co">        *args: object</span></span>
-<span id="cb18-312"><a href="#cb18-312" aria-hidden="true" tabindex="-1"></a><span class="co">            The message(s) to log.</span></span>
-<span id="cb18-313"><a href="#cb18-313" aria-hidden="true" tabindex="-1"></a><span class="co">        **kwargs: object</span></span>
-<span id="cb18-314"><a href="#cb18-314" aria-hidden="true" tabindex="-1"></a><span class="co">            The kwargs sent to loguru.</span></span>
-<span id="cb18-315"><a href="#cb18-315" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-316"><a href="#cb18-316" aria-hidden="true" tabindex="-1"></a><span class="co">        Returns</span></span>
-<span id="cb18-317"><a href="#cb18-317" aria-hidden="true" tabindex="-1"></a><span class="co">        -------</span></span>
-<span id="cb18-318"><a href="#cb18-318" aria-hidden="true" tabindex="-1"></a><span class="co">        None</span></span>
-<span id="cb18-319"><a href="#cb18-319" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-320"><a href="#cb18-320" aria-hidden="true" tabindex="-1"></a><span class="co">        Raises</span></span>
-<span id="cb18-321"><a href="#cb18-321" aria-hidden="true" tabindex="-1"></a><span class="co">        ------</span></span>
-<span id="cb18-322"><a href="#cb18-322" aria-hidden="true" tabindex="-1"></a><span class="co">        FancyLogError</span></span>
-<span id="cb18-323"><a href="#cb18-323" aria-hidden="true" tabindex="-1"></a><span class="co">        """</span></span>
-<span id="cb18-324"><a href="#cb18-324" aria-hidden="true" tabindex="-1"></a>        <span class="im">import</span> traceback</span>
-<span id="cb18-325"><a href="#cb18-325" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-326"><a href="#cb18-326" aria-hidden="true" tabindex="-1"></a>        msg <span class="op">=</span> <span class="st">" "</span>.join(<span class="bu">map</span>(<span class="bu">str</span>, args))</span>
-<span id="cb18-327"><a href="#cb18-327" aria-hidden="true" tabindex="-1"></a>        loguru_logger.error(msg, <span class="op">**</span>kwargs)</span>
-<span id="cb18-328"><a href="#cb18-328" aria-hidden="true" tabindex="-1"></a>        traceback.print_exc()</span>
-<span id="cb18-329"><a href="#cb18-329" aria-hidden="true" tabindex="-1"></a>        <span class="cf">raise</span> FancyLogError</span>
-<span id="cb18-330"><a href="#cb18-330" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-331"><a href="#cb18-331" aria-hidden="true" tabindex="-1"></a>    <span class="at">@staticmethod</span></span>
-<span id="cb18-332"><a href="#cb18-332" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> critical(<span class="op">*</span>args: <span class="bu">object</span>, <span class="op">**</span>kwargs: <span class="bu">object</span>) <span class="op">-&gt;</span> NoReturn:</span>
-<span id="cb18-333"><a href="#cb18-333" aria-hidden="true" tabindex="-1"></a>        <span class="co">"""</span></span>
-<span id="cb18-334"><a href="#cb18-334" aria-hidden="true" tabindex="-1"></a><span class="co">        Log a critical message and exits with code 1.</span></span>
-<span id="cb18-335"><a href="#cb18-335" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-336"><a href="#cb18-336" aria-hidden="true" tabindex="-1"></a><span class="co">        Parameters</span></span>
-<span id="cb18-337"><a href="#cb18-337" aria-hidden="true" tabindex="-1"></a><span class="co">        ----------</span></span>
-<span id="cb18-338"><a href="#cb18-338" aria-hidden="true" tabindex="-1"></a><span class="co">        *args: object</span></span>
-<span id="cb18-339"><a href="#cb18-339" aria-hidden="true" tabindex="-1"></a><span class="co">            The message(s) to log.</span></span>
-<span id="cb18-340"><a href="#cb18-340" aria-hidden="true" tabindex="-1"></a><span class="co">        **kwargs: object</span></span>
-<span id="cb18-341"><a href="#cb18-341" aria-hidden="true" tabindex="-1"></a><span class="co">            The kwargs sent to loguru.</span></span>
-<span id="cb18-342"><a href="#cb18-342" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-343"><a href="#cb18-343" aria-hidden="true" tabindex="-1"></a><span class="co">        Returns</span></span>
-<span id="cb18-344"><a href="#cb18-344" aria-hidden="true" tabindex="-1"></a><span class="co">        -------</span></span>
-<span id="cb18-345"><a href="#cb18-345" aria-hidden="true" tabindex="-1"></a><span class="co">        NoReturn</span></span>
-<span id="cb18-346"><a href="#cb18-346" aria-hidden="true" tabindex="-1"></a><span class="co">        """</span></span>
-<span id="cb18-347"><a href="#cb18-347" aria-hidden="true" tabindex="-1"></a>        msg <span class="op">=</span> <span class="st">" "</span>.join(<span class="bu">map</span>(<span class="bu">str</span>, args))</span>
-<span id="cb18-348"><a href="#cb18-348" aria-hidden="true" tabindex="-1"></a>        loguru_logger.critical(msg, <span class="op">**</span>kwargs)</span>
-<span id="cb18-349"><a href="#cb18-349" aria-hidden="true" tabindex="-1"></a>        sys.exit(<span class="dv">1</span>)</span>
-<span id="cb18-350"><a href="#cb18-350" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-351"><a href="#cb18-351" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-352"><a href="#cb18-352" aria-hidden="true" tabindex="-1"></a>logging <span class="op">=</span> FancyLogger()</span>
-<span id="cb18-353"><a href="#cb18-353" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-201"><a href="#cb18-201" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-202"><a href="#cb18-202" aria-hidden="true" tabindex="-1"></a>loguru_logger.remove() </span>
+<span id="cb18-203"><a href="#cb18-203" aria-hidden="true" tabindex="-1"></a>loguru_logger.add(</span>
+<span id="cb18-204"><a href="#cb18-204" aria-hidden="true" tabindex="-1"></a>    sys.stdout,</span>
+<span id="cb18-205"><a href="#cb18-205" aria-hidden="true" tabindex="-1"></a>    <span class="bu">format</span><span class="op">=</span>format_record,</span>
+<span id="cb18-206"><a href="#cb18-206" aria-hidden="true" tabindex="-1"></a>    level<span class="op">=</span>os.getenv(<span class="st">"LOG_LEVEL"</span>, <span class="st">"INFO"</span>),</span>
+<span id="cb18-207"><a href="#cb18-207" aria-hidden="true" tabindex="-1"></a>    colorize<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb18-208"><a href="#cb18-208" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-209"><a href="#cb18-209" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-210"><a href="#cb18-210" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-211"><a href="#cb18-211" aria-hidden="true" tabindex="-1"></a>loguru_logger.level(<span class="st">"TRACE"</span>, color<span class="op">=</span><span class="st">"&lt;cyan&gt;"</span>)</span>
+<span id="cb18-212"><a href="#cb18-212" aria-hidden="true" tabindex="-1"></a>loguru_logger.level(<span class="st">"DEBUG"</span>, color<span class="op">=</span><span class="st">"&lt;blue&gt;"</span>)</span>
+<span id="cb18-213"><a href="#cb18-213" aria-hidden="true" tabindex="-1"></a>loguru_logger.level(<span class="st">"INFO"</span>, color<span class="op">=</span><span class="st">"&lt;green&gt;"</span>)</span>
+<span id="cb18-214"><a href="#cb18-214" aria-hidden="true" tabindex="-1"></a>loguru_logger.level(<span class="st">"WARNING"</span>, color<span class="op">=</span><span class="st">"&lt;magenta&gt;"</span>)</span>
+<span id="cb18-215"><a href="#cb18-215" aria-hidden="true" tabindex="-1"></a>loguru_logger.level(<span class="st">"ERROR"</span>, color<span class="op">=</span><span class="st">"&lt;yellow&gt;"</span>)</span>
+<span id="cb18-216"><a href="#cb18-216" aria-hidden="true" tabindex="-1"></a>loguru_logger.level(<span class="st">"CRITICAL"</span>, color<span class="op">=</span><span class="st">"&lt;red&gt;"</span>)</span>
+<span id="cb18-217"><a href="#cb18-217" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-218"><a href="#cb18-218" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-219"><a href="#cb18-219" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> FancyLogError(<span class="pp">Exception</span>):</span>
+<span id="cb18-220"><a href="#cb18-220" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Exception from FancyLogger."""</span></span>
+<span id="cb18-221"><a href="#cb18-221" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-222"><a href="#cb18-222" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-223"><a href="#cb18-223" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> FancyLogger:</span>
+<span id="cb18-224"><a href="#cb18-224" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""A example of a Fancy."""</span></span>
+<span id="cb18-225"><a href="#cb18-225" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-226"><a href="#cb18-226" aria-hidden="true" tabindex="-1"></a>    <span class="at">@staticmethod</span></span>
+<span id="cb18-227"><a href="#cb18-227" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> trace(<span class="op">*</span>args: <span class="bu">object</span>, <span class="op">**</span>kwargs: <span class="bu">object</span>) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
+<span id="cb18-228"><a href="#cb18-228" aria-hidden="true" tabindex="-1"></a>        <span class="co">"""</span></span>
+<span id="cb18-229"><a href="#cb18-229" aria-hidden="true" tabindex="-1"></a><span class="co">        Log a trace message, with file, line and date-time.</span></span>
+<span id="cb18-230"><a href="#cb18-230" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-231"><a href="#cb18-231" aria-hidden="true" tabindex="-1"></a><span class="co">        Parameters</span></span>
+<span id="cb18-232"><a href="#cb18-232" aria-hidden="true" tabindex="-1"></a><span class="co">        ----------</span></span>
+<span id="cb18-233"><a href="#cb18-233" aria-hidden="true" tabindex="-1"></a><span class="co">        *args: object</span></span>
+<span id="cb18-234"><a href="#cb18-234" aria-hidden="true" tabindex="-1"></a><span class="co">            The message(s) to log.</span></span>
+<span id="cb18-235"><a href="#cb18-235" aria-hidden="true" tabindex="-1"></a><span class="co">        **kwargs: object</span></span>
+<span id="cb18-236"><a href="#cb18-236" aria-hidden="true" tabindex="-1"></a><span class="co">            The kwargs sent to loguru.</span></span>
+<span id="cb18-237"><a href="#cb18-237" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-238"><a href="#cb18-238" aria-hidden="true" tabindex="-1"></a><span class="co">        Returns</span></span>
+<span id="cb18-239"><a href="#cb18-239" aria-hidden="true" tabindex="-1"></a><span class="co">        -------</span></span>
+<span id="cb18-240"><a href="#cb18-240" aria-hidden="true" tabindex="-1"></a><span class="co">        None</span></span>
+<span id="cb18-241"><a href="#cb18-241" aria-hidden="true" tabindex="-1"></a><span class="co">        """</span></span>
+<span id="cb18-242"><a href="#cb18-242" aria-hidden="true" tabindex="-1"></a>        msg <span class="op">=</span> <span class="st">" "</span>.join(<span class="bu">map</span>(<span class="bu">str</span>, args))</span>
+<span id="cb18-243"><a href="#cb18-243" aria-hidden="true" tabindex="-1"></a>        loguru_logger.opt(depth<span class="op">=</span><span class="dv">1</span>).trace(msg, <span class="op">**</span>kwargs)</span>
+<span id="cb18-244"><a href="#cb18-244" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-245"><a href="#cb18-245" aria-hidden="true" tabindex="-1"></a>    <span class="at">@staticmethod</span></span>
+<span id="cb18-246"><a href="#cb18-246" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> debug(<span class="op">*</span>args: <span class="bu">object</span>, <span class="op">**</span>kwargs: <span class="bu">object</span>) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
+<span id="cb18-247"><a href="#cb18-247" aria-hidden="true" tabindex="-1"></a>        <span class="co">"""</span></span>
+<span id="cb18-248"><a href="#cb18-248" aria-hidden="true" tabindex="-1"></a><span class="co">        Log a debug message, with file and line.</span></span>
+<span id="cb18-249"><a href="#cb18-249" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-250"><a href="#cb18-250" aria-hidden="true" tabindex="-1"></a><span class="co">        Parameters</span></span>
+<span id="cb18-251"><a href="#cb18-251" aria-hidden="true" tabindex="-1"></a><span class="co">        ----------</span></span>
+<span id="cb18-252"><a href="#cb18-252" aria-hidden="true" tabindex="-1"></a><span class="co">        *args: object</span></span>
+<span id="cb18-253"><a href="#cb18-253" aria-hidden="true" tabindex="-1"></a><span class="co">            The message(s) to log.</span></span>
+<span id="cb18-254"><a href="#cb18-254" aria-hidden="true" tabindex="-1"></a><span class="co">        **kwargs: object</span></span>
+<span id="cb18-255"><a href="#cb18-255" aria-hidden="true" tabindex="-1"></a><span class="co">            The kwargs sent to loguru.</span></span>
+<span id="cb18-256"><a href="#cb18-256" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-257"><a href="#cb18-257" aria-hidden="true" tabindex="-1"></a><span class="co">        Returns</span></span>
+<span id="cb18-258"><a href="#cb18-258" aria-hidden="true" tabindex="-1"></a><span class="co">        -------</span></span>
+<span id="cb18-259"><a href="#cb18-259" aria-hidden="true" tabindex="-1"></a><span class="co">        None</span></span>
+<span id="cb18-260"><a href="#cb18-260" aria-hidden="true" tabindex="-1"></a><span class="co">        """</span></span>
+<span id="cb18-261"><a href="#cb18-261" aria-hidden="true" tabindex="-1"></a>        msg <span class="op">=</span> <span class="st">" "</span>.join(<span class="bu">map</span>(<span class="bu">str</span>, args))</span>
+<span id="cb18-262"><a href="#cb18-262" aria-hidden="true" tabindex="-1"></a>        loguru_logger.opt(depth<span class="op">=</span><span class="dv">1</span>).debug(msg, <span class="op">**</span>kwargs)</span>
+<span id="cb18-263"><a href="#cb18-263" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-264"><a href="#cb18-264" aria-hidden="true" tabindex="-1"></a>    <span class="at">@staticmethod</span></span>
+<span id="cb18-265"><a href="#cb18-265" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> info(<span class="op">*</span>args: <span class="bu">object</span>, <span class="op">**</span>kwargs: <span class="bu">object</span>) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
+<span id="cb18-266"><a href="#cb18-266" aria-hidden="true" tabindex="-1"></a>        <span class="co">"""</span></span>
+<span id="cb18-267"><a href="#cb18-267" aria-hidden="true" tabindex="-1"></a><span class="co">        Log a info message, with date-time.</span></span>
+<span id="cb18-268"><a href="#cb18-268" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-269"><a href="#cb18-269" aria-hidden="true" tabindex="-1"></a><span class="co">        Parameters</span></span>
+<span id="cb18-270"><a href="#cb18-270" aria-hidden="true" tabindex="-1"></a><span class="co">        ----------</span></span>
+<span id="cb18-271"><a href="#cb18-271" aria-hidden="true" tabindex="-1"></a><span class="co">        *args: object</span></span>
+<span id="cb18-272"><a href="#cb18-272" aria-hidden="true" tabindex="-1"></a><span class="co">            The message(s) to log.</span></span>
+<span id="cb18-273"><a href="#cb18-273" aria-hidden="true" tabindex="-1"></a><span class="co">        **kwargs: object</span></span>
+<span id="cb18-274"><a href="#cb18-274" aria-hidden="true" tabindex="-1"></a><span class="co">            The kwargs sent to loguru.</span></span>
+<span id="cb18-275"><a href="#cb18-275" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-276"><a href="#cb18-276" aria-hidden="true" tabindex="-1"></a><span class="co">        Returns</span></span>
+<span id="cb18-277"><a href="#cb18-277" aria-hidden="true" tabindex="-1"></a><span class="co">        -------</span></span>
+<span id="cb18-278"><a href="#cb18-278" aria-hidden="true" tabindex="-1"></a><span class="co">        None</span></span>
+<span id="cb18-279"><a href="#cb18-279" aria-hidden="true" tabindex="-1"></a><span class="co">        """</span></span>
+<span id="cb18-280"><a href="#cb18-280" aria-hidden="true" tabindex="-1"></a>        msg <span class="op">=</span> <span class="st">" "</span>.join(<span class="bu">map</span>(<span class="bu">str</span>, args))</span>
+<span id="cb18-281"><a href="#cb18-281" aria-hidden="true" tabindex="-1"></a>        loguru_logger.info(msg, <span class="op">**</span>kwargs)</span>
+<span id="cb18-282"><a href="#cb18-282" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-283"><a href="#cb18-283" aria-hidden="true" tabindex="-1"></a>    <span class="at">@staticmethod</span></span>
+<span id="cb18-284"><a href="#cb18-284" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> warning(<span class="op">*</span>args: <span class="bu">object</span>, <span class="op">**</span>kwargs: <span class="bu">object</span>) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
+<span id="cb18-285"><a href="#cb18-285" aria-hidden="true" tabindex="-1"></a>        <span class="co">"""</span></span>
+<span id="cb18-286"><a href="#cb18-286" aria-hidden="true" tabindex="-1"></a><span class="co">        Log a warning message, with line and file.</span></span>
+<span id="cb18-287"><a href="#cb18-287" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-288"><a href="#cb18-288" aria-hidden="true" tabindex="-1"></a><span class="co">        Parameters</span></span>
+<span id="cb18-289"><a href="#cb18-289" aria-hidden="true" tabindex="-1"></a><span class="co">        ----------</span></span>
+<span id="cb18-290"><a href="#cb18-290" aria-hidden="true" tabindex="-1"></a><span class="co">        *args: object</span></span>
+<span id="cb18-291"><a href="#cb18-291" aria-hidden="true" tabindex="-1"></a><span class="co">            The message(s) to log.</span></span>
+<span id="cb18-292"><a href="#cb18-292" aria-hidden="true" tabindex="-1"></a><span class="co">        **kwargs: object</span></span>
+<span id="cb18-293"><a href="#cb18-293" aria-hidden="true" tabindex="-1"></a><span class="co">            The kwargs sent to loguru.</span></span>
+<span id="cb18-294"><a href="#cb18-294" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-295"><a href="#cb18-295" aria-hidden="true" tabindex="-1"></a><span class="co">        Returns</span></span>
+<span id="cb18-296"><a href="#cb18-296" aria-hidden="true" tabindex="-1"></a><span class="co">        -------</span></span>
+<span id="cb18-297"><a href="#cb18-297" aria-hidden="true" tabindex="-1"></a><span class="co">        None</span></span>
+<span id="cb18-298"><a href="#cb18-298" aria-hidden="true" tabindex="-1"></a><span class="co">        """</span></span>
+<span id="cb18-299"><a href="#cb18-299" aria-hidden="true" tabindex="-1"></a>        msg <span class="op">=</span> <span class="st">" "</span>.join(<span class="bu">map</span>(<span class="bu">str</span>, args))</span>
+<span id="cb18-300"><a href="#cb18-300" aria-hidden="true" tabindex="-1"></a>        loguru_logger.opt(depth<span class="op">=</span><span class="dv">1</span>).warning(msg, <span class="op">**</span>kwargs)</span>
+<span id="cb18-301"><a href="#cb18-301" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-302"><a href="#cb18-302" aria-hidden="true" tabindex="-1"></a>    <span class="at">@staticmethod</span></span>
+<span id="cb18-303"><a href="#cb18-303" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> error(<span class="op">*</span>args: <span class="bu">object</span>, <span class="op">**</span>kwargs: <span class="bu">object</span>) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
+<span id="cb18-304"><a href="#cb18-304" aria-hidden="true" tabindex="-1"></a>        <span class="co">"""</span></span>
+<span id="cb18-305"><a href="#cb18-305" aria-hidden="true" tabindex="-1"></a><span class="co">        Log an error message and raises an exception, with date-time.</span></span>
+<span id="cb18-306"><a href="#cb18-306" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-307"><a href="#cb18-307" aria-hidden="true" tabindex="-1"></a><span class="co">        Parameters</span></span>
+<span id="cb18-308"><a href="#cb18-308" aria-hidden="true" tabindex="-1"></a><span class="co">        ----------</span></span>
+<span id="cb18-309"><a href="#cb18-309" aria-hidden="true" tabindex="-1"></a><span class="co">        *args: object</span></span>
+<span id="cb18-310"><a href="#cb18-310" aria-hidden="true" tabindex="-1"></a><span class="co">            The message(s) to log.</span></span>
+<span id="cb18-311"><a href="#cb18-311" aria-hidden="true" tabindex="-1"></a><span class="co">        **kwargs: object</span></span>
+<span id="cb18-312"><a href="#cb18-312" aria-hidden="true" tabindex="-1"></a><span class="co">            The kwargs sent to loguru.</span></span>
+<span id="cb18-313"><a href="#cb18-313" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-314"><a href="#cb18-314" aria-hidden="true" tabindex="-1"></a><span class="co">        Returns</span></span>
+<span id="cb18-315"><a href="#cb18-315" aria-hidden="true" tabindex="-1"></a><span class="co">        -------</span></span>
+<span id="cb18-316"><a href="#cb18-316" aria-hidden="true" tabindex="-1"></a><span class="co">        None</span></span>
+<span id="cb18-317"><a href="#cb18-317" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-318"><a href="#cb18-318" aria-hidden="true" tabindex="-1"></a><span class="co">        Raises</span></span>
+<span id="cb18-319"><a href="#cb18-319" aria-hidden="true" tabindex="-1"></a><span class="co">        ------</span></span>
+<span id="cb18-320"><a href="#cb18-320" aria-hidden="true" tabindex="-1"></a><span class="co">        FancyLogError</span></span>
+<span id="cb18-321"><a href="#cb18-321" aria-hidden="true" tabindex="-1"></a><span class="co">        """</span></span>
+<span id="cb18-322"><a href="#cb18-322" aria-hidden="true" tabindex="-1"></a>        <span class="im">import</span> traceback</span>
+<span id="cb18-323"><a href="#cb18-323" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-324"><a href="#cb18-324" aria-hidden="true" tabindex="-1"></a>        msg <span class="op">=</span> <span class="st">" "</span>.join(<span class="bu">map</span>(<span class="bu">str</span>, args))</span>
+<span id="cb18-325"><a href="#cb18-325" aria-hidden="true" tabindex="-1"></a>        loguru_logger.error(msg, <span class="op">**</span>kwargs)</span>
+<span id="cb18-326"><a href="#cb18-326" aria-hidden="true" tabindex="-1"></a>        traceback.print_exc()</span>
+<span id="cb18-327"><a href="#cb18-327" aria-hidden="true" tabindex="-1"></a>        <span class="cf">raise</span> FancyLogError</span>
+<span id="cb18-328"><a href="#cb18-328" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-329"><a href="#cb18-329" aria-hidden="true" tabindex="-1"></a>    <span class="at">@staticmethod</span></span>
+<span id="cb18-330"><a href="#cb18-330" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> critical(<span class="op">*</span>args: <span class="bu">object</span>, <span class="op">**</span>kwargs: <span class="bu">object</span>) <span class="op">-&gt;</span> NoReturn:</span>
+<span id="cb18-331"><a href="#cb18-331" aria-hidden="true" tabindex="-1"></a>        <span class="co">"""</span></span>
+<span id="cb18-332"><a href="#cb18-332" aria-hidden="true" tabindex="-1"></a><span class="co">        Log a critical message and exits with code 1.</span></span>
+<span id="cb18-333"><a href="#cb18-333" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-334"><a href="#cb18-334" aria-hidden="true" tabindex="-1"></a><span class="co">        Parameters</span></span>
+<span id="cb18-335"><a href="#cb18-335" aria-hidden="true" tabindex="-1"></a><span class="co">        ----------</span></span>
+<span id="cb18-336"><a href="#cb18-336" aria-hidden="true" tabindex="-1"></a><span class="co">        *args: object</span></span>
+<span id="cb18-337"><a href="#cb18-337" aria-hidden="true" tabindex="-1"></a><span class="co">            The message(s) to log.</span></span>
+<span id="cb18-338"><a href="#cb18-338" aria-hidden="true" tabindex="-1"></a><span class="co">        **kwargs: object</span></span>
+<span id="cb18-339"><a href="#cb18-339" aria-hidden="true" tabindex="-1"></a><span class="co">            The kwargs sent to loguru.</span></span>
+<span id="cb18-340"><a href="#cb18-340" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-341"><a href="#cb18-341" aria-hidden="true" tabindex="-1"></a><span class="co">        Returns</span></span>
+<span id="cb18-342"><a href="#cb18-342" aria-hidden="true" tabindex="-1"></a><span class="co">        -------</span></span>
+<span id="cb18-343"><a href="#cb18-343" aria-hidden="true" tabindex="-1"></a><span class="co">        NoReturn</span></span>
+<span id="cb18-344"><a href="#cb18-344" aria-hidden="true" tabindex="-1"></a><span class="co">        """</span></span>
+<span id="cb18-345"><a href="#cb18-345" aria-hidden="true" tabindex="-1"></a>        msg <span class="op">=</span> <span class="st">" "</span>.join(<span class="bu">map</span>(<span class="bu">str</span>, args))</span>
+<span id="cb18-346"><a href="#cb18-346" aria-hidden="true" tabindex="-1"></a>        loguru_logger.critical(msg, <span class="op">**</span>kwargs)</span>
+<span id="cb18-347"><a href="#cb18-347" aria-hidden="true" tabindex="-1"></a>        sys.exit(<span class="dv">1</span>)</span>
+<span id="cb18-348"><a href="#cb18-348" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-349"><a href="#cb18-349" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-350"><a href="#cb18-350" aria-hidden="true" tabindex="-1"></a>logging <span class="op">=</span> FancyLogger()</span>
+<span id="cb18-351"><a href="#cb18-351" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-352"><a href="#cb18-352" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-353"><a href="#cb18-353" aria-hidden="true" tabindex="-1"></a><span class="fu">### Conclusion</span></span>
 <span id="cb18-354"><a href="#cb18-354" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-355"><a href="#cb18-355" aria-hidden="true" tabindex="-1"></a><span class="fu">### Conclusion</span></span>
-<span id="cb18-356"><a href="#cb18-356" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-357"><a href="#cb18-357" aria-hidden="true" tabindex="-1"></a>Loguru simplifies logging in Python with its intuitive API and powerful features. </span>
-<span id="cb18-358"><a href="#cb18-358" aria-hidden="true" tabindex="-1"></a>Whether you need basic logging or advanced customization, Loguru has you covered. </span>
-<span id="cb18-359"><a href="#cb18-359" aria-hidden="true" tabindex="-1"></a>The final code provided demonstrates how to create a custom logger with Loguru, </span>
-<span id="cb18-360"><a href="#cb18-360" aria-hidden="true" tabindex="-1"></a>complete with custom formatting, exception handling, and asynchronous logging.</span>
+<span id="cb18-355"><a href="#cb18-355" aria-hidden="true" tabindex="-1"></a>Loguru simplifies logging in Python with its intuitive API and powerful features. </span>
+<span id="cb18-356"><a href="#cb18-356" aria-hidden="true" tabindex="-1"></a>Whether you need basic logging or advanced customization, Loguru has you covered. </span>
+<span id="cb18-357"><a href="#cb18-357" aria-hidden="true" tabindex="-1"></a>The final code provided demonstrates how to create a custom logger with Loguru, </span>
+<span id="cb18-358"><a href="#cb18-358" aria-hidden="true" tabindex="-1"></a>complete with custom formatting, exception handling, and asynchronous logging.</span>
 </code><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></pre></div>
 </div></div></div></div></div>
 </div> <!-- /content -->
