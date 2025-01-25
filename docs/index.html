@@ -15,7 +15,12 @@ esign." />
     <nav class="navbar" id="navbar">
         <div class="navbar-brand">
             <img src="avatar.png" alt="Andres Monge" class="navbar-avatar" />
-            <span class="navbar-name">Andres Monge</span>
+            <a class="navbar-name" href="home.html" target="articleWrapper">
+            Andres Monge
+            </a>
+            <a href="python-tech-lead_andres-monge.pdf" target="_blank" class="nav-item resume">
+            Resume/CV
+            </a>
         </div>
         <input type="checkbox" id="hamburger-toggle" class="hamburger-toggle">
         <label for="hamburger-toggle" class="hamburger">
@@ -23,94 +28,55 @@ esign." />
             <span class="bar"></span>
             <span class="bar"></span>
         </label>
-        <ul class="nav-menu">
-            <li class="nav-item">
-                <a href="home.html" target="articleWrapper" class="nav-link">Andres Monge</a>
-            </li>
-            <li class="nav-item">
-                <a href="python-tech-lead_andres-monge.pdf" target="_blank" class="nav-link">Resume/CV</a>
-            </li>
-            <li class="nav-item">
-                <input type="checkbox" id="submenu-toggle-unix" class="submenu-toggle">
-                <label for="submenu-toggle-unix" class="nav-link">unix</label>
-                <ul class="submenu">
-                    <li>
-                        <input type="checkbox" id="submenu-toggle-network" class="submenu-toggle">
-                        <label for="submenu-toggle-network" class="subcategory">network</label>
-                        <ul>
-                            <li><a href="/articles/unix/network/networkless_commands.html" target="articleWrapper">networkless commands</a></li>
-                        </ul>
-                    </li>
-                </ul>
-            </li>
-            <li class="nav-item">
-                <input type="checkbox" id="submenu-toggle-python" class="submenu-toggle">
-                <label for="submenu-toggle-python" class="nav-link">python</label>
-                <ul class="submenu">
-                    <li>
-                        <input type="checkbox" id="submenu-toggle-asyncio" class="submenu-toggle">
-                        <label for="submenu-toggle-asyncio" class="subcategory">asyncio</label>
-                        <ul>
-                            <li><a href="/articles/python/asyncio/async.html" target="articleWrapper">async</a></li>
-                        </ul>
-                    </li>
-                    <li>
-                        <input type="checkbox" id="submenu-toggle-debug" class="submenu-toggle">
-                        <label for="submenu-toggle-debug" class="subcategory">debug</label>
-                        <ul>
-                            <li><a href="/articles/python/debug/logging.html" target="articleWrapper">logging</a></li>
-                        </ul>
-                    </li>
-                    <li>
-                        <input type="checkbox" id="submenu-toggle-fastapi" class="submenu-toggle">
-                        <label for="submenu-toggle-fastapi" class="subcategory">fastapi</label>
-                        <ul>
-                            <li><a href="/articles/python/fastapi/generic_responses.html" target="articleWrapper">generic responses</a></li>
-                        </ul>
-                    </li>
-                    <li>
-                        <input type="checkbox" id="submenu-toggle-funtools" class="submenu-toggle">
-                        <label for="submenu-toggle-funtools" class="subcategory">funtools</label>
-                        <ul>
-                            <li><a href="/articles/python/funtools/partial.html" target="articleWrapper">partial</a></li>
-                            <li><a href="/articles/python/funtools/unpacking_literals.html" target="articleWrapper">unpacking literals</a></li>
-                        </ul>
-                    </li>
-                    <li>
-                        <input type="checkbox" id="submenu-toggle-numpy" class="submenu-toggle">
-                        <label for="submenu-toggle-numpy" class="subcategory">numpy</label>
-                        <ul>
-                            <li><a href="/articles/python/numpy/downsampling.html" target="articleWrapper">downsampling</a></li>
-                        </ul>
-                    </li>
-                    <li>
-                        <input type="checkbox" id="submenu-toggle-performance" class="submenu-toggle">
-                        <label for="submenu-toggle-performance" class="subcategory">performance</label>
-                        <ul>
-                            <li><a href="/articles/python/performance/annotations.html" target="articleWrapper">annotations</a></li>
-                            <li><a href="/articles/python/performance/build.html" target="articleWrapper">build</a></li>
-                            <li><a href="/articles/python/performance/timeit.html" target="articleWrapper">timeit</a></li>
-                        </ul>
-                    </li>
-                    <li>
-                        <input type="checkbox" id="submenu-toggle-types" class="submenu-toggle">
-                        <label for="submenu-toggle-types" class="subcategory">types</label>
-                        <ul>
-                            <li><a href="/articles/python/types/dataclass.html" target="articleWrapper">dataclass</a></li>
-                            <li><a href="/articles/python/types/diamond_issue.html" target="articleWrapper">diamond issue</a></li>
-                            <li><a href="/articles/python/types/down-cast.html" target="articleWrapper">down-cast</a></li>
-                        </ul>
-                    </li>
-                    <li>
-                        <input type="checkbox" id="submenu-toggle-unittest" class="submenu-toggle">
-                        <label for="submenu-toggle-unittest" class="subcategory">unittest</label>
-                        <ul>
-                            <li><a href="/articles/python/unittest/mock_name_attr.html" target="articleWrapper">mock name attr</a></li>
-                        </ul>
-                    </li>
-                </ul>
-            </li>
-        </ul>
+        <div class="nav-menu">
+            <details class="articles-nav" name="languages">
+                <summary class="navigation-language">unix</summary>
+                <details name="articles">
+                    <summary class="subcategory">network</summary>
+                    <a class="link" href="/articles/unix/network/networkless_commands.html" target="articleWrapper">networkless commands</a>
+                </details>
+            </details>
+            <details class="articles-nav" name="languages">
+                <summary class="navigation-language">python</summary>
+                <details name="articles">
+                    <summary class="subcategory">asyncio</summary>
+                    <a class="link" href="/articles/python/asyncio/async.html" target="articleWrapper">async</a>
+                </details>
+                <details name="articles">
+                    <summary class="subcategory">debug</summary>
+                    <a class="link" href="/articles/python/debug/logging.html" target="articleWrapper">logging</a>
+                </details>
+                <details name="articles">
+                    <summary class="subcategory">fastapi</summary>
+                    <a class="link" href="/articles/python/fastapi/generic_responses.html" target="articleWrapper">generic responses</a>
+                </details>
+                <details name="articles">
+                    <summary class="subcategory">funtools</summary>
+                    <a class="link" href="/articles/python/funtools/partial.html" target="articleWrapper">partial</a>
+                    <a class="link" href="/articles/python/funtools/unpacking_literals.html" target="articleWrapper">unpacking literals</a>
+                </details>
+                <details name="articles">
+                    <summary class="subcategory">numpy</summary>
+                    <a class="link" href="/articles/python/numpy/downsampling.html" target="articleWrapper">downsampling</a>
+                </details>
+                <details name="articles">
+                    <summary class="subcategory">performance</summary>
+                    <a class="link" href="/articles/python/performance/annotations.html" target="articleWrapper">annotations</a>
+                    <a class="link" href="/articles/python/performance/build.html" target="articleWrapper">build</a>
+                    <a class="link" href="/articles/python/performance/timeit.html" target="articleWrapper">timeit</a>
+                </details>
+                <details name="articles">
+                    <summary class="subcategory">types</summary>
+                    <a class="link" href="/articles/python/types/dataclass.html" target="articleWrapper">dataclass</a>
+                    <a class="link" href="/articles/python/types/diamond_issue.html" target="articleWrapper">diamond issue</a>
+                    <a class="link" href="/articles/python/types/down-cast.html" target="articleWrapper">down-cast</a>
+                </details>
+                <details name="articles">
+                    <summary class="subcategory">unittest</summary>
+                    <a class="link" href="/articles/python/unittest/mock_name_attr.html" target="articleWrapper">mock name attr</a>
+                </details>
+            </details>
+        </div>
     </nav>
 
     <div class="sidebar">
@@ -126,66 +92,48 @@ esign." />
         <details class="articles-nav" name="languages">
             <summary class="navigation-language">unix</summary>
             <details name="articles">
-                <summary class="subcategory">
-                    network
-                </summary>
-                    <a class="link" href="/articles/unix/network/networkless_commands.html" target="articleWrapper">networkless commands</a>
+                <summary class="subcategory">network</summary>
+                <a class="link" href="/articles/unix/network/networkless_commands.html" target="articleWrapper">networkless commands</a>
             </details>
         </details>
         <details class="articles-nav" name="languages">
             <summary class="navigation-language">python</summary>
             <details name="articles">
-                <summary class="subcategory">
-                    asyncio
-                </summary>
-                    <a class="link" href="/articles/python/asyncio/async.html" target="articleWrapper">async</a>
+                <summary class="subcategory">asyncio</summary>
+                <a class="link" href="/articles/python/asyncio/async.html" target="articleWrapper">async</a>
             </details>
             <details name="articles">
-                <summary class="subcategory">
-                    debug
-                </summary>
-                    <a class="link" href="/articles/python/debug/logging.html" target="articleWrapper">logging</a>
+                <summary class="subcategory">debug</summary>
+                <a class="link" href="/articles/python/debug/logging.html" target="articleWrapper">logging</a>
             </details>
             <details name="articles">
-                <summary class="subcategory">
-                    fastapi
-                </summary>
-                    <a class="link" href="/articles/python/fastapi/generic_responses.html" target="articleWrapper">generic responses</a>
+                <summary class="subcategory">fastapi</summary>
+                <a class="link" href="/articles/python/fastapi/generic_responses.html" target="articleWrapper">generic responses</a>
             </details>
             <details name="articles">
-                <summary class="subcategory">
-                    funtools
-                </summary>
-                    <a class="link" href="/articles/python/funtools/partial.html" target="articleWrapper">partial</a>
-                    <a class="link" href="/articles/python/funtools/unpacking_literals.html" target="articleWrapper">unpacking literals</a>
+                <summary class="subcategory">funtools</summary>
+                <a class="link" href="/articles/python/funtools/partial.html" target="articleWrapper">partial</a>
+                <a class="link" href="/articles/python/funtools/unpacking_literals.html" target="articleWrapper">unpacking literals</a>
             </details>
             <details name="articles">
-                <summary class="subcategory">
-                    numpy
-                </summary>
-                    <a class="link" href="/articles/python/numpy/downsampling.html" target="articleWrapper">downsampling</a>
+                <summary class="subcategory">numpy</summary>
+                <a class="link" href="/articles/python/numpy/downsampling.html" target="articleWrapper">downsampling</a>
             </details>
             <details name="articles">
-                <summary class="subcategory">
-                    performance
-                </summary>
-                    <a class="link" href="/articles/python/performance/annotations.html" target="articleWrapper">annotations</a>
-                    <a class="link" href="/articles/python/performance/build.html" target="articleWrapper">build</a>
-                    <a class="link" href="/articles/python/performance/timeit.html" target="articleWrapper">timeit</a>
+                <summary class="subcategory">performance</summary>
+                <a class="link" href="/articles/python/performance/annotations.html" target="articleWrapper">annotations</a>
+                <a class="link" href="/articles/python/performance/build.html" target="articleWrapper">build</a>
+                <a class="link" href="/articles/python/performance/timeit.html" target="articleWrapper">timeit</a>
             </details>
             <details name="articles">
-                <summary class="subcategory">
-                    types
-                </summary>
-                    <a class="link" href="/articles/python/types/dataclass.html" target="articleWrapper">dataclass</a>
-                    <a class="link" href="/articles/python/types/diamond_issue.html" target="articleWrapper">diamond issue</a>
-                    <a class="link" href="/articles/python/types/down-cast.html" target="articleWrapper">down-cast</a>
+                <summary class="subcategory">types</summary>
+                <a class="link" href="/articles/python/types/dataclass.html" target="articleWrapper">dataclass</a>
+                <a class="link" href="/articles/python/types/diamond_issue.html" target="articleWrapper">diamond issue</a>
+                <a class="link" href="/articles/python/types/down-cast.html" target="articleWrapper">down-cast</a>
             </details>
             <details name="articles">
-                <summary class="subcategory">
-                    unittest
-                </summary>
-                    <a class="link" href="/articles/python/unittest/mock_name_attr.html" target="articleWrapper">mock name attr</a>
+                <summary class="subcategory">unittest</summary>
+                <a class="link" href="/articles/python/unittest/mock_name_attr.html" target="articleWrapper">mock name attr</a>
             </details>
         </details>
     </div>

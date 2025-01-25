@@ -78,6 +78,7 @@ h2.name {
 
 h2.name a {
     color: var(--primary-color);
+    text-decoration: none;
 }
 
 /* Navigation Styles */

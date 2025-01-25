@@ -15,7 +15,12 @@ esign." />
     <nav class="navbar" id="navbar">
         <div class="navbar-brand">
             <img src="avatar.png" alt="Andres Monge" class="navbar-avatar" />
-            <span class="navbar-name">Andres Monge</span>
+            <a class="navbar-name" href="home.html" target="articleWrapper">
+            Andres Monge
+            </a>
+            <a href="python-tech-lead_andres-monge.pdf" target="_blank" class="nav-item resume">
+            Resume/CV
+            </a>
         </div>
         <input type="checkbox" id="hamburger-toggle" class="hamburger-toggle">
         <label for="hamburger-toggle" class="hamburger">
@@ -23,33 +28,21 @@ esign." />
             <span class="bar"></span>
             <span class="bar"></span>
         </label>
-        <ul class="nav-menu">
-            <li class="nav-item">
-                <a href="home.html" target="articleWrapper" class="nav-link">Andres Monge</a>
-            </li>
-            <li class="nav-item">
-                <a href="python-tech-lead_andres-monge.pdf" target="_blank" class="nav-link">Resume/CV</a>
-            </li>
+        <div class="nav-menu">
             {{- range (datasource "nav") }}
-            <li class="nav-item">
-                <input type="checkbox" id="submenu-toggle-{{ .language }}" class="submenu-toggle">
-                <label for="submenu-toggle-{{ .language }}" class="nav-link">{{ .language }}</label>
-                <ul class="submenu">
+            <details class="articles-nav" name="languages">
+                <summary class="navigation-language">{{ .language }}</summary>
+                {{- range .articles }}
+                <details name="articles">
+                    <summary class="subcategory">{{ .category }}</summary>
                     {{- range .articles }}
-                    <li>
-                        <input type="checkbox" id="submenu-toggle-{{ .category }}" class="submenu-toggle">
-                        <label for="submenu-toggle-{{ .category }}" class="subcategory">{{ .category }}</label>
-                        <ul>
-                            {{- range .articles }}
-                            <li><a href="{{ .url }}" target="articleWrapper">{{ .name }}</a></li>
-                            {{- end }}
-                        </ul>
-                    </li>
+                    <a class="link" href="{{ .url }}" target="articleWrapper">{{ .name }}</a>
                     {{- end }}
-                </ul>
-            </li>
+                </details>
+                {{- end }}
+            </details>
             {{- end }}
-        </ul>
+        </div>
     </nav>
 
     <div class="sidebar">
@@ -68,11 +61,9 @@ esign." />
             <summary class="navigation-language">{{ .language }}</summary>
             {{- range .articles }}
             <details name="articles">
-                <summary class="subcategory">
-                    {{ .category }}
-                </summary>
+                <summary class="subcategory">{{ .category }}</summary>
                 {{- range .articles }}
-                    <a class="link" href="{{ .url }}" target="articleWrapper">{{ .name }}</a>
+                <a class="link" href="{{ .url }}" target="articleWrapper">{{ .name }}</a>
                 {{- end }}
             </details>
             {{- end }}
