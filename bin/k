@@ -1,31 +1,33 @@
 #!/bin/bash
 
 # Script: k
-# Description: A smarter 'clear' command that can either clear the screen or move the cursor to the top-left corner.
-# Usage: k [options]
+#
+# Description: A smarter 'clear' command that can clear the screen, move the cursor,
+# and execute commands or functions in a loop.
+#
+# Usage: k [options] [-- <command or function>]
 # Options:
 #   -k, --keep      Move the cursor to the top-left corner without clearing the screen.
 #   -w, --wait      Wait for a specified duration (e.g., 1s, 2m) before continuing.
 #   -h, --help      Display this help message.
 #   -v, --version   Display the version of the script.
-#   -- <command>    Loop infinitely and keep running the command.
+#   -- <command>    Loop infinitely and keep running the command or function.
 
-VERSION="1.0.0"
+VERSION="1.1.0"
 
 # Function to display help
 show_help() {
     cat <<EOF
-A smarter 'clear' command that can either clear the screen or move the cursor to the 
-top-left corner.
+A smarter 'clear' command that can clear the screen, move the cursor, and execute commands or functions in a loop.
 
-Usage: k [options]
+Usage: k [options] [-- <command or function>]
 
 Options:
   -k, --keep      Move the cursor to the top-left corner without clearing the screen.
   -w, --wait      Wait for a specified duration (e.g., 1s, 2m) before continuing.
   -h, --help      Display this help message.
   -v, --version   Display the version of the script.
-  -- <command>    Loop infinitely and keep running the command.
+  -- <command>    Loop infinitely and keep running the command or function.
 
 Examples:
   k               Clear the screen.
@@ -33,12 +35,30 @@ Examples:
   k -kw 1s        Move the cursor to the top-left corner and wait for 1 second.
   k -w 2s         Clear the screen and wait for 2 seconds.
   k -kw 1 -kw 1s -- kubectl get pods
+  k -kw 1 -- 'f() { echo "Hello, World!"; }; f'  # Define and run a function in a loop
+
+Notes:
+  - When using -- <command>, you can include function definitions and calls.
+  - Functions defined in the command will be properly executed in each iteration of the loop.
+  - Use single quotes around complex commands or function definitions to prevent shell expansion.
 EOF
 }
 
 # Function to display version
 show_version() {
     echo "k version $VERSION"
+}
+
+# Function to execute a command or function
+execute_command() {
+    local cmd="$1"
+    if [[ "$(type -t "$cmd")" == "function" ]]; then
+        # If it's a function, we need to define it in the current context
+        eval "$(declare -f "$cmd")"
+        "$cmd"
+    else
+        eval "$cmd"
+    fi
 }
 
 # Function to handle the -w (wait) option
@@ -55,6 +75,7 @@ wait_for_duration() {
 keep_cursor=false
 wait_duration=""
 loop_command=false
+command_to_run=""
 
 # Parse options
 while [[ "$#" -gt 0 ]]; do
@@ -99,6 +120,7 @@ while [[ "$#" -gt 0 ]]; do
     --)
         loop_command=true
         shift
+        command_to_run="$*"
         break
         ;;
     *)
@@ -113,7 +135,7 @@ done
 if [[ "$loop_command" == true ]]; then
     clear
     while true; do
-        "$@"
+        execute_command "$command_to_run"
         if [[ "$keep_cursor" == true ]]; then
             echo -ne "\033[H"
         else
