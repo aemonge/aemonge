@@ -1,3 +1,8 @@
+@font-face {
+    font-family: "Iosevka Term Slab";
+    src: url("/assets/fonts/IosevkaTermSlab-Regular.ttf");
+}
+
 :root {
     --primary-color: #3d2b59;
     --secondary-color: #005e86;
@@ -7,8 +12,8 @@
     --hover-color: rgba(61, 43, 89, 0.08);
     --text-color: #3d2b59;
     --border-color: rgba(0, 0, 0, 0.08);
-    --font-primary: "Open Sans", Arial, sans-serif;
-    --font-headers: "Merriweather", serif;
+    --font-primary: "Iosevka Term Slab", "Open Sans", Arial, sans-serif;
+    --font-headers: "Iosevka Term Slab", "Merriweather", serif;
 }
 
 /* Base Styles */
@@ -38,12 +43,13 @@ h3 {
     color: var(--primary-color);
     font-family: var(--font-headers);
     font-size: 170%;
+    font-weight: normal;
     margin-bottom: 1.5rem;
 }
 
 /* Sidebar Styles */
 .sidebar {
-    width: 200px;
+    width: 220px;
     background: var(--sidebar-bg);
     height: 100vh;
     overflow-y: auto;
@@ -76,7 +82,7 @@ h2.name a {
 /* Navigation Styles */
 .nav-item {
     display: block;
-    color: var(--primary-color);
+    color: var(--secondary-color);
     text-decoration: none;
     border-radius: 4px;
     padding: 0.4rem 0.75rem;
@@ -90,12 +96,12 @@ summary.navigation-language {
     font-size: 1.2rem;
     border-bottom: 1px solid var(--border-color);
     padding-bottom: 0.5rem;
-    color: var(--secondary-color);
+    color: var(--primary-color);
 }
 
 .nav-item {
     display: block;
-    color: var(--primary-color);
+    color: var(--secondary-color);
     text-decoration: none;
     border-radius: 4px;
     padding: 0.4rem 0.75rem;
@@ -106,7 +112,7 @@ summary.navigation-language {
 
 .nav-item:hover {
     background: var(--hover-color);
-    color: var(--secondary-color);
+    color: var(--primary-color);
 }
 
 .iframe-container {
@@ -114,6 +120,84 @@ summary.navigation-language {
     height: 100vh;
     overflow: hidden;
     position: relative;
+}
+
+details {
+    position: relative;
+    width: 100%;
+    background-color: var(--background-color);
+    font-family: var(--font-primary);
+}
+
+summary {
+    cursor: pointer;
+    margin: 0.5rem auto;
+    padding-left: 1rem;
+    font-size: 1.2rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+    color: var(--primary-color);
+    list-style-type: none; /* Remove default arrow */
+}
+
+summary::before {
+    content: "\2261"; /* Unicode for hamburger icon */
+    font-size: 1.2rem;
+    margin-right: 0.5rem;
+    transition: transform 0.2s ease;
+}
+
+details[open] > summary::before {
+    transform: rotate(45deg); /* Rotate hamburger icon when open */
+}
+
+summary:hover,
+summary:focus {
+    color: var(--secondary-color);
+    background-color: var(--hover-color);
+}
+
+details ul {
+    display: block;
+    list-style: none;
+    padding: 0;
+    border: 2px solid var(--border-color);
+    width: 100px;
+    z-index: 100;
+    position: absolute;
+    background: var(--sidebar-bg);
+    color: var(--text-color);
+    font-family: var(--font-primary);
+}
+
+details[open] summary ~ * {
+    animation: open 0.5s ease-in;
+}
+
+details:not([open]) summary ~ * {
+    animation: close 0.5s ease-out;
+}
+
+@keyframes open {
+    0% {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes close {
+    0% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
 }
 
 /* Content Area */
@@ -168,6 +252,10 @@ body.landing {
 }
 .connect-section a {
     text-decoration: none;
+    color: var(--secondary-color);
+}
+.connect-section a:hover {
+    color: var(--primary-color);
 }
 
 /* Tech List Styles */
@@ -194,23 +282,25 @@ body.landing {
 .subcategory {
     padding: 0.5rem 0.5rem 0;
     cursor: pointer;
-    font-weight: bold;
     font-size: 0.95rem;
-    padding-left: 1.5rem;
+    padding-left: 1rem;
     color: var(--primary-color);
+    line-height: 3rem;
 }
 
 .articles {
-    margin-left: 0.5rem;
+    /* margin-left: 0.5rem; */
     display: none;
 }
 
 .link {
     padding: 0.3rem 0.5rem;
     font-size: 0.85rem;
-    padding-left: 2rem;
+    padding-left: 2.5rem;
     text-decoration: none;
-    color: var(--primary-color);
+    color: var(--secondary-color);
+    display: inline-block;
+    width: 100%;
 }
 
 .articles.open {
