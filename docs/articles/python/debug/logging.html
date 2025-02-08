@@ -129,7 +129,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="custom-log-format" class="level4">
 <h4 class="anchored" data-anchor-id="custom-log-format">Custom Log Format</h4>
 <p>You can define a custom format for your logs using Loguru’s formatting syntax. For example, to include the log level, timestamp, and message:</p>
-<div id="a0882ac7" class="cell" data-execution_count="1">
+<div id="e46750f0" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> loguru <span class="im">import</span> logger</span>
@@ -140,37 +140,37 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>logger.info(<span class="st">"Custom format logging!"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>2025-02-05T14:29:04.305714+0100 | INFO | Custom format logging!</code></pre>
+<pre><code>2025-02-05T15:05:20.345019+0100 | INFO | Custom format logging!</code></pre>
 </div>
 </div>
 </section>
 <section id="log-levels" class="level4">
 <h4 class="anchored" data-anchor-id="log-levels">Log Levels</h4>
 <p>Loguru supports the standard log levels: <code>TRACE</code>, <code>DEBUG</code>, <code>INFO</code>, <code>WARNING</code>, <code>ERROR</code>, and <code>CRITICAL</code>. You can set the log level globally or per handler:</p>
-<div id="98d07ca4" class="cell" data-execution_count="2">
+<div id="be6e6466" class="cell" data-execution_count="2">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>logger.add(sys.stdout, level<span class="op">=</span><span class="st">"DEBUG"</span>)</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>logger.debug(<span class="st">"This is a debug message."</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>2025-02-05T14:29:04.313824+0100 | DEBUG | This is a debug message.
-2025-02-05 14:29:04.313 | DEBUG    | __main__:&lt;module&gt;:2 - This is a debug message.</code></pre>
+<pre><code>2025-02-05T15:05:20.352643+0100 | DEBUG | This is a debug message.
+2025-02-05 15:05:20.352 | DEBUG    | __main__:&lt;module&gt;:2 - This is a debug message.</code></pre>
 </div>
 </div>
 </section>
 <section id="adding-handlers" class="level4">
 <h4 class="anchored" data-anchor-id="adding-handlers">Adding Handlers</h4>
 <p>You can add multiple handlers to log to different destinations, such as files, with different formats or levels:</p>
-<div id="82887c54" class="cell" data-execution_count="3">
+<div id="112bb11b" class="cell" data-execution_count="3">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>logger.add(<span class="st">"file.log"</span>, level<span class="op">=</span><span class="st">"INFO"</span>, rotation<span class="op">=</span><span class="st">"10 MB"</span>)</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>logger.info(<span class="st">"This log will go to both the console and a file."</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>2025-02-05T14:29:04.324132+0100 | INFO | This log will go to both the console and a file.
-2025-02-05 14:29:04.324 | INFO     | __main__:&lt;module&gt;:2 - This log will go to both the console and a file.</code></pre>
+<pre><code>2025-02-05T15:05:20.361977+0100 | INFO | This log will go to both the console and a file.
+2025-02-05 15:05:20.361 | INFO     | __main__:&lt;module&gt;:2 - This log will go to both the console and a file.</code></pre>
 </div>
 </div>
 </section>
@@ -180,7 +180,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="exception-logging" class="level4">
 <h4 class="anchored" data-anchor-id="exception-logging">Exception Logging</h4>
 <p>Loguru automatically captures exceptions and logs them with tracebacks. However, you can trim the traceback logs to make them more concise:</p>
-<div id="248a4c6a" class="cell" data-execution_count="4">
+<div id="712217fa" class="cell" data-execution_count="4">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
@@ -190,9 +190,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </details>
 <div class="cell-output cell-output-stderr">
 <pre><code>--- Logging error in Loguru Handler #1 ---
-Record was: {'elapsed': datetime.timedelta(microseconds=31489), 'exception': (type=None, value=False, traceback=False), 'extra': {}, 'file': (name='1334436161.py', path='/tmp/ipykernel_131750/1334436161.py'), 'function': '&lt;module&gt;', 'level': (name='ERROR', no=40, icon='❌'), 'line': 4, 'message': 'An error occurred!', 'module': '1334436161', 'name': '__main__', 'process': (id=131750, name='MainProcess'), 'thread': (id=140065412881280, name='MainThread'), 'time': datetime(2025, 2, 5, 14, 29, 4, 331216, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600), 'CET'))}
+Record was: {'elapsed': datetime.timedelta(microseconds=27107), 'exception': (type=None, value=False, traceback=False), 'extra': {}, 'file': (name='1334436161.py', path='/tmp/ipykernel_155442/1334436161.py'), 'function': '&lt;module&gt;', 'level': (name='ERROR', no=40, icon='❌'), 'line': 4, 'message': 'An error occurred!', 'module': '1334436161', 'name': '__main__', 'process': (id=155442, name='MainProcess'), 'thread': (id=139943369337728, name='MainThread'), 'time': datetime(2025, 2, 5, 15, 5, 20, 366826, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600), 'CET'))}
 Traceback (most recent call last):
-  File "/tmp/ipykernel_131750/1334436161.py", line 2, in &lt;module&gt;
+  File "/tmp/ipykernel_155442/1334436161.py", line 2, in &lt;module&gt;
     1 / 0
     ~~^~~
 ZeroDivisionError: division by zero
@@ -214,9 +214,9 @@ Traceback (most recent call last):
 AttributeError: 'bool' object has no attribute 'tb_frame'
 --- End of logging error ---
 --- Logging error in Loguru Handler #2 ---
-Record was: {'elapsed': datetime.timedelta(microseconds=31489), 'exception': (type=None, value=False, traceback=False), 'extra': {}, 'file': (name='1334436161.py', path='/tmp/ipykernel_131750/1334436161.py'), 'function': '&lt;module&gt;', 'level': (name='ERROR', no=40, icon='❌'), 'line': 4, 'message': 'An error occurred!', 'module': '1334436161', 'name': '__main__', 'process': (id=131750, name='MainProcess'), 'thread': (id=140065412881280, name='MainThread'), 'time': datetime(2025, 2, 5, 14, 29, 4, 331216, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600), 'CET'))}
+Record was: {'elapsed': datetime.timedelta(microseconds=27107), 'exception': (type=None, value=False, traceback=False), 'extra': {}, 'file': (name='1334436161.py', path='/tmp/ipykernel_155442/1334436161.py'), 'function': '&lt;module&gt;', 'level': (name='ERROR', no=40, icon='❌'), 'line': 4, 'message': 'An error occurred!', 'module': '1334436161', 'name': '__main__', 'process': (id=155442, name='MainProcess'), 'thread': (id=139943369337728, name='MainThread'), 'time': datetime(2025, 2, 5, 15, 5, 20, 366826, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600), 'CET'))}
 Traceback (most recent call last):
-  File "/tmp/ipykernel_131750/1334436161.py", line 2, in &lt;module&gt;
+  File "/tmp/ipykernel_155442/1334436161.py", line 2, in &lt;module&gt;
     1 / 0
     ~~^~~
 ZeroDivisionError: division by zero
@@ -238,9 +238,9 @@ Traceback (most recent call last):
 AttributeError: 'bool' object has no attribute 'tb_frame'
 --- End of logging error ---
 --- Logging error in Loguru Handler #3 ---
-Record was: {'elapsed': datetime.timedelta(microseconds=31489), 'exception': (type=None, value=False, traceback=False), 'extra': {}, 'file': (name='1334436161.py', path='/tmp/ipykernel_131750/1334436161.py'), 'function': '&lt;module&gt;', 'level': (name='ERROR', no=40, icon='❌'), 'line': 4, 'message': 'An error occurred!', 'module': '1334436161', 'name': '__main__', 'process': (id=131750, name='MainProcess'), 'thread': (id=140065412881280, name='MainThread'), 'time': datetime(2025, 2, 5, 14, 29, 4, 331216, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600), 'CET'))}
+Record was: {'elapsed': datetime.timedelta(microseconds=27107), 'exception': (type=None, value=False, traceback=False), 'extra': {}, 'file': (name='1334436161.py', path='/tmp/ipykernel_155442/1334436161.py'), 'function': '&lt;module&gt;', 'level': (name='ERROR', no=40, icon='❌'), 'line': 4, 'message': 'An error occurred!', 'module': '1334436161', 'name': '__main__', 'process': (id=155442, name='MainProcess'), 'thread': (id=139943369337728, name='MainThread'), 'time': datetime(2025, 2, 5, 15, 5, 20, 366826, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600), 'CET'))}
 Traceback (most recent call last):
-  File "/tmp/ipykernel_131750/1334436161.py", line 2, in &lt;module&gt;
+  File "/tmp/ipykernel_155442/1334436161.py", line 2, in &lt;module&gt;
     1 / 0
     ~~^~~
 ZeroDivisionError: division by zero
@@ -267,15 +267,15 @@ AttributeError: 'bool' object has no attribute 'tb_frame'
 <section id="asynchronous-logging" class="level4">
 <h4 class="anchored" data-anchor-id="asynchronous-logging">Asynchronous Logging</h4>
 <p>Loguru supports asynchronous logging, which can improve performance in I/O-bound applications:</p>
-<div id="b5c8f25d" class="cell" data-execution_count="5">
+<div id="daebd7c4" class="cell" data-execution_count="5">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>logger.add(<span class="st">"async_log.log"</span>, enqueue<span class="op">=</span><span class="va">True</span>)</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>logger.info(<span class="st">"This log is written asynchronously."</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>2025-02-05T14:29:04.366424+0100 | INFO | This log is written asynchronously.
-2025-02-05 14:29:04.366 | INFO     | __main__:&lt;module&gt;:2 - This log is written asynchronously.</code></pre>
+<pre><code>2025-02-05T15:05:20.405464+0100 | INFO | This log is written asynchronously.
+2025-02-05 15:05:20.405 | INFO     | __main__:&lt;module&gt;:2 - This log is written asynchronously.</code></pre>
 </div>
 </div>
 </section>
@@ -283,23 +283,23 @@ AttributeError: 'bool' object has no attribute 'tb_frame'
 <section id="colorful-logs-easier-to-read" class="level3">
 <h3 class="anchored" data-anchor-id="colorful-logs-easier-to-read">Colorful Logs: Easier to Read</h3>
 <p>Colorful logs are not just visually appealing; they make logs easier to read and debug. Loguru supports colorized logs out of the box, allowing you to differentiate log levels at a glance. For example:</p>
-<div id="89230478" class="cell" data-execution_count="6">
+<div id="7f8c23ab" class="cell" data-execution_count="6">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>logger.add(sys.stdout, colorize<span class="op">=</span><span class="va">True</span>, <span class="bu">format</span><span class="op">=</span><span class="st">"&lt;green&gt;</span><span class="sc">{time}</span><span class="st">&lt;/green&gt; | &lt;level&gt;</span><span class="sc">{level}</span><span class="st">&lt;/level&gt; | &lt;cyan&gt;</span><span class="sc">{message}</span><span class="st">&lt;/cyan&gt;"</span>)</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>logger.info(<span class="st">"This is a colorful info log!"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>2025-02-05T14:29:04.376174+0100 | INFO | This is a colorful info log!
-2025-02-05 14:29:04.376 | INFO     | __main__:&lt;module&gt;:2 - This is a colorful info log!
-2025-02-05T14:29:04.376174+0100 | INFO | This is a colorful info log!</code></pre>
+<pre><code>2025-02-05T15:05:20.414342+0100 | INFO | This is a colorful info log!
+2025-02-05 15:05:20.414 | INFO     | __main__:&lt;module&gt;:2 - This is a colorful info log!
+2025-02-05T15:05:20.414342+0100 | INFO | This is a colorful info log!</code></pre>
 </div>
 </div>
 </section>
 <section id="sending-logs-to-a-remote-server" class="level3">
 <h3 class="anchored" data-anchor-id="sending-logs-to-a-remote-server">Sending Logs to a Remote Server</h3>
 <p>You can use Loguru to send logs to a remote server via an API. Here’s a quick example using the <code>requests</code> library:</p>
-<div id="6bbe801a" class="cell" data-execution_count="7">
+<div id="820faa50" class="cell" data-execution_count="7">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> requests</span>
@@ -315,32 +315,32 @@ AttributeError: 'bool' object has no attribute 'tb_frame'
 <span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>logger.info(<span class="st">"This log will be sent to a remote server."</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>2025-02-05T14:29:04.455021+0100 | INFO | This log will be sent to a remote server.
-2025-02-05 14:29:04.455 | INFO     | __main__:&lt;module&gt;:11 - This log will be sent to a remote server.
-2025-02-05T14:29:04.455021+0100 | INFO | This log will be sent to a remote server.</code></pre>
+<pre><code>2025-02-05T15:05:20.454374+0100 | INFO | This log will be sent to a remote server.
+2025-02-05 15:05:20.454 | INFO     | __main__:&lt;module&gt;:11 - This log will be sent to a remote server.
+2025-02-05T15:05:20.454374+0100 | INFO | This log will be sent to a remote server.</code></pre>
 </div>
 </div>
 </section>
 <section id="saving-logs-to-a-file" class="level3">
 <h3 class="anchored" data-anchor-id="saving-logs-to-a-file">Saving Logs to a File</h3>
 <p>Loguru makes it easy to save logs to a file. You can specify the file path, rotation, and retention policies. Here’s an example:</p>
-<div id="88387215" class="cell" data-execution_count="8">
+<div id="cbf03b53" class="cell" data-execution_count="8">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>logger.add(<span class="st">"logs/app.log"</span>, rotation<span class="op">=</span><span class="st">"10 MB"</span>, retention<span class="op">=</span><span class="st">"30 days"</span>)</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>logger.info(<span class="st">"This log will be saved to a file."</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>2025-02-05T14:29:05.040301+0100 | INFO | This log will be saved to a file.
-2025-02-05 14:29:05.040 | INFO     | __main__:&lt;module&gt;:2 - This log will be saved to a file.
-2025-02-05T14:29:05.040301+0100 | INFO | This log will be saved to a file.</code></pre>
+<pre><code>2025-02-05T15:05:21.228397+0100 | INFO | This log will be saved to a file.
+2025-02-05 15:05:21.228 | INFO     | __main__:&lt;module&gt;:2 - This log will be saved to a file.
+2025-02-05T15:05:21.228397+0100 | INFO | This log will be saved to a file.</code></pre>
 </div>
 </div>
 </section>
 <section id="final-code" class="level3">
 <h3 class="anchored" data-anchor-id="final-code">Final Code</h3>
 <p>Here’s a complete example of a custom logger using Loguru, with advanced features like custom formatting, exception handling, and asynchronous logging:</p>
-<div id="e4e9c5ea" class="cell" data-execution_count="9">
+<div id="712ad6df" class="cell" data-execution_count="9">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
