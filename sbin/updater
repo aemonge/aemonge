@@ -252,10 +252,13 @@ update_neovim() {
     if [[ $EUID -ne 0 ]]; then
         if check_command "nvim" "Neovim plugins update"; then
             $QUIET || title "Running: 'nvim Lazy update; TSUpdateSync' with 'timetout 20s'"
-            nvim --headless -c 'lua require("lazy").update():wait()' -c 'qa!' \
-                $($QUIET && echo '> /dev/null')
-            nvim --headless -c 'TSUpdateSync | qa!' \
-                $($QUIET && echo '> /dev/null')
+            if $QUIET; then
+                nvim --headless -c 'lua require("lazy").update():wait()' -c 'qa!' 
+                nvim --headless -c 'TSUpdateSync | qa!'  
+            else
+                nvim --headless -c 'lua require("lazy").update():wait()' -c 'qa!' 
+                nvim --headless -c 'TSUpdateSync | qa!' 
+            fi
         fi
     fi
 }

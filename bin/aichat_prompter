@@ -1,0 +1,7 @@
+#!/bin/bash
+
+if [ -z "${NVIM:-}" ]; then
+    v waits "$@"
+else
+    nvr -c "setlocal bufhidden=wipe" -c "startinsert!" -cc "split" --remote-wait-silent "$@"
+fi
