@@ -70,11 +70,11 @@ render_articles() {
         quarto \
             render "$file" \
             --to html -o "$file_name.html" \
-            --css '/assets/style.css' \
-            || {
-            echo "Failed to render: $file" >>"$FAILED_ARTICLES_LOG"
-            error=true
-        }
+            --css '/assets/style.css' ||
+            {
+                echo "Failed to render: $file" >>"$FAILED_ARTICLES_LOG"
+                error=true
+            }
 
         # Skip further processing if rendering failed
         if $error; then

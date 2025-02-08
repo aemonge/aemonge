@@ -122,6 +122,7 @@ summary.navigation-language {
     height: 100vh;
     overflow: hidden;
     position: relative;
+    background: var(--white);
 }
 
 details {
@@ -234,6 +235,7 @@ body.fullcontent {
 #quarto-document-content {
     position: unset;
     padding: 2rem;
+    padding-right: 3rem;
     margin-bottom: 0;
     margin-top: 0;
     background: var(--white);
