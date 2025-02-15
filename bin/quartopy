@@ -1,0 +1,112 @@
+#!/bin/bash
+
+# Script: convert_qmd_to_py.sh
+#
+# Description: Convert .qmd files to Python scripts and optionally execute them.
+#
+# Usage: convert_qmd_to_py.sh [-x|--execute] [-o|--output OUTPUT_DIR] FILES...
+#
+# Options:
+#   -x, --execute    Execute the converted Python script after conversion.
+#   -o, --output     Specify the output directory for the converted Python files.
+#   -h, --help       Display this help message and exit.
+#
+# Arguments:
+#   FILES            One or more .qmd files to convert.
+
+# Function to display help
+show_help() {
+    cat <<EOF
+Usage: convert_qmd_to_py.sh [-x|--execute] [-o|--output OUTPUT_DIR] FILES...
+
+Convert .qmd files to Python scripts and optionally execute them.
+
+Options:
+  -x, --execute    Execute the converted Python script after conversion.
+  -o, --output     Specify the output directory for the converted Python files.
+  -h, --help       Display this help message and exit.
+
+Arguments:
+  FILES            One or more .qmd files to convert.
+EOF
+}
+
+# Initialize variables
+execute_script=false
+quiet=false
+output_dir="."
+
+# Parse command-line arguments
+while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+    -x | --execute)
+        execute_script=true
+        shift
+        ;;
+    -o | --output)
+        if [[ -n "$2" && ! "$2" =~ ^- ]]; then
+            output_dir="$2"
+            shift 2
+        else
+            echo "Error: No output directory specified for -o option."
+            exit 1
+        fi
+        ;;
+    -q | --quiet)
+        quiet=true
+        shift
+        ;;
+    -h | --help)
+        show_help
+        exit 0
+        ;;
+    *)
+        files+=("$1")
+        shift
+        ;;
+    esac
+done
+
+# Check if files are provided
+if [[ "${#files[@]}" -eq 0 ]]; then
+    echo "Error: No .qmd files provided."
+    show_help
+    exit 1
+fi
+
+# Ensure output directory exists
+mkdir -p "$output_dir"
+
+# Process each .qmd file
+for file in "${files[@]}"; do
+    if [[ ! -f "$file" ]]; then
+        echo "Error: File '$file' does not exist."
+        continue
+    fi
+
+    # Extract base name without extension
+    base_name=$(basename "$file" .qmd)
+
+    # Convert .qmd to .ipynb
+    if [[ "$quiet" == false ]]; then
+        quarto convert "$file" --output "$base_name.ipynb"
+    else
+        quarto convert "$file" --output "$base_name.ipynb" 1>/dev/null 2>&1
+    fi
+
+    # Convert .ipynb to .py
+    if [[ "$quiet" == false ]]; then
+        jupyter nbconvert --to python "$base_name.ipynb" --output "$base_name.py"
+    else
+        jupyter nbconvert --to python "$base_name.ipynb" --output "$base_name.py" 1>/dev/null 2>&1
+    fi
+
+    # Remove intermediate .ipynb file
+    rm "$base_name.ipynb"
+
+    # Optionally execute the Python script
+    if [[ "$execute_script" == true ]]; then
+        python "$base_name.py"
+        rm "$base_name.py"
+    fi
+done
