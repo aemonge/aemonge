@@ -36,6 +36,7 @@ clean_up() {
     find "$ARTICLES_DIR" -type d -name "*_files" -exec rm -Rf {} \; >/dev/null 2>&1
     rm ./articles_navigation.json
     echo "Clean-up completed!"
+    rm $FAILED_ARTICLES_LOG || true
 }
 
 # Build the resume PDF
@@ -202,30 +203,21 @@ G"
 # Check for failed articles
 check_failed_articles() {
     if [[ -s "$FAILED_ARTICLES_LOG" ]]; then
-        echo "Build completed with errors. Check $FAILED_ARTICLES_LOG for details."
+        echo "Build completed with errors."
+        cat "$FAILED_ARTICLES_LOG"
     else
         echo "Build completed successfully!"
     fi
 }
 
 # --------------
-# Main script execution
 
-# Clear the log file
-# >"$FAILED_ARTICLES_LOG"
-
-# Clean up non-.qmd files
-clean_up
-
-# Build the resume
-build_resume
-
-# Render articles
-render_articles
-
-# Generate the articles index page
-generate_index
-
-# Check for failed articles
-check_failed_articles
-clean_up
+main() {
+    clean_up
+    build_resume
+    render_articles
+    generate_index
+    check_failed_articles
+    clean_up
+}
+main

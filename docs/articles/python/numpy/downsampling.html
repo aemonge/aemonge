@@ -117,7 +117,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="understanding-the-group-size-formula" class="level2">
 <h2 class="anchored" data-anchor-id="understanding-the-group-size-formula">Understanding the Group Size Formula</h2>
 <p>To find the group size, you divide the total number of elements by the desired number of groups:</p>
-<div id="ff6bb79a" class="cell" data-execution_count="1">
+<div id="62cdbde7" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> math</span>
@@ -155,7 +155,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="example" class="level2">
 <h2 class="anchored" data-anchor-id="example">Example</h2>
-<div id="55601b35" class="cell" data-execution_count="2">
+<div id="4bf70aa8" class="cell" data-execution_count="2">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
@@ -229,7 +229,7 @@ which axis of the array the mean should be calculated. In a multidimensional arr
 <section id="illustrate-the-mean-calculation" class="level3">
 <h3 class="anchored" data-anchor-id="illustrate-the-mean-calculation">Illustrate the mean calculation</h3>
 <p>If you have a reshaped array like this:</p>
-<div id="08dc9fc8" class="cell" data-execution_count="3">
+<div id="5f51ac3a" class="cell" data-execution_count="3">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>[</span>
@@ -239,7 +239,7 @@ which axis of the array the mean should be calculated. In a multidimensional arr
 <span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    [(<span class="dv">28</span>, <span class="dv">29</span>, <span class="dv">30</span>), (<span class="dv">31</span>, <span class="dv">32</span>, <span class="dv">33</span>), (<span class="dv">34</span>, <span class="dv">35</span>, <span class="dv">36</span>)]</span>
 <span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
-<div class="cell-output cell-output-display" data-execution_count="3">
+<div class="cell-output cell-output-display" data-execution_count="23">
 <pre><code>[[(1, 2, 3), (4, 5, 6), (7, 8, 9)],
  [(10, 11, 12), (13, 14, 15), (16, 17, 18)],
  [(19, 20, 21), (22, 23, 24), (25, 26, 27)],
@@ -247,7 +247,7 @@ which axis of the array the mean should be calculated. In a multidimensional arr
 </div>
 </div>
 <p>And you calculate the mean along axis=1, you will get:</p>
-<div id="f89fa045" class="cell" data-execution_count="4">
+<div id="df1f03b9" class="cell" data-execution_count="4">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>[</span>
@@ -257,7 +257,7 @@ which axis of the array the mean should be calculated. In a multidimensional arr
 <span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    ((<span class="dv">28</span><span class="op">+</span><span class="dv">31</span><span class="op">+</span><span class="dv">34</span>)<span class="op">/</span><span class="dv">3</span>, (<span class="dv">29</span><span class="op">+</span><span class="dv">32</span><span class="op">+</span><span class="dv">35</span>)<span class="op">/</span><span class="dv">3</span>, (<span class="dv">30</span><span class="op">+</span><span class="dv">33</span><span class="op">+</span><span class="dv">36</span>)<span class="op">/</span><span class="dv">3</span>)</span>
 <span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
-<div class="cell-output cell-output-display" data-execution_count="4">
+<div class="cell-output cell-output-display" data-execution_count="24">
 <pre><code>[(4.0, 5.0, 6.0), (13.0, 14.0, 15.0), (22.0, 23.0, 24.0), (31.0, 32.0, 33.0)]</code></pre>
 </div>
 </div>
@@ -268,7 +268,7 @@ which axis of the array the mean should be calculated. In a multidimensional arr
 <p><code>Numpy</code> has a function <code>np.pad</code> that allows us to add elements to the end of an array. Not only we can add zeros, a constant value or the mean of the array.</p>
 <p>In this case, we will use the <code>np.pad(mode="mean", stat_length=...)</code>,</p>
 <p>The missing elements should be added to the end of the array.</p>
-<div id="020a2c87" class="cell" data-execution_count="5">
+<div id="bf6ef452" class="cell" data-execution_count="5">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>uneven_arr <span class="op">=</span> np.array(</span>
@@ -314,7 +314,7 @@ which axis of the array the mean should be calculated. In a multidimensional arr
 <h4 class="anchored" data-anchor-id="additional-explanations">Additional Explanations</h4>
 <p>Padding for Uneven Arrays: The code demonstrates how to handle arrays whose length is not evenly divisible by the target size.</p>
 <p>Calculating Remaining Elements:</p>
-<div id="7d1ea1f0" class="cell" data-execution_count="6">
+<div id="d79eb3c5" class="cell" data-execution_count="6">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>remaining_elements <span class="op">=</span> total_elements <span class="op">%</span> downscale_factor</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -322,7 +322,7 @@ which axis of the array the mean should be calculated. In a multidimensional arr
 </div>
 <p>This calculates how many elements are left over after dividing the array into groups of downscale_factor size.</p>
 <p>Mean Value for Padding:</p>
-<div id="f728109b" class="cell" data-execution_count="7">
+<div id="28fea90d" class="cell" data-execution_count="7">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>mean_value <span class="op">=</span> np.mean(uneven_arr[<span class="op">-</span>remaining_elements:]) <span class="cf">if</span> remaining_elements <span class="op">!=</span> <span class="dv">0</span> <span class="cf">else</span> <span class="dv">0</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -330,7 +330,7 @@ which axis of the array the mean should be calculated. In a multidimensional arr
 </div>
 <p>This calculates the mean of the remaining elements to use as padding. If there are no remaining elements, it defaults to 0.</p>
 <p>Padding the Array:</p>
-<div id="0aae1f81" class="cell" data-execution_count="8">
+<div id="fd5ff142" class="cell" data-execution_count="8">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>padded_arr <span class="op">=</span> np.pad(</span>
@@ -343,7 +343,7 @@ which axis of the array the mean should be calculated. In a multidimensional arr
 </div>
 <p>This pads the array with the calculated mean value to make its length divisible by the downscale factor.</p>
 <p>Reshaping Padded Array:</p>
-<div id="fbf7387b" class="cell" data-execution_count="9">
+<div id="2657c5fa" class="cell" data-execution_count="9">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>reshaped_uneven_arr <span class="op">=</span> padded_arr.reshape(<span class="op">-</span><span class="dv">1</span>, downscale_factor)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -359,7 +359,7 @@ which axis of the array the mean should be calculated. In a multidimensional arr
 <p>This example demonstrates how to down-sample a NumPy array by averaging groups of elements.</p>
 <section id="final-code" class="level3">
 <h3 class="anchored" data-anchor-id="final-code">Final Code</h3>
-<div id="f5f90b01" class="cell" data-execution_count="10">
+<div id="66e6d253" class="cell" data-execution_count="10">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> downsample(arr: np.ndarray, target_size: <span class="bu">int</span>) <span class="op">-&gt;</span> np.ndarray:</span>
