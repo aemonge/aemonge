@@ -304,6 +304,13 @@ body.landing {
     display: none;
 }
 
+[data-class-output="code-rendered"] > p,
+[data-class-output="code-rendered"] > p > span {
+    line-height: 0.5rem;
+    width: 100%;
+    display: flex;
+}
+
 .link {
     padding: 0.3rem 0.5rem;
     font-size: 0.85rem;
