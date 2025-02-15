@@ -215,6 +215,13 @@ details:not([open]) summary ~ * {
 }
 
 /* Quarto Document Styles */
+@media print {
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+}
+
 body.fullcontent {
     display: block;
     overflow: auto;

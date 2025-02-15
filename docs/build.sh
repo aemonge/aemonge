@@ -70,6 +70,7 @@ render_articles() {
         quarto \
             render "$file" \
             --to html -o "$file_name.html" \
+            --metadata code-ansi:true \
             --css '/assets/style.css' ||
             {
                 echo "Failed to render: $file" >>"$FAILED_ARTICLES_LOG"
