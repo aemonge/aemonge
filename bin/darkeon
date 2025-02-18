@@ -1,0 +1,220 @@
+#!/bin/bash
+
+# Description:
+#   darkeon is a tool for adjusting the timestamps of Git commits.
+#   It analyzes commit timestamps and provides options to either receive a report
+#   on their distribution or to modify them.
+#
+#   Use with extreme caution!
+#   Incorrect use can lead to data loss or repository corruption.
+#
+# Usage: darkeon [options] [from_commit] [to_commit]
+
+# Initialize colors
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[0;33m'
+NC='\033[0m' # No Color
+
+is_off_schedule() {
+    local date="$1"
+    local day=$(date -d "$date" +%u)
+    if [[ "$day" -ge 6 ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Function to get the commit message and timestamp
+get_commit_info() {
+    local commit_hash="$1"
+    # FIX 1: Add %s to capture commit subject (was missing)
+    git log -1 --pretty="format:%at%x1F%s" --date=unix "$commit_hash"
+}
+
+check_odd_patterns() {
+    local from_commit="$1"
+    local to_commit="$2"
+    local commit_range=""
+    local start_date end_date
+
+    if [[ -n "$from_commit" && -n "$to_commit" ]]; then
+        commit_range="$from_commit..$to_commit"
+    elif [[ -n "$to_commit" ]]; then
+        commit_range="$to_commit^!"
+    else
+        commit_range="HEAD"
+    fi
+
+    local commits=$(git rev-list --date=unix --no-merges $commit_range)
+
+    echo -e "${YELLOW}Analyzing temporal patterns in range: ${commit_range}${NC}"
+
+    while IFS= read -r commit; do
+        local info
+        info=$(get_commit_info "$commit")
+
+        IFS=$'\x1F' read -r timestamp title <<<"$info"
+
+        if ! [[ "$timestamp" =~ ^[0-9]+$ ]]; then
+            echo -e "${RED}Invalid timestamp for ${commit:0:7}${NC}"
+            continue
+        fi
+
+        local date
+        date=$(TZ=UTC date -d "@$timestamp" +%Y-%m-%d 2>/dev/null)
+        if [ $? -ne 0 ]; then # FIX 4: Proper error check
+            echo -e "${RED}Invalid date for ${commit:0:7} (ts: $timestamp)${NC}"
+            continue
+        fi
+
+        [[ -z "$start_date" ]] && start_date=$date
+        end_date=$date
+
+        if ! is_off_schedule "$date"; then
+            echo -e "${commit:0:7} ${YELLOW}Standard pattern: ${date}${NC} $(echo "$title" | head -n1 | cut -c1-50)"
+            off_schedule_count=$((off_schedule_count + 1))
+        fi
+    done < <(echo "$commits")
+
+    if [[ "$off_schedule_count" -gt 0 ]]; then
+        echo -e "\n${RED}Found $off_schedule_count entries in prime time ($start_date to $end_date).${NC}"
+    else
+        echo -e "${GREEN}All activities follow off-schedule patterns ($start_date to $end_date).${NC}"
+    fi
+}
+
+adjust_temporal_patterns() {
+    local from_commit="$1"
+    local to_commit="$2"
+    local commit_range=""
+    local backup_branch="backup/temporal-adjust-$(date +%s)"
+
+    # Determine commit range
+    if [[ -n "$from_commit" && -n "$to_commit" ]]; then
+        commit_range="$from_commit..$to_commit"
+    elif [[ -n "$to_commit" ]]; then
+        commit_range="$to_commit^!"
+    else
+        commit_range="HEAD"
+    fi
+
+    echo -e "${RED}█▓▒░ DESTRUCTIVE OPERATION ░▒▓█${NC}"
+    echo -e "${YELLOW}This will rewrite history for range: ${commit_range}${NC}"
+    echo -e "${YELLOW}Safety measures:${NC}"
+    echo "1. Creating backup branch: ${backup_branch}"
+    echo "2. Preserving original refs in refs/original/"
+    echo "3. Requiring manual confirmation"
+
+    # Create backup branch
+    if ! git branch "$backup_branch" >/dev/null 2>&1; then
+        echo -e "${RED}Failed to create backup branch${NC}"
+        return 1
+    fi
+
+    read -p "Confirm history rewrite? (y/N) " -n 1 -r
+    echo
+    [[ $REPLY =~ ^[Yy]$ ]] || return 1
+
+    git filter-repo --commit-callback '
+        from datetime import datetime, timedelta
+
+        auth_ts_str, auth_tz = commit.author_date.split()
+        auth_ts = int(auth_ts_str)
+        auth_dt = datetime.utcfromtimestamp(auth_ts)
+
+        if auth_dt.isoweekday() <= 5:
+            days_to_add = 6 - auth_dt.isoweekday()
+            new_dt = auth_dt + timedelta(days=days_to_add)
+            new_ts = int(new_dt.timestamp())
+
+            # Update both dates with same timestamp but original timezone
+            new_date = f"{new_ts} {auth_tz.decode()}".encode()
+            commit.author_date = new_date
+            commit.committer_date = new_date
+    ' --force --refs "$commit_range"
+
+    echo -e "\n${GREEN}Operation completed.${NC}"
+    echo -e "${YELLOW}Next steps:${NC}"
+    echo "  1. Verify changes: git log --date=short"
+    echo "  2. Push carefully: git push --force-with-lease origin HEAD"
+    echo "  3. Inform all collaborators to rebase their work"
+    echo -e "${YELLOW}Recovery options:${NC}"
+    echo "  - Reset to backup: git reset --hard $backup_branch"
+    echo "  - Original refs: git show refs/original/refs/heads/master"
+}
+
+# Argument parsing and help
+if [[ $# -eq 0 || "$1" == "-h" || "$1" == "--help" ]]; then
+    cat <<EOF
+Description:
+  darkeon is a tool for adjusting the timestamps of Git commits.
+  It analyzes commit timestamps and provides options to either receive a report on
+  their distribution or to modify them.
+
+  Use with extreme caution!
+  Incorrect use can lead to data loss or repository corruption.
+
+Usage: darkeon [options] [from_commit] [to_commit]
+
+Options:
+  -w, --warn      Generate a report on commit timestamps.
+  -m, --move      Modify commit timestamps (implies --warn).
+  -h, --help      Display this help message and exit.
+
+Examples:
+  darkeon -w                      Generate a report on all commit timestamps.
+  darkeon -w HEAD~10 HEAD         Generate a report on commits from HEAD~10 to HEAD.
+  darkeon -m HEAD~5 HEAD          Modify timestamps for commits from HEAD~5 to HEAD.
+  darkeon -m                      Modify timestamps for all commits.
+
+Notes:
+  - The -m option uses 'git filter-branch', which rewrites your Git history.
+    This is a destructive operation. Always back up your repository before using.
+  - If no commit range is specified, the operation applies to all commits.
+EOF
+    exit 0
+fi
+
+WARN_FLAG=false
+MOVE_FLAG=false
+
+while getopts ":wmh" opt; do
+    case $opt in
+    w)
+        WARN_FLAG=true
+        ;;
+    m)
+        MOVE_FLAG=true
+        WARN_FLAG=true # Implicitly warn when moving
+        ;;
+    \?)
+        echo "Invalid option: -$OPTARG" >&2
+        exit 1
+        ;;
+    :)
+        echo "Option -$OPTARG requires an argument." >&2
+        exit 1
+        ;;
+    esac
+done
+shift $((OPTIND - 1)) # Shift to remove options, keep positional arguments
+
+from_commit=""
+to_commit=""
+
+if [[ $# -eq 1 ]]; then
+    to_commit="$1"
+elif [[ $# -eq 2 ]]; then
+    from_commit="$1"
+    to_commit="$2"
+fi
+
+if $WARN_FLAG; then
+    check_odd_patterns "$from_commit" "$to_commit"
+fi
+
+if $MOVE_FLAG; then
+    adjust_temporal_patterns "$from_commit" "$to_commit"
+fi
