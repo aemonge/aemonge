@@ -53,27 +53,10 @@ check_command() {
 
 update_pamac() {
     # Check if NOT running as root (sudo), and if so proceed
-    if [[ $EUID -eq 0 ]]; then
+    if [[ $EUID -ne 0 ]]; then
         if check_command "pamac" "pamac update"; then
             $QUIET || title "Running 'pamac {upgrade,update} --refresh --aur --no-confirm'"
-            if [ $# -eq 0 ]; then
-                pamac update --no-confirm
-                pamac upgrade --no-confirm
-            else
-                pamac update
-                pamac upgrade
-            fi
-        fi
-    else
-        if check_command "pamac" "pamac update"; then
-            $QUIET || title "Running 'pamac {upgrade,update} --refresh --aur --no-confirm'"
-            if [ $# -eq 0 ]; then
-                pamac update --aur --no-confirm
-                pamac upgrade --aur --no-confirm
-            else
-                pamac update --aur
-                pamac upgrade --aur 
-            fi
+            pamac update --no-confirm --aur
         fi
     fi
 }
@@ -241,7 +224,7 @@ link_bins() {
     local dest_dirs=("$target_bin" "$target_sbin")
     for i in {0..1}; do
         if [[ -d "${src_dirs[$i]}" ]]; then
-            find "${src_dirs[$i]}" -type f -executable -print0 | 
+            find "${src_dirs[$i]}" -type f -executable -print0 |
                 xargs -0 -I {} ln -sf {} "${dest_dirs[$i]}/"
         fi
     done
@@ -253,11 +236,11 @@ update_neovim() {
         if check_command "nvim" "Neovim plugins update"; then
             $QUIET || title "Running: 'nvim Lazy update; TSUpdateSync' with 'timetout 20s'"
             if $QUIET; then
-                nvim --headless -c 'lua require("lazy").update():wait()' -c 'qa!' 
-                nvim --headless -c 'TSUpdateSync | qa!'  
+                nvim --headless -c 'lua require("lazy").update():wait()' -c 'qa!'
+                nvim --headless -c 'TSUpdateSync | qa!'
             else
-                nvim --headless -c 'lua require("lazy").update():wait()' -c 'qa!' 
-                nvim --headless -c 'TSUpdateSync | qa!' 
+                nvim --headless -c 'lua require("lazy").update():wait()' -c 'qa!'
+                nvim --headless -c 'TSUpdateSync | qa!'
             fi
         fi
     fi
