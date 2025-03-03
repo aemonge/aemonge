@@ -1,158 +1,159 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# Smarter 'clear' Command with Cursor Control and Command Execution
+# Usage: k [-q|--quiet] [-v|--verbose] [-h|--help] [--version] \
+#          [-k|--keep] [-w|--wait DURATION] [-x|--exec <command>]
+# Run with -h or --help for detailed usage instructions.
 
-# Script: k
-#
-# Description: A smarter 'clear' command that can clear the screen, move the cursor,
-# and execute commands or functions in a loop.
-#
-# Usage: k [options] [-- <command or function>]
-# Options:
-#   -k, --keep      Move the cursor to the top-left corner without clearing the screen.
-#   -w, --wait      Wait for a specified duration (e.g., 1s, 2m) before continuing.
-#   -h, --help      Display this help message.
-#   -v, --version   Display the version of the script.
-#   -- <command>    Loop infinitely and keep running the command or function.
+set -euo pipefail
 
-VERSION="1.1.0"
+LOG_LEVEL=${LOG_LEVEL:-INFO}
+declare -A LOG_LEVELS=([TRACE]=0 [DEBUG]=1 [INFO]=2 [WARNING]=3 [ERROR]=4 [CRITICAL]=5)
+VERSION="1.1.2"
 
-# Function to display help
-show_help() {
-    cat <<EOF
-A smarter 'clear' command that can clear the screen, move the cursor, and execute commands or functions in a loop.
-
-Usage: k [options] [-- <command or function>]
-
-Options:
-  -k, --keep      Move the cursor to the top-left corner without clearing the screen.
-  -w, --wait      Wait for a specified duration (e.g., 1s, 2m) before continuing.
-  -h, --help      Display this help message.
-  -v, --version   Display the version of the script.
-  -- <command>    Loop infinitely and keep running the command or function.
-
-Examples:
-  k               Clear the screen.
-  k -k            Move the cursor to the top-left corner without clearing the screen.
-  k -kw 1s        Move the cursor to the top-left corner and wait for 1 second.
-  k -w 2s         Clear the screen and wait for 2 seconds.
-  k -kw 1 -kw 1s -- kubectl get pods
-  k -kw 1 -- 'f() { echo "Hello, World!"; }; f'  # Define and run a function in a loop
-
-Notes:
-  - When using -- <command>, you can include function definitions and calls.
-  - Functions defined in the command will be properly executed in each iteration of the loop.
-  - Use single quotes around complex commands or function definitions to prevent shell expansion.
-EOF
-}
-
-# Function to display version
-show_version() {
-    echo "k version $VERSION"
-}
-
-# Function to execute a command or function
-execute_command() {
-    local cmd="$1"
-    if [[ "$(type -t "$cmd")" == "function" ]]; then
-        # If it's a function, we need to define it in the current context
-        eval "$(declare -f "$cmd")"
-        "$cmd"
-    else
-        eval "$cmd"
+log() {
+    local level="$1"
+    local message="$2"
+    local color_reset="\033[0m"
+    declare -A colors=(
+        [TRACE]="\033[0;36m"    # Cyan
+        [DEBUG]="\033[0;34m"    # Blue
+        [INFO]="\033[0;32m"     # Green
+        [WARNING]="\033[0;35m"  # Magenta
+        [ERROR]="\033[0;33m"    # Yellow
+        [CRITICAL]="\033[0;31m" # Red
+    )
+    if [[ ${LOG_LEVELS[$level]} -ge ${LOG_LEVELS[$LOG_LEVEL]} ]]; then
+        echo -e "${colors[$level]}[$level]${color_reset} $message"
     fi
 }
 
-# Function to handle the -w (wait) option
+show_help() {
+    cat <<EOF
+Smarter 'clear' Command with Cursor Control and Command Execution
+Usage: $0 [-q|--quiet] [-v|--verbose] [-h|--help] [--version] \
+          [-k|--keep] [-w|--wait DURATION] [-x|--exec <command>]
+
+Options:
+  -q, --quiet      Suppress all non-critical output.
+  -v, --verbose    Increase verbosity (e.g., -v for INFO, -vv for DEBUG).
+  -h, --help       Display this help message and exit.
+  --version        Display the script version and exit.
+  -k, --keep       Move cursor to top-left corner without clearing the screen.
+  -w, --wait       Wait for a specified duration (e.g., 1s, 2m) before continuing.
+  -x, --exec       Execute the specified command or function in a loop.
+
+Examples:
+  $0               Clear the screen.
+  $0 -k            Move cursor to top-left corner without clearing the screen.
+  $0 -w 2s         Wait for 2 seconds, then clear the screen.
+  $0 -kw 1s -x 'f() { echo "Hello, World!"; }; f'  # Define and run a function in a loop
+EOF
+    exit 0
+}
+
+show_version() {
+    echo "k version $VERSION"
+    exit 0
+}
+
 wait_for_duration() {
     local duration="$1"
     if [[ -z "$duration" ]]; then
-        echo "Error: No duration specified for -w option."
+        log ERROR "No duration specified for -w option."
         exit 1
     fi
+    log DEBUG "Waiting for $duration..."
     sleep "$duration"
 }
 
-# Main logic
-keep_cursor=false
-wait_duration=""
-loop_command=false
-command_to_run=""
-
-# Parse options
-while [[ "$#" -gt 0 ]]; do
-    case "$1" in
-    -k | --keep)
-        keep_cursor=true
-        shift
-        ;;
-    -w | --wait)
-        if [[ -n "$2" && ! "$2" =~ ^- ]]; then
-            wait_duration="$2"
-            shift 2
-        else
-            echo "Error: No duration specified for -w option."
-            exit 1
-        fi
-        ;;
-    -kw*)
-        # Handle combined short options like -kw1s
-        keep_cursor=true
-        if [[ "$1" =~ ^-kw(.+)$ ]]; then
-            wait_duration="${BASH_REMATCH[1]}"
-            shift
-        else
-            if [[ -n "$2" && ! "$2" =~ ^- ]]; then
-                wait_duration="$2"
-                shift 2
+parse_arguments() {
+    while getopts ":qvhkw:x:-:" opt; do
+        case "${opt}" in
+        q) LOG_LEVEL=CRITICAL ;;
+        v)
+            if [[ $LOG_LEVEL == "INFO" ]]; then
+                LOG_LEVEL=DEBUG
             else
-                echo "Error: No duration specified for -w option."
-                exit 1
+                LOG_LEVEL=TRACE
             fi
-        fi
-        ;;
-    -h | --help)
-        show_help
-        exit 0
-        ;;
-    -v | --version)
-        show_version
-        exit 0
-        ;;
-    --)
-        loop_command=true
-        shift
-        command_to_run="$*"
-        break
-        ;;
-    *)
-        echo "Error: Unknown option '$1'."
-        show_help
-        exit 1
-        ;;
-    esac
-done
+            ;;
+        h) show_help ;;
+        k) keep_cursor=true ;;
+        w) wait_duration="$OPTARG" ;;
+        x) command_to_run="$OPTARG" ;;
+        -)
+            case "${OPTARG}" in
+            quiet) LOG_LEVEL=CRITICAL ;;
+            verbose)
+                if [[ $LOG_LEVEL == "INFO" ]]; then
+                    LOG_LEVEL=DEBUG
+                else
+                    LOG_LEVEL=TRACE
+                fi
+                ;;
+            help) show_help ;;
+            version) show_version ;;
+            keep) keep_cursor=true ;;
+            wait)
+                wait_duration="${!OPTIND}"
+                OPTIND=$((OPTIND + 1))
+                ;;
+            exec)
+                command_to_run="${!OPTIND}"
+                OPTIND=$((OPTIND + 1))
+                ;;
+            *)
+                log ERROR "Invalid option: --${OPTARG}"
+                exit 1
+                ;;
+            esac
+            ;;
+        *)
+            log ERROR "Invalid option: -${OPTARG}"
+            exit 1
+            ;;
+        esac
+    done
+    shift $((OPTIND - 1))
+}
 
-# Perform actions based on options
-if [[ "$loop_command" == true ]]; then
-    clear
-    while true; do
-        execute_command "$command_to_run"
+execute_command() {
+    local command="$1"
+    if [[ -n "$command" ]]; then
+        log DEBUG "Executing command: '$command'"
+        eval "$command"
+    fi
+}
+
+main() {
+    local keep_cursor=false
+    local wait_duration=""
+    local command_to_run=""
+
+    parse_arguments "$@"
+
+    if [[ -n "$command_to_run" ]]; then
+        while true; do
+            if [[ -n "$wait_duration" ]]; then
+                wait_for_duration "$wait_duration"
+            fi
+            if [[ "$keep_cursor" == true ]]; then
+                echo -ne "\033[H"
+            else
+                clear
+            fi
+            execute_command "$command_to_run"
+        done
+    else
+        if [[ -n "$wait_duration" ]]; then
+            wait_for_duration "$wait_duration"
+        fi
         if [[ "$keep_cursor" == true ]]; then
             echo -ne "\033[H"
         else
             clear
         fi
-        if [[ -n "$wait_duration" ]]; then
-            wait_for_duration "$wait_duration"
-        fi
-    done
-else
-    if [[ "$keep_cursor" == true ]]; then
-        echo -ne "\033[H"
-    else
-        clear
     fi
+}
 
-    if [[ -n "$wait_duration" ]]; then
-        wait_for_duration "$wait_duration"
-    fi
-fi
+main "$@"
