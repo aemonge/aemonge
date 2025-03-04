@@ -1,0 +1,38 @@
+:root {
+    --code-magenta: #C795BE;
+    --code-cyan: #7697A0;
+    --code-blue: #8CAED1;
+    --code-red: #CF6E78;
+    --code-gray: #46567F;
+    --code-white: #CCCDCE;
+    --code-black: #2E3440;
+}
+
+[data-class-output="code-rendered"] {
+  color: var(--code-black) !important;
+}
+
+[data-class-output="code-rendered"] [style="text-decoration:underline;color:rgb(255,85,85)"],
+[data-class-output="code-rendered"] [style="color:rgb(255,85,85)"] {
+  color: var(--code-red) !important;
+}
+
+[data-class-output="code-rendered"] [style="color:rgb(0,187,0)"],
+[data-class-output="code-rendered"] [style="color:rgb(85,255,255)"] {
+  color: var(--code-cyan) !important;
+}
+
+
+[data-class-output="code-rendered"] [style="color:rgb(0,0,187)"],
+[data-class-output="code-rendered"] [style="color:rgb(85,85,255)"] {
+  color: var(--code-blue) !important;
+}
+
+[data-class-output="code-rendered"] [style="color:rgb(85,85,255)"],
+[data-class-output="code-rendered"] [style="color:rgb(85,85,85)"] {
+  color: var(--code-gray) !important;
+}
+
+[data-class-output="code-rendered"] [style="color:rgb(255,85,255)"] {
+  color: var(--code-magenta) !important;
+}

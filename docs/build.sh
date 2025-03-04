@@ -72,7 +72,8 @@ render_articles() {
             render "$file" \
             --to html -o "$file_name.html" \
             --metadata code-ansi:true \
-            --css '/assets/style.css' ||
+            --css '/assets/style.css' \
+            --css '/assets/code-console-overrides.css' ||
             {
                 echo "Failed to render: $file" >>"$FAILED_ARTICLES_LOG"
                 error=true
