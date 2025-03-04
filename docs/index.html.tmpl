@@ -10,6 +10,7 @@ esign." />
     <link rel="stylesheet" type="text/css" href="/assets/style.css" />
     <link rel="stylesheet" type="text/css" href="/assets/code-console-overrides.css" />
     <link rel="stylesheet" type="text/css" href="/assets/burger_responsive_menu.css" />
+    <script src="/assets/iframe-hash-sync.js"></script>
 </head>
 
 <body class="main">
@@ -37,7 +38,7 @@ esign." />
                 <details name="articles">
                     <summary class="subcategory">{{ .category }}</summary>
                     {{- range .articles }}
-                    <a class="link" href="{{ .url }}" target="articleWrapper">{{ .name }}</a>
+                    <a class="link" href="{{ .url }}" target="articleWrapper" >{{ .name }}</a>
                     {{- end }}
                 </details>
                 {{- end }}
