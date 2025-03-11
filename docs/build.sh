@@ -71,7 +71,6 @@ render_articles() {
         quarto \
             render "$file" \
             --to html -o "$file_name.html" \
-            --metadata code-ansi:true \
             --css '/assets/style.css' \
             --css '/assets/code-console-overrides.css' ||
             {

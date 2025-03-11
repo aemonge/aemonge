@@ -1,0 +1,13 @@
+code-ansi: true
+
+comments:
+  giscus:
+    repo: aemonge/aemonge
+    repo-id: "R_kgDOIpKr-w"
+    category: "Q&A"
+    category-id: "DIC_kwDOIpKr-84Cn2Em"
+    mapping: "pathname"
+    reactions-enabled: false
+    input-position: "top"
+    theme: "catppuccin_latte"
+    loading: "lazy"

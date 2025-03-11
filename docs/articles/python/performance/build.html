@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.6.39">
+<meta name="generator" content="quarto-1.7.6">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -73,6 +73,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 <link rel="stylesheet" href="/assets/style.css">
+<link rel="stylesheet" href="/assets/code-console-overrides.css">
 </head>
 
 <body class="fullcontent">
@@ -117,7 +118,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="dynamic-typing-in-python" class="level2">
 <h2 class="anchored" data-anchor-id="dynamic-typing-in-python">Dynamic Typing in Python</h2>
 <p>Python’s dynamic typing allows for determining and modifying variable types during program execution. This flexibility reduces code complexity but increases the risk of errors related to incorrect data types.</p>
-<div id="05174130" class="cell" data-execution_count="1">
+<div id="b29d513a" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Example of dynamic typing</span></span>
@@ -130,7 +131,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="strong-typing-in-python" class="level2">
 <h2 class="anchored" data-anchor-id="strong-typing-in-python">Strong Typing in Python</h2>
 <p>Strong typing ensures adherence to necessary rules when interacting with different data types. Operations between different data types are usually prohibited or require explicit type conversion.</p>
-<div id="86934bb2" class="cell" data-execution_count="2">
+<div id="47a55889" class="cell" data-execution_count="2">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Example of strong typing</span></span>
@@ -142,7 +143,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="type-annotations" class="level2">
 <h2 class="anchored" data-anchor-id="type-annotations">Type Annotations</h2>
 <p>Type annotations can be used to type functions in Python, improving code clarity and reducing errors.</p>
-<div id="a51cc6f3" class="cell" data-execution_count="3">
+<div id="4a96a091" class="cell" data-execution_count="3">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Example using type annotations</span></span>
@@ -167,7 +168,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><strong>Union</strong>: Allows specifying multiple possible types for a variable.</li>
 <li><strong>Optional</strong>: Indicates that a variable can have a specific type or be <code>None</code>.</li>
 </ul>
-<div id="9a061560" class="cell" data-execution_count="4">
+<div id="75c7ec67" class="cell" data-execution_count="4">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Example using Union and Optional</span></span>
@@ -185,7 +186,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="reduced-error-rate" class="level3">
 <h3 class="anchored" data-anchor-id="reduced-error-rate">Reduced Error Rate</h3>
 <p>One of the most significant benefits of using type annotations is that it can significantly reduce error rates. By specifying the expected types for variables, function parameters, and return values, you’re less likely to introduce errors into your code in the first place.</p>
-<div id="5183ff06" class="cell" data-execution_count="5">
+<div id="ec4ec12a" class="cell" data-execution_count="5">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Example of reduced error rate</span></span>
@@ -203,7 +204,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="improved-code-completion" class="level3">
 <h3 class="anchored" data-anchor-id="improved-code-completion">Improved Code Completion</h3>
 <p>Another way that type annotations contribute to faster development time is by improving code completion. When you’re writing code, being able to see a list of available methods or properties for an object can be incredibly helpful.</p>
-<div id="ac378053" class="cell" data-execution_count="6">
+<div id="0e302ff7" class="cell" data-execution_count="6">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Example of improved code completion</span></span>
@@ -758,6 +759,55 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     }
   }
 });
+</script>
+<input type="hidden" id="giscus-base-theme" value="catppuccin_latte">
+<input type="hidden" id="giscus-alt-theme" value="catppuccin_latte">
+<script>
+function loadGiscusWhenReady() {
+  // Function to get the theme based on body class
+  const getTheme = () => {
+    const baseTheme = document.getElementById('giscus-base-theme').value;
+    const altTheme = document.getElementById('giscus-alt-theme').value;
+    return document.body.classList.contains('quarto-dark') ? altTheme : baseTheme;
+  };
+  // Create the Giscus script and add it to the desired location
+  const loadGiscus = () => {
+    const script = document.createElement("script");
+    script.src = "https://giscus.app/client.js";
+    script.async = true;
+    script.dataset.repo = "aemonge/aemonge";
+    script.dataset.repoId = "R_kgDOIpKr-w";
+    script.dataset.category = "Q&amp;A";
+    script.dataset.categoryId = "DIC_kwDOIpKr-84Cn2Em";
+    script.dataset.mapping = "pathname";
+    script.dataset.reactionsEnabled = "0";
+    script.dataset.emitMetadata = "0";
+    script.dataset.inputPosition = "top";
+    script.dataset.theme = getTheme();
+    script.dataset.lang = "en";
+    script.crossOrigin = "anonymous";
+    // Append the script to the desired div instead of at the end of the body
+    document.getElementById("quarto-content").appendChild(script);
+  };
+  // MutationObserver to detect when the 'quarto-light' or 'quarto-dark' class is added to the body
+  const observer = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      if (mutation.type === "attributes" && mutation.attributeName === "class") {
+        if (document.body.classList.contains('quarto-light') || document.body.classList.contains('quarto-dark')) {
+          loadGiscus();
+          observer.disconnect(); // Stop observing once Giscus is loaded
+          break;
+        }
+      }
+    }
+  });
+  // Start observing the body for class attribute changes
+  observer.observe(document.body, {
+    attributes: true,
+    attributeFilter: ["class"],
+  });
+}
+loadGiscusWhenReady();
 </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
 <div class="sourceCode" id="cb12" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "Types and Build Performance (Mojo)"</span></span>
