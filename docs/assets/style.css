@@ -323,5 +323,5 @@ iframe.giscus-frame {
 	padding: 2rem;
 	margin-bottom: 0;
 	background: var(--white);
-	min-height: 450px;
+	min-height: 350px;
 }

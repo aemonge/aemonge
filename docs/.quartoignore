@@ -2,6 +2,7 @@
 **/devops/build/git-revert.qmd
 **/devops/build/python.qmd
 **/python/asyncio/async.qmd
+**/python/debug/logging.qmd
 **/python/dspy/basic_modules.qmd
 **/python/dspy/summarization_metrics.qmd
 **/python/fastapi/generic_responses.qmd

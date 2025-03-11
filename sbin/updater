@@ -55,7 +55,7 @@ update_pamac() {
     # Check if NOT running as root (sudo), and if so proceed
     if [[ $EUID -ne 0 ]]; then
         if check_command "pamac" "pamac update"; then
-            $QUIET || title "Running 'pamac {upgrade,update} --refresh --aur --no-confirm'"
+            $QUIET || title "Running 'pamac update --no-confirm --aur'"
             pamac update --no-confirm --aur
         fi
     fi
