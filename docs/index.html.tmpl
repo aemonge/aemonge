@@ -1,5 +1,6 @@
 <!doctype html>
 <html>
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,6 +12,7 @@ esign." />
     <link rel="stylesheet" type="text/css" href="/assets/code-console-overrides.css" />
     <link rel="stylesheet" type="text/css" href="/assets/burger_responsive_menu.css" />
     <script src="/assets/iframe-hash-sync.js"></script>
+    <script src="/assets/close-burger.js"></script>
 </head>
 
 <body class="main">
@@ -18,10 +20,10 @@ esign." />
         <div class="navbar-brand">
             <img src="avatar.png" alt="Andres Monge" class="navbar-avatar" />
             <a class="navbar-name" href="home.html" target="articleWrapper">
-            Andres Monge
+                Andres Monge
             </a>
             <a href="python-tech-lead_andres-monge.pdf" target="_blank" class="nav-item resume">
-            Resume/CV
+                Resume/CV
             </a>
         </div>
         <input type="checkbox" id="hamburger-toggle" class="hamburger-toggle">
@@ -38,7 +40,7 @@ esign." />
                 <details name="articles">
                     <summary class="subcategory">{{ .category }}</summary>
                     {{- range .articles }}
-                    <a class="link" href="{{ .url }}" target="articleWrapper" >{{ .name }}</a>
+                    <a class="link" href="{{ .url }}" target="articleWrapper" onclick="clickBurger()">{{ .name }}</a>
                     {{- end }}
                 </details>
                 {{- end }}
@@ -49,7 +51,7 @@ esign." />
 
     <div class="sidebar">
         <div class="sidebar-header">
-            <img src="avatar.png" alt="Andres Monge" class="avatar"/>
+            <img src="avatar.png" alt="Andres Monge" class="avatar" />
             <h2 class="name" onclick="showHome()">
                 <a href="home.html" target="articleWrapper">Andres Monge</a>
             </h2>
@@ -76,4 +78,5 @@ esign." />
         <iframe id="content" name="articleWrapper" src="home.html"> </iframe>
     </div>
 </body>
+
 </html>

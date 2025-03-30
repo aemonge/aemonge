@@ -8,6 +8,15 @@
     --code-black: #2E3440;
 }
 
+
+code  {
+  white-space: pre-wrap !important;
+}
+
+pre > code.sourceCode > span::before {
+  content: "· " !important;
+}
+
 [data-class-output="code-rendered"] {
   color: var(--code-black) !important;
 }

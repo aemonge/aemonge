@@ -132,6 +132,10 @@ details {
 	font-family: var(--font-primary);
 }
 
+details details {
+  text-indent: 1rem;
+}
+
 summary {
 	cursor: pointer;
 	margin: 0.5rem auto;
@@ -321,6 +325,7 @@ body.landing {
 /* Articles Comments giscus */
 iframe.giscus-frame {
 	padding: 2rem;
+	padding-right: 3rem;
 	margin-bottom: 0;
 	background: var(--white);
 	min-height: 350px;
