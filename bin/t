@@ -1,0 +1,244 @@
+#!/usr/bin/env bash
+# Taskwarrior File Context Wrapper
+# Usage: t [-h|--help] [--version] <command> [args]
+# Commands:
+#   list|l      List pending file/directory tasks
+#   pop|o       Open last pending task location
+#   push|p      Add current or specified path as task
+
+set -euo pipefail
+
+LOG_LEVEL=${LOG_LEVEL:-WARNING} # Default to WARNING to be less verbose
+declare -A LOG_LEVELS=([TRACE]=0 [DEBUG]=1 [INFO]=2 [WARNING]=3 [ERROR]=4 [CRITICAL]=5)
+VERSION="1.0.0"
+
+log() {
+    local level="$1"
+    local message="$2"
+    local color_reset="\033[0m"
+    declare -A colors=(
+        [TRACE]="\033[0;36m"    # Cyan
+        [DEBUG]="\033[0;34m"    # Blue
+        [INFO]="\033[0;32m"     # Green
+        [WARNING]="\033[0;35m"  # Magenta
+        [ERROR]="\033[0;33m"    # Yellow
+        [CRITICAL]="\033[0;31m" # Red
+    )
+    if [[ ${LOG_LEVELS[$level]} -ge ${LOG_LEVELS[$LOG_LEVEL]} ]]; then
+        echo -e "${colors[$level]}[$level]${color_reset} $message"
+    fi
+}
+
+show_help() {
+    cat <<EOF
+Taskwarrior File Context Wrapper ${VERSION}
+Usage: ${0##*/} [-q|--quiet] [-v|--verbose] [-h|--help] [--version] <command> [args]
+
+Commands:
+  list|l        List pending file/directory tasks
+  pop|o         Open last pending task location (auto-detects type)
+  popd|d        Change to last pending directory task
+  popf|f        Open last pending file task (supports line numbers)
+  push|p        Add current or specified path as task
+
+Global Options:
+  -q, --quiet      Suppress all non-critical output
+  -v, --verbose    Increase verbosity (-v: INFO, -vv: DEBUG, -vvv: TRACE)
+  -h, --help       Show this help message
+  --version        Display version information
+
+Examples:
+  ${0##*/} push             # Add current directory as task
+  ${0##*/} push file:42     # Add file with line number
+  ${0##*/} pop              # Auto-open last task (file or dir)
+  ${0##*/} d                # Change to last directory task
+  ${0##*/} f                # Edit last file task (jumps to line if specified)
+  ${0##*/} list             # Show pending file tasks
+
+Shortcuts:
+  tl = ${0##*/} list
+  tp = ${0##*/} push
+  to = ${0##*/} pop
+  td = ${0##*/} popd
+  tf = ${0##*/} popf
+EOF
+    exit 0
+}
+
+parse_arguments() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+        -q | --quiet)
+            LOG_LEVEL=CRITICAL
+            shift
+            ;;
+        -v | --verbose)
+            if [[ $LOG_LEVEL == "INFO" ]]; then
+                LOG_LEVEL=DEBUG
+            elif [[ $LOG_LEVEL == "DEBUG" ]]; then
+                LOG_LEVEL=TRACE
+            else
+                LOG_LEVEL=INFO
+            fi
+            shift
+            ;;
+        -h | --help) show_help ;;
+        --version)
+            echo "Version: $VERSION"
+            exit 0
+            ;;
+        list | l)
+            command=list
+            shift
+            break
+            ;;
+        popf | f)
+            command=popf
+            shift
+            break
+            ;;
+        popd | d)
+            command=popd
+            shift
+            break
+            ;;
+        push | p)
+            command=push
+            shift
+            break
+            ;;
+        *)
+            log INFO "Forwarding to Taskwarrior: $*"
+            exec task "$@"
+            ;;
+        esac
+    done
+
+    remaining_args=("$@")
+}
+
+validate_environment() {
+    if ! command -v task >/dev/null 2>&1; then
+        log CRITICAL "taskwarrior not found in PATH"
+        exit 1
+    fi
+
+    if ! command -v jq >/dev/null 2>&1; then
+        log CRITICAL "jq not found in PATH"
+        exit 1
+    fi
+}
+
+cmd_list() {
+    log DEBUG "Listing pending file tasks"
+
+    task status:pending export | jq -r '.[] | "\(.id) \(.description)"' 2>/dev/null || {
+        log WARNING "No pending file tasks found"
+        return 0
+    }
+}
+
+cmd_push() {
+    local target_path line_number remaining_path
+    if [[ ${#remaining_args[@]} -eq 0 ]]; then
+        target_path="$(pwd)"
+    else
+        # Split input into path and optional line/column numbers
+        IFS=':' read -r target_path remaining_path <<<"${remaining_args[0]}"
+
+        # Validate path exists
+        if ! target_path="$(realpath -e "$target_path" 2>/dev/null)"; then
+            log ERROR "Path does not exist: ${remaining_args[0]%:*}"
+            return 1
+        fi
+
+        # Reconstruct full target if line/column numbers were provided
+        [[ -n "$remaining_path" ]] && target_path="$target_path:$remaining_path"
+    fi
+
+    log DEBUG "Processing target: $target_path"
+    if ! task add "$target_path" >/dev/null; then
+        log ERROR "Failed to add task: $target_path"
+        return 1
+    fi
+    log INFO "Task added successfully: $target_path"
+}
+
+cmd_popd() {
+    log DEBUG "Searching for directory tasks"
+    local tasks target
+    tasks=$(task status:pending export | jq -r 'reverse | .[].description' 2>/dev/null)
+
+    if [[ -z "$tasks" ]]; then
+        log WARNING "No pending tasks found"
+        return 0
+    fi
+
+    while IFS= read -r target; do
+        # Remove line number if present
+        target="${target%:*}"
+
+        if [[ -d "$target" ]]; then
+            log INFO "Changing to directory: $target"
+            echo "$target" || continue # Try next if cd fails
+            return 0
+        else
+            log DEBUG "Skipping non-directory: $target"
+        fi
+    done <<<"$tasks"
+
+    pwd
+    # log ERROR "No valid directory tasks found"
+    return 1
+}
+
+cmd_popf() {
+    log DEBUG "Searching for file tasks"
+    local tasks target line col found_file=0
+
+    tasks=$(task status:pending export | jq -r 'reverse | .[].description' 2>/dev/null)
+
+    if [[ -z "$tasks" ]]; then
+        log WARNING "No pending tasks found"
+        return 0
+    fi
+
+    while IFS= read -r target; do
+        line=""
+        col=""
+        if [[ "$target" == *:* ]]; then
+            # Handle all three cases: file, file:line, file:line:col
+            IFS=':' read -r target line col <<<"$target"
+        fi
+
+        if [[ -f "$target" ]]; then
+            log INFO "Opening file: $target${line:+:$line}${col:+:$col}"
+            # ${EDITOR:-vim} "$target${line:+:$line}${col:+:$col}"
+            v "$target${line:+:$line}${col:+:$col}"
+            found_file=1
+            return 0
+        else
+            log DEBUG "Skipping non-file: $target"
+        fi
+    done <<<"$tasks"
+
+    if [[ $found_file -eq 0 ]]; then
+        log ERROR "No valid file tasks found"
+        return 1
+    fi
+}
+
+main() {
+    parse_arguments "$@"
+    validate_environment
+
+    case "${command:-}" in
+    list) cmd_list ;;
+    push) cmd_push ;;
+    popd) cmd_popd ;;
+    popf) cmd_popf ;;
+    *) show_help ;;
+    esac
+}
+
+main "$@"
