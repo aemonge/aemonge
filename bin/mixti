@@ -1,0 +1,9 @@
+#!/usr/bin/env elixir
+# vim: ft=elixir
+# Mix Test Interactive
+
+Mix.install([
+  {:mix_test_interactive, "~> 4.3"}
+])
+
+MixTestInteractive.run(System.argv())

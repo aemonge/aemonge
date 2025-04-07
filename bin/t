@@ -2,7 +2,7 @@
 # Taskwarrior File Context Wrapper
 # Usage: t [-h|--help] [--version] <command> [args]
 # Commands:
-#   list|l      List pending file/directory tasks
+#   queue|q     Show pending file/directory tasks Queue
 #   pop|o       Open last pending task location
 #   push|p      Add current or specified path as task
 
@@ -35,7 +35,7 @@ Taskwarrior File Context Wrapper ${VERSION}
 Usage: ${0##*/} [-q|--quiet] [-v|--verbose] [-h|--help] [--version] <command> [args]
 
 Commands:
-  list|l        List pending file/directory tasks
+  queue|q        Show pending file/directory tasks Queue
   pop|o         Open last pending task location (auto-detects type)
   popd|d        Change to last pending directory task
   popf|f        Open last pending file task (supports line numbers)
@@ -53,10 +53,10 @@ Examples:
   ${0##*/} pop              # Auto-open last task (file or dir)
   ${0##*/} d                # Change to last directory task
   ${0##*/} f                # Edit last file task (jumps to line if specified)
-  ${0##*/} list             # Show pending file tasks
+  ${0##*/} queue            # Show pending tasks queue
 
 Shortcuts:
-  tl = ${0##*/} list
+  tl = ${0##*/} queue
   tp = ${0##*/} push
   to = ${0##*/} pop
   td = ${0##*/} popd
@@ -87,8 +87,8 @@ parse_arguments() {
             echo "Version: $VERSION"
             exit 0
             ;;
-        list | l)
-            command=list
+        queue | q)
+            command=queue
             shift
             break
             ;;
@@ -129,8 +129,8 @@ validate_environment() {
     fi
 }
 
-cmd_list() {
-    log DEBUG "Listing pending file tasks"
+cmd_queue() {
+    log DEBUG "Show pending file tasks queue"
 
     task status:pending export | jq -r '.[] | "\(.id) \(.description)"' 2>/dev/null || {
         log WARNING "No pending file tasks found"
@@ -233,7 +233,7 @@ main() {
     validate_environment
 
     case "${command:-}" in
-    list) cmd_list ;;
+    queue) cmd_queue ;;
     push) cmd_push ;;
     popd) cmd_popd ;;
     popf) cmd_popf ;;

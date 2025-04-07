@@ -1,4 +1,5 @@
 #!/bin/zsh
+# vim: ft=bash
 
 set -e
 
@@ -31,6 +32,7 @@ show_help() {
     echo "  clam                Update ClamAV database"
     echo "  cargo               Update cargo packages"
     echo "  go                  Update go packages"
+    echo "  gem                 Update ruby packages"
     echo "  pnpm                Update pnpm packages"
     echo "  pip                 Update pipx packages"
     echo "  zinit               Update zinit plugins"
@@ -99,6 +101,7 @@ update_clam() {
 
 update_cargo() {
     # Check if running as user, and if so proceed
+    # go install github.com/Gelio/go-global-update@latest
     if [[ $EUID -ne 0 ]]; then
         if check_command "cargo" "cargo packages update"; then
             $QUIET || title "Running: 'cargo install-update -a'"
@@ -118,6 +121,18 @@ update_go() {
             $QUIET || title "Running: 'go-global-update'"
             if ! go-global-update; then
                 subtitle "Warning: go install-update failed." >&2
+            fi
+        fi
+    fi
+}
+
+update_gem() {
+    # Check if running as user, and if so proceed
+    if [[ $EUID -ne 0 ]]; then
+        if check_command "gem" "gem update"; then
+            $QUIET || title "Running: 'gem update'"
+            if ! gem update; then
+                subtitle "Warning: gem update failed." >&2
             fi
         fi
     fi
@@ -261,6 +276,7 @@ run_all_updates() {
         update_clam >/dev/null
         update_cargo >/dev/null
         update_go >/dev/null
+        update_gem >/dev/null
         update_pnpm >/dev/null
         update_pip >/dev/null
         update_zinit >/dev/null
@@ -273,6 +289,7 @@ run_all_updates() {
         update_clam
         update_cargo
         update_go
+        update_gem
         update_pnpm
         update_pip
         update_zinit
@@ -396,6 +413,13 @@ main() {
                     update_go >/dev/null
                 else
                     update_go
+                fi
+                ;;
+            gem)
+                if $QUIET; then
+                    update_gem >/dev/null
+                else
+                    update_gem
                 fi
                 ;;
             pip)
