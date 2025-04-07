@@ -36,7 +36,7 @@ clean_up() {
     find "$ARTICLES_DIR" -type d -name "*_files" -exec rm -Rf {} \; >/dev/null 2>&1
     rm ./articles_navigation.json
     echo "Clean-up completed!"
-    rm $FAILED_ARTICLES_LOG || true
+    rm $FAILED_ARTICLES_LOG 2>/dev/null || true
 }
 
 # Build the resume PDF
@@ -104,7 +104,10 @@ generate_article_name() {
 
 # Generate the navigation data for Gomplate
 generate_navigation_data() {
-    local RENDERED_FILES=$(find "$ARTICLES_DIR" -name "*.qmd" -o -name "*.quarto_ipynb")
+    local RENDERED_FILES=$(find "$ARTICLES_DIR" -type f \
+        \( -name "*.qmd" -o -name "*.quarto_ipynb" \) \
+        -not -path "*/_*" \
+        -not -name "_*")
     if [[ -z "$RENDERED_FILES" ]]; then
         echo "Warning: No articles were found. Skipping index generation."
         exit 0

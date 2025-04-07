@@ -11,6 +11,7 @@
 **/python/numpy/downsampling.qmd
 **/python/performance/annotations.qmd
 **/python/performance/build.qmd
+**/python/performance/concurrency.qmd
 **/python/performance/timeit.qmd
 **/python/types/dataclass.qmd
 **/python/types/diamond_issue.qmd
@@ -18,5 +19,3 @@
 **/python/unittest/mock_name_attr.qmd
 **/quarto/render/colorfull-output.qmd
 **/unix/network/networkless_commands.qmd
-
-!**/python/performance/concurrency.qmd
