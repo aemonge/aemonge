@@ -129,7 +129,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Before diving into the code, let’s set up <code>dspy</code> with a language model.</p>
 <p>In this example, we’ll use the <code>gemini/gemini-1.5-flash</code> model.</p>
 <pre class="{bash}"><code>pip install dspy</code></pre>
-<div id="958fc8eb" class="cell" data-execution_count="1">
+<div id="4582234b" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> dspy</span>
@@ -152,7 +152,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><strong>Frezea</strong>: For transforming Mexican slang into “fresa” teen girl slang.</li>
 <li><strong>Resumen</strong>: For summarizing text in the style of a “fresa” teen girl.</li>
 </ol>
-<div id="3097a903" class="cell" data-execution_count="2">
+<div id="e3487c02" class="cell" data-execution_count="2">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> QA(dspy.Signature):</span>
@@ -193,7 +193,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><strong>MexicanizeAnswer</strong>: Transforms a concise answer into Mexican slang.</li>
 <li><strong>FresaAnswer</strong>: Transforms a concise answer into “fresa” teen girl slang, with an optional summarization step.</li>
 </ol>
-<div id="fd334ddc" class="cell" data-execution_count="3">
+<div id="af45df99" class="cell" data-execution_count="3">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> MexicanizeAnswer(dspy.Module):</span>
@@ -231,7 +231,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="using-the-modules" class="level3">
 <h3 class="anchored" data-anchor-id="using-the-modules">Using the Modules</h3>
 <p>Now that we’ve defined our modules, let’s use them to transform answers.</p>
-<div id="9367ad28" class="cell" data-execution_count="4">
+<div id="7784f500" class="cell" data-execution_count="4">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fresea(question: <span class="bu">str</span>, summarized<span class="op">=</span><span class="va">False</span>) <span class="op">-&gt;</span> <span class="va">None</span>:</span>

@@ -52,7 +52,7 @@ build_resume() {
 render_articles() {
     echo "Rendering articles..."
     mkdir -p articles
-    fd ".qmd$" "$ARTICLES_DIR" --ignore-file .quartoignore | while read -r file; do
+    fd "^[^_].*.qmd$" "$ARTICLES_DIR" --ignore-file .quartoignore | while read -r file; do
         error=false
 
         # Skip empty .qmd files

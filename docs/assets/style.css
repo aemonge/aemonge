@@ -273,6 +273,28 @@ body.landing {
 	color: var(--primary-color);
 }
 
+.playful-note {
+  font-size: 0.8rem;
+  color: var(--secondary-color);
+  font-style: italic;
+  display: inline-block;
+  margin-left: 0.5rem;
+  font-weight: normal;
+  opacity: 0.85;
+}
+
+h1 .playful-note {
+  vertical-align: middle;
+}
+
+@media (max-width: 768px) {
+  .playful-note {
+    display: block;
+    margin-left: 0;
+    margin-top: 0.5rem;
+  }
+}
+
 /* Tech List Styles */
 .tech-list {
 	display: flex;

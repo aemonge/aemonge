@@ -119,7 +119,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Since the <code>name</code> attribute is not directly supported by the <code>Mock</code> constructor, you need to use alternative methods to achieve this. Here are the two main approaches:</p>
 <section id="using-configure_mock" class="level4">
 <h4 class="anchored" data-anchor-id="using-configure_mock">Using <code>configure_mock</code></h4>
-<div id="6c17dbe1" class="cell" data-execution_count="1">
+<div id="aca47dc6" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> unittest.mock <span class="im">import</span> MagicMock</span>
@@ -135,7 +135,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="setting-the-name-attribute-after-creation" class="level4">
 <h4 class="anchored" data-anchor-id="setting-the-name-attribute-after-creation">Setting the name attribute after creation</h4>
-<div id="9f6ecc40" class="cell" data-execution_count="2">
+<div id="5980e740" class="cell" data-execution_count="2">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>mock <span class="op">=</span> MagicMock()</span>
@@ -151,7 +151,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="example-setting-names-for-mocked-objects" class="level3">
 <h3 class="anchored" data-anchor-id="example-setting-names-for-mocked-objects">Example: Setting Names for Mocked Objects</h3>
 <p>When you need to create a list of mocked objects with specific names, you can follow the second approach. Here’s an example:</p>
-<div id="c014ed0e" class="cell" data-execution_count="3">
+<div id="262c570d" class="cell" data-execution_count="3">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> unittest.mock <span class="im">import</span> Mock, patch</span>
@@ -169,7 +169,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-display" data-execution_count="3">
-<pre><code>&lt;unittest.mock._patch at 0x7253c3f83da0&gt;</code></pre>
+<pre><code>&lt;unittest.mock._patch at 0x7141bd8abe30&gt;</code></pre>
 </div>
 </div>
 <p>This approach ensures that each item in the <code>items</code> list has a <code>metadata.name</code> attribute set correctly, which is essential for identifying and debugging the mocked objects in your tests.</p>
