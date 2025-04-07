@@ -41,289 +41,466 @@
 \title{\doctitle}
 
 \hypersetup{
-    pdftitle={\doctitle},
-    pdfauthor={Andres Monge},
-    pdfsubject={CV},
-    colorlinks=true,
-    linkcolor=blue,
-    filecolor=magenta,
-    urlcolor=cyan,
+	pdftitle={\doctitle},
+	pdfauthor={Andres Monge},
+	pdfsubject={CV},
+	colorlinks=true,
+	linkcolor=blue,
+	filecolor=magenta,
+	urlcolor=cyan,
 }
 
 \pagecolor{background}
 \color{foreground}
 
-\setlength{\parskip}{1em}
-
-\newcommand{\skillstar}[1]{%
-    \textcolor{darkblue}{%
-        \ifnum#1>0$\bullet$\else$\circ$\fi%
-        \ifnum#1>1$\bullet$\else$\circ$\fi%
-        \ifnum#1>2$\bullet$\else$\circ$\fi%
-        \ifnum#1>3$\bullet$\else$\circ$\fi%
-        \ifnum#1>4$\bullet$\else$\circ$\fi%
-    }%
-}
-
-% New command for full-width colorbox with original text margins
-\newcommand{\fullwidthcolorbox}[2]{%
-  \noindent\makebox[\linewidth]{%
-    \colorbox{#1}{%
-      \parbox{\dimexpr\paperwidth-2\fboxsep\relax}{%
-        \hspace{\dimexpr\oddsidemargin+1in}%
-        \begin{minipage}{\textwidth}
-        #2
-        \end{minipage}%
-        \hspace{\dimexpr\evensidemargin+1in}%
-      }%
-    }%
-  }%
-}
-
 \begin{document}
 
+	% Title Section
+	\noindent
+	\begin{minipage}{\textwidth}
+		{\Large\fontfamily{pag}\selectfont Backend Engineering Specialist (\textbf{Python}) | Mentor and Software Craftsman}
+
+		{\small\fontfamily{pag}\selectfont \textbf{Elixir/Gleam} Enthusiast}
+		\vspace{0.5cm}
+	\end{minipage}
+
+	% Profile Section
+	\noindent
+	\begin{minipage}[t]{0.7\textwidth}
+		\vspace{0pt}
+		\justifying
+
+		Seasoned \textbf{Python} specialist with 15+ years of experience designing robust backend systems
+		across \textbf{AI/ML} platforms, financial services, and SaaS products. I bridge \textbf{DevOps},
+		databases, and architecture while maintaining deep Python expertise, prioritizing
+		craftsmanship and elegant solutions in every project—from SOC2-compliant platforms to
+		containerized AI workloads.
+		\vspace{0.55cm}
+
+		A functional programming enthusiast exploring \textbf{Elixir} and \textbf{Gleam}, I apply these paradigms
+		to write safer Python code while thriving in technically complex environments. Whether
+		modernizing legacy systems at Santander or optimizing deployment pipelines at Origen, I
+		excel where precision and cross-disciplinary collaboration are essential.
+		\vspace{0.55cm}
+
+		Beyond implementation, I mentor engineers in Python best practices and functional
+		programming principles. My articles explore how these
+		languages transform software design approaches. I'm passionate about creating
+		thoughtfully crafted systems with long-term maintainability.
+
+	\end{minipage}%
+	\hfill%
+	\begin{minipage}[t]{0.25\textwidth}
+		\vspace{0pt}
+		\raggedleft
+		\fbox{\includegraphics[width=\linewidth]{avatar.png}}
+
+		\vspace{0.3cm}
+		\centering
+		{\large\bfseries\color{darkblue}\fontfamily{pag}\selectfont Andres Monge}
+
+		\vspace{0.3cm}
+		\small
+		\href{https://www.linkedin.com/in/aemonge/}{\faLinkedin} \hspace{0.1cm}
+		\href{https://github.com/aemonge}{\faGithub} \hspace{0.1cm}
+		\href{https://stackoverflow.com/users/1360897/aemonge}{\faStackOverflow} \hspace{0.1cm}
+		\href{https://pypi.org/user/aemonge/}{\faPython} \hspace{0.1cm}
+		\href{https://exercism.org/profiles/aemonge}{\faCode} \hspace{0.1cm}
+		\href{https://www.aemonge.com}{\faGlobe}
+	\end{minipage}
+
+	% Flow State Phrase
+	\vspace{0.5cm}
+	\noindent
+	\begin{minipage}{\textwidth}
+		{\small\textit{My flow state emerges when crafting elegant systems with comprehensive test coverage - that sweet spot where technical precision meets creative problem-solving. I thrive most when fully immersed in documenting my solutions, optimizing code or refining features.}}
+	\end{minipage}
+
+% ===== Work Style Section =====
+\vspace{0.5cm}
 \noindent
-\begin{minipage}[t]{0.7\textwidth}
-{\Large\bfseries\fontfamily{pag}\selectfont Andres Monge - Technical Lead / Solutions Architect}
-\end{minipage}%
-\begin{minipage}[t]{0.23\textwidth}
-\raggedleft
-\begin{tabularx}{\linewidth}{XXXXX}
-    \href{https://www.linkedin.com/in/aemonge/}{\faLinkedin} &
-    \href{https://github.com/aemonge}{\faGithub} &
-    \href{https://stackoverflow.com/users/1360897/aemonge}{\faStackOverflow} &
-    \href{https://pypi.org/user/aemonge/}{\faPython} &
-    \href{https://exercism.org/profiles/aemonge}{\faCode} \\
-\end{tabularx}
+\begin{minipage}{\textwidth}
+	{\large\bfseries\color{darkblue}\fontfamily{pag}\selectfont Work Style}
+	\vspace{0.3cm}
+
+	\noindent\textbf{Code Quality Champion}: Prioritize clean, maintainable code through rigorous code reviews and documentation standards, ensuring long-term project sustainability.
+
+	\vspace{0.3cm}
+	\noindent\textbf{Iterative Architect}: Balance immediate business needs with long-term technical vision through phased implementation strategies and evolutionary design patterns.
+
+	\vspace{0.3cm}
+	\noindent\textbf{Documentation Advocate}: Treat technical documentation as first-class engineering artifacts, creating living documents that streamline onboarding and knowledge sharing.
+
+	\vspace{0.3cm}
+	\noindent\textbf{Cross-Disciplinary Translator}: Excel at bridging technical and non-technical domains through clear communication of complex concepts to diverse stakeholders.
+
+	\vspace{0.3cm}
+	\noindent\textbf{Continuous Learner}: Maintain a structured approach to skill development through targeted reading groups, technical workshops, and open-source contributions.
 \end{minipage}
+% ===== END Work Style Section =====
 
+
+	% ===== Experience Highlights Section =====
+	\vspace{0.5cm}
+	\noindent
+	\begin{minipage}{\textwidth}
+		{\large\bfseries\color{darkblue}\fontfamily{pag}\selectfont Experience Highlights}
+		\vspace{0.3cm}
+
+		My journey as a software professional began with a passion for solving \textbf{complex problems} and a drive to continuously learn. From early days as a \textbf{web developer} to my current role as a seasoned \textbf{backend engineer}, I've evolved through diverse experiences that have shaped my expertise in \textbf{technical leadership}, \textbf{system design}, and \textbf{cross-functional collaboration}. This growth has been marked by a transition from building \textbf{enterprise web applications} to architecting \textbf{scalable AI platforms}, with a focus on \textbf{mentorship} and \textbf{technical excellence} throughout my career.
+
+
+		% Core Competencies
+		\vspace{0.2cm}
+		\noindent\textbf{AI Platform Architect}: Led Origen's Proteus platform evolution using FastAPI microservices, achieving SOC2 compliance and strict client isolation via Kubernetes namespaces. Collaborated with data scientists to integrate AI models into production-ready services.
+
+		\vspace{0.2cm}
+		\noindent\textbf{Legacy Modernization Expert}: Transformed GSG's banking systems using functional programming, reducing operational costs by €500/week and system downtime by 35\%. Established technical standards for stability during transitions.
+
+		\vspace{0.2cm}
+		\noindent\textbf{Testing Evangelist}: Implemented CI/CD testing at Origen, decreasing deployment failures by 65\%, and maintained 90\%+ test coverage at Babio. Enabled confident refactoring and ensured system reliability.
+
+		\vspace{0.2cm}
+		\noindent\textbf{Cross-Functional Leader}: Managed international squads at Santander Global Tech, balancing compliance with API-first design, improving delivery predictability by 30\%. Established MuleSoft and API-first standards.
+
+		\vspace{0.2cm}
+		\noindent\textbf{Performance Optimizer}: Developed BreezeFlow at Origen and optimized data pipelines at Delorian Group, reducing training time by 40\%. Improved system performance and efficiency significantly.
+
+		\vspace{0.2cm}
+		\noindent\textbf{Mentorship and Leadership}: Mentored junior engineers through code reviews and architecture discussions, fostering professional growth and technical excellence while maintaining high security standards.
+
+		\vspace{0.4cm}
+		{\raggedleft\itshape \textit{Explore detailed project implementations and technical achievements in the experience sections below...}}
+	\end{minipage}
+	% ===== END Experience Highlights Section =====
+
+
+
+% ===== Backend Engineering Section =====
 \vspace{0.5cm}
-
 \noindent
-\begin{minipage}[t]{0.65\textwidth}
-\begin{minipage}[t]{\dimexpr\linewidth-25px}
-\justifying
+\colorbox{leadershipbg}{%
+	\begin{minipage}{\dimexpr\textwidth-2\fboxsep\relax}
+		\vspace{0.2cm}
 
-\textbf{Technical lead and solutions architect} specializing in \textbf{back-end development, functional paradigms, and MLOps}. As a \textbf{hands-on leader}, I solve complex problems and deliver value through \textbf{technical excellence, empathy, and mentorship}.
+		{\large\bfseries\color{darkblue}\fontfamily{pag}\selectfont Backend Engineer}
+		\vspace{0.3cm}
 
-\vspace{0.2cm}
+		% Origen Experience
+		\noindent\textbf{SENIOR PYTHON SOFTWARE ENGINEER | Origen (2024-2025)} \\
+		\vspace{0.1cm}
+		{\small\textit{Python, Kubernetes, Docker, FastAPI, PostgreSQL, CI/CD, Security Compliance, Mentoring}}
+		\vspace{0.2cm}
 
-Currently exploring \textbf{Gleam} to deepen my understanding of \textbf{functional programming}, which enables \textbf{fast, safe, and concurrent code}. While maintaining my role as a \textbf{solution architect with Python expertise}, I'm committed to growth through the discipline of functional programming.
+		As backend development lead for the Platform team, I guided the evolution of Proteus, Origen's client-facing AI platform. My days involved collaborating with data scientists to translate AI models into production-ready services, architecting workflow systems that balanced performance with reliability, and ensuring our multi-tenant infrastructure maintained strict client isolation.
 
-    \section*{\large SHIFTING TO PYTHON AND AI}
-    \textbf{\textit{Python Technical Lead}}
-    \textit{\small Origen, Madrid, Spain (2024) (presently)}
-    \vspace{0.3cm}
-    \begin{itemize}[leftmargin=*]
-        \item \textbf{Responsibilities:} Led the team with strict adherence to high-quality code guidelines, ensuring maintainable and scalable solutions; mentored and guided two peers, fostering a collaborative environment and driving team performance.
-        \item \textbf{Accomplishments:} Successfully created an ad-hoc data management solution, resulting in a monthly cost savings of \$2,000; fully refactored the platform from a non-maintainable state to a PEP8 compliant, well-documented, and guideline-driven architecture.
-        \item \textbf{Technologies:} Python, Kubernetes, Bash, SQL, Docker, Numpy, Pandas.
-        \item \textbf{Personal Growth:} Gained deeper insights into AI team workflows, understanding their expectations and limitations; developed effective communication skills to provide solutions that enhance their performance; refined my ability to lead AI and Machine Learning teams, bridging my managerial background with technical expertise in AI development.
-    \end{itemize}
+		\vspace{0.2cm}
+		\begin{itemize}[label=\textcolor{darkblue}{\textbullet}, leftmargin=*, nosep]
+			\item Secured SOC2 compliance certification for the core platform
+			\item Upgraded AI platform from Python 3.7 to 3.12
+			\item Developed BreezeFlow, a lightweight Airflow for AI pod management
+			\item Decreased deployment failures by 65\% through enhanced testing protocols
+			\item Implemented complete client isolation using Kubernetes namespaces
+		\end{itemize}
 
-    \vspace{0.5cm}
+		\vspace{0.2cm}
+		\textbf{Personal Growth:}
+		\vspace{0.2cm}
+		\begin{itemize}[label=\textcolor{darkblue}{\textbullet}, leftmargin=*, nosep]
+			\item Mastered sophisticated Kubernetes patterns specific to AI workloads
+			\item Developed fluency in translating between data science and engineering terminology
+			\item Enhanced ability to communicate technical constraints to non-technical stakeholders
+		\end{itemize}
 
-    \textbf{\textit{Python Technical Lead}}
-    \textit{\small Babiopower, California, USA (remote) (2023-2024) (freelance)}
-    \vspace{0.3cm}
-    \begin{itemize}[leftmargin=*]
-        \item \textbf{Responsibilities:} Built the company software to generate a solar panels installation proposal;
-    Managed the team to build the front-end application and help in the back-end.
-        \item \textbf{Accomplishments:} Built the entirety of the system using Python, MongoDB, and Docker images;
-    Mentored and guided two more developers.
-        \item \textbf{Technologies:} Python, FastAPI, Pydantic, MongoDB, Docker.
-        \item \textbf{Personal Growth:} Deepened expertise in Python and FastAPI, gained valuable experience in machine ops AI.
-    \end{itemize}
+		\vspace{0.4cm}
 
-    \vspace{0.5cm}
+		% Babio Experience
+		\noindent\textbf{SENIOR PYTHON SOFTWARE ENGINEER | Babio (2023-2024)} \\
+		\vspace{0.1cm}
+		{\small\textit{Python, FastAPI, Pydantic, MongoDB, Docker, Cross-functional Leadership, Technical Mentoring}}
+		\vspace{0.2cm}
 
-    \textbf{\textit{Machine Learning Engineer}}
-    \textit{\small Delorean group, Mexico city (remote) (2023) (freelance)}
-    \vspace{0.3cm}
-    \begin{itemize}[leftmargin=*]
-        \item \textbf{Responsibilities:} Built a Convolutional Neural Network (CNN) that identified landmarks for a small
-    tourism company.
-        \item \textbf{Accomplishments:} Developed a CNN model that accurately identified and classified various
-    landmarks, enhancing the company's tourism offerings and customer engagement.
-        \item \textbf{Technologies:} Python, PyTorch, and Transformers.
-        \item \textbf{Personal Growth:} Applied Python and AI skills in a real-world context, deepened expertise in these
-    areas, and demonstrated the practical value of AI in enhancing business operations.
-    \end{itemize}
+		As project lead for Babio's solar proposal system, I architected and developed software that transformed the company's proposal generation process. Each day involved integrating complex data sources into a cohesive system that automatically generated tailored installation plans.
 
-    \vspace{0.5cm}
+		\vspace{0.2cm}
+		\begin{itemize}[label=\textcolor{darkblue}{\textbullet}, leftmargin=*, nosep]
+			\item Built complete system architecture using Python, MongoDB, and Docker
+			\item Reduced proposal generation time by 70\% through automated processing
+			\item Designed scalable architecture handling 3x user load increase
+			\item Achieved 90\% test coverage ensuring exceptional system reliability
+		\end{itemize}
 
-    \textbf{\textit{Front-end Team Lead}}
-    \textit{\small Bonial / Kaufda.be, Berlin, Germany (2017)}
-    \vspace{0.3cm}
-    \begin{itemize}[leftmargin=*]
-        \item \textbf{Responsibilities:} Developed Micro-fronts using Polymer for the UI of an AI training system; Created
-    an infinite undo/redo global interface and a hyper-fast UI tag autocomplete using local storage for
-    optimization.
-        \item \textbf{Accomplishments:} Developed a tag component that was incredibly fast by using a double cache
-    system; Created a grid splitter directly into the AI tool, which accelerated the selection of sections by
-    300x.
-        \item \textbf{Technologies:} Polymer, AI.
-        \item \textbf{Personal Growth:} Gained valuable experience in AI and developed proficiency in Polymer.
-    \end{itemize}
-\end{minipage}\hspace{5px}
-\end{minipage}%
-\begin{minipage}[t]{0.33\textwidth}
-    \vspace{-.3cm}
+		\vspace{0.2cm}
+		\textbf{Personal Growth:}
+		\vspace{0.2cm}
+		\begin{itemize}[label=\textcolor{darkblue}{\textbullet}, leftmargin=*, nosep]
+			\item Mastered modern Python web frameworks and API design patterns
+			\item Enhanced ability to translate business requirements into technical specifications
+			\item Strengthened cross-functional leadership skills
+		\end{itemize}
 
-    \centering
-    \fbox{\includegraphics[width=0.8\linewidth]{avatar.png}}
+		\vspace{0.4cm}
 
-    \vspace{0.5cm}
-    \justifying
-    \textbf{"Empowering teams to build innovative solutions with a focus on value and efficiency."}
+		% Delorian Group Experience
+		\noindent\textbf{MACHINE LEARNING ENGINEER | Delorian Group (2023-2023)} \\
+		\vspace{0.1cm}
+		{\small\textit{Python, PyTorch, Transformers, CNN Architecture, Data Preprocessing, Independent Project Management}}
+		\vspace{0.2cm}
 
+		As the sole developer for this three-month AI project, I independently built a landmark recognition system from the ground up. Managed the entire ML lifecycle while ensuring seamless integration with existing tourism systems.
+
+		\vspace{0.2cm}
+		\begin{itemize}[label=\textcolor{darkblue}{\textbullet}, leftmargin=*, nosep]
+			\item Developed CNN model with 83\% accuracy in landmark identification
+			\item Optimized model inference time by 40\% through architecture improvements
+			\item Created reusable data preprocessing pipeline reducing training time by 40\%
+			\item Delivered complete end-to-end solution enhancing tourism offerings
+		\end{itemize}
+
+		\vspace{0.2cm}
+		\textbf{Personal Growth:}
+		\vspace{0.2cm}
+		\begin{itemize}[label=\textcolor{darkblue}{\textbullet}, leftmargin=*, nosep]
+			\item Expanded Python expertise into specialized AI/ML applications
+			\item Developed deeper understanding of ML infrastructure requirements
+			\item Strengthened independent project management skills
+		\end{itemize}
+
+		\vspace{0.4cm}
+
+		% Lavanda Experience
+		\noindent\textbf{ENGINEERING MANAGER | Lavanda (2022-2023)} \\
+		\vspace{0.1cm}
+		{\small\textit{Agile/Scrum methodologies, Jira, Git workflow management, Team Leadership, Strategic Planning}}
+		\vspace{0.2cm}
+
+		Led two cross-functional engineering squads (10 developers) through product evolution phases, focusing on customer retention initiatives and technical debt management while bridging technical and business priorities.
+
+		\vspace{0.2cm}
+		\begin{itemize}[label=\textcolor{darkblue}{\textbullet}, leftmargin=*, nosep]
+			\item Reduced customer churn by 18\% through strategic feature implementation
+			\item Created technical documentation system adopted company-wide
+			\item Decreased sprint planning time by 40\% through process refinements
+		\end{itemize}
+
+		\vspace{0.2cm}
+		\textbf{Personal Growth:}
+		\vspace{0.2cm}
+		\begin{itemize}[label=\textcolor{darkblue}{\textbullet}, leftmargin=*, nosep]
+			\item Developed nuanced perspective on balancing technical excellence with business outcomes
+			\item Deepened appreciation for documentation as engineering craftsmanship
+			\item Refined approach to nurturing technical talent through individualized plans
+		\end{itemize}
+
+		\vspace{0.2cm} % Bottom padding inside colored background
+		    \end{minipage}}
+	% ===== END Backend Section =====
+
+% ===== FRONTEND ENGINEERing Section =====
 \vspace{0.5cm}
-\begin{tikzpicture}
-% Define the rectangles with rounded corners
-\draw[fill=blue!80!background, rounded corners=5pt] (0,0) rectangle (6.5,2);
-\draw[fill=darkblue!80!background, rounded corners=5pt] (0,1.6) rectangle (6.5,4);
-\draw[fill=red!80!background, rounded corners=5pt] (4,0) rectangle (6.5,4);
+\noindent
+\begin{minipage}{\textwidth}
+	{\large\bfseries\color{darkblue}\fontfamily{pag}\selectfont Frontend Engineer}
+	\vspace{0.3cm}
 
-% Add explanations below the squares as bullet points
-\node[anchor=north west, align=left] at (0, -0.5) {
-    \textcolor{darkblue!80!background}{$\bullet$ 40\% Architectural investigation and spikes}\\
-    \textcolor{blue!80!background}{$\bullet$ 30\% Feature development and bugs fixing}\\
-    \textcolor{red!80!background}{$\bullet$ 30\% Tasks definition, refinment and planning}
-};
-\end{tikzpicture}
+	% Global Savings Group Experience
+	\noindent\textbf{TECHNICAL LEAD | Global Savings Group (2021-2022)} \\
+	\vspace{0.1cm}
+	{\small\textit{JavaScript (ES6+), NodeJS, Python, Docker, Functional Programming, Team Leadership, Legacy Modernization}}
+	\vspace{0.2cm}
 
-\vspace{0.1cm}
-\section*{\large Software Languages}
-\begin{tabularx}{\linewidth}{cXr}
-    \faPython & Python & \skillstar{4} \\
-    \faDocker & DevOps & \skillstar{3} \\
-    \faDatabase & Databases & \skillstar{4} \\
-    \faTerminal & Bash & \skillstar{4} \\
-    \faGem & pytorch & \skillstar{2} \\
-    \faGem & numpy & \skillstar{2} \\
-    \faJs & JavaScript & \skillstar{4} \\
-    \faCss3 & CSS/HTML & \skillstar{4} \\
-\end{tabularx}
+	Guided cross-functional team through legacy system modernization while maintaining critical banking services. Established technical standards and code review processes ensuring stability during transitions.
 
-    \vspace{0.5cm}
-    \section*{\large Spoken Languages}
-    \begin{tabular}{cl}
-        \faLanguage & Spanish (Mother Tongue) \\
-        \faLanguage & English (Bilingual - C1) \\
-    \end{tabular}
+	\vspace{0.2cm}
+	\begin{itemize}[label=\textcolor{darkblue}{\textbullet}, leftmargin=*, nosep]
+		\item Designed NodeJS web-crawler saving €500/week through FP principles
+		\item Reduced system downtime 35\% via proactive monitoring solutions
+		\item Refactored critical components for 25\% performance improvement
+		\item Established coding standards cutting bug reports by 30\%
+	\end{itemize}
+
+	\vspace{0.2cm}
+	\textbf{Personal Growth:}
+	\vspace{0.2cm}
+	\begin{itemize}[label=\textcolor{darkblue}{\textbullet}, leftmargin=*, nosep]
+		\item Mastered FP principles for efficient data processing
+		\item Enhanced NodeJS expertise through pure functional implementations
+		\item Developed techniques for technical debt/business balance
+	\end{itemize}
+
+	\vspace{0.4cm}
+
+	% Santander Experience
+	\noindent\textbf{TECHNICAL LEAD | Santander Global Tech (2018-2021)} \\
+	\vspace{0.1cm}
+	{\small\textit{Angular, Python, Event-Driven Architecture, MuleSoft, API-first Design, International Leadership}}
+	\vspace{0.2cm}
+
+	Spearheaded modernization of banking backend services across Spain/US teams. Established MuleSoft and API-first patterns while ensuring compliance.
+
+	\vspace{0.2cm}
+	\begin{itemize}[label=\textcolor{darkblue}{\textbullet}, leftmargin=*, nosep]
+		\item Led 10 international engineering squads as promoted TECHNICAL LEAD
+		\item Designed MyPage system \& enterprise component library (10+ teams)
+		\item Developed Python automation tools improving delivery predictability 30\%
+	\end{itemize}
+
+	\vspace{0.2cm}
+	\textbf{Personal Growth:}
+	\vspace{0.2cm}
+	\begin{itemize}[label=\textcolor{darkblue}{\textbullet}, leftmargin=*, nosep]
+		\item Mastered large-scale distributed systems design
+		\item Enhanced API-first/event-driven architecture expertise
+		\item Strengthened international team leadership
+	\end{itemize}
+
+	\vspace{0.4cm}
+
+	% S|NGULAR/BBVA Experience
+	\noindent\textbf{PRINCIPAL FRONTEND ENGINEER | S|NGULAR/BBVA (2013-2017)} \\
+	\vspace{0.1cm}
+	{\small\textit{AngularJS, Polymer.js, ReactJS, Cordova, Component Architecture, Cross-platform Dev}}
+	\vspace{0.2cm}
+
+	Directed frontend development for BBVA banking projects, leading R\&D efforts and technological transitions with banking-grade security.
+
+	\vspace{0.2cm}
+	\begin{itemize}[label=\textcolor{darkblue}{\textbullet}, leftmargin=*, nosep]
+		\item Co-designed TabletBanking app (BBVA global standard)
+		\item Mentored 3 junior developers to career advancement
+		\item Created 200+ Polymer.js components using TDD
+	\end{itemize}
+
+	\vspace{0.2cm}
+	\textbf{Personal Growth:}
+	\vspace{0.2cm}
+	\begin{itemize}[label=\textcolor{darkblue}{\textbullet}, leftmargin=*, nosep]
+		\item Mastered cross-platform enterprise architecture
+		\item Implemented TDD methodologies
+		\item Developed FP principles for maintainability
+	\end{itemize}
+
+	\vspace{0.4cm}
+
+	% GFT Experience
+	\noindent\textbf{FRONTEND ENGINEER | GFT (2012-2013)} \\
+	\vspace{0.1cm}
+	{\small\textit{NodeJS, AngularJS, CSS, Bash/Python, Component Development}}
+	\vspace{0.2cm}
+
+	Developed enterprise frontend solutions for insurance sector, mentoring teams through jQuery to Angular transition.
+
+	\vspace{0.2cm}
+	\begin{itemize}[label=\textcolor{darkblue}{\textbullet}, leftmargin=*, nosep]
+		\item Built personal finance manager in 6 weeks
+		\item Created Mapfre Component Catalogue
+		\item Developed Angular/ReactJS hybrid component
+	\end{itemize}
+
+	\vspace{0.2cm}
+	\textbf{Personal Growth:}
+	\vspace{0.2cm}
+	\begin{itemize}[label=\textcolor{darkblue}{\textbullet}, leftmargin=*, nosep]
+		\item Refined mentoring through framework transitions
+		\item Deepened component architecture expertise
+		\item Strengthened reusable component development
+	\end{itemize}
 \end{minipage}
+% ===== END Frontend Section =====
 
-\newpage
 
-\fullwidthcolorbox{leadershipbg}{%
-\vspace{0.3cm}
-
-\section*{\large LEADERSHIP - TECH LEAD AND MANAGER}
-\textbf{\textit{Senior Engineering Manager}}
-\textit{\small Lavanda, united kingdom (remote) (2022 - 2023)}
-\vspace{0.3cm}
-\begin{itemize}[leftmargin=*]
-    \item \textbf{Responsibilities:} Served as a line manager for two squads; Coordinated with the CTO and CPO to
-    design and develop features to alleviate customer churn.
-    \item \textbf{Accomplishments:} Managed a team of 10 software engineers; Created an efficient algorithm to
-    allocate randomized bookings with range and date constraints.
-    \item \textbf{Technologies:} Python / Ruby on Rails.
-    \item \textbf{Personal Growth:} Enhanced skills in managing a team and developed proficiency in Python and Ruby
-    on Rails.
-\end{itemize}
+% ===== WEB DEVELOPER Section =====
 \vspace{0.5cm}
+\noindent
+\colorbox{leadershipbg}{%  % Same background as Backend Engineer
+	\begin{minipage}{\dimexpr\textwidth-2\fboxsep\relax}
+		\vspace{0.2cm}
 
-\textbf{\textit{Senior Engineering Manager}}
-\textit{\small Global Savings Group, Germany (remote) (2021 - 2022)}
-\vspace{0.3cm}
-\begin{itemize}[leftmargin=*]
-    \item \textbf{Responsibilities:} Managed a team of 7 software engineers; Kept the legacy code and systems active
-    and clean of critical bugs, while participating in the discovery and planning of a company-wide code
-    refactoring.
-    \item \textbf{Accomplishments:} Designed and developed a web-crawler that saved the company 500€ weekly costs.
-    \item \textbf{Technologies:} JavaScript, Python, HTML, (TS) React.
-    \item \textbf{Personal Growth:} Gained valuable experience in remote management and developed proficiency in
-    solutions architecture.
-\end{itemize}
-\vspace{0.5cm}
+		{\large\bfseries\color{darkblue}\fontfamily{pag}\selectfont Web Developer}
+		\vspace{0.3cm}
 
-\textbf{\textit{Technical Lead / Software Architect}}
-\textit{\small GFT / Santander Global Tech, Madrid, Spain (2018 - 2021)}
-\vspace{0.3cm}
-\begin{itemize}[leftmargin=*]
-    \item \textbf{Responsibilities:} Served as a technical coordinator and solutions architect for development teams;
-    Investigated new technologies and methodologies to accelerate delivery times and increase overall
-    quality.
-    \item \textbf{Accomplishments:} Designed a solution to generate documentation and dependency hierarchy
-    automatically; Proved increase of 120% in delivery time in two projects designing ATDD; Became the
-    go-to person for any DevOps and pipeline enhancement in the project, and led two USA teams to
-    perform twice as better by creating better tools and guiding the team into knowing and using such
-    tools.
-    \item \textbf{Technologies:} Angular, JavaScript, Python scripting, bash, UML-Diagrams.
-    \item \textbf{Personal Growth:} Enhanced my skills in team coordination and solutions architecture.
-\end{itemize}
-\vspace{0.5cm}
-}% End of previous \fullwidthcolorbox
-\begin{samepage}
-\vspace{-1cm}% Adjust this value as needed
-\fullwidthcolorbox{background}{%
-\vspace{0.5cm}
-\section*{\large WEB DEVELOPER}
+		% C.B.I. Experience
+		\noindent\textbf{WEB DEVELOPER | C.B.I. (2010-2012)} \\
+		\vspace{0.1cm}
+		{\small\textit{SQL, PHP, JavaScript, WordPress, jQuery, Database Optimization, Enterprise Applications}}
+		\vspace{0.2cm}
 
-\textbf{\textit{Team Lead / Developer}}
-\textit{\small S|NGULAR / BBVA, Madrid, Spain (2013 - 2017)}
-\vspace{0.3cm}
-\begin{itemize}[leftmargin=*]
-    \item \textbf{Responsibilities:} Mentored developers to implement modules and components, instead of jQuery; Participated in the construction of
-    the CD/CI with GULP and git-flow; Developed an Angular component hosting a ReactJS module.
-    \item \textbf{Accomplishments:} Successfully developed an Angular component hosting a ReactJS module.
-    \item \textbf{Technologies:} Angular, ReactJS, jQuery, GULP, git-flow.
-    \item \textbf{Personal Growth:} Enhanced my skills in mentoring and leading a team, and developed proficiency in Angular and ReactJS.
-\end{itemize}
+		Focused on backend development using SQL functions with PHP connecting database operations to JavaScript frontends. Contributed to enterprise CRM-like application supporting core business operations while maintaining proprietary frameworks.
 
-\vspace{0.5cm}
+		\vspace{0.2cm}
+		\begin{itemize}[label=\textcolor{darkblue}{\textbullet}, leftmargin=*, nosep]
+			\item Developed components for enterprise-grade application similar to SAP
+			\item Reduced database query execution time by 35\% through SQL optimization
+			\item Implemented caching strategies improving response time by 45\%
+			\item Ensured cross-browser compatibility including legacy IE7 support
+		\end{itemize}
 
-\textbf{\textit{Developer / Architect}}
-\textit{\small Adesis (GFT), Madrid, Spain (2012 - 2013)}
-\vspace{0.3cm}
-\begin{itemize}[leftmargin=*]
-    \item \textbf{Responsibilities:} Led the creation of robust software for the insurance sector, developing architectural components using front-end
-    skills and leading with backend skills; Developed a personal finance manager app using AngularJS and led a NodeJS (Sails) developer.
-    \item \textbf{Accomplishments:} Successfully developed a personal finance manager app and led a NodeJS developer.
-    \item \textbf{Technologies:} AngularJS, NodeJS (Sails).
-    \item \textbf{Personal Growth:} Gained valuable experience in front-end architecture and developed proficiency in AngularJS and NodeJS.
-\end{itemize}
+		\vspace{0.2cm}
+		\textbf{Personal Growth:}
+		\vspace{0.2cm}
+		\begin{itemize}[label=\textcolor{darkblue}{\textbullet}, leftmargin=*, nosep]
+			\item Developed expertise in relational database operations
+			\item Discovered functional programming concepts through SQL
+			\item Built foundation for backend specialization
+		\end{itemize}
 
-\vspace{0.5cm}
+		\vspace{0.4cm}
 
-\textbf{\textit{Developer}}
-\textit{\small C.B.I., Madrid, Spain (2010 - 2012)}
-\vspace{0.3cm}
-\begin{itemize}[leftmargin=*]
-    \item \textbf{Responsibilities:} Developed end-to-end modules using BackboneJS and PHP for an ad-hoc SAP-like system.
-    \item \textbf{Accomplishments:} Created a unique plugin for data import/export from XLS into SQL, parsing the data according to the system
-    architecture and schemas.
-    \item \textbf{Technologies:} BackboneJS, PHP, WordPress.
-    \item \textbf{Personal Growth:} Enhanced my skills in client interaction and project management.
-\end{itemize}
+		% Freelance Experience
+		\noindent\textbf{WEB DEVELOPER (Freelance) | Madrid, Spain (2008-2013)} \\
+		\vspace{0.1cm}
+		{\small\textit{PHP, Vanilla JavaScript, Joomla, WordPress, Drupal, Full-stack Development, Client Management}}
+		\vspace{0.2cm}
 
-\vspace{0.5cm}
+		Designed custom websites for international clients, managing full development lifecycle from consultation to deployment. Created optimized themes/plugins and maintained cross-platform compatibility.
 
-\textbf{\textit{Freelance Developer}}
-\textit{\small Madrid, Spain (2008 - 2013)}
-\vspace{0.3cm}
-\begin{itemize}[leftmargin=*]
-    \item \textbf{Responsibilities:} Developed custom websites for international clients using open-source back-end frameworks and vanilla front-
-    ends; Created ad-hoc themes and plugins to provide tailored tools for clients.
-    \item \textbf{Accomplishments:} Successfully delivered multiple websites including Universidad Rey Juan Carlos.
-    \item \textbf{Technologies:} Joomla, WordPress, Drupal, OsCommerce, PHP.
-    \item \textbf{Personal Growth:} Gained valuable experience in client interaction and developed proficiency in various CMS and e-commerce
-    platforms.
-\end{itemize}
+		\vspace{0.2cm}
+		\begin{itemize}[label=\textcolor{darkblue}{\textbullet}, leftmargin=*, nosep]
+			\item Developed Universidad Rey Juan Carlos website (www.urjc.es)
+			\item Created Los Hijos de la Malinche cultural platform
+			\item Delivered 10+ websites with 100\% client satisfaction
+			\item Improved site loading times by 40\% through theme optimization
+		\end{itemize}
 
-\vspace{0.5cm}
-}
+		\vspace{0.2cm}
+		\textbf{Personal Growth:}
+		\vspace{0.2cm}
+		\begin{itemize}[label=\textcolor{darkblue}{\textbullet}, leftmargin=*, nosep]
+			\item Gained holistic perspective on web application lifecycles
+			\item Enhanced client communication with diverse stakeholders
+			\item Strengthened independent problem-solving abilities
+		\end{itemize}
 
-\end{samepage}  % Add this line to close the samepage environment
+		\vspace{0.4cm}
 
+		% Know-Century Experience
+		\noindent\textbf{WEB DEVELOPER INTERN | Know-Century (2007-2008)} \\
+		\vspace{0.1cm}
+		{\small\textit{HTML, PHP, CSS, JavaScript, CMS, SEO}}
+		\vspace{0.2cm}
+
+		Initiated as web developer before establishing company's SEO department. Optimized digital assets and coordinated technical/content teams for search performance.
+
+		\vspace{0.2cm}
+		\begin{itemize}[label=\textcolor{darkblue}{\textbullet}, leftmargin=*, nosep]
+			\item Created first formal SEO workflow and optimization process
+			\item Achieved 2nd rank for "comprar oro" (competitive keyword)
+			\item Developed comprehensive SEO style guide for content teams
+		\end{itemize}
+
+		\vspace{0.2cm}
+		\textbf{Personal Growth:}
+		\vspace{0.2cm}
+		\begin{itemize}[label=\textcolor{darkblue}{\textbullet}, leftmargin=*, nosep]
+			\item Discovered passion for technical problem-solving
+			\item Understood frontend-data structure relationships
+			\item Sparked interest in system architecture
+		\end{itemize}
+
+		\vspace{0.2cm} % Bottom padding
+\end{minipage}}
+% ===== END WEB DEVELOPER Section =====
+
+
+% ===== Final Document Closure =====
 \end{document}

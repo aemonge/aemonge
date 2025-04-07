@@ -44,7 +44,7 @@ build_resume() {
     echo "Building resume..."
     pdflatex resume.tex
     rm resume.aux resume.log resume.out
-    mv resume.pdf python-tech-lead_andres-monge.pdf
+    mv resume.pdf backend-engineer_mentor-craftsman_andres-monge.pdf
     echo "Resume build completed!"
 }
 
