@@ -14,6 +14,8 @@
 	--border-color: rgba(0, 0, 0, 0.08);
 	--font-primary: "Iosevka Term Slab", "Open Sans", Arial, sans-serif;
 	--font-headers: "Iosevka Term Slab", "Merriweather", serif;
+	--blue: #4F8DA0;
+	--darkblue: #274A75;
 }
 
 /* Base Styles */
@@ -76,8 +78,15 @@ h2.name {
 	padding: 0;
 }
 
+a.navbar-name,
 h2.name a {
-	color: var(--primary-color);
+	color: var(--blue);
+	text-decoration: none;
+}
+
+a.navbar-name b,
+h2.name a b {
+	color: var(--darkblue);
 	text-decoration: none;
 }
 
