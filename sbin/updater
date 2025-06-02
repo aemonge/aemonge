@@ -57,8 +57,10 @@ update_pamac() {
     # Check if NOT running as root (sudo), and if so proceed
     if [[ $EUID -ne 0 ]]; then
         if check_command "pamac" "pamac update"; then
-            $QUIET || title "Running 'pamac update --no-confirm --aur'"
-            pamac update --no-confirm --aur
+            $QUIET || title "Running 'pamac update --no-confirm'"
+            pamac update --no-confirm
+            $QUIET || title "Running 'pamac update --no-confirm --aur || true'"
+            pamac update --no-confirm --aur || true
         fi
     fi
 }
@@ -143,11 +145,11 @@ update_pip() {
     if [[ $EUID -ne 0 ]]; then
         if check_command "pipx" "pipx package updates"; then
             $QUIET || title "Running: 'pipx upgrade-all'"
-            pipx upgrade-all
+            pipx upgrade-all || true
         fi
         if check_command "pdm" "pdm self update"; then
             $QUIET || title "Running: 'pdm self update'"
-            pdm self update
+            pdm self update || true
         fi
     fi
 }
@@ -270,31 +272,45 @@ shutdown_system() {
 
 run_all_updates() {
     if $QUIET; then
-        update_pamac >/dev/null
-        update_snap >/dev/null
-        update_hardware >/dev/null
-        update_clam >/dev/null
+        # $QUIET || title "Updating Libraries (cargo, go, gem, pnpm, pip)"
         update_cargo >/dev/null
         update_go >/dev/null
         update_gem >/dev/null
         update_pnpm >/dev/null
         update_pip >/dev/null
+
+        # $QUIET || title "Updating terminal (zsh, nvim)"
         update_zinit >/dev/null
         update_neovim >/dev/null
+
+        # $QUIET || title "Re-linking local (s)binaries"
         link_bins >/dev/null
+
+        # $QUIET || title "Updating System (pamac, snap, hardware, clam)"
+        update_hardware >/dev/null
+        update_clam >/dev/null
+        update_snap >/dev/null
+        update_pamac >/dev/null
     else
-        update_pamac
-        update_snap
-        update_hardware
-        update_clam
-        update_cargo
-        update_go
-        update_gem
-        update_pnpm
-        update_pip
-        update_zinit
-        update_neovim
-        link_bins
+        $QUIET || title "Updating Libraries (cargo, go, gem, pnpm, pip)"
+        update_cargo >/dev/null
+        update_go >/dev/null
+        update_gem >/dev/null
+        update_pnpm >/dev/null
+        update_pip >/dev/null
+
+        $QUIET || title "Updating terminal (zsh, nvim)"
+        update_zinit >/dev/null
+        update_neovim >/dev/null
+
+        $QUIET || title "Re-linking local (s)binaries"
+        link_bins >/dev/null
+
+        $QUIET || title "Updating System (pamac, snap, hardware, clam)"
+        update_hardware >/dev/null
+        update_clam >/dev/null
+        update_snap >/dev/null
+        update_pamac >/dev/null
     fi
 }
 
