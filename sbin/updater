@@ -106,9 +106,10 @@ update_cargo() {
     # go install github.com/Gelio/go-global-update@latest
     if [[ $EUID -ne 0 ]]; then
         if check_command "cargo" "cargo packages update"; then
-            $QUIET || title "Running: 'cargo install-update -a'"
+            $QUIET || title "Running: 'rustup update && cargo install-update -a'"
+            rustup update || true
             if ! cargo install-update -a; then
-                subtitle "Warning: cargo install-update failed. Attempting to install cargo-update..." >&2
+                subtitle "Warning: cargo install-update failed. Installing cargo-update..." >&2
                 cargo install cargo-update
                 cargo install-update -a
             fi
@@ -143,13 +144,10 @@ update_gem() {
 update_pip() {
     # Check if running as user, and if so proceed
     if [[ $EUID -ne 0 ]]; then
-        if check_command "pipx" "pipx package updates"; then
-            $QUIET || title "Running: 'pipx upgrade-all'"
-            pipx upgrade-all || true
-        fi
-        if check_command "pdm" "pdm self update"; then
-            $QUIET || title "Running: 'pdm self update'"
-            pdm self update || true
+        if check_command "uv" "uv tool updates"; then
+            $QUIET || title "Running: 'uv tool upgrade --all'"
+            uv self update || true
+            uv tool upgrade --all || true
         fi
     fi
 }
@@ -189,6 +187,7 @@ clean_dev() {
         $QUIET || title "Cleaning system packages and logs"
         pamac clean --no-confirm
         pamac remove --orphans --no-confirm
+        pamac clean --no-confirm --build-files
         journalctl --vacuum-time=2weeks
         find /var/log -type f -name '*.log' -delete
     else
