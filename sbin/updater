@@ -254,10 +254,10 @@ update_neovim() {
             $QUIET || title "Running: 'nvim Lazy update; TSUpdateSync' with 'timetout 20s'"
             if $QUIET; then
                 nvim --headless -c 'lua require("lazy").update():wait()' -c 'qa!'
-                nvim --headless -c 'TSUpdateSync | qa!'
+                nvim --headless -c 'Lazy load nvim-treesitter | TSUpdateSync | qa!'
             else
                 nvim --headless -c 'lua require("lazy").update():wait()' -c 'qa!'
-                nvim --headless -c 'TSUpdateSync | qa!'
+                nvim --headless -c 'Lazy load nvim-treesitter | TSUpdateSync | qa!'
             fi
         fi
     fi
