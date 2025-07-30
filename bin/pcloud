@@ -62,6 +62,8 @@ function show_help() {
     echo "  umount       Unmount the pCloud directory"
     echo "  smount       Mount the spCloud directory"
     echo "  sumount      Unmount the spCloud directory"
+    echo "  sys-backup   Backup system configs to home mirrors"
+    echo "  sys-restore  Restore system configs from home mirrors"
     echo "  completions  Generate zsh completions for this script"
     echo "  -h, --help    Show this help message and exit"
     echo "  -v, --version Show version information and exit"
@@ -89,6 +91,8 @@ function completions() {
     echo "    'umount:Unmount the pCloud directory'" >>"$completions_file"
     echo "    'smount:Mount the spCloud directory'" >>"$completions_file"
     echo "    'sumount:Unmount the spCloud directory'" >>"$completions_file"
+    echo "    'sys-backup:Backup system configs to home mirrors'" >>"$completions_file"
+    echo "    'sys-restore:Restore system configs from home mirrors'" >>"$completions_file"
     echo "    'completions:Generate zsh completions for this script'" >>"$completions_file"
     echo "    'help:Show help message'" >>"$completions_file"
     echo "  )" >>"$completions_file"
@@ -106,7 +110,7 @@ function completions() {
     echo "      ;;" >>"$completions_file"
     echo "    args)" >>"$completions_file"
     echo "      case \$words[1] in" >>"$completions_file"
-    echo "        pull|push|mount|umount|smount|sumount|completions|help)" >>"$completions_file"
+    echo "        pull|push|mount|umount|smount|sumount|sys-backup|sys-restore|completions|help)" >>"$completions_file"
     echo "          # No further arguments for these commands" >>"$completions_file"
     echo "          ;;" >>"$completions_file"
     echo "        *)" >>"$completions_file"
@@ -292,6 +296,113 @@ sync_paths_by() {
     return $exit_status
 }
 
+function backup_system_configs() {
+    echo "📥 Backing up system configurations to home mirrors..."
+
+    local user_name user_group
+    user_name=$(whoami)
+    user_group=$(id -gn)
+
+    backup_config() {
+        local system_path="$1"
+        local home_path="$2"
+        local description="$3"
+
+        if [[ -e "$system_path" ]]; then
+            [[ "$QUIET" == false ]] && echo "  📥 $description..."
+            mkdir -p "$(dirname "$home_path")"
+
+            if sudo rsync -av --chown="$user_name:$user_group" "$system_path" "$(dirname "$home_path")/"; then
+                [[ "$QUIET" == false ]] && echo "    ✅ $description → $home_path"
+            else
+                echo "    ❌ Failed to backup $description" >&2
+                return 1
+            fi
+        else
+            [[ "$QUIET" == false ]] && echo "  ⚠️  $description not found"
+        fi
+    }
+
+    # Process SYSTEM_MIRROR_FILES
+    for cloud_path in "${!SYSTEM_MIRROR_FILES[@]}"; do
+        local local_path="${SYSTEM_MIRROR_FILES[$cloud_path]}"
+        local system_path="${local_path/#$HOME\/.etc/\/etc}"
+        system_path="${system_path/#$HOME\/.var/\/var}"
+
+        backup_config "$system_path" "$local_path" "$(basename "$system_path")"
+    done
+
+    # Process SYSTEM_MIRROR_DIRS
+    for cloud_path in "${!SYSTEM_MIRROR_DIRS[@]}"; do
+        local local_path="${SYSTEM_MIRROR_DIRS[$cloud_path]}"
+        local system_path="${local_path/#$HOME\/.etc/\/etc}"
+        system_path="${system_path/#$HOME\/.var/\/var}"
+
+        backup_config "$system_path" "$local_path" "$(basename "$system_path")"
+    done
+
+    echo "🎉 System configuration backup completed!"
+}
+
+function restore_system_configs() {
+    echo "📤 Restoring system configurations from home mirrors..."
+
+    restore_config() {
+        local home_path="$1"
+        local system_path="$2"
+        local description="$3"
+
+        # Only check if backup exists AND parent directory exists on system
+        if [[ -e "$home_path" ]] && [[ -d "$(dirname "$system_path")" ]]; then
+            [[ "$QUIET" == false ]] && echo "  📤 $description..."
+
+            if sudo rsync -av "$home_path" "$(dirname "$system_path")/"; then
+                [[ "$QUIET" == false ]] && echo "    ✅ $description → $system_path"
+
+                # Check if this system path needs a service restart
+                local service="${SYSTEM_SERVICE_MAP[$system_path]:-}"
+                if [[ -n "$service" ]]; then
+                    [[ "$QUIET" == false ]] && echo "    🔄 Restarting $service..."
+                    if sudo systemctl restart "$service"; then
+                        [[ "$QUIET" == false ]] && echo "    ✅ $service restarted"
+                    else
+                        echo "    ⚠️  Failed to restart $service" >&2
+                    fi
+                fi
+            else
+                echo "    ❌ Failed to restore $description" >&2
+                return 1
+            fi
+        else
+            if [[ ! -e "$home_path" ]]; then
+                [[ "$QUIET" == false ]] && echo "  ⚠️  $description backup not found"
+            elif [[ ! -d "$(dirname "$system_path")" ]]; then
+                [[ "$QUIET" == false ]] && echo "  ⚠️  $description parent directory missing"
+            fi
+        fi
+    }
+
+    # Process SYSTEM_MIRROR_FILES
+    for cloud_path in "${!SYSTEM_MIRROR_FILES[@]}"; do
+        local local_path="${SYSTEM_MIRROR_FILES[$cloud_path]}"
+        local system_path="${local_path/#$HOME\/.etc/\/etc}"
+        system_path="${system_path/#$HOME\/.var/\/var}"
+
+        restore_config "$local_path" "$system_path" "$(basename "$system_path")"
+    done
+
+    # Process SYSTEM_MIRROR_DIRS
+    for cloud_path in "${!SYSTEM_MIRROR_DIRS[@]}"; do
+        local local_path="${SYSTEM_MIRROR_DIRS[$cloud_path]}"
+        local system_path="${local_path/#$HOME\/.etc/\/etc}"
+        system_path="${system_path/#$HOME\/.var/\/var}"
+
+        restore_config "$local_path" "$system_path" "$(basename "$system_path")"
+    done
+
+    echo "🎉 System configuration restore completed!"
+}
+
 trap cleanup INT TERM EXIT
 
 # Parse arguments
@@ -310,8 +421,8 @@ while [[ $# -gt 0 ]]; do
         show_version
         exit 0
         ;;
-    pull | push | mount | umount | secret | smount | sumount | completions)
-        if [[ -z $command ]]; then # HERE ???
+    pull | push | mount | umount | secret | smount | sumount | completions | sys-backup | sys-restore)
+        if [[ -z $command ]]; then
             command="$1"
         else
             echo "Error: Multiple commands specified"
@@ -345,6 +456,12 @@ mount)
 umount)
     cache_password
     unmount_pcloud
+    ;;
+sys-backup)
+    backup_system_configs
+    ;;
+sys-restore)
+    restore_system_configs
     ;;
 completions)
     completions
