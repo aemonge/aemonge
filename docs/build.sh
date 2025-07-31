@@ -70,6 +70,7 @@ render_articles() {
         echo "Rendering $file..."
         quarto \
             render "$file" \
+            --metadata-file=_quarto.yml \
             --to html -o "$file_name.html" \
             --css '/assets/style.css' \
             --css '/assets/code-console-overrides.css' ||

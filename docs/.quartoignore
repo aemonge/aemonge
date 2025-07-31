@@ -13,9 +13,9 @@
 **/python/performance/build.qmd
 **/python/performance/concurrency.qmd
 **/python/performance/timeit.qmd
+**/python/types/casting.qmd
 **/python/types/dataclass.qmd
 **/python/types/diamond_issue.qmd
-**/python/types/down-cast.qmd
 **/python/unittest/mock_name_attr.qmd
 **/quarto/render/colorfull-output.qmd
 **/unix/network/networkless_commands.qmd
