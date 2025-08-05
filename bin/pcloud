@@ -23,6 +23,12 @@ TEMP_FILE="/tmp/rclone_pass_$(openssl rand -hex 8)"
 export ENCRYPTION_KEY
 export TEMP_FILE
 
+# --- color definitions (works in any ANSI-compatible terminal) ---
+BLUE='\e[34m'
+YELLOW='\e[33m'
+BOLD='\e[1m'
+RESET='\e[0m'
+
 encrypt_password() {
     echo "$1" | openssl enc -aes-256-cbc -pbkdf2 -iter 100000 -a -salt -pass pass:"$ENCRYPTION_KEY"
 }
@@ -444,6 +450,8 @@ case "$command" in
 pull)
     cache_password
     sync_paths_by "pull"
+    echo -ne "${BOLD}${BLUE}Info:${RESET} If you meant to get Plasma 6 new shortcuts"
+    echo -e " please ${YELLOW}'systemctl --user restart plasma-kglobalaccel'${RESET}"
     ;;
 push)
     cache_password
