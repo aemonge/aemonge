@@ -1,5 +1,34 @@
 code-ansi: true
 
+format:
+  html:
+    smooth-scroll: true
+    code-fold: true
+    code-tools: true
+    code-copy: true
+    code-annotations: true
+    code-ansi: true
+    ansi-colors:
+      enable: true
+    include-in-header:
+      - text: |
+          <script type="module">
+            import { AnsiUp } from "/assets/ansi_up.esm.js";
+            document.addEventListener("DOMContentLoaded", function () {
+              const ansiUp = new AnsiUp({ escape_for_html: false });
+              const selector = '[data-class-output="code-rendered"] p';
+              const codeOutputs = document.querySelectorAll(selector);
+              const LINE_BREAKS = ["[BR", "<br />"]
+
+              codeOutputs.forEach((output) => {
+                const lines = output.innerText.split(LINE_BREAKS[0]);
+                let processedLines = lines.map((line) => ansiUp.ansi_to_html(line));
+                processedLines = processedLines.map(line => line.replace(/:::$/g, ''));
+                output.innerHTML = processedLines.join(LINE_BREAKS[1]);
+              });
+            });
+          </script>
+
 comments:
   giscus:
     repo: aemonge/aemonge

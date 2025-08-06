@@ -3,6 +3,7 @@
 **/devops/build/python.qmd
 **/devops/git/cheatsheet.qmd
 **/devops/git/maintenance.qmd
+**/devops/pipelines/canary-carousel.qmd
 **/python/asyncio/async.qmd
 **/python/debug/logging.qmd
 **/python/dspy/basic_modules.qmd
