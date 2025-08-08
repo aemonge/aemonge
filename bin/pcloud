@@ -137,7 +137,7 @@ function completions() {
 
 function cleanup() {
     # Kill all background processes
-    shred -u "$TEMP_FILE"
+    shred -u "$TEMP_FILE" 2> /dev/null || true
     unset ENCRYPTION_KEY
     unset TEMP_FILE
 
@@ -448,21 +448,21 @@ done
 # Execute the command
 case "$command" in
 pull)
-    cache_password
+    # cache_password
     sync_paths_by "pull"
     echo -ne "${BOLD}${BLUE}Info:${RESET} If you meant to get Plasma 6 new shortcuts"
     echo -e " please ${YELLOW}'systemctl --user restart plasma-kglobalaccel'${RESET}"
     ;;
 push)
-    cache_password
+    # cache_password
     sync_paths_by "push"
     ;;
 mount)
-    cache_password
+    # cache_password
     mount_pcloud
     ;;
 umount)
-    cache_password
+    # cache_password
     unmount_pcloud
     ;;
 sys-backup)
