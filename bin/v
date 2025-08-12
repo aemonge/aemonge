@@ -380,8 +380,9 @@ function vcd() {
 }
 
 if [ $# -eq 0 ]; then
-    show_help
-    exit 0
+    # show_help
+    # exit 0
+    session "."
 fi
 
 if ! command -v nvr >/dev/null; then
