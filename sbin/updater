@@ -30,6 +30,7 @@ show_help() {
     echo "  snap                Update using snap"
     echo "  hardware            Update hardware firmware"
     echo "  clam                Update ClamAV database"
+    echo "  clam-scan           Use preconfigured clams scan settings"
     echo "  cargo               Update cargo packages"
     echo "  go                  Update go packages"
     echo "  gem                 Update ruby packages"
@@ -96,6 +97,20 @@ update_clam() {
             $QUIET || title "Running 'freshclam'"
             freshclam
         fi
+    fi
+}
+
+clam_scan_and_quarantine() {
+    # Quarantine all infected files found by ClamAV
+    local quarantine_dir="/var/quarantine"
+    if [[ $EUID -eq 0 ]]; then
+        if check_command "clamscan" "ClamAV scan"; then
+            $QUIET || title "Scanning entire system with ClamAV and quarantining infected files to $quarantine_dir"
+            sudo mkdir -p "$quarantine_dir"
+            sudo clamscan --recursive --infected --exclude-dir='^/sys|^/dev' --move="$quarantine_dir" /
+        fi
+    else
+        subtitle "Warning: ClamAV quarantine scan requires root privileges." >&2
     fi
 }
 
@@ -322,6 +337,7 @@ completions() {
     echo "    'snap:Update using snap'" >>~/.zfunc/_updater
     echo "    'hardware:Update hardware firmware'" >>~/.zfunc/_updater
     echo "    'clam:Update ClamAV database'" >>~/.zfunc/_updater
+    echo "    'clam-scan:Scan with pre-settings'" >>~/.zfunc/_updater
     echo "    'cargo:Update cargo packages'" >>~/.zfunc/_updater
     echo "    'go:Update go packages'" >>~/.zfunc/_updater
     echo "    'pnpm:Update pnpm packages'" >>~/.zfunc/_updater
@@ -412,6 +428,13 @@ main() {
                     update_clam >/dev/null
                 else
                     update_clam
+                fi
+                ;;
+            clam-scan)
+                if $QUIET; then
+                    clam_scan_and_quarantine >/dev/null
+                else
+                    clam_scan_and_quarantine
                 fi
                 ;;
             cargo)
