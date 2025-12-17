@@ -14,6 +14,7 @@ function show_help() {
     echo ""
     echo "  Subcommands:"
     echo "    split           Open file in split view"
+    echo "    isplit          Open file in split view (inverted)"
     echo "    waits           Open file for quick editing (auto-closes buffer)"
     echo "    spliting        Combine split and waits"
     echo "    bg              Open file in background tab in Neovim"
@@ -45,6 +46,7 @@ function completions() {
     echo "  local -a commands" >> "$completions_file"
     echo "  commands=(" >> "$completions_file"
     echo "    'split'" >> "$completions_file"
+    echo "    'isplit'" >> "$completions_file"
     echo "    'waits'" >> "$completions_file"
     echo "    'spliting'" >> "$completions_file"
     echo "    'bg'" >> "$completions_file"
@@ -74,7 +76,7 @@ function completions() {
     echo "        cd)" >> "$completions_file"
     echo "          _directories" >> "$completions_file"
     echo "          ;;" >> "$completions_file"
-    echo "        split|waits|spliting|bg)" >> "$completions_file"
+    echo "        isplit|split|waits|spliting|bg)" >> "$completions_file"
     echo "          _files" >> "$completions_file"
     echo "          ;;" >> "$completions_file"
     echo "        clear|save|restore|venv|reset_venv)" >> "$completions_file"
@@ -96,12 +98,31 @@ function completions() {
     echo "Then restart your shell or run 'source ~/.zshrc'"
 }
 
+function isvim() {
+    cols=$(tput cols)
+    lines=$(tput lines)
+    adjusted_height=$((lines * 19 ))
+    adjusted_width=$((cols * 7))
+    split_command="leftabove split"
+
+    if [ "$adjusted_width" -gt "$adjusted_height" ]; then
+        split_command="leftabove vsplit"
+    fi
+
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        nvr -cc "$split_command $(greadlink -f "$@")"
+    else
+        nvr -cc "$split_command $(readlink -f "$@")"
+    fi
+}
+
 function svim() {
     cols=$(tput cols)
     lines=$(tput lines)
     adjusted_height=$((lines * 19 ))
     adjusted_width=$((cols * 7))
     split_command="split"
+
     if [ "$adjusted_width" -gt "$adjusted_height" ]; then
         split_command="vsplit"
     fi
@@ -403,6 +424,10 @@ case "$1" in
     split)
         shift
         svim "$@"
+        ;;
+    isplit)
+        shift
+        isvim "$@"
         ;;
     clear)
         if [ -n "$NVIM" ]; then
