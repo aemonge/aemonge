@@ -27,7 +27,9 @@ show_help() {
     echo "  -h, --help, help    Show this help message and exit"
     echo "  -q, --quiet         Disable info and verbose output, show only errors and warnings"
     echo "  pamac               Update using Manajaro 'pamac'"
+    echo "  pacman-mirrors      Update Arch 'pacman-mirrors'"
     echo "  snap                Update using snap"
+    echo "  flatpak             Update using flatpak"
     echo "  hardware            Update hardware firmware"
     echo "  clam                Update ClamAV database"
     echo "  clam-scan           Use preconfigured clams scan settings"
@@ -54,12 +56,65 @@ check_command() {
     return 0
 }
 
+check_last_clean() {
+    local cache_file="${XDG_CACHE_HOME:-$HOME/.cache}/updater_last_clean"
+    local current_time=$(date +%s)
+    local week_seconds=$((7 * 24 * 60 * 60))
+    local month_seconds=$((30 * 24 * 60 * 60))
+
+    if [[ -f "$cache_file" ]]; then
+        local last_clean=$(cat "$cache_file")
+        local time_diff=$((current_time - last_clean))
+
+        if [[ $time_diff -ge $month_seconds ]]; then
+            echo "⚠️  WARNING: System cache not cleaned in $((time_diff / 86400)) days" >&2
+            echo "   Run: sudo updater clean-dev" >&2
+        elif [[ $time_diff -ge $week_seconds ]]; then
+            echo "ℹ️  INFO: System cache last cleaned $((time_diff / 86400)) days ago" >&2
+            echo "   Consider running: sudo updater clean-dev" >&2
+        fi
+    else
+        echo "ℹ️  INFO: No clean history found. Consider running: sudo updater clean-dev" >&2
+    fi
+}
+
+save_clean_timestamp() {
+    local cache_file="${XDG_CACHE_HOME:-$HOME/.cache}/updater_last_clean"
+    mkdir -p "$(dirname "$cache_file")"
+    date +%s >"$cache_file"
+    $QUIET || echo "✓ Clean timestamp saved"
+}
+
+update_flatpak() {
+    if [[ $EUID -ne 0 ]]; then
+        if check_command "flatpak" "flatpak update"; then
+            $QUIET || title "Running: 'flatpak update -y'"
+            flatpak update -y || true
+        fi
+    fi
+}
+
 update_pamac() {
     # Check if NOT running as root (sudo), and if so proceed
     if [[ $EUID -ne 0 ]]; then
         if check_command "pamac" "pamac update"; then
-            $QUIET || title "Running 'pamac update --no-confirm --aur || true'"
-            pamac update --no-confirm --aur || true
+            $QUIET || title "Running 'pamac update --no-confirm --aur'"
+
+            # Clear AUR build cache if update fails
+            if ! pamac update --no-confirm --aur; then
+                subtitle "⚠️  AUR update failed. Cleaning build cache and retrying..." >&2
+                pamac clean --build-files --no-confirm
+                pamac update --no-confirm --aur || true
+            fi
+        fi
+    fi
+}
+
+update_mirrors() {
+    if [[ $EUID -eq 0 ]]; then
+        if check_command "pacman-mirrors" "mirror update"; then
+            $QUIET || title "Refreshing pacman mirrors"
+            pacman-mirrors --fasttrack 5 && pacman -Syy
         fi
     fi
 }
@@ -227,6 +282,7 @@ clean_dev() {
             fi
         done
     fi
+    save_clean_timestamp
 }
 
 link_bins() {
@@ -282,48 +338,70 @@ shutdown_system() {
     fi
 }
 
-run_all_updates() {
-    if $QUIET; then
-        # $QUIET || title "Updating System (pamac, snap, hardware, clam)"
-        update_hardware >/dev/null
-        update_clam >/dev/null
-        update_snap >/dev/null
-        update_pamac >/dev/null
+run_user_updates() {
+    check_last_clean
 
-        # $QUIET || title "Updating Libraries (cargo, go, gem, pnpm, pip)"
+    if $QUIET; then
+        update_pamac >/dev/null
+        update_flatpak >/dev/null
         update_cargo >/dev/null
         update_go >/dev/null
         update_gem >/dev/null
         update_pnpm >/dev/null
         update_pip >/dev/null
-
-        # $QUIET || title "Updating terminal (zsh, nvim)"
         update_zinit >/dev/null
         update_neovim >/dev/null
-
-        # $QUIET || title "Re-linking local (s)binaries"
         link_bins >/dev/null
     else
-        $QUIET || title "Updating System (pamac, snap, hardware, clam)"
-        update_hardware >/dev/null
-        update_clam >/dev/null
-        update_snap >/dev/null
-        update_pamac >/dev/null
-
+        $QUIET || title "Updating System (pamac, flatpak)"
+        update_pamac
+        update_flatpak
         $QUIET || title "Updating Libraries (cargo, go, gem, pnpm, pip)"
-        update_cargo >/dev/null
-        update_go >/dev/null
-        update_gem >/dev/null
-        update_pnpm >/dev/null
-        update_pip >/dev/null
-
+        update_cargo
+        update_go
+        update_gem
+        update_pnpm
+        update_pip
         $QUIET || title "Updating terminal (zsh, nvim)"
-        update_zinit >/dev/null
-        update_neovim >/dev/null
-
+        update_zinit
+        update_neovim
         $QUIET || title "Re-linking local (s)binaries"
-        link_bins >/dev/null
+        link_bins
     fi
+}
+
+run_all_updates() {
+    if [[ $EUID -eq 0 ]]; then
+        # Root: hardware + clam + mirrors then regular updates
+        check_last_clean
+
+        if $QUIET; then
+            update_mirrors >/dev/null
+            update_hardware >/dev/null
+            update_clam >/dev/null
+            update_snap >/dev/null
+        else
+            $QUIET || title "Updating System (mirrors, hardware, clam, snap)"
+            update_mirrors
+            update_hardware
+            update_clam
+            update_snap
+        fi
+
+        # Now run user updates
+        run_user_updates
+    else
+        # User mode: skip root stuff
+        run_user_updates
+    fi
+}
+
+time_function() {
+    local start=$(date +%s)
+    "$@"
+    local end=$(date +%s)
+    local duration=$((end - start))
+    $QUIET || echo "⏱️  Completed in ${duration}s"
 }
 
 completions() {
@@ -334,7 +412,9 @@ completions() {
     echo "  local -a commands" >>~/.zfunc/_updater
     echo "  commands=(" >>~/.zfunc/_updater
     echo "    'pamac:Update using pamac'" >>~/.zfunc/_updater
+    echo "    'pacman-mirrors:Update pacman-mirrors'" >>~/.zfunc/_updater
     echo "    'snap:Update using snap'" >>~/.zfunc/_updater
+    echo "    'flatpak:Update using flatpak'" >>~/.zfunc/_updater
     echo "    'hardware:Update hardware firmware'" >>~/.zfunc/_updater
     echo "    'clam:Update ClamAV database'" >>~/.zfunc/_updater
     echo "    'clam-scan:Scan with pre-settings'" >>~/.zfunc/_updater
@@ -344,7 +424,6 @@ completions() {
     echo "    'pip:Update pipx packages'" >>~/.zfunc/_updater
     echo "    'zinit:Update zinit plugins'" >>~/.zfunc/_updater
     echo "    'clean-dev:Clean dev packages'" >>~/.zfunc/_updater
-    echo "    'neovim:Update Neovim plugins'" >>~/.zfunc/_updater
     echo "    'neovim:Update Neovim plugins'" >>~/.zfunc/_updater
     echo "    'bins:Update linked bins and sbins'" >>~/.zfunc/_updater
     echo "    'completions:Generate Zsh completions'" >>~/.zfunc/_updater
@@ -381,16 +460,16 @@ main() {
     done
     if [ $shutdown_after = true ]; then
         if $QUIET; then
-            run_all_updates >/dev/null
+            time_function run_all_updates >/dev/null
         else
-            run_all_updates
+            time_function run_all_updates
         fi
         shutdown_system
     elif [ $# -eq 0 ]; then
         if $QUIET; then
-            run_all_updates >/dev/null
+            time_function run_all_updates >/dev/null
         else
-            run_all_updates
+            time_function run_all_updates
         fi
     else
         for arg in "$@"; do
@@ -400,6 +479,13 @@ main() {
                     update_pamac 1 >/dev/null
                 else
                     update_pamac 1
+                fi
+                ;;
+            pacman-mirrors)
+                if $QUIET; then
+                    update_mirrors 1 >/dev/null
+                else
+                    update_mirrors 1
                 fi
                 ;;
             aura)
@@ -414,6 +500,13 @@ main() {
                     update_snap >/dev/null
                 else
                     update_snap
+                fi
+                ;;
+            flatpak)
+                if $QUIET; then
+                    update_flatpak >/dev/null
+                else
+                    update_flatpak
                 fi
                 ;;
             hardware)
