@@ -34,6 +34,7 @@ show_help() {
     echo "  clam                Update ClamAV database"
     echo "  clam-scan           Use preconfigured clams scan settings"
     echo "  cargo               Update cargo packages"
+    echo "  mise                Update dev run-time's with mise (rustup, nodenv, ...)"
     echo "  go                  Update go packages"
     echo "  gem                 Update ruby packages"
     echo "  pnpm                Update pnpm packages"
@@ -166,6 +167,21 @@ clam_scan_and_quarantine() {
         fi
     else
         subtitle "Warning: ClamAV quarantine scan requires root privileges." >&2
+    fi
+}
+
+update_mise() {
+    if [[ $EUID -ne 0 ]]; then
+        if check_command "mise" "mise toolchain upgrade"; then
+            $QUIET || title "Running: 'mise upgrade' (tool versions)"
+            mise upgrade || true
+
+            $QUIET || title "Running: 'mise plugins update'"
+            mise plugins update || true
+
+            $QUIET || title "Running: 'mise prune'"
+            mise prune || true
+        fi
     fi
 }
 
@@ -350,6 +366,7 @@ run_user_updates() {
     if $QUIET; then
         update_pamac >/dev/null
         update_flatpak >/dev/null
+        update_mise >/dev/null
         update_cargo >/dev/null
         update_go >/dev/null
         update_gem >/dev/null
@@ -362,15 +379,21 @@ run_user_updates() {
         $QUIET || title "Updating System (pamac, flatpak)"
         update_pamac
         update_flatpak
+
+        $QUIET || title "Updating Runtimes (mise)"
+        update_mise
+
         $QUIET || title "Updating Libraries (cargo, go, gem, pnpm, pip)"
         update_cargo
         update_go
         update_gem
         update_pnpm
         update_pip
+
         $QUIET || title "Updating terminal (zsh, nvim)"
         update_zinit
         update_neovim
+
         $QUIET || title "Re-linking local (s)binaries"
         link_bins
     fi
@@ -424,6 +447,7 @@ completions() {
     echo "    'hardware:Update hardware firmware'" >>~/.zfunc/_updater
     echo "    'clam:Update ClamAV database'" >>~/.zfunc/_updater
     echo "    'clam-scan:Scan with pre-settings'" >>~/.zfunc/_updater
+    echo "    'mise:Update all dev packages'" >>~/.zfunc/_updater
     echo "    'cargo:Update cargo packages'" >>~/.zfunc/_updater
     echo "    'go:Update go packages'" >>~/.zfunc/_updater
     echo "    'pnpm:Update pnpm packages'" >>~/.zfunc/_updater
@@ -534,6 +558,13 @@ main() {
                     clam_scan_and_quarantine >/dev/null
                 else
                     clam_scan_and_quarantine
+                fi
+                ;;
+            mise)
+                if $QUIET; then
+                    update_mise >/dev/null
+                else
+                    update_mise
                 fi
                 ;;
             cargo)
