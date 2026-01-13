@@ -249,11 +249,6 @@ update_pnpm() {
 update_zinit() {
     # Check if running as user, and if so proceed
     if [[ $EUID -ne 0 ]]; then
-        if ! command -v zinit &>/dev/null; then
-            $QUIET || title "Zinit not found. Installing..."
-            bash -c "$(curl --fail --show-error --silent --location https://raw.githubusercontent.com/zdharma-continuum/zinit/HEAD/scripts/install.sh)"
-        fi
-
         if check_command "zsh" "zinit update"; then
             $QUIET || title "Running: 'zsh -ic \"zinit self-update\",\"update -a\"'"
             if $QUIET; then
