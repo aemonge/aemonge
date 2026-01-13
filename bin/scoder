@@ -2,59 +2,81 @@
 #
 # scoder - Safe wrapper for OpenCode using bubblewrap + groups
 #
+# Homepage: https://github.com/anomalyco/opencode
+# Author: Andres Monge (aemonge)
+# License: MIT
+#
 
 set -euo pipefail
 
-PROGRAM_NAME="scoder"
-PROGRAM_VERSION="0.3.0"
+readonly PROGRAM_NAME="scoder"
+readonly PROGRAM_VERSION="0.4.0"
 
-SCODER_GROUP_DEFAULT="scoder"
-OPENCODE_BIN_DEFAULT="opencode"
+readonly SCODER_GROUP_DEFAULT="scoder"
+readonly OPENCODE_BIN_DEFAULT="opencode"
+
+# Colors for output
+readonly RED='\033[0;31m'
+readonly YELLOW='\033[1;33m'
+readonly GREEN='\033[0;32m'
+readonly NC='\033[0m' # No Color
 
 usage() {
-  cat <<-'EOF'
-    ${PROGRAM_NAME} ${PROGRAM_VERSION}
-    Safe OpenCode wrapper using bubblewrap and a dedicated Unix group.
+    cat <<'EOF'
+scoder 0.4.0
+Safe OpenCode wrapper using bubblewrap and a dedicated Unix group.
 
-    Usage:
-      ${PROGRAM_NAME} [options] [PROJECT_DIR] [-- [OPENCODE_ARGS...]]
+Usage:
+  scoder [options] [PROJECT_DIR] [-- [OPENCODE_ARGS...]]
 
-    Options:
-      -h, --help           Show this help and exit
-      -V, --version        Show version and exit
-      -n, --net            Enable network access inside the sandbox (default: off)
-      -g, --group NAME     Group used for project dirs (default: "scoder")
-      -b, --bin PATH       Path to opencode binary (default: "opencode")
-      --ro                 Mount project directory read-only (default, safe)
-      --rw                 Mount project directory read-write (less safe)
+Options:
+  -h, --help           Show this help and exit
+  -V, --version        Show version and exit
+  -n, --net            Enable network access inside the sandbox (default: off)
+  -g, --group NAME     Group used for project dirs (default: "scoder")
+  -b, --bin PATH       Path to opencode binary (default: "opencode")
+  --ro                 Mount project directory read-only (default, safe)
+  --rw                 Mount project directory read-write (less safe)
 
-    Arguments:
-      PROJECT_DIR          Project directory to expose as /workspace (default: $PWD)
-      OPENCODE_ARGS        Arguments passed verbatim to opencode after "--"
+Arguments:
+  PROJECT_DIR          Project directory to expose as /workspace (default: $PWD)
+  OPENCODE_ARGS        Arguments passed verbatim to opencode after "--"
 
-    Environment:
-      SCODER_GROUP         Overrides default group name
-      OPENCODE_BIN         Overrides default opencode binary
-      SCODER_NET           "on" to enable network by default ("off" otherwise)
-      SCODER_FS_MODE       "ro" (default, secure) or "rw" (allow writes)
+Environment:
+  SCODER_GROUP         Overrides default group name
+  OPENCODE_BIN         Overrides default opencode binary
+  SCODER_NET           "on" to enable network by default ("off" otherwise)
+  SCODER_FS_MODE       "ro" (default, secure) or "rw" (allow writes)
 
-    Examples:
-      scoder                           # read-only sandbox of $PWD
-      scoder --rw /home/you/dev/myapp  # read-write access
-      scoder -n myproj -- --verbose    # network on, pass --verbose to opencode
+Examples:
+  scoder                           # read-only sandbox of $PWD
+  scoder --rw /home/you/dev/myapp  # read-write access
+  scoder -n myproj -- --verbose    # network on, pass --verbose to opencode
 
-    Security Note:
-      Read-only (--ro) is the default to prevent unintended filesystem changes.
-      Use --rw only when you trust the model/prompt.
-    EOF
+Security Note:
+  Read-only (--ro) is the default to prevent unintended filesystem changes.
+  Use --rw only when you trust the model/prompt.
+
+  OpenCode config (~/.config/opencode) and data (~/.local/share/opencode)
+  are mounted from your real home, but HOME is set to a tmpfs to avoid
+  polluting your project directory.
+EOF
 }
 
 version() {
-  echo "${PROGRAM_NAME} ${PROGRAM_VERSION}"
+    echo "${PROGRAM_NAME} ${PROGRAM_VERSION}"
 }
 
 error() {
-  echo "${PROGRAM_NAME}: $*" >&2
+    echo -e "${RED}${PROGRAM_NAME}: $*${NC}" >&2
+}
+
+warning() {
+    echo -e "${YELLOW}${PROGRAM_NAME}: $*${NC}" >&2
+}
+
+info() {
+    echo -e "${GREEN}${PROGRAM_NAME}: $*${NC}" >&2
 }
 
 # -------- defaults (SECURE BY DEFAULT) --------
@@ -74,160 +96,179 @@ RW_SET=0
 PARSE_DONE=0
 
 while [[ $# -gt 0 ]]; do
-  if [[ "${PARSE_DONE}" -eq 1 ]]; then
-    OPENCODE_ARGS+=("$1")
-    shift
-    continue
-  fi
+    if [[ "${PARSE_DONE}" -eq 1 ]]; then
+        OPENCODE_ARGS+=("$1")
+        shift
+        continue
+    fi
 
-  case "$1" in
-    -h|--help)
-      usage
-      exit 0
-      ;;
-    -V|--version)
-      version
-      exit 0
-      ;;
-    -n|--net)
-      NET_MODE="on"
-      shift
-      ;;
-    -g|--group)
-      if [[ $# -lt 2 ]]; then
-        error "missing argument for $1"
-        exit 1
-      fi
-      SCODER_GROUP="$2"
-      shift 2
-      ;;
-    -b|--bin)
-      if [[ $# -lt 2 ]]; then
-        error "missing argument for $1"
-        exit 1
-      fi
-      OPENCODE_BIN="$2"
-      shift 2
-      ;;
+    case "$1" in
+    -h | --help)
+        usage
+        exit 0
+        ;;
+    -V | --version)
+        version
+        exit 0
+        ;;
+    -n | --net)
+        NET_MODE="on"
+        shift
+        ;;
+    -g | --group)
+        if [[ $# -lt 2 ]]; then
+            error "missing argument for $1"
+            exit 1
+        fi
+        SCODER_GROUP="$2"
+        shift 2
+        ;;
+    -b | --bin)
+        if [[ $# -lt 2 ]]; then
+            error "missing argument for $1"
+            exit 1
+        fi
+        OPENCODE_BIN="$2"
+        shift 2
+        ;;
     --ro)
-      RO_SET=1
-      FS_MODE="ro"
-      shift
-      ;;
+        RO_SET=1
+        FS_MODE="ro"
+        shift
+        ;;
     --rw)
-      RW_SET=1
-      FS_MODE="rw"
-      shift
-      ;;
+        RW_SET=1
+        FS_MODE="rw"
+        shift
+        ;;
     --)
-      PARSE_DONE=1
-      shift
-      ;;
+        PARSE_DONE=1
+        shift
+        ;;
     -*)
-      error "unknown option: $1"
-      echo "Try '${PROGRAM_NAME} --help' for more information."
-      exit 1
-      ;;
-    *)
-      if [[ -z "${PROJECT_DIR}" ]]; then
-        PROJECT_DIR="$1"
-      else
-        error "unexpected argument before '--': $1"
-        echo "Try '${PROGRAM_NAME} --help' for more information."
+        error "unknown option: $1"
+        echo "Try '${PROGRAM_NAME} --help' for more information." >&2
         exit 1
-      fi
-      shift
-      ;;
-  esac
+        ;;
+    *)
+        if [[ -z "${PROJECT_DIR}" ]]; then
+            PROJECT_DIR="$1"
+        else
+            error "unexpected argument before '--': $1"
+            echo "Try '${PROGRAM_NAME} --help' for more information." >&2
+            exit 1
+        fi
+        shift
+        ;;
+    esac
 done
 
 # Check for conflicting flags
 if [[ "${RO_SET}" -eq 1 && "${RW_SET}" -eq 1 ]]; then
-  error "--ro and --rw are mutually exclusive"
-  exit 1
+    error "--ro and --rw are mutually exclusive"
+    exit 1
 fi
 
 # PROJECT_DIR default
 if [[ -z "${PROJECT_DIR}" ]]; then
-  PROJECT_DIR="${PWD}"
+    PROJECT_DIR="${PWD}"
 fi
 
 # -------- validation --------
 
 if ! command -v bwrap >/dev/null 2>&1; then
-  error "bubblewrap (bwrap) not found in PATH"
-  error "install: sudo pacman -S bubblewrap  (Arch/Manjaro)"
-  exit 1
+    error "bubblewrap (bwrap) not found in PATH"
+    error "install: sudo pacman -S bubblewrap  (Arch/Manjaro)"
+    exit 1
 fi
 
 if ! command -v "${OPENCODE_BIN}" >/dev/null 2>&1; then
-  error "opencode binary not found: ${OPENCODE_BIN}"
-  exit 1
+    error "opencode binary not found: ${OPENCODE_BIN}"
+    exit 1
 fi
 
 if [[ ! -d "${PROJECT_DIR}" ]]; then
-  error "project directory does not exist: ${PROJECT_DIR}"
-  exit 1
+    error "project directory does not exist: ${PROJECT_DIR}"
+    exit 1
 fi
 
 if ! getent group "${SCODER_GROUP}" >/dev/null 2>&1; then
-  error "group '${SCODER_GROUP}' does not exist"
-  error "create with: sudo groupadd ${SCODER_GROUP}"
-  exit 1
+    error "group '${SCODER_GROUP}' does not exist"
+    error "create with: sudo groupadd ${SCODER_GROUP}"
+    exit 1
 fi
 
 if [[ "${FS_MODE}" != "ro" && "${FS_MODE}" != "rw" ]]; then
-  error "invalid FS mode '${FS_MODE}' (expected 'ro' or 'rw')"
-  exit 1
+    error "invalid FS mode '${FS_MODE}' (expected 'ro' or 'rw')"
+    exit 1
 fi
 
 PROJECT_DIR="$(realpath "${PROJECT_DIR}")"
 
-# Group ownership only matters for rw
+# Check group ownership for rw mode
 if [[ "${FS_MODE}" = "rw" ]]; then
-  current_group="$(stat -c '%G' "${PROJECT_DIR}")"
-  if [[ "${current_group}" != "${SCODER_GROUP}" ]]; then
-    echo "${PROGRAM_NAME}: adjusting group ownership of '${PROJECT_DIR}' to '${SCODER_GROUP}' (sudo required)" >&2
-    sudo chgrp -R "${SCODER_GROUP}" "${PROJECT_DIR}"
-    sudo chmod -R g+rwx,o-rwx "${PROJECT_DIR}"
-  fi
+    current_group="$(stat -c '%G' "${PROJECT_DIR}")"
+    if [[ "${current_group}" != "${SCODER_GROUP}" ]]; then
+        error "Project directory must be owned by group '${SCODER_GROUP}'"
+        echo "" >&2
+        echo -e "${YELLOW}Run this command to fix ownership:${NC}" >&2
+        echo -e "  ${GREEN}sudo chgrp -R ${SCODER_GROUP} '${PROJECT_DIR}'${NC}" >&2
+        echo -e "  ${GREEN}sudo chmod -R g+rwx,o-rwx '${PROJECT_DIR}'${NC}" >&2
+        echo "" >&2
+        echo -e "${YELLOW}Then add yourself to the group (if not already):${NC}" >&2
+        echo -e "  ${GREEN}sudo usermod -aG ${SCODER_GROUP} \$USER${NC}" >&2
+        echo -e "  ${YELLOW}(logout/login required after adding yourself)${NC}" >&2
+        exit 1
+    fi
 fi
+
+# Ensure OpenCode config/data dirs exist
+OPENCODE_CONFIG="${HOME}/.config/opencode"
+OPENCODE_DATA="${HOME}/.local/share/opencode"
+
+mkdir -p "${OPENCODE_CONFIG}"
+mkdir -p "${OPENCODE_DATA}"
 
 # Network flags
 NET_FLAGS=()
 if [[ "${NET_MODE}" != "on" ]]; then
-  NET_FLAGS+=(--unshare-net)
+    NET_FLAGS+=(--unshare-net)
 fi
 
 # FS bind mode
 if [[ "${FS_MODE}" = "ro" ]]; then
-  BIND_FLAG="--ro-bind"
-  echo "${PROGRAM_NAME}: mounting '${PROJECT_DIR}' as READ-ONLY" >&2
+    BIND_FLAG="--ro-bind"
+    info "mounting '${PROJECT_DIR}' as READ-ONLY"
 else
-  BIND_FLAG="--bind"
-  echo "${PROGRAM_NAME}: mounting '${PROJECT_DIR}' as READ-WRITE (use --ro for safer operation)" >&2
+    BIND_FLAG="--bind"
+    warning "mounting '${PROJECT_DIR}' as READ-WRITE (use --ro for safer operation)"
 fi
 
 # -------- run sandbox --------
 
 exec bwrap \
-  --ro-bind /usr /usr \
-  --ro-bind /bin /bin \
-  --ro-bind /lib /lib \
-  --ro-bind /lib64 /lib64 \
-  --ro-bind /etc /etc \
-  --dev /dev \
-  --proc /proc \
-  --tmpfs /tmp \
-  "${BIND_FLAG}" "${PROJECT_DIR}" /workspace \
-  --chdir /workspace \
-  "${NET_FLAGS[@]}" \
-  --unshare-user-try \
-  --hostname scoder-sandbox \
-  --die-with-parent \
-  --clearenv \
-  PATH=/usr/bin:/bin \
-  HOME=/workspace \
-  USER="${SCODER_GROUP}" \
-  LOGNAME="${SCODER_GROUP}" \
-  "${OPENCODE_BIN}" "${OPENCODE_ARGS[@]}"
+    --ro-bind /usr /usr \
+    --ro-bind /bin /bin \
+    --ro-bind /lib /lib \
+    --ro-bind /lib64 /lib64 \
+    --ro-bind /etc /etc \
+    --dev /dev \
+    --proc /proc \
+    --tmpfs /tmp \
+    --tmpfs /home \
+    --dir /home/scoder \
+    "${BIND_FLAG}" "${PROJECT_DIR}" /home/scoder/workspace \
+    --bind "${OPENCODE_CONFIG}" /home/scoder/.config/opencode \
+    --bind "${OPENCODE_DATA}" /home/scoder/.local/share/opencode \
+    --chdir /home/scoder/workspace \
+    "${NET_FLAGS[@]}" \
+    --unshare-user-try \
+    --unshare-uts \
+    --hostname scoder-sandbox \
+    --die-with-parent \
+    --clearenv \
+    --setenv PATH /usr/bin:/bin \
+    --setenv HOME /home/scoder \
+    --setenv USER scoder \
+    --setenv LOGNAME scoder \
+    "${OPENCODE_BIN}" "${OPENCODE_ARGS[@]}"
