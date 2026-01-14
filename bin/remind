@@ -1,0 +1,191 @@
+#!/usr/bin/env bash
+# remind - Quick reference for commonly forgotten commands
+# Usage: remind [category|file]
+# Categories: markdown, pdf
+# Examples: remind markdown, remind file.pdf
+
+set -euo pipefail
+
+VERSION="1.0.0"
+SCRIPT_NAME="$(basename "$0")"
+
+# Colors for output
+if [[ -t 1 ]]; then
+    DIM='\033[2m'
+    RESET='\033[0m'
+    BLUE='\033[34m'
+    GREEN='\033[32m'
+    YELLOW='\033[33m'
+else
+    DIM='' RESET='' BLUE='' GREEN='' YELLOW=''
+fi
+
+show_version() {
+    echo "$SCRIPT_NAME version $VERSION"
+}
+
+show_help() {
+    cat <<EOF
+$SCRIPT_NAME - Quick reference for commonly forgotten commands
+
+USAGE:
+    $SCRIPT_NAME [OPTIONS] [CATEGORY|FILE]
+
+OPTIONS:
+    -h, --help       Show this help message
+    -v, --version    Show version information
+    -i, --install    Show installation commands instead of usage
+
+CATEGORIES:
+    markdown, md     Markdown to PDF conversion commands
+    pdf              PDF manipulation (split/merge/etc)
+
+EXAMPLES:
+    $SCRIPT_NAME                    # Show all categories
+    $SCRIPT_NAME markdown           # Show markdown conversion help
+    $SCRIPT_NAME -i markdown        # Show markdown tools installation
+    $SCRIPT_NAME file.md            # Auto-detect from file extension
+    $SCRIPT_NAME document.pdf       # Show PDF manipulation help
+
+AUTHOR:
+    Andres Monge (aemonge)
+EOF
+}
+
+show_markdown_help() {
+    echo -e "${BLUE}go-grip --theme dark file.md${RESET}"
+    echo -e "${DIM}# Opens in browser, use Print to PDF (Ctrl+P)${RESET}"
+    echo ""
+    echo "Options: --theme light | --theme dark"
+}
+
+show_markdown_install() {
+    echo -e "${BLUE}pamac install go-grip${RESET}"
+    echo ""
+    echo -e "${DIM}Alternative: ${BLUE}go install github.com/chrishrb/go-grip@latest${RESET}"
+}
+
+show_pdf_help() {
+    echo "Merge:"
+    echo -e "  ${BLUE}pdfunite file1.pdf file2.pdf output.pdf${RESET}"
+    echo -e "  ${BLUE}qpdf --empty --pages file*.pdf -- merged.pdf${RESET}"
+    echo ""
+    echo "Split:"
+    echo -e "  ${BLUE}pdfseparate input.pdf output_%d.pdf${RESET}"
+    echo -e "  ${BLUE}pdftk input.pdf burst${RESET}"
+    echo ""
+    echo "Extract pages:"
+    echo -e "  ${BLUE}qpdf input.pdf --pages . 5-10 -- output.pdf${RESET}"
+    echo ""
+    echo "Info:"
+    echo -e "  ${BLUE}pdfinfo file.pdf${RESET}"
+    echo -e "  ${BLUE}qpdf --show-npages file.pdf${RESET}"
+    echo ""
+    echo "Rotate:"
+    echo -e "  ${BLUE}qpdf input.pdf --rotate=90:1-z -- rotated.pdf${RESET}"
+    echo ""
+    echo "Compress:"
+    echo -e "  ${BLUE}gs -sDEVICE=pdfwrite -dPDFSETTINGS=/ebook -dNOPAUSE -dQUIET \\\\${RESET}"
+    echo -e "  ${BLUE}     -dBATCH -sOutputFile=compressed.pdf input.pdf${RESET}"
+    echo ""
+    echo "To images:"
+    echo -e "  ${BLUE}pdftoppm -png input.pdf output${RESET}"
+    echo ""
+    echo "Encrypt:"
+    echo -e "  ${BLUE}qpdf --encrypt PASS PASS 256 -- input.pdf encrypted.pdf${RESET}"
+}
+
+show_pdf_install() {
+    echo -e "${BLUE}pamac install poppler qpdf pdftk${RESET}"
+}
+
+show_all_categories() {
+    echo "Categories:"
+    echo -e "  ${YELLOW}markdown${RESET}, ${YELLOW}md${RESET}      Markdown to PDF"
+    echo -e "  ${YELLOW}pdf${RESET}              PDF manipulation"
+    echo ""
+    echo "Usage:"
+    echo "  $SCRIPT_NAME [category]"
+    echo "  $SCRIPT_NAME -i [category]"
+}
+
+detect_category() {
+    local input="$1"
+
+    case "$input" in
+    *.md | markdown | md)
+        echo "markdown"
+        ;;
+    *.pdf | pdf)
+        echo "pdf"
+        ;;
+    *)
+        echo "$input"
+        ;;
+    esac
+}
+
+main() {
+    local category=""
+    local show_install=false
+
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+        -h | --help)
+            show_help
+            exit 0
+            ;;
+        -v | --version)
+            show_version
+            exit 0
+            ;;
+        -i | --install)
+            show_install=true
+            shift
+            ;;
+        -*)
+            echo "Error: Unknown option: $1" >&2
+            echo "Run '$SCRIPT_NAME --help' for usage information" >&2
+            exit 1
+            ;;
+        *)
+            category="$1"
+            shift
+            ;;
+        esac
+    done
+
+    # If no category provided, show all
+    if [[ -z "$category" ]]; then
+        show_all_categories
+        exit 0
+    fi
+
+    # Detect category from input
+    category=$(detect_category "$category")
+
+    case "$category" in
+    markdown | md)
+        if [[ "$show_install" == true ]]; then
+            show_markdown_install
+        else
+            show_markdown_help
+        fi
+        ;;
+    pdf)
+        if [[ "$show_install" == true ]]; then
+            show_pdf_install
+        else
+            show_pdf_help
+        fi
+        ;;
+    *)
+        echo "Error: Unknown category '$category'" >&2
+        echo "Run '$SCRIPT_NAME --help' for available categories" >&2
+        exit 1
+        ;;
+    esac
+}
+
+main "$@"
