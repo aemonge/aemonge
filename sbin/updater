@@ -178,9 +178,6 @@ update_mise() {
 
             $QUIET || title "Running: 'mise plugins update'"
             mise plugins update || true
-
-            $QUIET || title "Running: 'mise prune'"
-            mise prune || true
         fi
     fi
 }
@@ -297,6 +294,9 @@ clean_dev() {
                 eval "$command"
             fi
         done
+
+        $QUIET || title "Running: 'mise prune'"
+        mise prune || true
     fi
     save_clean_timestamp
 }
