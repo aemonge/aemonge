@@ -249,12 +249,12 @@ update_zinit() {
         if check_command "zsh" "zinit update"; then
             $QUIET || title "Running: 'zsh -ic \"zinit self-update\",\"update -a\"'"
             if $QUIET; then
-                zsh -f -ic "setopt no_monitor; source ~/.zinit && \
+                zsh -f -ic "setopt no_monitor; source $HOME/.local/share/zinit/zinit.git/zinit.zsh && \
                 zinit self-update --quiet  >/dev/null 2>&1 && \
                 zinit update --all --parallel --quiet >/dev/null 2>&1 && \
                 wait" >/dev/null 2>&1
             else
-                zsh -f -ic "source ~/.zinit && \
+                zsh -f -ic "source $HOME/.local/share/zinit/zinit.git/zinit.zsh && \
                 zinit self-update && \
                 zinit update --all --parallel && \
                 wait"
