@@ -87,13 +87,13 @@ echo ""
 
 # Check PATH
 echo "Checking PATH for problematic entries..."
-IFS=':' read -ra PATHS <<< "$PATH"
+IFS=':' read -ra PATHS <<<"$PATH"
 for p in "${PATHS[@]}"; do
     case "$p" in
-        *cargo/bin*|*rustup*|*pyenv*|*nvm*|*rbenv*)
-            PATH_ISSUES+=("$p")
-            echo -e "  ${YELLOW}⚠️ ${NC}  Found in PATH: $p"
-            ;;
+    *cargo/bin* | *rustup* | *pyenv* | *nvm* | *rbenv*)
+        PATH_ISSUES+=("$p")
+        echo -e "  ${YELLOW}⚠️ ${NC}  Found in PATH: $p"
+        ;;
     esac
 done
 
@@ -169,10 +169,10 @@ needs_node=false
 for dir_info in "${FOUND_DIRS[@]}"; do
     dir=$(echo "$dir_info" | cut -d'|' -f1)
     case "$dir" in
-        *rustup*|*cargo*) needs_rust=true ;;
-        *pyenv*) needs_python=true ;;
-        *go*) needs_go=true ;;
-        *nvm*) needs_node=true ;;
+    *rustup* | *cargo*) needs_rust=true ;;
+    *pyenv*) needs_python=true ;;
+    *go*) needs_go=true ;;
+    *nvm*) needs_node=true ;;
     esac
 done
 
@@ -238,7 +238,7 @@ echo "mise doctor"
 echo "mise ls -g"
 echo ""
 echo "# Test that old paths are gone"
-echo "echo \$PATH | tr ':' '\n' | grep -E "(cargo|rustup|pyenv|nvm)" || echo '✅  PATH is clean!'"
+printf '%s\n' "echo \$PATH | tr ':' '\n' | grep -E '(cargo|rustup|pyenv|nvm)' || echo '✅  PATH is clean!'"
 echo ""
 echo ""
 
