@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 # remind - Quick reference for commonly forgotten commands
 # Usage: remind [category|file]
-# Categories: markdown, pdf
-# Examples: remind markdown, remind file.pdf
+# Categories: markdown, pdf, zsh, containers
 
 set -euo pipefail
 
-VERSION="1.0.0"
+VERSION="2.0.0"
 SCRIPT_NAME="$(basename "$0")"
 
 # Colors for output
@@ -16,8 +15,9 @@ if [[ -t 1 ]]; then
     BLUE='\033[34m'
     GREEN='\033[32m'
     YELLOW='\033[33m'
+    RED='\033[31m'
 else
-    DIM='' RESET='' BLUE='' GREEN='' YELLOW=''
+    DIM='' RESET='' BLUE='' GREEN='' YELLOW='' RED=''
 fi
 
 show_version() {
@@ -39,18 +39,24 @@ OPTIONS:
 CATEGORIES:
     markdown, md     Markdown to PDF conversion commands
     pdf              PDF manipulation (split/merge/etc)
+    zsh, shell       Modern zsh/shell utilities
+    containers       Container management (Podman)
 
 EXAMPLES:
     $SCRIPT_NAME                    # Show all categories
+    $SCRIPT_NAME zsh                # Show zsh tools usage
+    $SCRIPT_NAME -i zsh             # Show zsh tools installation
     $SCRIPT_NAME markdown           # Show markdown conversion help
-    $SCRIPT_NAME -i markdown        # Show markdown tools installation
     $SCRIPT_NAME file.md            # Auto-detect from file extension
-    $SCRIPT_NAME document.pdf       # Show PDF manipulation help
 
 AUTHOR:
     Andres Monge (aemonge)
 EOF
 }
+
+# ============================================================================
+# MARKDOWN CATEGORY
+# ============================================================================
 
 show_markdown_help() {
     echo -e "${BLUE}go-grip --theme dark file.md${RESET}"
@@ -64,6 +70,10 @@ show_markdown_install() {
     echo ""
     echo -e "${DIM}Alternative: ${BLUE}go install github.com/chrishrb/go-grip@latest${RESET}"
 }
+
+# ============================================================================
+# PDF CATEGORY
+# ============================================================================
 
 show_pdf_help() {
     echo "Merge:"
@@ -99,14 +109,102 @@ show_pdf_install() {
     echo -e "${BLUE}pamac install poppler qpdf pdftk${RESET}"
 }
 
+# ============================================================================
+# ZSH MODERN TOOLS CATEGORY
+# ============================================================================
+
+show_zsh_help() {
+    echo -e "${GREEN}Core Shell Utilities:${RESET}"
+    echo ""
+    echo -e "${YELLOW}Navigation & History:${RESET}"
+    echo -e "  ${BLUE}z project${RESET}                    # Jump to frecent directory (zoxide)"
+    echo -e "  ${BLUE}Ctrl+R${RESET}                       # Search history with context (atuin)"
+    echo ""
+    echo -e "${YELLOW}Modern CLI Replacements:${RESET}"
+    echo -e "  ${BLUE}ls${RESET} / ${BLUE}l${RESET} / ${BLUE}ll${RESET}                 # Modern ls with icons (eza)"
+    echo -e "  ${BLUE}g 'pattern' [path]${RESET}          # Smart grep (ripgrep)"
+    echo -e "  ${BLUE}c file.{md,json,jpg}${RESET}        # Smart cat with viewers (bat/glow/feh)"
+    echo -e "  ${BLUE}df${RESET}                           # Disk usage with colors (duf)"
+    echo -e "  ${BLUE}du${RESET}                           # Interactive disk analyzer (dua)"
+    echo -e "  ${BLUE}diff file1 file2${RESET}            # Git-aware diff (delta)"
+    echo -e "  ${BLUE}man command${RESET}                 # Syntax-highlighted man pages (batman)"
+    echo ""
+    echo -e "${YELLOW}Development Tools:${RESET}"
+    echo -e "  ${BLUE}http-serve [port]${RESET}           # Python HTTP server (default: 8000)"
+    echo -e "  ${BLUE}http-serve-rs [port] [dir]${RESET} # Rust HTTP server (miniserve)"
+    echo -e "  ${BLUE}e${RESET}                            # Emoji picker (bemoji + fzf)"
+    echo -e "  ${BLUE}extract archive.{zip,tar.gz}${RESET} # Universal extractor"
+    echo ""
+    echo -e "${DIM}See ~/.aliases for full documentation${RESET}"
+}
+
+show_zsh_install() {
+    echo -e "${GREEN}Core Shell Utilities:${RESET}"
+    echo ""
+    echo -e "${YELLOW}Essential (already installed):${RESET}"
+    echo -e "  ${BLUE}pamac install atuin zoxide${RESET}"
+    echo ""
+    echo -e "${YELLOW}Modern CLI Tools:${RESET}"
+    echo -e "  ${BLUE}pamac install eza fd ripgrep bat bat-extras${RESET}"
+    echo -e "  ${BLUE}pamac install duf dua-cli lnav git-delta${RESET}"
+    echo ""
+    echo -e "${YELLOW}TUI & Utilities:${RESET}"
+    echo -e "  ${BLUE}pamac install fzf fzy bemoji glow jq${RESET}"
+    echo -e "  ${BLUE}pamac install miniserve${RESET}         # Rust HTTP server"
+    echo -e "  ${BLUE}pamac install vi-mongo visidata${RESET} # TUI database/data tools"
+    echo ""
+    echo -e "${YELLOW}Optional Fun:${RESET}"
+    echo -e "  ${BLUE}pamac install lolcat sl trash${RESET}"
+    echo ""
+    echo -e "${DIM}All packages: atuin zoxide eza fd ripgrep bat bat-extras duf dua-cli"
+    echo -e "             lnav git-delta fzf fzy bemoji glow jq miniserve${RESET}"
+}
+
+# ============================================================================
+# CONTAINERS CATEGORY
+# ============================================================================
+
+show_containers_help() {
+    echo -e "${RED}⚠️  Use Podman instead of Docker${RESET}"
+    echo ""
+    echo -e "${GREEN}Why Podman?${RESET}"
+    echo -e "  • ${YELLOW}Daemonless${RESET} - no background process"
+    echo -e "  • ${YELLOW}Rootless${RESET} - runs without sudo"
+    echo -e "  • ${YELLOW}Docker CLI compatible${RESET} - drop-in replacement"
+    echo -e "  • ${YELLOW}OCI compliant${RESET} - runs all Docker images"
+    echo ""
+    echo -e "${GREEN}Common Commands:${RESET}"
+    echo -e "  ${BLUE}podman run -it alpine${RESET}"
+    echo -e "  ${BLUE}podman ps${RESET}"
+    echo -e "  ${BLUE}podman images${RESET}"
+    echo -e "  ${BLUE}podman-compose up -d${RESET}"
+    echo ""
+    echo -e "${DIM}Podman is a modern Docker alternative that's daemonless and rootless${RESET}"
+    echo -e "${DIM}@see: https://podman.io/${RESET}"
+}
+
+show_containers_install() {
+    echo -e "${BLUE}pamac install podman podman-compose${RESET}"
+    echo ""
+    echo -e "${DIM}After install, Podman commands are identical to Docker:${RESET}"
+    echo -e "  ${GREEN}podman run${RESET} instead of ${RED}docker run${RESET}"
+    echo -e "  ${GREEN}podman-compose up${RESET} instead of ${RED}docker-compose up${RESET}"
+}
+
+# ============================================================================
+# MAIN LOGIC
+# ============================================================================
+
 show_all_categories() {
     echo "Categories:"
-    echo -e "  ${YELLOW}markdown${RESET}, ${YELLOW}md${RESET}      Markdown to PDF"
-    echo -e "  ${YELLOW}pdf${RESET}              PDF manipulation"
+    echo -e "  ${YELLOW}markdown${RESET}, ${YELLOW}md${RESET}      Markdown to PDF conversion"
+    echo -e "  ${YELLOW}pdf${RESET}              PDF manipulation (merge/split/etc)"
+    echo -e "  ${YELLOW}zsh${RESET}, ${YELLOW}shell${RESET}       Modern shell utilities & CLI tools"
+    echo -e "  ${YELLOW}containers${RESET}       Container management (Podman)"
     echo ""
     echo "Usage:"
     echo "  $SCRIPT_NAME [category]"
-    echo "  $SCRIPT_NAME -i [category]"
+    echo "  $SCRIPT_NAME -i [category]    # Show installation commands"
 }
 
 detect_category() {
@@ -118,6 +216,12 @@ detect_category() {
         ;;
     *.pdf | pdf)
         echo "pdf"
+        ;;
+    zsh | shell | cli)
+        echo "zsh"
+        ;;
+    containers | podman | docker)
+        echo "containers"
         ;;
     *)
         echo "$input"
@@ -178,6 +282,20 @@ main() {
             show_pdf_install
         else
             show_pdf_help
+        fi
+        ;;
+    zsh)
+        if [[ "$show_install" == true ]]; then
+            show_zsh_install
+        else
+            show_zsh_help
+        fi
+        ;;
+    containers)
+        if [[ "$show_install" == true ]]; then
+            show_containers_install
+        else
+            show_containers_help
         fi
         ;;
     *)
