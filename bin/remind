@@ -145,7 +145,8 @@ show_zsh_install() {
     echo -e "  ${BLUE}pamac install atuin zoxide${RESET}"
     echo ""
     echo -e "${YELLOW}Modern CLI Tools:${RESET}"
-    echo -e "  ${BLUE}pamac install eza fd ripgrep bat bat-extras${RESET}"
+    # Added vivid here ------------------------------------------------v
+    echo -e "  ${BLUE}pamac install eza fd ripgrep bat bat-extras vivid${RESET}"
     echo -e "  ${BLUE}pamac install duf dua-cli lnav git-delta${RESET}"
     echo ""
     echo -e "${YELLOW}TUI & Utilities:${RESET}"
@@ -156,7 +157,7 @@ show_zsh_install() {
     echo -e "${YELLOW}Optional Fun:${RESET}"
     echo -e "  ${BLUE}pamac install lolcat sl trash${RESET}"
     echo ""
-    echo -e "${DIM}All packages: atuin zoxide eza fd ripgrep bat bat-extras duf dua-cli"
+    echo -e "${DIM}All packages: atuin zoxide eza fd ripgrep bat bat-extras vivid duf dua-cli"
     echo -e "             lnav git-delta fzf fzy bemoji glow jq miniserve${RESET}"
 }
 
