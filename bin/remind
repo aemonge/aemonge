@@ -150,7 +150,7 @@ show_zsh_install() {
     echo -e "  ${BLUE}pamac install duf dua-cli lnav git-delta${RESET}"
     echo ""
     echo -e "${YELLOW}TUI & Utilities:${RESET}"
-    echo -e "  ${BLUE}pamac install fzf fzy bemoji glow jq${RESET}"
+    echo -e "  ${BLUE}pamac install fzf fzy bemoji glow jq yq${RESET}"
     echo -e "  ${BLUE}pamac install miniserve${RESET}         # Rust HTTP server"
     echo -e "  ${BLUE}pamac install vi-mongo visidata${RESET} # TUI database/data tools"
     echo ""
@@ -158,7 +158,7 @@ show_zsh_install() {
     echo -e "  ${BLUE}pamac install lolcat sl trash${RESET}"
     echo ""
     echo -e "${DIM}All packages: atuin zoxide eza fd ripgrep bat bat-extras vivid duf dua-cli"
-    echo -e "             lnav git-delta fzf fzy bemoji glow jq miniserve${RESET}"
+    echo -e "             lnav git-delta fzf fzy bemoji glow jq yq miniserve${RESET}"
 }
 
 # ============================================================================
