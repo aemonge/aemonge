@@ -32,7 +32,7 @@ Usage:
 Options:
   -h, --help           Show this help and exit
   -V, --version        Show version and exit
-  -n, --net            Enable network access inside the sandbox (default: off)
+  -n, --disable-net    Disable network access inside the sandbox (default: off)
   -g, --group NAME     Group used for project dirs (default: "scoder")
   -b, --bin PATH       Path to opencode binary (default: "opencode")
   --ro                 Mount project directory read-only (default, safe)
@@ -45,13 +45,13 @@ Arguments:
 Environment:
   SCODER_GROUP         Overrides default group name
   OPENCODE_BIN         Overrides default opencode binary
-  SCODER_NET           "on" to enable network by default ("off" otherwise)
+  SCODER_NET           "on" to disable network by default ("off" otherwise)
   SCODER_FS_MODE       "ro" (default, secure) or "rw" (allow writes)
 
 Examples:
   scoder                           # read-only sandbox of $PWD
   scoder --rw /home/you/dev/myapp  # read-write access
-  scoder -n myproj -- --verbose    # network on, pass --verbose to opencode
+  scoder -n myproj -- --verbose    # disabled network on, pass --verbose to opencode
 
 Security Note:
   Read-only (--ro) is the default to prevent unintended filesystem changes.
@@ -83,7 +83,7 @@ info() {
 
 SCODER_GROUP="${SCODER_GROUP:-${SCODER_GROUP_DEFAULT}}"
 OPENCODE_BIN="${OPENCODE_BIN:-${OPENCODE_BIN_DEFAULT}}"
-NET_MODE="${SCODER_NET:-off}"
+NET_MODE="${SCODER_NET:-on}"
 FS_MODE="${SCODER_FS_MODE:-ro}"
 
 PROJECT_DIR=""
@@ -112,7 +112,7 @@ while [[ $# -gt 0 ]]; do
         exit 0
         ;;
     -n | --net)
-        NET_MODE="on"
+        NET_MODE="off"
         shift
         ;;
     -g | --group)
