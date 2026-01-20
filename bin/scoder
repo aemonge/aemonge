@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# scoder - Safe wrapper for OpenCode using bubblewrap + groups
+# scoder - Safe wrapper for OpenCode using bubblewrap
 #
 # Homepage: https://github.com/anomalyco/opencode
 # Author: Andres Monge (aemonge)
@@ -12,8 +12,7 @@ set -euo pipefail
 readonly PROGRAM_NAME="scoder"
 readonly PROGRAM_VERSION="0.4.0"
 
-readonly SCODER_GROUP_DEFAULT="scoder"
-readonly OPENCODE_BIN_DEFAULT="opencode"
+readonly OPENCODE_BIN_DEFAULT="/usr/bin/opencode"
 
 # Colors for output
 readonly RED='\033[0;31m'
@@ -23,8 +22,8 @@ readonly NC='\033[0m' # No Color
 
 usage() {
     cat <<'EOF'
-scoder 0.4.0
-Safe OpenCode wrapper using bubblewrap and a dedicated Unix group.
+scoder 0.5.0
+Safe OpenCode wrapper using bubblewrap.
 
 Usage:
   scoder [options] [PROJECT_DIR] [-- [OPENCODE_ARGS...]]
@@ -32,31 +31,26 @@ Usage:
 Options:
   -h, --help           Show this help and exit
   -V, --version        Show version and exit
-  -n, --disable-net    Disable network access inside the sandbox (default: off)
-  -g, --group NAME     Group used for project dirs (default: "scoder")
+  -n, --no-net         Enable network access inside the sandbox (default: on)
   -b, --bin PATH       Path to opencode binary (default: "opencode")
-  --ro                 Mount project directory read-only (default, safe)
-  --rw                 Mount project directory read-write (less safe)
+  --ro                 Mount project directory read-only (safe)
+  --rw                 Mount project directory read-write (default, less safe)
 
 Arguments:
   PROJECT_DIR          Project directory to expose as /workspace (default: $PWD)
   OPENCODE_ARGS        Arguments passed verbatim to opencode after "--"
 
 Environment:
-  SCODER_GROUP         Overrides default group name
   OPENCODE_BIN         Overrides default opencode binary
-  SCODER_NET           "on" to disable network by default ("off" otherwise)
+  SCODER_NET           "on" to enable network by default ("off" otherwise)
   SCODER_FS_MODE       "ro" (default, secure) or "rw" (allow writes)
 
 Examples:
-  scoder                           # read-only sandbox of $PWD
-  scoder --rw /home/you/dev/myapp  # read-write access
-  scoder -n myproj -- --verbose    # disabled network on, pass --verbose to opencode
+  scoder --ro                      # read-only sandbox of $PWD
+  scoder /home/you/dev/myapp       # read-write access
+  scoder -n myproj -- --verbose    # network off, pass --verbose to opencode
 
 Security Note:
-  Read-only (--ro) is the default to prevent unintended filesystem changes.
-  Use --rw only when you trust the model/prompt.
-
   OpenCode config (~/.config/opencode) and data (~/.local/share/opencode)
   are mounted from your real home, but HOME is set to a tmpfs to avoid
   polluting your project directory.
@@ -81,10 +75,9 @@ info() {
 
 # -------- defaults (SECURE BY DEFAULT) --------
 
-SCODER_GROUP="${SCODER_GROUP:-${SCODER_GROUP_DEFAULT}}"
 OPENCODE_BIN="${OPENCODE_BIN:-${OPENCODE_BIN_DEFAULT}}"
 NET_MODE="${SCODER_NET:-on}"
-FS_MODE="${SCODER_FS_MODE:-ro}"
+FS_MODE="${SCODER_FS_MODE:-rw}"
 
 PROJECT_DIR=""
 OPENCODE_ARGS=()
@@ -111,17 +104,9 @@ while [[ $# -gt 0 ]]; do
         version
         exit 0
         ;;
-    -n | --net)
+    -n | --no-net)
         NET_MODE="off"
         shift
-        ;;
-    -g | --group)
-        if [[ $# -lt 2 ]]; then
-            error "missing argument for $1"
-            exit 1
-        fi
-        SCODER_GROUP="$2"
-        shift 2
         ;;
     -b | --bin)
         if [[ $# -lt 2 ]]; then
@@ -192,35 +177,12 @@ if [[ ! -d "${PROJECT_DIR}" ]]; then
     exit 1
 fi
 
-if ! getent group "${SCODER_GROUP}" >/dev/null 2>&1; then
-    error "group '${SCODER_GROUP}' does not exist"
-    error "create with: sudo groupadd ${SCODER_GROUP}"
-    exit 1
-fi
-
 if [[ "${FS_MODE}" != "ro" && "${FS_MODE}" != "rw" ]]; then
     error "invalid FS mode '${FS_MODE}' (expected 'ro' or 'rw')"
     exit 1
 fi
 
 PROJECT_DIR="$(realpath "${PROJECT_DIR}")"
-
-# Check group ownership for rw mode
-if [[ "${FS_MODE}" = "rw" ]]; then
-    current_group="$(stat -c '%G' "${PROJECT_DIR}")"
-    if [[ "${current_group}" != "${SCODER_GROUP}" ]]; then
-        error "Project directory must be owned by group '${SCODER_GROUP}'"
-        echo "" >&2
-        echo -e "${YELLOW}Run this command to fix ownership:${NC}" >&2
-        echo -e "  ${GREEN}sudo chgrp -R ${SCODER_GROUP} '${PROJECT_DIR}'${NC}" >&2
-        echo -e "  ${GREEN}sudo chmod -R g+rwx,o-rwx '${PROJECT_DIR}'${NC}" >&2
-        echo "" >&2
-        echo -e "${YELLOW}Then add yourself to the group (if not already):${NC}" >&2
-        echo -e "  ${GREEN}sudo usermod -aG ${SCODER_GROUP} \$USER${NC}" >&2
-        echo -e "  ${YELLOW}(logout/login required after adding yourself)${NC}" >&2
-        exit 1
-    fi
-fi
 
 # Ensure OpenCode config/data dirs exist
 OPENCODE_CONFIG="${HOME}/.config/opencode"
