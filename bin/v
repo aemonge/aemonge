@@ -18,6 +18,7 @@ function show_help() {
     echo "    waits           Open file for quick editing (auto-closes buffer)"
     echo "    spliting        Combine split and waits"
     echo "    bg              Open file in background tab in Neovim"
+    echo "    fg              Bring background jobs to Neovim tabs (requires reptyr)"
     echo "    save            Using sessions.nvim save the current session"
     echo "    restore         Using sessions.nvim restore the last session"
     echo "    cd              Change directory in Neovim"
@@ -50,6 +51,7 @@ function completions() {
     echo "    'waits'" >> "$completions_file"
     echo "    'spliting'" >> "$completions_file"
     echo "    'bg'" >> "$completions_file"
+    echo "    'fg'" >> "$completions_file"
     echo "    'save'" >> "$completions_file"
     echo "    'restore'" >> "$completions_file"
     echo "    'cd'" >> "$completions_file"
@@ -79,7 +81,7 @@ function completions() {
     echo "        isplit|split|waits|spliting|bg)" >> "$completions_file"
     echo "          _files" >> "$completions_file"
     echo "          ;;" >> "$completions_file"
-    echo "        clear|save|restore|venv|reset_venv)" >> "$completions_file"
+    echo "        clear|save|restore|venv|reset_venv|fg)" >> "$completions_file"
     echo "          # No further arguments for these commands" >> "$completions_file"
     echo "          ;;" >> "$completions_file"
     echo "        *)" >> "$completions_file"
@@ -168,6 +170,60 @@ function background() {
     else
         echo "No files specified."
         return 1
+    fi
+}
+
+function fg_func() {
+    # Check for reptyr
+    if ! command -v reptyr >/dev/null; then
+        echo "Error: reptyr is required for 'v fg'. Please install it."
+        return 1
+    fi
+
+    local parent_pid=$PPID
+    # Get all children of the parent shell, excluding the current script (v)
+    local pids
+    # Use pgrep if available, otherwise ps
+    if command -v pgrep >/dev/null; then
+        pids=($(pgrep -P "$parent_pid" | grep -vw "$$"))
+    else
+        pids=($(ps -o pid= --ppid "$parent_pid" | grep -vw "$$"))
+    fi
+
+    if [ ${#pids[@]} -eq 0 ]; then
+        echo "No background jobs found in the current terminal."
+        return 0
+    fi
+
+    if [ -n "$NVIM" ]; then
+        # Inside nvim, open tabs in the existing instance
+        for pid in "${pids[@]}"; do
+             nvr -c "tabnew" \
+                 -c "terminal" \
+                 -c "lua vim.defer_fn(function() vim.api.nvim_chan_send(vim.b.terminal_job_id, \"reptyr $pid\\n\") end, 300)" \
+                 -c "startinsert"
+        done
+    else
+        # Outside nvim, launch new nvim instance
+        local cmd=(nvim)
+        local first=true
+        
+        for pid in "${pids[@]}"; do
+            if $first; then
+                cmd+=("+:terminal")
+                cmd+=("+lua vim.defer_fn(function() vim.api.nvim_chan_send(vim.b.terminal_job_id, \"reptyr $pid\\n\") end, 300)")
+                cmd+=("+:startinsert")
+                first=false
+            else
+                cmd+=("+:tabnew")
+                cmd+=("+:terminal")
+                cmd+=("+lua vim.defer_fn(function() vim.api.nvim_chan_send(vim.b.terminal_job_id, \"reptyr $pid\\n\") end, 300)")
+                cmd+=("+:startinsert")
+            fi
+        done
+        
+        # Launch nvim
+        "${cmd[@]}"
     fi
 }
 
@@ -456,6 +512,9 @@ case "$1" in
     bg)
         shift
         background "$@"
+        ;;
+    fg)
+        fg_func
         ;;
     completions)
         completions
