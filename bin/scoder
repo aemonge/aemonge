@@ -206,6 +206,57 @@ else
     warning "mounting '${PROJECT_DIR}' as READ-WRITE (use --ro for safer operation)"
 fi
 
+# -------- path setup --------
+
+# Base PATH
+SANDBOX_PATH="/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin"
+EXTRA_BINDS=()
+
+# Helper: opt_bind <host_path> <sandbox_path> <path_to_append> [mkdir_parent]
+opt_bind() {
+    local host_p="$1"
+    local sand_p="$2"
+    local path_env="${3:-}"
+    local mkdir_parent="${4:-}"
+
+    if [[ -d "${host_p}" ]]; then
+        if [[ -n "${mkdir_parent}" ]]; then
+            EXTRA_BINDS+=(--dir "${mkdir_parent}")
+        fi
+        EXTRA_BINDS+=(--ro-bind "${host_p}" "${sand_p}")
+        if [[ -n "${path_env}" ]]; then
+            SANDBOX_PATH="${SANDBOX_PATH}:${path_env}"
+        fi
+    fi
+}
+
+# 1. Mise (Version Manager) - Critical for Go, Node, Python, Ruby, Rust management
+#    We bind the entire mise directories read-only.
+opt_bind "${HOME}/.local/share/mise" "/home/scoder/.local/share/mise" "/home/scoder/.local/share/mise/shims"
+opt_bind "${HOME}/.config/mise" "/home/scoder/.config/mise" ""
+opt_bind "${HOME}/.local/state/mise" "/home/scoder/.local/state/mise" ""
+
+# 2. Rust (Cargo)
+#    Binaries often installed via 'cargo install' live here, even if rustc is managed by mise.
+opt_bind "${HOME}/.cargo" "/home/scoder/.cargo" "/home/scoder/.cargo/bin"
+
+# 3. Go
+#    Binaries installed via 'go install' live here.
+opt_bind "${HOME}/go" "/home/scoder/go" "/home/scoder/go/bin"
+
+# 4. Ruby (Gems)
+#    User gems might reside here if not using a version manager strictly.
+opt_bind "${HOME}/.gem" "/home/scoder/.gem" "" # Bin path varies, rely on system/mise
+#    Common gem bin path if needed, but usually handled by mise/shims if active.
+
+# 5. User & System Extras
+opt_bind "${HOME}/usr" "/home/scoder/usr" "/home/scoder/usr/bin:/home/scoder/usr/sbin"
+opt_bind "${HOME}/.local/bin" "/home/scoder/.local/bin" "/home/scoder/.local/bin"
+
+# System locations for specialized hardware/tools
+opt_bind "/opt/cuda" "/opt/cuda" "/opt/cuda/bin" "/opt"
+opt_bind "/var/lib/snapd" "/var/lib/snapd" "/var/lib/snapd/snap/bin" "/var/lib"
+
 # -------- run sandbox --------
 
 exec bwrap \
@@ -219,6 +270,7 @@ exec bwrap \
     --tmpfs /tmp \
     --tmpfs /home \
     --dir /home/scoder \
+    "${EXTRA_BINDS[@]}" \
     "${BIND_FLAG}" "${PROJECT_DIR}" /home/scoder/workspace \
     --bind "${OPENCODE_CONFIG}" /home/scoder/.config/opencode \
     --bind "${OPENCODE_DATA}" /home/scoder/.local/share/opencode \
@@ -229,7 +281,7 @@ exec bwrap \
     --hostname scoder-sandbox \
     --die-with-parent \
     --clearenv \
-    --setenv PATH /usr/bin:/bin \
+    --setenv PATH "${SANDBOX_PATH}" \
     --setenv HOME /home/scoder \
     --setenv USER scoder \
     --setenv LOGNAME scoder \
