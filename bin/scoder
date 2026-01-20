@@ -31,10 +31,11 @@ Usage:
 Options:
   -h, --help           Show this help and exit
   -V, --version        Show version and exit
-  -n, --no-net         Enable network access inside the sandbox (default: on)
+    -n, --no-net         Enable network access inside the sandbox (default: on)
   -b, --bin PATH       Path to opencode binary (default: "opencode")
   --ro                 Mount project directory read-only (safe)
   --rw                 Mount project directory read-write (default, less safe)
+  --allow-git          Allow write access to .git directory (default: read-only)
 
 Arguments:
   PROJECT_DIR          Project directory to expose as /workspace (default: $PWD)
@@ -86,6 +87,7 @@ OPENCODE_ARGS=()
 
 RO_SET=0
 RW_SET=0
+ALLOW_GIT=0
 PARSE_DONE=0
 
 while [[ $# -gt 0 ]]; do
@@ -124,6 +126,10 @@ while [[ $# -gt 0 ]]; do
     --rw)
         RW_SET=1
         FS_MODE="rw"
+        shift
+        ;;
+    --allow-git)
+        ALLOW_GIT=1
         shift
         ;;
     --)
@@ -212,51 +218,58 @@ fi
 SANDBOX_PATH="/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin"
 EXTRA_BINDS=()
 
-# Helper: rw_bind <host_path> <sandbox_path> <path_to_append>
-# Mounts directories READ-WRITE so tools (cargo, pip, npm, mise) work natively.
-rw_bind() {
+# Helper: opt_bind <host_path> <sandbox_path>
+# Mounts directories READ-ONLY (R+X) and adds to PATH if bin.
+opt_bind() {
     local host_p="$1"
     local sand_p="$2"
-    local path_env="${3:-}"
 
     if [[ -d "${host_p}" ]]; then
-        EXTRA_BINDS+=(--bind "${host_p}" "${sand_p}")
-        if [[ -n "${path_env}" ]]; then
-            SANDBOX_PATH="${SANDBOX_PATH}:${path_env}"
-        fi
+        EXTRA_BINDS+=(--ro-bind "${host_p}" "${sand_p}")
     fi
 }
 
-# 1. Mise (Version Manager)
-#    RW access allows 'mise trust', installing new versions, and persistent config.
-rw_bind "${HOME}/.local/share/mise" "/home/scoder/.local/share/mise" "/home/scoder/.local/share/mise/shims"
-rw_bind "${HOME}/.config/mise" "/home/scoder/.config/mise" ""
-rw_bind "${HOME}/.local/state/mise" "/home/scoder/.local/state/mise" ""
+# 1. Dynamic PATH Binding from Host
+#    We iterate over the host's PATH variable, mounting every directory found
+#    (except system ones already handled) as Read-Only.
+IFS=':' read -ra HOST_PATHS <<< "$PATH"
+for p in "${HOST_PATHS[@]}"; do
+    # Skip standard system paths already mounted by bwrap
+    if [[ "$p" == "/usr"* ]] || [[ "$p" == "/bin"* ]] || [[ "$p" == "/sbin"* ]] || [[ "$p" == "/lib"* ]]; then
+        continue
+    fi
 
-# 2. Rust (Cargo & Rustup)
-#    RW access allows 'cargo install', 'rustup update', and caching dependencies.
-rw_bind "${HOME}/.cargo" "/home/scoder/.cargo" "/home/scoder/.cargo/bin"
-rw_bind "${HOME}/.rustup" "/home/scoder/.rustup" ""
+    # Mount user/custom paths found in PATH
+    if [[ -d "$p" ]]; then
+        # We mount it to the same path inside the sandbox
+        # Note: If path is not absolute or weird, bwrap might complain, but PATH usually has absolute paths.
+        EXTRA_BINDS+=(--ro-bind "$p" "$p")
+        SANDBOX_PATH="${SANDBOX_PATH}:$p"
+    fi
+done
 
-# 3. Go
-rw_bind "${HOME}/go" "/home/scoder/go" "/home/scoder/go/bin"
+# 2. Mise (Version Manager) - Specifics
+#    - Config (~/.config/mise): Read-Only
+#    - Installs (~/.local/share/mise): Read-Only
+#    - Trust Persistence: We map PROJECT_DIR/.local/state/mise to ~/.local/state/mise
+#      This allows 'mise trust' to persist with the project.
+opt_bind "${HOME}/.local/share/mise" "/home/scoder/.local/share/mise"
+opt_bind "${HOME}/.config/mise" "/home/scoder/.config/mise"
 
-# 4. Node / NPM
-#    RW access to npm cache.
-rw_bind "${HOME}/.npm" "/home/scoder/.npm" ""
+# Create project-local state dir for mise if it doesn't exist
+if [[ -n "${PROJECT_DIR}" ]]; then
+    mkdir -p "${PROJECT_DIR}/.local/state/mise"
+    EXTRA_BINDS+=(--bind "${PROJECT_DIR}/.local/state/mise" "/home/scoder/.local/state/mise")
+fi
 
-# 5. Generic Cache (Python/Pip, UV, etc.)
-#    Critical for pip, uv, poetry, and many other tools to persist downloads.
-rw_bind "${HOME}/.cache" "/home/scoder/.cache" ""
+# 3. Rust (Toolchains)
+#    We assume 'cargo' etc are in PATH (handled above), but we need the toolchains.
+opt_bind "${HOME}/.rustup" "/home/scoder/.rustup"
 
-# 6. Ruby (Gems)
-rw_bind "${HOME}/.gem" "/home/scoder/.gem" ""
+# 4. Ruby (Gems)
+opt_bind "${HOME}/.gem" "/home/scoder/.gem"
 
-# 7. User Tools & Utils (usr, .local/bin)
-rw_bind "${HOME}/usr" "/home/scoder/usr" "/home/scoder/usr/bin:/home/scoder/usr/sbin"
-rw_bind "${HOME}/.local/bin" "/home/scoder/.local/bin" "/home/scoder/.local/bin"
-
-# Configs (Read-Only) - NPM, Pip, etc. (Sensitive creds still safer as RO)
+# 5. Configs (Read-Only)
 if [[ -f "${HOME}/.npmrc" ]]; then
     EXTRA_BINDS+=(--ro-bind "${HOME}/.npmrc" "/home/scoder/.npmrc")
 fi
@@ -264,17 +277,13 @@ if [[ -f "${HOME}/.pypirc" ]]; then
     EXTRA_BINDS+=(--ro-bind "${HOME}/.pypirc" "/home/scoder/.pypirc")
 fi
 
-# System locations for specialized hardware/tools (Keep RO)
-if [[ -d "/opt/cuda" ]]; then
-    EXTRA_BINDS+=(--ro-bind "/opt/cuda" "/opt/cuda")
-    SANDBOX_PATH="${SANDBOX_PATH}:/opt/cuda/bin"
-fi
-if [[ -d "/var/lib/snapd" ]]; then
-    EXTRA_BINDS+=(--ro-bind "/var/lib/snapd" "/var/lib/snapd")
-    SANDBOX_PATH="${SANDBOX_PATH}:/var/lib/snapd/snap/bin"
-fi
-
 # -------- run sandbox --------
+
+# Git Safety: Ensure .git in workspace is Read-Only unless --allow-git is passed
+GIT_BINDS=()
+if [[ "${ALLOW_GIT}" -eq 0 && -d "${PROJECT_DIR}/.git" ]]; then
+    GIT_BINDS+=(--ro-bind "${PROJECT_DIR}/.git" "/home/scoder/workspace/.git")
+fi
 
 exec bwrap \
     --ro-bind /usr /usr \
@@ -289,6 +298,7 @@ exec bwrap \
     --dir /home/scoder \
     "${EXTRA_BINDS[@]}" \
     "${BIND_FLAG}" "${PROJECT_DIR}" /home/scoder/workspace \
+    "${GIT_BINDS[@]}" \
     --bind "${OPENCODE_CONFIG}" /home/scoder/.config/opencode \
     --bind "${OPENCODE_DATA}" /home/scoder/.local/share/opencode \
     --chdir /home/scoder/workspace \
@@ -302,5 +312,4 @@ exec bwrap \
     --setenv HOME /home/scoder \
     --setenv USER scoder \
     --setenv LOGNAME scoder \
-    --setenv MISE_TRUSTED_CONFIG_PATHS "/home/scoder/workspace" \
     "${OPENCODE_BIN}" "${OPENCODE_ARGS[@]}"
