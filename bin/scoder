@@ -212,50 +212,67 @@ fi
 SANDBOX_PATH="/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin"
 EXTRA_BINDS=()
 
-# Helper: opt_bind <host_path> <sandbox_path> <path_to_append> [mkdir_parent]
-opt_bind() {
+# Helper: rw_bind <host_path> <sandbox_path> <path_to_append>
+# Mounts directories READ-WRITE so tools (cargo, pip, npm, mise) work natively.
+rw_bind() {
     local host_p="$1"
     local sand_p="$2"
     local path_env="${3:-}"
-    local mkdir_parent="${4:-}"
 
     if [[ -d "${host_p}" ]]; then
-        if [[ -n "${mkdir_parent}" ]]; then
-            EXTRA_BINDS+=(--dir "${mkdir_parent}")
-        fi
-        EXTRA_BINDS+=(--ro-bind "${host_p}" "${sand_p}")
+        EXTRA_BINDS+=(--bind "${host_p}" "${sand_p}")
         if [[ -n "${path_env}" ]]; then
             SANDBOX_PATH="${SANDBOX_PATH}:${path_env}"
         fi
     fi
 }
 
-# 1. Mise (Version Manager) - Critical for Go, Node, Python, Ruby, Rust management
-#    We bind the entire mise directories read-only.
-opt_bind "${HOME}/.local/share/mise" "/home/scoder/.local/share/mise" "/home/scoder/.local/share/mise/shims"
-opt_bind "${HOME}/.config/mise" "/home/scoder/.config/mise" ""
-opt_bind "${HOME}/.local/state/mise" "/home/scoder/.local/state/mise" ""
+# 1. Mise (Version Manager)
+#    RW access allows 'mise trust', installing new versions, and persistent config.
+rw_bind "${HOME}/.local/share/mise" "/home/scoder/.local/share/mise" "/home/scoder/.local/share/mise/shims"
+rw_bind "${HOME}/.config/mise" "/home/scoder/.config/mise" ""
+rw_bind "${HOME}/.local/state/mise" "/home/scoder/.local/state/mise" ""
 
-# 2. Rust (Cargo)
-#    Binaries often installed via 'cargo install' live here, even if rustc is managed by mise.
-opt_bind "${HOME}/.cargo" "/home/scoder/.cargo" "/home/scoder/.cargo/bin"
+# 2. Rust (Cargo & Rustup)
+#    RW access allows 'cargo install', 'rustup update', and caching dependencies.
+rw_bind "${HOME}/.cargo" "/home/scoder/.cargo" "/home/scoder/.cargo/bin"
+rw_bind "${HOME}/.rustup" "/home/scoder/.rustup" ""
 
 # 3. Go
-#    Binaries installed via 'go install' live here.
-opt_bind "${HOME}/go" "/home/scoder/go" "/home/scoder/go/bin"
+rw_bind "${HOME}/go" "/home/scoder/go" "/home/scoder/go/bin"
 
-# 4. Ruby (Gems)
-#    User gems might reside here if not using a version manager strictly.
-opt_bind "${HOME}/.gem" "/home/scoder/.gem" "" # Bin path varies, rely on system/mise
-#    Common gem bin path if needed, but usually handled by mise/shims if active.
+# 4. Node / NPM
+#    RW access to npm cache.
+rw_bind "${HOME}/.npm" "/home/scoder/.npm" ""
 
-# 5. User & System Extras
-opt_bind "${HOME}/usr" "/home/scoder/usr" "/home/scoder/usr/bin:/home/scoder/usr/sbin"
-opt_bind "${HOME}/.local/bin" "/home/scoder/.local/bin" "/home/scoder/.local/bin"
+# 5. Generic Cache (Python/Pip, UV, etc.)
+#    Critical for pip, uv, poetry, and many other tools to persist downloads.
+rw_bind "${HOME}/.cache" "/home/scoder/.cache" ""
 
-# System locations for specialized hardware/tools
-opt_bind "/opt/cuda" "/opt/cuda" "/opt/cuda/bin" "/opt"
-opt_bind "/var/lib/snapd" "/var/lib/snapd" "/var/lib/snapd/snap/bin" "/var/lib"
+# 6. Ruby (Gems)
+rw_bind "${HOME}/.gem" "/home/scoder/.gem" ""
+
+# 7. User Tools & Utils (usr, .local/bin)
+rw_bind "${HOME}/usr" "/home/scoder/usr" "/home/scoder/usr/bin:/home/scoder/usr/sbin"
+rw_bind "${HOME}/.local/bin" "/home/scoder/.local/bin" "/home/scoder/.local/bin"
+
+# Configs (Read-Only) - NPM, Pip, etc. (Sensitive creds still safer as RO)
+if [[ -f "${HOME}/.npmrc" ]]; then
+    EXTRA_BINDS+=(--ro-bind "${HOME}/.npmrc" "/home/scoder/.npmrc")
+fi
+if [[ -f "${HOME}/.pypirc" ]]; then
+    EXTRA_BINDS+=(--ro-bind "${HOME}/.pypirc" "/home/scoder/.pypirc")
+fi
+
+# System locations for specialized hardware/tools (Keep RO)
+if [[ -d "/opt/cuda" ]]; then
+    EXTRA_BINDS+=(--ro-bind "/opt/cuda" "/opt/cuda")
+    SANDBOX_PATH="${SANDBOX_PATH}:/opt/cuda/bin"
+fi
+if [[ -d "/var/lib/snapd" ]]; then
+    EXTRA_BINDS+=(--ro-bind "/var/lib/snapd" "/var/lib/snapd")
+    SANDBOX_PATH="${SANDBOX_PATH}:/var/lib/snapd/snap/bin"
+fi
 
 # -------- run sandbox --------
 
@@ -285,4 +302,5 @@ exec bwrap \
     --setenv HOME /home/scoder \
     --setenv USER scoder \
     --setenv LOGNAME scoder \
+    --setenv MISE_TRUSTED_CONFIG_PATHS "/home/scoder/workspace" \
     "${OPENCODE_BIN}" "${OPENCODE_ARGS[@]}"
