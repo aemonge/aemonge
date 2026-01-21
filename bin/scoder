@@ -379,4 +379,8 @@ BWRAP_CMD+=(
     "${OPENCODE_BIN}" "${OPENCODE_ARGS[@]}"
 )
 
+if [[ -n "${PYO3_PYTHON:-}" ]]; then
+    ENV_ARGS+=(--setenv PYO3_PYTHON "/home/scoder/workspace/.venv/bin/python")
+fi
+
 exec "${BWRAP_CMD[@]}"
