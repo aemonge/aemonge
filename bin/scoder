@@ -10,7 +10,7 @@
 set -euo pipefail
 
 readonly PROGRAM_NAME="scoder"
-readonly PROGRAM_VERSION="0.5.0"
+readonly PROGRAM_VERSION="0.6.0"
 readonly OPENCODE_BIN_DEFAULT="/usr/bin/opencode"
 
 # Colors for output
@@ -21,7 +21,7 @@ readonly NC='\033[0m' # No Color
 
 usage() {
     cat <<'EOF'
-scoder 0.5.0
+scoder 0.6.0
 Safe OpenCode wrapper using bubblewrap.
 
 Usage:
@@ -57,8 +57,8 @@ Security Note:
   polluting your project directory.
 
 Project-Local Tools:
-  Project-local venvs (.venv), cargo (.cargo), and go modules are
-  automatically accessible. Configure mise for project-local installs:
+  Project-local venvs (.venv), cargo (.cargo), node_modules, and go bins
+  are automatically accessible. Configure mise for project-local installs:
     mise settings set experimental true
     mise settings set venv_auto_create true
 EOF
@@ -222,10 +222,8 @@ fi
 # FS bind mode
 if [[ "${FS_MODE}" = "ro" ]]; then
     BIND_FLAG="--ro-bind"
-    # info "mounting '${PROJECT_DIR}' as READ-ONLY"
 else
     BIND_FLAG="--bind"
-    # info "mounting '${PROJECT_DIR}' as READ-WRITE (use --ro for safer operation)"
 fi
 
 # -------- OPTIMIZED path setup --------
@@ -243,9 +241,6 @@ opt_bind() {
     fi
 }
 
-# OPTIMIZATION: Only mount specific known locations instead of iterating all PATH
-# Since mise/cargo/go are now project-local, we only need a few key paths
-
 # 1. User binaries (if exists)
 if [[ -d "${HOME}/.local/bin" ]]; then
     EXTRA_BINDS+=(--ro-bind "${HOME}/.local/bin" "/home/scoder/.local/bin")
@@ -255,9 +250,15 @@ fi
 # 2. Mise (Version Manager)
 #    - Config: Read-Only
 #    - Installs: Read-Only
+#    - Shims: Read-Only (these execute mise which then finds tools)
 #    - Trust Persistence: map PROJECT_DIR/.local/state/mise to ~/.local/state/mise
 opt_bind "${HOME}/.local/share/mise" "/home/scoder/.local/share/mise"
 opt_bind "${HOME}/.config/mise" "/home/scoder/.config/mise"
+
+# Add mise shims to PATH if they exist
+if [[ -d "${HOME}/.local/share/mise/shims" ]]; then
+    SANDBOX_PATH="${SANDBOX_PATH}:/home/scoder/.local/share/mise/shims"
+fi
 
 # Create project-local state dir for mise if it doesn't exist
 if [[ -n "${PROJECT_DIR}" ]]; then
@@ -268,10 +269,40 @@ fi
 # 3. Rust toolchains (if exists)
 opt_bind "${HOME}/.rustup" "/home/scoder/.rustup"
 
-# 4. Ruby gems (if needed - uncomment if you use Ruby)
+# Project-local Cargo binaries
+if [[ -d "${PROJECT_DIR}/.cargo/bin" ]]; then
+    EXTRA_BINDS+=(--bind "${PROJECT_DIR}/.cargo/bin" "/home/scoder/.cargo/bin")
+    SANDBOX_PATH="/home/scoder/.cargo/bin:${SANDBOX_PATH}"
+fi
+
+# User Cargo binaries (fallback)
+if [[ -d "${HOME}/.cargo/bin" ]]; then
+    EXTRA_BINDS+=(--ro-bind "${HOME}/.cargo/bin" "/home/scoder/.cargo-home/bin")
+    SANDBOX_PATH="${SANDBOX_PATH}:/home/scoder/.cargo-home/bin"
+fi
+
+# 4. Python virtual environments (project-local)
+if [[ -d "${PROJECT_DIR}/.venv/bin" ]]; then
+    EXTRA_BINDS+=(--bind "${PROJECT_DIR}/.venv/bin" "/home/scoder/workspace/.venv/bin")
+    SANDBOX_PATH="/home/scoder/workspace/.venv/bin:${SANDBOX_PATH}"
+fi
+
+# 5. Node.js project-local binaries
+if [[ -d "${PROJECT_DIR}/node_modules/.bin" ]]; then
+    EXTRA_BINDS+=(--bind "${PROJECT_DIR}/node_modules/.bin" "/home/scoder/workspace/node_modules/.bin")
+    SANDBOX_PATH="/home/scoder/workspace/node_modules/.bin:${SANDBOX_PATH}"
+fi
+
+# 6. Go project-local binaries
+if [[ -d "${PROJECT_DIR}/bin" && -f "${PROJECT_DIR}/go.mod" ]]; then
+    EXTRA_BINDS+=(--bind "${PROJECT_DIR}/bin" "/home/scoder/workspace/bin")
+    SANDBOX_PATH="/home/scoder/workspace/bin:${SANDBOX_PATH}"
+fi
+
+# 7. Ruby gems (if needed - uncomment if you use Ruby)
 # opt_bind "${HOME}/.gem" "/home/scoder/.gem"
 
-# 5. Config files (Read-Only, only if they exist)
+# 8. Config files (Read-Only, only if they exist)
 if [[ -f "${HOME}/.npmrc" ]]; then
     EXTRA_BINDS+=(--ro-bind "${HOME}/.npmrc" "/home/scoder/.npmrc")
 fi
