@@ -1,9 +1,0 @@
-#!/bin/bash
-
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    echo "To be implemented $1"
-elif command -v rg >/dev/null; then
-    lsusb | rg -S "$1" | awk '{print $6}'
-else
-    lsusb | grep "$1" | awk '{print $6}'
-fi

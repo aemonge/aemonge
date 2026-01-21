@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-VERSION="2.0.0"
+VERSION="2.1.0"
 SCRIPT_NAME="$(basename "$0")"
 
 # Colors for output
@@ -121,19 +121,29 @@ show_zsh_help() {
     echo -e "  ${BLUE}Ctrl+R${RESET}                       # Search history with context (atuin)"
     echo ""
     echo -e "${YELLOW}Modern CLI Replacements:${RESET}"
-    echo -e "  ${BLUE}ls${RESET} / ${BLUE}l${RESET} / ${BLUE}ll${RESET}                 # Modern ls with icons (eza)"
-    echo -e "  ${BLUE}g 'pattern' [path]${RESET}          # Smart grep (ripgrep)"
+    echo -e "  ${BLUE}ls${RESET} / ${BLUE}l${RESET} / ${BLUE}ll${RESET} / ${BLUE}lll${RESET}         # Modern ls with icons (eza)"
+    echo -e "  ${BLUE}grep${RESET} / ${BLUE}g 'pattern'${RESET}         # Blazing fast search (ripgrep)"
+    echo -e "  ${BLUE}sed 's/old/new/' file${RESET}      # Intuitive find/replace (sd)"
+    echo -e "  ${BLUE}ps${RESET} / ${BLUE}psall${RESET}                  # Modern process viewer (procs)"
+    echo -e "  ${BLUE}top${RESET}                          # Interactive system monitor (bottom)"
     echo -e "  ${BLUE}c file.{md,json,jpg}${RESET}        # Smart cat with viewers (bat/glow/feh)"
     echo -e "  ${BLUE}df${RESET}                           # Disk usage with colors (duf)"
     echo -e "  ${BLUE}du${RESET}                           # Interactive disk analyzer (dua)"
     echo -e "  ${BLUE}diff file1 file2${RESET}            # Git-aware diff (delta)"
     echo -e "  ${BLUE}man command${RESET}                 # Syntax-highlighted man pages (batman)"
+    echo -e "  ${BLUE}extract archive.zip${RESET}         # Universal extractor (ouch)"
+    echo -e "  ${BLUE}tldr command${RESET}                # Quick command examples (tealdeer)"
+    echo -e "  ${BLUE}bench 'cmd1' 'cmd2'${RESET}         # Benchmark commands (hyperfine)"
+    echo ""
+    echo -e "${YELLOW}Network & System:${RESET}"
+    echo -e "  ${BLUE}lsport${RESET}                       # List listening ports (ss)"
+    echo -e "  ${BLUE}lsip${RESET}                         # List IP addresses (ip)"
+    echo -e "  ${BLUE}usball${RESET}                       # List USB devices (lsusb)"
     echo ""
     echo -e "${YELLOW}Development Tools:${RESET}"
     echo -e "  ${BLUE}http-serve [port]${RESET}           # Python HTTP server (default: 8000)"
     echo -e "  ${BLUE}http-serve-rs [port] [dir]${RESET} # Rust HTTP server (miniserve)"
     echo -e "  ${BLUE}e${RESET}                            # Emoji picker (bemoji + fzf)"
-    echo -e "  ${BLUE}extract archive.{zip,tar.gz}${RESET} # Universal extractor"
     echo ""
     echo -e "${DIM}See ~/.aliases for full documentation${RESET}"
 }
@@ -141,12 +151,12 @@ show_zsh_help() {
 show_zsh_install() {
     echo -e "${GREEN}Core Shell Utilities:${RESET}"
     echo ""
-    echo -e "${YELLOW}Essential (already installed):${RESET}"
+    echo -e "${YELLOW}Essential (Navigation & History):${RESET}"
     echo -e "  ${BLUE}pamac install atuin zoxide${RESET}"
     echo ""
-    echo -e "${YELLOW}Modern CLI Tools:${RESET}"
-    # Added vivid here ------------------------------------------------v
+    echo -e "${YELLOW}Modern CLI Replacements:${RESET}"
     echo -e "  ${BLUE}pamac install eza fd ripgrep bat bat-extras vivid${RESET}"
+    echo -e "  ${BLUE}pamac install sd procs tealdeer bottom ouch${RESET}"
     echo -e "  ${BLUE}pamac install duf dua-cli lnav git-delta${RESET}"
     echo ""
     echo -e "${YELLOW}TUI & Utilities:${RESET}"
@@ -157,8 +167,10 @@ show_zsh_install() {
     echo -e "${YELLOW}Optional Fun:${RESET}"
     echo -e "  ${BLUE}pamac install lolcat sl trash${RESET}"
     echo ""
-    echo -e "${DIM}All packages: atuin zoxide eza fd ripgrep bat bat-extras vivid duf dua-cli"
-    echo -e "             lnav git-delta fzf fzy bemoji glow jq yq miniserve${RESET}"
+    echo -e "${DIM}All new tools: sd procs tealdeer bottom ouch${RESET}"
+    echo -e "${DIM}Full list: atuin zoxide eza fd ripgrep bat bat-extras vivid"
+    echo -e "           sd procs tealdeer bottom ouch duf dua-cli lnav"
+    echo -e "           git-delta fzf fzy bemoji glow jq yq miniserve${RESET}"
 }
 
 # ============================================================================
