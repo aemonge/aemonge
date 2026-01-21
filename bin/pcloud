@@ -137,7 +137,7 @@ function completions() {
 
 function cleanup() {
     # Kill all background processes
-    shred -u "$TEMP_FILE" 2> /dev/null || true
+    shred -u "$TEMP_FILE" 2>/dev/null || true
     unset ENCRYPTION_KEY
     unset TEMP_FILE
 
@@ -245,6 +245,7 @@ sync_paths_by() {
             --password-command="$(decrypt_password "$ENCRYPTION_KEY" "$TEMP_FILE")" \
             --transfers 32 --checkers 16 --buffer-size 64M --s3-chunk-size 128M --fast-list \
             --update --copy-links --quiet \
+            --exclude-from="$HOME/.rclone-exclude" \
             "$src" "$dest"
 
         local status=$?

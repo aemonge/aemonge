@@ -10,8 +10,7 @@
 set -euo pipefail
 
 readonly PROGRAM_NAME="scoder"
-readonly PROGRAM_VERSION="0.4.0"
-
+readonly PROGRAM_VERSION="0.5.0"
 readonly OPENCODE_BIN_DEFAULT="/usr/bin/opencode"
 
 # Colors for output
@@ -31,11 +30,12 @@ Usage:
 Options:
   -h, --help           Show this help and exit
   -V, --version        Show version and exit
-    -n, --no-net         Enable network access inside the sandbox (default: on)
+  -n, --no-net         Disable network access inside the sandbox (default: on)
   -b, --bin PATH       Path to opencode binary (default: "opencode")
   --ro                 Mount project directory read-only (safe)
   --rw                 Mount project directory read-write (default, less safe)
   --allow-git          Allow write access to .git directory (default: read-only)
+  --restrict-dev       Restrict /dev access to essential devices only
 
 Arguments:
   PROJECT_DIR          Project directory to expose as /workspace (default: $PWD)
@@ -55,6 +55,12 @@ Security Note:
   OpenCode config (~/.config/opencode) and data (~/.local/share/opencode)
   are mounted from your real home, but HOME is set to a tmpfs to avoid
   polluting your project directory.
+
+Project-Local Tools:
+  Project-local venvs (.venv), cargo (.cargo), and go modules are
+  automatically accessible. Configure mise for project-local installs:
+    mise settings set experimental true
+    mise settings set venv_auto_create true
 EOF
 }
 
@@ -88,6 +94,7 @@ OPENCODE_ARGS=()
 RO_SET=0
 RW_SET=0
 ALLOW_GIT=0
+RESTRICT_DEV=0
 PARSE_DONE=0
 
 while [[ $# -gt 0 ]]; do
@@ -132,6 +139,10 @@ while [[ $# -gt 0 ]]; do
         ALLOW_GIT=1
         shift
         ;;
+    --restrict-dev)
+        RESTRICT_DEV=1
+        shift
+        ;;
     --)
         PARSE_DONE=1
         shift
@@ -169,7 +180,9 @@ fi
 
 if ! command -v bwrap >/dev/null 2>&1; then
     error "bubblewrap (bwrap) not found in PATH"
-    error "install: sudo pacman -S bubblewrap  (Arch/Manjaro)"
+    error "install: pacman -S bubblewrap   # Arch/Manjaro"
+    error "        apt install bubblewrap  # Debian/Ubuntu"
+    error "        dnf install bubblewrap  # Fedora/RHEL"
     exit 1
 fi
 
@@ -190,12 +203,15 @@ fi
 
 PROJECT_DIR="$(realpath "${PROJECT_DIR}")"
 
-# Ensure OpenCode config/data dirs exist
+# Ensure OpenCode config/data/cache dirs exist with subdirectories
 OPENCODE_CONFIG="${HOME}/.config/opencode"
 OPENCODE_DATA="${HOME}/.local/share/opencode"
+OPENCODE_CACHE="${HOME}/.cache/opencode"
 
 mkdir -p "${OPENCODE_CONFIG}"
-mkdir -p "${OPENCODE_DATA}"
+mkdir -p "${OPENCODE_DATA}/sessions"
+mkdir -p "${OPENCODE_DATA}/permissions"
+mkdir -p "${OPENCODE_CACHE}"
 
 # Network flags
 NET_FLAGS=()
@@ -206,53 +222,40 @@ fi
 # FS bind mode
 if [[ "${FS_MODE}" = "ro" ]]; then
     BIND_FLAG="--ro-bind"
-    info "mounting '${PROJECT_DIR}' as READ-ONLY"
+    # info "mounting '${PROJECT_DIR}' as READ-ONLY"
 else
     BIND_FLAG="--bind"
-    warning "mounting '${PROJECT_DIR}' as READ-WRITE (use --ro for safer operation)"
+    # info "mounting '${PROJECT_DIR}' as READ-WRITE (use --ro for safer operation)"
 fi
 
-# -------- path setup --------
+# -------- OPTIMIZED path setup --------
 
-# Base PATH
+# Base PATH (system bins already mounted via /usr, /bin, etc)
 SANDBOX_PATH="/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin"
 EXTRA_BINDS=()
 
 # Helper: opt_bind <host_path> <sandbox_path>
-# Mounts directories READ-ONLY (R+X) and adds to PATH if bin.
 opt_bind() {
     local host_p="$1"
     local sand_p="$2"
-
     if [[ -d "${host_p}" ]]; then
         EXTRA_BINDS+=(--ro-bind "${host_p}" "${sand_p}")
     fi
 }
 
-# 1. Dynamic PATH Binding from Host
-#    We iterate over the host's PATH variable, mounting every directory found
-#    (except system ones already handled) as Read-Only.
-IFS=':' read -ra HOST_PATHS <<< "$PATH"
-for p in "${HOST_PATHS[@]}"; do
-    # Skip standard system paths already mounted by bwrap
-    if [[ "$p" == "/usr"* ]] || [[ "$p" == "/bin"* ]] || [[ "$p" == "/sbin"* ]] || [[ "$p" == "/lib"* ]]; then
-        continue
-    fi
+# OPTIMIZATION: Only mount specific known locations instead of iterating all PATH
+# Since mise/cargo/go are now project-local, we only need a few key paths
 
-    # Mount user/custom paths found in PATH
-    if [[ -d "$p" ]]; then
-        # We mount it to the same path inside the sandbox
-        # Note: If path is not absolute or weird, bwrap might complain, but PATH usually has absolute paths.
-        EXTRA_BINDS+=(--ro-bind "$p" "$p")
-        SANDBOX_PATH="${SANDBOX_PATH}:$p"
-    fi
-done
+# 1. User binaries (if exists)
+if [[ -d "${HOME}/.local/bin" ]]; then
+    EXTRA_BINDS+=(--ro-bind "${HOME}/.local/bin" "/home/scoder/.local/bin")
+    SANDBOX_PATH="${SANDBOX_PATH}:/home/scoder/.local/bin"
+fi
 
-# 2. Mise (Version Manager) - Specifics
-#    - Config (~/.config/mise): Read-Only
-#    - Installs (~/.local/share/mise): Read-Only
-#    - Trust Persistence: We map PROJECT_DIR/.local/state/mise to ~/.local/state/mise
-#      This allows 'mise trust' to persist with the project.
+# 2. Mise (Version Manager)
+#    - Config: Read-Only
+#    - Installs: Read-Only
+#    - Trust Persistence: map PROJECT_DIR/.local/state/mise to ~/.local/state/mise
 opt_bind "${HOME}/.local/share/mise" "/home/scoder/.local/share/mise"
 opt_bind "${HOME}/.config/mise" "/home/scoder/.config/mise"
 
@@ -262,14 +265,13 @@ if [[ -n "${PROJECT_DIR}" ]]; then
     EXTRA_BINDS+=(--bind "${PROJECT_DIR}/.local/state/mise" "/home/scoder/.local/state/mise")
 fi
 
-# 3. Rust (Toolchains)
-#    We assume 'cargo' etc are in PATH (handled above), but we need the toolchains.
+# 3. Rust toolchains (if exists)
 opt_bind "${HOME}/.rustup" "/home/scoder/.rustup"
 
-# 4. Ruby (Gems)
-opt_bind "${HOME}/.gem" "/home/scoder/.gem"
+# 4. Ruby gems (if needed - uncomment if you use Ruby)
+# opt_bind "${HOME}/.gem" "/home/scoder/.gem"
 
-# 5. Configs (Read-Only)
+# 5. Config files (Read-Only, only if they exist)
 if [[ -f "${HOME}/.npmrc" ]]; then
     EXTRA_BINDS+=(--ro-bind "${HOME}/.npmrc" "/home/scoder/.npmrc")
 fi
@@ -285,31 +287,65 @@ if [[ "${ALLOW_GIT}" -eq 0 && -d "${PROJECT_DIR}/.git" ]]; then
     GIT_BINDS+=(--ro-bind "${PROJECT_DIR}/.git" "/home/scoder/workspace/.git")
 fi
 
-exec bwrap \
-    --ro-bind /usr /usr \
-    --ro-bind /bin /bin \
-    --ro-bind /lib /lib \
-    --ro-bind /lib64 /lib64 \
-    --ro-bind /etc /etc \
-    --dev /dev \
-    --proc /proc \
-    --tmpfs /tmp \
-    --tmpfs /home \
-    --dir /home/scoder \
-    "${EXTRA_BINDS[@]}" \
-    "${BIND_FLAG}" "${PROJECT_DIR}" /home/scoder/workspace \
-    "${GIT_BINDS[@]}" \
-    --bind "${OPENCODE_CONFIG}" /home/scoder/.config/opencode \
-    --bind "${OPENCODE_DATA}" /home/scoder/.local/share/opencode \
-    --chdir /home/scoder/workspace \
-    "${NET_FLAGS[@]}" \
-    --unshare-user-try \
-    --unshare-uts \
-    --hostname scoder-sandbox \
-    --die-with-parent \
-    --clearenv \
-    --setenv PATH "${SANDBOX_PATH}" \
-    --setenv HOME /home/scoder \
-    --setenv USER scoder \
-    --setenv LOGNAME scoder \
+# Build bwrap command with portable mounts
+BWRAP_CMD=(
+    bwrap
+    --ro-bind /usr /usr
+    --ro-bind /bin /bin
+    --ro-bind /lib /lib
+)
+
+# Add /lib64 only if it exists (for 64-bit systems)
+[[ -d /lib64 ]] && BWRAP_CMD+=(--ro-bind /lib64 /lib64)
+
+# Add /sys and /run for better compatibility
+[[ -d /sys ]] && BWRAP_CMD+=(--ro-bind /sys /sys)
+[[ -d /run ]] && BWRAP_CMD+=(--ro-bind /run /run)
+
+# Add /etc
+BWRAP_CMD+=(--ro-bind /etc /etc)
+
+# Handle /dev access based on --restrict-dev flag
+if [[ "${RESTRICT_DEV}" -eq 1 ]]; then
+    BWRAP_CMD+=(
+        --dev-bind /dev/null /dev/null
+        --dev-bind /dev/zero /dev/zero
+        --dev-bind /dev/random /dev/random
+        --dev-bind /dev/urandom /dev/urandom
+        --dev-bind /dev/tty /dev/tty
+        --tmpfs /dev/shm
+    )
+else
+    BWRAP_CMD+=(--dev /dev)
+fi
+
+# Continue with remaining mounts
+BWRAP_CMD+=(
+    --proc /proc
+    --tmpfs /tmp
+    --tmpfs /home
+    --dir /home/scoder
+    --dir /home/scoder/.local
+    --dir /home/scoder/.local/share
+    --dir /home/scoder/.config
+    --dir /home/scoder/.cache
+    "${EXTRA_BINDS[@]}"
+    "${BIND_FLAG}" "${PROJECT_DIR}" /home/scoder/workspace
+    "${GIT_BINDS[@]}"
+    --bind "${OPENCODE_CONFIG}" /home/scoder/.config/opencode
+    --bind "${OPENCODE_DATA}" /home/scoder/.local/share/opencode
+    --bind "${OPENCODE_CACHE}" /home/scoder/.cache/opencode
+    --chdir /home/scoder/workspace
+    "${NET_FLAGS[@]}"
+    --new-session
+    --die-with-parent
+    --clearenv
+    --setenv PATH "${SANDBOX_PATH}"
+    --setenv HOME /home/scoder
+    --setenv USER scoder
+    --setenv LOGNAME scoder
+    --setenv MISE_SKIP_ACTIVATE 1
     "${OPENCODE_BIN}" "${OPENCODE_ARGS[@]}"
+)
+
+exec "${BWRAP_CMD[@]}"

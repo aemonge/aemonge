@@ -1,7 +1,0 @@
-#!/bin/sh
-
-if [[ "$OSTYPE"  == "darwin"* ]]; then
-  ps -A | grep $1 | grep -E -v "$$| grep " | awk '{print $1}' | xargs
-else
-  ps -aux | grep $1 | grep -E -v "$$| grep " | awk '{print $2}' | xargs
-fi
