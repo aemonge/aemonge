@@ -14,6 +14,7 @@ function show_help() {
     echo ""
     echo "  Subcommands:"
     echo "    split           Open file in split view"
+    echo "    hover           Open file in hover view"
     echo "    isplit          Open file in split view (inverted)"
     echo "    waits           Open file for quick editing (auto-closes buffer)"
     echo "    spliting        Combine split and waits"
@@ -46,6 +47,7 @@ function completions() {
     echo "  local -a commands" >> "$completions_file"
     echo "  commands=(" >> "$completions_file"
     echo "    'split'" >> "$completions_file"
+    echo "    'hover'" >> "$completions_file"
     echo "    'isplit'" >> "$completions_file"
     echo "    'waits'" >> "$completions_file"
     echo "    'spliting'" >> "$completions_file"
@@ -76,7 +78,7 @@ function completions() {
     echo "        cd)" >> "$completions_file"
     echo "          _directories" >> "$completions_file"
     echo "          ;;" >> "$completions_file"
-    echo "        isplit|split|waits|spliting|bg)" >> "$completions_file"
+    echo "        isplit|split|hover|waits|spliting|bg)" >> "$completions_file"
     echo "          _files" >> "$completions_file"
     echo "          ;;" >> "$completions_file"
     echo "        clear|save|restore|venv|reset_venv)" >> "$completions_file"
@@ -114,6 +116,40 @@ function isvim() {
     else
         nvr -cc "$split_command $(readlink -f "$@")"
     fi
+}
+
+function hover_vim() {
+    # 1. Check if running inside a Neovim terminal
+    if [ -z "$NVIM" ]; then
+        echo "Please start a v session: 'v .'"
+        return 1
+    fi
+
+    local target_file
+    # Resolve absolute path (handles macOS/Linux differences)
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        target_file=$(greadlink -f "$1")
+    else
+        target_file=$(readlink -f "$1")
+    fi
+
+    # 2. Build Lua command using Bash array syntax
+    local lua_lines=(
+        "local buf = vim.fn.bufadd('${target_file}')"
+        'local width = math.floor(vim.o.columns * 0.8)'
+        'local height = math.floor(vim.o.lines * 0.7)'
+        'local row = math.floor((vim.o.lines - 2 - height) / 2)'
+        'local col = math.floor((vim.o.columns - width) / 2)'
+        "local opts = { relative = 'editor', width = width, height = height, row = row, col = col, style = 'minimal', border = 'rounded' }"
+        "vim.api.nvim_open_win(buf, true, opts)"
+    )
+
+    # Flatten the array into a single string with spaces
+    # Prepend 'lua ' so Neovim executes it as Lua
+    local lua_cmd="lua ${lua_lines[*]}"
+
+    # Send the command to the remote Neovim instance
+    nvr -c "$lua_cmd"
 }
 
 function svim() {
@@ -420,6 +456,10 @@ case "$1" in
         ;;
     venv)
         venv
+        ;;
+    hover)
+        shift
+        hover_vim "$@"
         ;;
     split)
         shift
