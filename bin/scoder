@@ -7,7 +7,7 @@
 
 set -euo pipefail
 readonly PROGRAM_NAME="scoder"
-readonly PROGRAM_VERSION="0.7.1"
+readonly PROGRAM_VERSION="0.7.2"
 readonly OPENCODE_BIN_DEFAULT="/usr/bin/opencode"
 
 # Colors for output
@@ -18,7 +18,7 @@ readonly NC='\033[0m' # No Color
 
 usage() {
     cat <<'EOF'
-scoder 0.7.1
+scoder 0.7.2
 Safe OpenCode wrapper using bubblewrap.
 
 Usage:
@@ -33,6 +33,7 @@ Options:
   --rw                    Mount project directory read-write (default, less safe)
   --allow-git             Allow write access to .git directory (default: read-only)
   --allow-node-modules    Allow write access to node_modules (default: read-only)
+  --allow-venv            Allow write access to .venv (default: read-only)
   --allow-infra           Allow write access to all protected infra dirs
   --restrict-dev          Restrict /dev access to essential devices only
 
@@ -46,22 +47,24 @@ Environment:
   SCODER_FS_MODE      "ro" (secure) or "rw" (default, allow writes)
 
 Protected Directories (read-only by default):
-  .git, node_modules, .turbo, .next, dist, build, .venv, target, .cargo
+  .git, .venv, node_modules, .turbo, .next, dist, build, target, .cargo
+  .gitignore, package-lock.json, poetry.lock, Cargo.lock, .github/
 
 Examples:
   scoder                           # rw sandbox of $PWD, infra protected
   scoder --ro                      # read-only sandbox of $PWD
   scoder --allow-git               # allow .git writes
   scoder --allow-node-modules      # allow node_modules writes
+  scoder --allow-venv              # allow .venv writes
   scoder --allow-infra             # allow all infra writes
   scoder -n myproj -- --verbose    # network off, pass --verbose to opencode
 
 Security Note:
-  OpenCode config (~/.config/opencode) and data (~/.local/share/opencode)
-  are mounted from your real home, but HOME is set to a tmpfs to avoid
-  polluting your project directory. The project is writable by default,
-  but critical infrastructure directories are protected read-only unless
-  you explicitly opt in.
+  HOME is set to /home/scoder on tmpfs (isolated from your real home).
+  OpenCode config is overlaid from ~/.config/scoder/scoder.json if it exists,
+  otherwise from ~/.config/opencode/opencode.json.
+  The project is writable by default, but critical infrastructure directories
+  are protected read-only unless you explicitly opt in.
 
 Project-Local Tools:
   Project-local venvs (.venv), cargo (.cargo), node_modules, and go bins
@@ -112,6 +115,7 @@ RO_SET=0
 RW_SET=0
 ALLOW_GIT=0
 ALLOW_NODE_MODULES=0
+ALLOW_VENV=0
 ALLOW_INFRA=0
 RESTRICT_DEV=0
 PARSE_DONE=0
@@ -160,6 +164,10 @@ while [[ $# -gt 0 ]]; do
         ;;
     --allow-node-modules)
         ALLOW_NODE_MODULES=1
+        shift
+        ;;
+    --allow-venv)
+        ALLOW_VENV=1
         shift
         ;;
     --allow-infra)
@@ -235,7 +243,7 @@ OPENCODE_DATA="${HOME}/.local/share/opencode"
 OPENCODE_CACHE="${HOME}/.cache/opencode"
 mkdir -p "${OPENCODE_CONFIG}"
 mkdir -p "${OPENCODE_DATA}/sessions"
-mkdir -p "${OPENCODE_DATA}/permissions}"
+mkdir -p "${OPENCODE_DATA}/permissions"
 mkdir -p "${OPENCODE_CACHE}"
 
 # Network flags
@@ -302,6 +310,14 @@ if [[ -d "${HOME}/.cargo/bin" ]]; then
 fi
 
 # 4. Python virtual environments (project-local)
+# Support both root-level and nested venvs
+find_venv_dirs() {
+    local search_dir="$1"
+    # Find .venv directories and their bin subdirs, max depth 3 to avoid slowness
+    find "${search_dir}" -maxdepth 3 -type d -name ".venv" 2>/dev/null || true
+}
+
+# Search for venvs and add to PATH (prioritize root-level)
 if [[ -d "${PROJECT_DIR}/.venv/bin" ]]; then
     EXTRA_BINDS+=(--bind "${PROJECT_DIR}/.venv/bin" "/home/scoder/workspace/.venv/bin")
     SANDBOX_PATH="/home/scoder/workspace/.venv/bin:${SANDBOX_PATH}"
@@ -319,7 +335,7 @@ if [[ -d "${PROJECT_DIR}/bin" && -f "${PROJECT_DIR}/go.mod" ]]; then
     SANDBOX_PATH="/home/scoder/workspace/bin:${SANDBOX_PATH}"
 fi
 
-# 8. Config files (Read-Only, only if they exist)
+# 7. Config files (Read-Only, only if they exist)
 if [[ -f "${HOME}/.npmrc" ]]; then
     EXTRA_BINDS+=(--ro-bind "${HOME}/.npmrc" "/home/scoder/.npmrc")
 fi
@@ -329,8 +345,10 @@ if [[ -f "${HOME}/.pypirc" ]]; then
 fi
 
 # -------- Infrastructure Protection --------
-PROTECTED_INFRA=(
+# Protected directories (writable project but read-only infrastructure)
+PROTECTED_INFRA_DIRS=(
     ".git"
+    ".venv"
     "node_modules"
     ".turbo"
     ".next"
@@ -338,21 +356,46 @@ PROTECTED_INFRA=(
     "build"
     "target"
     ".cargo"
+    ".github"
+)
+
+# Protected files (lock files, CI configs)
+PROTECTED_INFRA_FILES=(
+    ".gitignore"
+    "package-lock.json"
+    "poetry.lock"
+    "Cargo.lock"
+    "pnpm-lock.yaml"
+    "yarn.lock"
 )
 
 SAFE_BINDS=()
 
 if [[ "${ALLOW_INFRA}" -eq 0 ]]; then
-    for dir in "${PROTECTED_INFRA[@]}"; do
+    # Protect directories
+    for dir in "${PROTECTED_INFRA_DIRS[@]}"; do
+        # Skip if specific allow flags are set
         if [[ "${dir}" == ".git" && "${ALLOW_GIT}" -eq 1 ]]; then
             continue
         fi
         if [[ "${dir}" == "node_modules" && "${ALLOW_NODE_MODULES}" -eq 1 ]]; then
             continue
         fi
+        if [[ "${dir}" == ".venv" && "${ALLOW_VENV}" -eq 1 ]]; then
+            continue
+        fi
+
         if [[ -d "${PROJECT_DIR}/${dir}" ]]; then
             SAFE_BINDS+=(--ro-bind "${PROJECT_DIR}/${dir}" "/home/scoder/workspace/${dir}")
-            info "Protecting ${dir} (read-only)"
+            info "Protecting ${dir}/ (read-only)"
+        fi
+    done
+
+    # Protect files
+    for file in "${PROTECTED_INFRA_FILES[@]}"; do
+        if [[ -f "${PROJECT_DIR}/${file}" ]]; then
+            SAFE_BINDS+=(--ro-bind "${PROJECT_DIR}/${file}" "/home/scoder/workspace/${file}")
+            info "Protecting ${file} (read-only)"
         fi
     done
 fi
@@ -406,29 +449,34 @@ BWRAP_CMD+=(
 BWRAP_CMD+=("${EXTRA_BINDS[@]}")
 BWRAP_CMD+=("${BIND_FLAG}" "${PROJECT_DIR}" /home/scoder/workspace)
 
+# Apply infrastructure protection AFTER project bind (overlay pattern)
 if [[ ${#SAFE_BINDS[@]} -gt 0 ]]; then
     BWRAP_CMD+=("${SAFE_BINDS[@]}")
 fi
 
-# Config/data/cache
+# Config/data/cache for OpenCode
+# Mount the HOST opencode dirs to allow persistence, then overlay config
+BWRAP_CMD+=(
+    --bind "${OPENCODE_DATA}" /home/scoder/.local/share/opencode
+    --bind "${OPENCODE_CACHE}" /home/scoder/.cache/opencode
+)
+
+# Config overlay logic: bind host config dir, then overlay the selected config file
+BWRAP_CMD+=(--bind "${OPENCODE_CONFIG}" /home/scoder/.config/opencode)
+
 if [[ -n "${CUSTOM_CONFIG}" ]]; then
     if [[ ! -f "${CUSTOM_CONFIG}" ]]; then
         error "Selected config file not found: ${CUSTOM_CONFIG}"
         exit 1
     fi
-    BWRAP_CMD+=(--bind "${OPENCODE_CONFIG}" /home/scoder/.config/opencode)
+    # Overlay the chosen config as opencode.json inside the sandbox
     BWRAP_CMD+=(--ro-bind "${CUSTOM_CONFIG}" /home/scoder/.config/opencode/opencode.json)
     info "Using config: ${CUSTOM_CONFIG}"
 else
-    BWRAP_CMD+=(--bind "${OPENCODE_CONFIG}" /home/scoder/.config/opencode)
     info "No scoder/opencode config file found, using OpenCode defaults"
 fi
 
-BWRAP_CMD+=(
-    --bind "${OPENCODE_DATA}" /home/scoder/.local/share/opencode
-    --bind "${OPENCODE_CACHE}" /home/scoder/.cache/opencode
-    --chdir /home/scoder/workspace
-)
+BWRAP_CMD+=(--chdir /home/scoder/workspace)
 
 BWRAP_CMD+=("${NET_FLAGS[@]}")
 
@@ -449,4 +497,5 @@ fi
 
 BWRAP_CMD+=("${OPENCODE_BIN}" "${OPENCODE_ARGS[@]}")
 
+info "Launching scoder sandbox..."
 exec "${BWRAP_CMD[@]}"
