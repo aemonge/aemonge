@@ -5,17 +5,17 @@
 
 set -euo pipefail
 
-VERSION="2.1.0"
+VERSION="2.2.0"
 SCRIPT_NAME="$(basename "$0")"
 
 # Colors for output
 if [[ -t 1 ]]; then
-    DIM='\\033[2m'
-    RESET='\\033[0m'
-    BLUE='\\033[34m'
-    GREEN='\\033[32m'
-    YELLOW='\\033[33m'
-    RED='\\033[31m'
+    DIM='\033[2m'
+    RESET='\033[0m'
+    BLUE='\033[34m'
+    GREEN='\033[32m'
+    YELLOW='\033[33m'
+    RED='\033[31m'
 else
     DIM='' RESET='' BLUE='' GREEN='' YELLOW='' RED=''
 fi
@@ -67,9 +67,12 @@ show_markdown_help() {
 }
 
 show_markdown_install() {
-    echo -e "${BLUE}pamac install go-grip${RESET}"
+    echo -e "${GREEN}Install go-grip:${RESET}"
+    echo -e "  ${BLUE}pamac build go-grip-git${RESET}        ${DIM}# AUR (common on Manjaro)${RESET}"
+    echo -e "  ${BLUE}yay -S go-grip-git${RESET}             ${DIM}# AUR alternative${RESET}"
     echo ""
-    echo -e "${DIM}Alternative: ${BLUE}go install github.com/chrishrb/go-grip@latest${RESET}"
+    echo -e "${DIM}Alternative (no package manager):${RESET}"
+    echo -e "  ${BLUE}go install github.com/chrishrb/go-grip@latest${RESET}"
 }
 
 # ============================================================================
@@ -96,7 +99,7 @@ show_pdf_help() {
     echo -e "  ${BLUE}qpdf input.pdf --rotate=90:1-z -- rotated.pdf${RESET}"
     echo ""
     echo "Compress:"
-    echo -e "  ${BLUE}gs -sDEVICE=pdfwrite -dPDFSETTINGS=/ebook -dNOPAUSE -dQUIET \\\\\\\\${RESET}"
+    echo -e "  ${BLUE}gs -sDEVICE=pdfwrite -dPDFSETTINGS=/ebook -dNOPAUSE -dQUIET \\${RESET}"
     echo -e "  ${BLUE}     -dBATCH -sOutputFile=compressed.pdf input.pdf${RESET}"
     echo ""
     echo "To images:"
@@ -107,7 +110,9 @@ show_pdf_help() {
 }
 
 show_pdf_install() {
-    echo -e "${BLUE}pamac install poppler qpdf pdftk${RESET}"
+    echo -e "${GREEN}Install PDF tools:${RESET}"
+    echo -e "  ${BLUE}pamac install poppler qpdf pdftk ghostscript${RESET}"
+    echo -e "${DIM}Notes: pdfunite/pdfseparate/pdfinfo come from poppler; gs comes from ghostscript.${RESET}"
 }
 
 # ============================================================================
@@ -131,7 +136,7 @@ show_zsh_help() {
     echo -e "  ${BLUE}df${RESET}                           # Disk usage with colors (duf)"
     echo -e "  ${BLUE}du${RESET}                           # Interactive disk analyzer (dua)"
     echo -e "  ${BLUE}diff file1 file2${RESET}            # Git-aware diff (delta)"
-    echo -e "  ${BLUE}man command${RESET}                 # Syntax-highlighted man pages (batman)"
+    echo -e "  ${BLUE}man command${RESET}                 # Syntax-highlighted man pages (batman from bat-extras)"
     echo -e "  ${BLUE}extract archive.zip${RESET}         # Universal extractor (ouch)"
     echo -e "  ${BLUE}tldr command${RESET}                # Quick command examples (tealdeer)"
     echo -e "  ${BLUE}bench 'cmd1' 'cmd2'${RESET}         # Benchmark commands (hyperfine)"
@@ -159,6 +164,7 @@ show_zsh_install() {
     echo -e "  ${BLUE}pamac install eza fd ripgrep bat bat-extras vivid${RESET}"
     echo -e "  ${BLUE}pamac install sd procs tealdeer bottom ouch${RESET}"
     echo -e "  ${BLUE}pamac install duf dua-cli lnav git-delta${RESET}"
+    echo -e "  ${BLUE}pamac install hyperfine${RESET}"
     echo ""
     echo -e "${YELLOW}TUI & Utilities:${RESET}"
     echo -e "  ${BLUE}pamac install fzf fzy bemoji glow jq yq${RESET}"
@@ -166,12 +172,12 @@ show_zsh_install() {
     echo -e "  ${BLUE}pamac install vi-mongo visidata${RESET} # TUI database/data tools"
     echo ""
     echo -e "${YELLOW}Optional Fun:${RESET}"
-    echo -e "  ${BLUE}pamac install lolcat sl trash${RESET}"
+    echo -e "  ${BLUE}pamac install lolcat sl trash-cli${RESET}"
     echo ""
-    echo -e "${DIM}All new tools: sd procs tealdeer bottom ouch${RESET}"
-    echo -e "${DIM}Full list: atuin zoxide eza fd ripgrep bat bat-extras vivid"
-    echo -e "           sd procs tealdeer bottom ouch duf dua-cli lnav"
-    echo -e "           git-delta fzf fzy bemoji glow jq yq miniserve${RESET}"
+    echo -e "${DIM}Full list:${RESET}"
+    echo -e "${DIM}  atuin zoxide eza fd ripgrep bat bat-extras vivid${RESET}"
+    echo -e "${DIM}  sd procs tealdeer bottom ouch duf dua-cli lnav git-delta${RESET}"
+    echo -e "${DIM}  hyperfine fzf fzy bemoji glow jq yq miniserve vi-mongo visidata${RESET}"
 }
 
 # ============================================================================
@@ -193,12 +199,12 @@ show_containers_help() {
     echo -e "  ${BLUE}podman images${RESET}"
     echo -e "  ${BLUE}podman-compose up -d${RESET}"
     echo ""
-    echo -e "${DIM}Podman is a modern Docker alternative that's daemonless and rootless${RESET}"
     echo -e "${DIM}@see: https://podman.io/${RESET}"
 }
 
 show_containers_install() {
-    echo -e "${BLUE}pamac install podman podman-compose${RESET}"
+    echo -e "${GREEN}Install Podman:${RESET}"
+    echo -e "  ${BLUE}pamac install podman podman-compose${RESET}"
     echo ""
     echo -e "${DIM}After install, Podman commands are identical to Docker:${RESET}"
     echo -e "  ${GREEN}podman run${RESET} instead of ${RED}docker run${RESET}"
@@ -213,15 +219,15 @@ show_security_help() {
     echo -e "${GREEN}Bubblewrap (bwrap)${RESET} - Low-level sandboxing (used by Flatpak)"
     echo ""
     echo -e "${YELLOW}Basic sandbox:${RESET}"
-    echo -e "  ${BLUE}bwrap --ro-bind /usr /usr --tmpfs /tmp --proc /proc \\\\${RESET}"
-    echo -e "  ${BLUE}        --dev /dev --unshare-all --share-net \\\\${RESET}"
-    echo -e "  ${BLUE}        /usr/bin/command${RESET}"
+    echo -e "  ${BLUE}bwrap --ro-bind /usr /usr --tmpfs /tmp --proc /proc \\${RESET}"
+    echo -e "  ${BLUE}      --dev /dev --unshare-all --share-net \\${RESET}"
+    echo -e "  ${BLUE}      /usr/bin/command${RESET}"
     echo ""
     echo -e "${YELLOW}Isolate with custom home:${RESET}"
-    echo -e "  ${BLUE}bwrap --ro-bind /usr /usr --bind ~/sandbox ~/sandbox \\\\${RESET}"
-    echo -e "  ${BLUE}        --tmpfs /tmp --proc /proc --dev /dev \\\\${RESET}"
-    echo -e "  ${BLUE}        --unshare-all --setenv HOME ~/sandbox \\\\${RESET}"
-    echo -e "  ${BLUE}        /usr/bin/firefox --no-remote${RESET}"
+    echo -e "  ${BLUE}bwrap --ro-bind /usr /usr --bind ~/sandbox ~/sandbox \\${RESET}"
+    echo -e "  ${BLUE}      --tmpfs /tmp --proc /proc --dev /dev \\${RESET}"
+    echo -e "  ${BLUE}      --unshare-all --setenv HOME ~/sandbox \\${RESET}"
+    echo -e "  ${BLUE}      /usr/bin/firefox --no-remote${RESET}"
     echo ""
     echo -e "${GREEN}Landrun${RESET} - Kernel-native sandboxing via Landlock LSM"
     echo ""
@@ -229,8 +235,8 @@ show_security_help() {
     echo -e "  ${BLUE}landrun --ro /usr --rw /tmp command${RESET}"
     echo ""
     echo -e "${YELLOW}Restrict filesystem access:${RESET}"
-    echo -e "  ${BLUE}landrun --ro /usr/bin/python3 --rw ./data \\\\${RESET}"
-    echo -e "  ${BLUE}          /usr/bin/python3 script.py${RESET}"
+    echo -e "  ${BLUE}landrun --ro /usr/bin/python3 --rw ./data \\${RESET}"
+    echo -e "  ${BLUE}        /usr/bin/python3 script.py${RESET}"
     echo ""
     echo -e "${YELLOW}Network restrictions:${RESET}"
     echo -e "  ${BLUE}landrun --ro /usr --no-net command${RESET}"
@@ -246,7 +252,7 @@ show_security_install() {
     echo -e "${GREEN}Bubblewrap:${RESET}"
     echo -e "  ${BLUE}pamac install bubblewrap${RESET}"
     echo ""
-    echo -e "${DIM}Note: linux-hardened users may need bubblewrap-suid${RESET}"
+    echo -e "${DIM}Note: Some hardened setups may need bubblewrap-suid (if available).${RESET}"
     echo ""
     echo -e "${GREEN}Landrun:${RESET}"
     echo -e "  ${BLUE}yay -S landrun${RESET}              ${DIM}# From AUR${RESET}"
@@ -338,7 +344,7 @@ main() {
     fi
 
     # Detect category from input
-    category=$(detect_category "$category")
+    category="$(detect_category "$category")"
 
     case "$category" in
     markdown | md)
