@@ -1,16 +1,13 @@
 #!/usr/bin/env bash
-#
+
 # scoder - Safe wrapper for OpenCode using bubblewrap
-#
 # Homepage: https://github.com/anomalyco/opencode
 # Author: Andres Monge (aemonge)
 # License: MIT
-#
 
 set -euo pipefail
-
 readonly PROGRAM_NAME="scoder"
-readonly PROGRAM_VERSION="0.6.0"
+readonly PROGRAM_VERSION="0.7.1"
 readonly OPENCODE_BIN_DEFAULT="/usr/bin/opencode"
 
 # Colors for output
@@ -21,46 +18,57 @@ readonly NC='\033[0m' # No Color
 
 usage() {
     cat <<'EOF'
-scoder 0.6.0
+scoder 0.7.1
 Safe OpenCode wrapper using bubblewrap.
 
 Usage:
   scoder [options] [PROJECT_DIR] [-- [OPENCODE_ARGS...]]
 
 Options:
-  -h, --help           Show this help and exit
-  -V, --version        Show version and exit
-  -n, --no-net         Disable network access inside the sandbox (default: on)
-  -b, --bin PATH       Path to opencode binary (default: "opencode")
-  --ro                 Mount project directory read-only (safe)
-  --rw                 Mount project directory read-write (default, less safe)
-  --allow-git          Allow write access to .git directory (default: read-only)
-  --restrict-dev       Restrict /dev access to essential devices only
+  -h, --help              Show this help and exit
+  -V, --version           Show version and exit
+  -n, --no-net            Disable network access inside the sandbox (default: on)
+  -b, --bin PATH          Path to opencode binary (default: "opencode")
+  --ro                    Mount project directory read-only (safe)
+  --rw                    Mount project directory read-write (default, less safe)
+  --allow-git             Allow write access to .git directory (default: read-only)
+  --allow-node-modules    Allow write access to node_modules (default: read-only)
+  --allow-infra           Allow write access to all protected infra dirs
+  --restrict-dev          Restrict /dev access to essential devices only
 
 Arguments:
-  PROJECT_DIR          Project directory to expose as /workspace (default: $PWD)
-  OPENCODE_ARGS        Arguments passed verbatim to opencode after "--"
+  PROJECT_DIR    Project directory to expose as /workspace (default: $PWD)
+  OPENCODE_ARGS  Arguments passed verbatim to opencode after "--"
 
 Environment:
-  OPENCODE_BIN         Overrides default opencode binary
-  SCODER_NET           "on" to enable network by default ("off" otherwise)
-  SCODER_FS_MODE       "ro" (default, secure) or "rw" (allow writes)
+  OPENCODE_BIN        Overrides default opencode binary
+  SCODER_NET          "on" to enable network by default ("off" otherwise)
+  SCODER_FS_MODE      "ro" (secure) or "rw" (default, allow writes)
+
+Protected Directories (read-only by default):
+  .git, node_modules, .turbo, .next, dist, build, .venv, target, .cargo
 
 Examples:
+  scoder                           # rw sandbox of $PWD, infra protected
   scoder --ro                      # read-only sandbox of $PWD
-  scoder /home/you/dev/myapp       # read-write access
+  scoder --allow-git               # allow .git writes
+  scoder --allow-node-modules      # allow node_modules writes
+  scoder --allow-infra             # allow all infra writes
   scoder -n myproj -- --verbose    # network off, pass --verbose to opencode
 
 Security Note:
   OpenCode config (~/.config/opencode) and data (~/.local/share/opencode)
   are mounted from your real home, but HOME is set to a tmpfs to avoid
-  polluting your project directory.
+  polluting your project directory. The project is writable by default,
+  but critical infrastructure directories are protected read-only unless
+  you explicitly opt in.
 
 Project-Local Tools:
   Project-local venvs (.venv), cargo (.cargo), node_modules, and go bins
   are automatically accessible. Configure mise for project-local installs:
     mise settings set experimental true
     mise settings set venv_auto_create true
+
 EOF
 }
 
@@ -80,20 +88,31 @@ info() {
     echo -e "${GREEN}${PROGRAM_NAME}: $*${NC}" >&2
 }
 
-# -------- defaults (SECURE BY DEFAULT) --------
-
+# -------- defaults (SECURE BY DEFAULT, BUT WRITABLE) --------
 OPENCODE_BIN="${OPENCODE_BIN:-${OPENCODE_BIN_DEFAULT}}"
 NET_MODE="${SCODER_NET:-on}"
 FS_MODE="${SCODER_FS_MODE:-rw}"
+
+# Auto config selection (relaxed scoder config preferred)
+CUSTOM_CONFIG=""
+SCODER_RELAXED_CONFIG="${HOME}/.config/scoder/scoder.json"
+OPENCODE_DEFAULT_CONFIG="${HOME}/.config/opencode/opencode.json"
+
+if [[ -f "${SCODER_RELAXED_CONFIG}" ]]; then
+    CUSTOM_CONFIG="${SCODER_RELAXED_CONFIG}"
+elif [[ -f "${OPENCODE_DEFAULT_CONFIG}" ]]; then
+    CUSTOM_CONFIG="${OPENCODE_DEFAULT_CONFIG}"
+fi
 
 PROJECT_DIR=""
 OPENCODE_ARGS=()
 
 # -------- option parsing --------
-
 RO_SET=0
 RW_SET=0
 ALLOW_GIT=0
+ALLOW_NODE_MODULES=0
+ALLOW_INFRA=0
 RESTRICT_DEV=0
 PARSE_DONE=0
 
@@ -139,6 +158,14 @@ while [[ $# -gt 0 ]]; do
         ALLOW_GIT=1
         shift
         ;;
+    --allow-node-modules)
+        ALLOW_NODE_MODULES=1
+        shift
+        ;;
+    --allow-infra)
+        ALLOW_INFRA=1
+        shift
+        ;;
     --restrict-dev)
         RESTRICT_DEV=1
         shift
@@ -177,12 +204,11 @@ if [[ -z "${PROJECT_DIR}" ]]; then
 fi
 
 # -------- validation --------
-
 if ! command -v bwrap >/dev/null 2>&1; then
     error "bubblewrap (bwrap) not found in PATH"
-    error "install: pacman -S bubblewrap   # Arch/Manjaro"
-    error "        apt install bubblewrap  # Debian/Ubuntu"
-    error "        dnf install bubblewrap  # Fedora/RHEL"
+    error "install: pacman -S bubblewrap  # Arch/Manjaro"
+    error "         apt install bubblewrap  # Debian/Ubuntu"
+    error "         dnf install bubblewrap  # Fedora/RHEL"
     exit 1
 fi
 
@@ -207,10 +233,9 @@ PROJECT_DIR="$(realpath "${PROJECT_DIR}")"
 OPENCODE_CONFIG="${HOME}/.config/opencode"
 OPENCODE_DATA="${HOME}/.local/share/opencode"
 OPENCODE_CACHE="${HOME}/.cache/opencode"
-
 mkdir -p "${OPENCODE_CONFIG}"
 mkdir -p "${OPENCODE_DATA}/sessions"
-mkdir -p "${OPENCODE_DATA}/permissions"
+mkdir -p "${OPENCODE_DATA}/permissions}"
 mkdir -p "${OPENCODE_CACHE}"
 
 # Network flags
@@ -227,12 +252,11 @@ else
 fi
 
 # -------- OPTIMIZED path setup --------
-
 # Base PATH (system bins already mounted via /usr, /bin, etc)
 SANDBOX_PATH="/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin"
 EXTRA_BINDS=()
 
-# Helper: opt_bind <host_path> <sandbox_path>
+# Helper: opt_bind
 opt_bind() {
     local host_p="$1"
     local sand_p="$2"
@@ -248,10 +272,6 @@ if [[ -d "${HOME}/.local/bin" ]]; then
 fi
 
 # 2. Mise (Version Manager)
-#    - Config: Read-Only
-#    - Installs: Read-Only
-#    - Shims: Read-Only (these execute mise which then finds tools)
-#    - Trust Persistence: map PROJECT_DIR/.local/state/mise to ~/.local/state/mise
 opt_bind "${HOME}/.local/share/mise" "/home/scoder/.local/share/mise"
 opt_bind "${HOME}/.config/mise" "/home/scoder/.config/mise"
 
@@ -299,26 +319,45 @@ if [[ -d "${PROJECT_DIR}/bin" && -f "${PROJECT_DIR}/go.mod" ]]; then
     SANDBOX_PATH="/home/scoder/workspace/bin:${SANDBOX_PATH}"
 fi
 
-# 7. Ruby gems (if needed - uncomment if you use Ruby)
-# opt_bind "${HOME}/.gem" "/home/scoder/.gem"
-
 # 8. Config files (Read-Only, only if they exist)
 if [[ -f "${HOME}/.npmrc" ]]; then
     EXTRA_BINDS+=(--ro-bind "${HOME}/.npmrc" "/home/scoder/.npmrc")
 fi
+
 if [[ -f "${HOME}/.pypirc" ]]; then
     EXTRA_BINDS+=(--ro-bind "${HOME}/.pypirc" "/home/scoder/.pypirc")
 fi
 
-# -------- run sandbox --------
+# -------- Infrastructure Protection --------
+PROTECTED_INFRA=(
+    ".git"
+    "node_modules"
+    ".turbo"
+    ".next"
+    "dist"
+    "build"
+    "target"
+    ".cargo"
+)
 
-# Git Safety: Ensure .git in workspace is Read-Only unless --allow-git is passed
-GIT_BINDS=()
-if [[ "${ALLOW_GIT}" -eq 0 && -d "${PROJECT_DIR}/.git" ]]; then
-    GIT_BINDS+=(--ro-bind "${PROJECT_DIR}/.git" "/home/scoder/workspace/.git")
+SAFE_BINDS=()
+
+if [[ "${ALLOW_INFRA}" -eq 0 ]]; then
+    for dir in "${PROTECTED_INFRA[@]}"; do
+        if [[ "${dir}" == ".git" && "${ALLOW_GIT}" -eq 1 ]]; then
+            continue
+        fi
+        if [[ "${dir}" == "node_modules" && "${ALLOW_NODE_MODULES}" -eq 1 ]]; then
+            continue
+        fi
+        if [[ -d "${PROJECT_DIR}/${dir}" ]]; then
+            SAFE_BINDS+=(--ro-bind "${PROJECT_DIR}/${dir}" "/home/scoder/workspace/${dir}")
+            info "Protecting ${dir} (read-only)"
+        fi
+    done
 fi
 
-# Build bwrap command with portable mounts
+# -------- run sandbox --------
 BWRAP_CMD=(
     bwrap
     --ro-bind /usr /usr
@@ -326,17 +365,20 @@ BWRAP_CMD=(
     --ro-bind /lib /lib
 )
 
-# Add /lib64 only if it exists (for 64-bit systems)
-[[ -d /lib64 ]] && BWRAP_CMD+=(--ro-bind /lib64 /lib64)
+if [[ -d /lib64 ]]; then
+    BWRAP_CMD+=(--ro-bind /lib64 /lib64)
+fi
 
-# Add /sys and /run for better compatibility
-[[ -d /sys ]] && BWRAP_CMD+=(--ro-bind /sys /sys)
-[[ -d /run ]] && BWRAP_CMD+=(--ro-bind /run /run)
+if [[ -d /sys ]]; then
+    BWRAP_CMD+=(--ro-bind /sys /sys)
+fi
 
-# Add /etc
+if [[ -d /run ]]; then
+    BWRAP_CMD+=(--ro-bind /run /run)
+fi
+
 BWRAP_CMD+=(--ro-bind /etc /etc)
 
-# Handle /dev access based on --restrict-dev flag
 if [[ "${RESTRICT_DEV}" -eq 1 ]]; then
     BWRAP_CMD+=(
         --dev-bind /dev/null /dev/null
@@ -350,7 +392,6 @@ else
     BWRAP_CMD+=(--dev /dev)
 fi
 
-# Continue with remaining mounts
 BWRAP_CMD+=(
     --proc /proc
     --tmpfs /tmp
@@ -360,14 +401,38 @@ BWRAP_CMD+=(
     --dir /home/scoder/.local/share
     --dir /home/scoder/.config
     --dir /home/scoder/.cache
-    "${EXTRA_BINDS[@]}"
-    "${BIND_FLAG}" "${PROJECT_DIR}" /home/scoder/workspace
-    "${GIT_BINDS[@]}"
-    --bind "${OPENCODE_CONFIG}" /home/scoder/.config/opencode
+)
+
+BWRAP_CMD+=("${EXTRA_BINDS[@]}")
+BWRAP_CMD+=("${BIND_FLAG}" "${PROJECT_DIR}" /home/scoder/workspace)
+
+if [[ ${#SAFE_BINDS[@]} -gt 0 ]]; then
+    BWRAP_CMD+=("${SAFE_BINDS[@]}")
+fi
+
+# Config/data/cache
+if [[ -n "${CUSTOM_CONFIG}" ]]; then
+    if [[ ! -f "${CUSTOM_CONFIG}" ]]; then
+        error "Selected config file not found: ${CUSTOM_CONFIG}"
+        exit 1
+    fi
+    BWRAP_CMD+=(--bind "${OPENCODE_CONFIG}" /home/scoder/.config/opencode)
+    BWRAP_CMD+=(--ro-bind "${CUSTOM_CONFIG}" /home/scoder/.config/opencode/opencode.json)
+    info "Using config: ${CUSTOM_CONFIG}"
+else
+    BWRAP_CMD+=(--bind "${OPENCODE_CONFIG}" /home/scoder/.config/opencode)
+    info "No scoder/opencode config file found, using OpenCode defaults"
+fi
+
+BWRAP_CMD+=(
     --bind "${OPENCODE_DATA}" /home/scoder/.local/share/opencode
     --bind "${OPENCODE_CACHE}" /home/scoder/.cache/opencode
     --chdir /home/scoder/workspace
-    "${NET_FLAGS[@]}"
+)
+
+BWRAP_CMD+=("${NET_FLAGS[@]}")
+
+BWRAP_CMD+=(
     --new-session
     --die-with-parent
     --clearenv
@@ -376,11 +441,12 @@ BWRAP_CMD+=(
     --setenv USER scoder
     --setenv LOGNAME scoder
     --setenv MISE_SKIP_ACTIVATE 1
-    "${OPENCODE_BIN}" "${OPENCODE_ARGS[@]}"
 )
 
 if [[ -n "${PYO3_PYTHON:-}" ]]; then
-    ENV_ARGS+=(--setenv PYO3_PYTHON "/home/scoder/workspace/.venv/bin/python")
+    BWRAP_CMD+=(--setenv PYO3_PYTHON "/home/scoder/workspace/.venv/bin/python")
 fi
+
+BWRAP_CMD+=("${OPENCODE_BIN}" "${OPENCODE_ARGS[@]}")
 
 exec "${BWRAP_CMD[@]}"
