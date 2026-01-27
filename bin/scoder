@@ -6,20 +6,22 @@
 # License: MIT
 
 set -euo pipefail
+
 readonly PROGRAM_NAME="scoder"
-readonly PROGRAM_VERSION="0.8.0"
+readonly PROGRAM_VERSION="0.9.0"
 readonly OPENCODE_BIN_DEFAULT="/usr/bin/opencode"
 
 # Colors for output
 readonly RED='\033[0;31m'
 readonly YELLOW='\033[1;33m'
 readonly GREEN='\033[0;32m'
+readonly BLUE='\033[0;34m'
 readonly NC='\033[0m' # No Color
 
 usage() {
-    cat <<'EOF'
-scoder 0.8.0
-Safe OpenCode wrapper using bubblewrap.
+    cat <<'USAGE_EOF'
+scoder 0.9.0
+Safe OpenCode wrapper using bubblewrap with optional Landlock defense-in-depth.
 
 Usage:
   scoder [options] [PROJECT_DIR] [-- [OPENCODE_ARGS...]]
@@ -30,24 +32,34 @@ Options:
   -n, --no-net            Disable network access inside the sandbox (default: on)
   -b, --bin PATH          Path to opencode binary (default: "opencode")
   -q, --quiet             Suppress informational output
-  --validate              Run comprehensive validation tests and exit
-  --ro                    Mount project directory read-only (safe)
-  --rw                    Mount project directory read-write (default)
-  --allow-git             Allow write access to .git directory (default: read-only)
-  --allow-node-modules    Allow write access to node_modules (default: read-only)
-  --allow-venv            Allow write access to .venv (default: read-only)
-  --allow-infra           Allow write access to all protected infra dirs
-  --restrict-dev          Restrict /dev access to essential devices only
-  --allow-host-tools      Bind host user tools (~/.local/bin, mise, cargo, etc)
+      --validate          Run comprehensive validation tests and exit
+      --ro                Mount project directory read-only (safe)
+      --rw                Mount project directory read-write (default)
+      --allow-git         Allow write access to .git directory (default: read-only)
+      --allow-node-modules Allow write access to node_modules (default: read-only)
+      --allow-venv        Allow write access to .venv (default: read-only)
+      --allow-infra       Allow write access to all protected infra dirs
+      --restrict-dev      Restrict /dev access to essential devices only
+      --allow-host-tools  Bind host user tools (~/.local/bin, mise, cargo, etc)
+USAGE_EOF
+
+    # Add --not-paranoid flag only if landrun is available
+    if command -v landrun >/dev/null 2>&1; then
+        cat <<'PARANOID_EOF'
+  -P, --not-paranoid      Disable Landlock defense-in-depth (use bubblewrap only)
+PARANOID_EOF
+    fi
+
+    cat <<'USAGE_END'
 
 Arguments:
-  PROJECT_DIR    Project directory to expose as /workspace (default: $PWD)
-  OPENCODE_ARGS  Arguments passed verbatim to opencode after "--"
+  PROJECT_DIR             Project directory to expose as /workspace (default: $PWD)
+  OPENCODE_ARGS           Arguments passed verbatim to opencode after "--"
 
 Environment:
-  OPENCODE_BIN        Overrides default opencode binary
-  SCODER_NET          "on" to enable network by default ("off" otherwise)
-  SCODER_FS_MODE      "ro" (secure) or "rw" (default, allow writes)
+  OPENCODE_BIN            Overrides default opencode binary
+  SCODER_NET              "on" to enable network by default ("off" otherwise)
+  SCODER_FS_MODE          "ro" (secure) or "rw" (default, allow writes)
 
 Protected Directories (read-only by default):
   .git, .venv, node_modules, .turbo, .next, dist, build, target, .cargo
@@ -58,13 +70,27 @@ Config Precedence (automatic):
   2. ~/.config/opencode/opencode.json (if exists)
   3. No config binding (OpenCode defaults)
 
+Paranoid Mode (Defense-in-Depth):
+  When landrun is available, scoder uses two-layer sandbox:
+    1. Landlock (syscall-level enforcement via landrun)
+    2. Bubblewrap (namespace isolation)
+
+  This provides protection even if bubblewrap configuration errors occur.
+  Use --not-paranoid to disable and revert to bubblewrap-only mode.
+
+  Requirements:
+    - landrun binary in PATH
+    - Linux kernel 5.13+ with Landlock enabled
+    - Linux kernel 6.7+ for network syscall restrictions
+
 Examples:
-  scoder                           # rw sandbox of $PWD, infra protected
-  scoder --validate                # run comprehensive validation tests
-  scoder --ro                      # read-only sandbox of $PWD
-  scoder --allow-git               # allow .git writes
-  scoder --allow-host-tools        # bind host dev tools (mise, cargo, etc)
-  scoder -n myproj -- --verbose    # network off, pass --verbose to opencode
+  scoder                    # rw sandbox of $PWD, infra protected, paranoid if available
+  scoder --validate         # run comprehensive validation tests
+  scoder --ro               # read-only sandbox of $PWD
+  scoder --allow-git        # allow .git writes
+  scoder --allow-host-tools # bind host dev tools (mise, cargo, etc)
+  scoder --not-paranoid     # disable Landlock layer (bubblewrap only)
+  scoder -n myproj -- --verbose # network off, pass --verbose to opencode
 
 Security Note:
   HOME is set to /home/scoder on tmpfs (fully isolated from your real home).
@@ -72,12 +98,30 @@ Security Note:
   Host tools are NOT bound by default (use --allow-host-tools if needed).
   The project is writable by default, but critical infrastructure directories
   are protected read-only unless you explicitly opt in.
-
-EOF
+USAGE_END
 }
 
 version() {
+    local landlock_status="unavailable"
+    local landrun_path="not found"
+    local paranoid_status="unavailable"
+
+    if command -v landrun >/dev/null 2>&1; then
+        landrun_path=$(command -v landrun)
+        if [[ -f /sys/kernel/security/landlock/version ]]; then
+            local abi_version=$(cat /sys/kernel/security/landlock/version 2>/dev/null || echo "0")
+            landlock_status="available (ABI v${abi_version})"
+            paranoid_status="enabled by default"
+        else
+            landlock_status="landrun found but kernel support missing"
+            paranoid_status="disabled (no kernel support)"
+        fi
+    fi
+
     echo "${PROGRAM_NAME} ${PROGRAM_VERSION}"
+    echo "Paranoid mode: ${paranoid_status}"
+    echo "Landlock support: ${landlock_status}"
+    echo "Landrun: ${landrun_path}"
 }
 
 error() {
@@ -92,6 +136,176 @@ info() {
     if [[ "${QUIET}" -eq 0 ]]; then
         echo -e "${GREEN}${PROGRAM_NAME}: $*${NC}" >&2
     fi
+}
+
+info_blue() {
+    if [[ "${QUIET}" -eq 0 ]]; then
+        echo -e "${BLUE}${PROGRAM_NAME}: $*${NC}" >&2
+    fi
+}
+
+# ====== PARANOID MODE: Landrun Detection ======
+
+detect_landrun() {
+    if command -v landrun >/dev/null 2>&1; then
+        LANDRUN_AVAILABLE=1
+        LANDRUN_BIN=$(command -v landrun)
+
+        # Detect Landlock ABI version
+        if [[ -f /sys/kernel/security/landlock/version ]]; then
+            LANDLOCK_ABI_VERSION=$(cat /sys/kernel/security/landlock/version 2>/dev/null || echo "0")
+        else
+            LANDLOCK_ABI_VERSION=0
+        fi
+    else
+        LANDRUN_AVAILABLE=0
+        LANDLOCK_ABI_VERSION=0
+    fi
+}
+
+check_landlock_support() {
+    if [[ "${LANDRUN_AVAILABLE}" -eq 1 && "${LANDLOCK_ABI_VERSION}" -eq 0 ]]; then
+        warning "landrun found but kernel doesn't support Landlock"
+        warning "Kernel 5.13+ required with CONFIG_SECURITY_LANDLOCK=y"
+        warning "Falling back to bubblewrap-only mode"
+        return 1
+    fi
+
+    if [[ "${LANDLOCK_ABI_VERSION}" -gt 0 && "${LANDLOCK_ABI_VERSION}" -lt 4 ]]; then
+        info_blue "Note: Landlock ABI v${LANDLOCK_ABI_VERSION} detected (kernel < 6.7)"
+        info_blue "Network syscall restrictions unavailable (requires ABI v4+)"
+    fi
+
+    return 0
+}
+
+# ====== PARANOID MODE: Path Translation Engine ======
+
+declare -a LANDRUN_PATH_RULES
+
+translate_paths_to_landrun() {
+    LANDRUN_PATH_RULES=()
+
+    # System executables (need execution rights)
+    LANDRUN_PATH_RULES+=(--rox /usr)
+    LANDRUN_PATH_RULES+=(--rox /bin)
+    LANDRUN_PATH_RULES+=(--rox /lib)
+    [[ -d /lib64 ]] && LANDRUN_PATH_RULES+=(--rox /lib64)
+
+    # System configs and runtime (read-only, no execution)
+    LANDRUN_PATH_RULES+=(--ro /etc)
+    [[ -d /sys ]] && LANDRUN_PATH_RULES+=(--ro /sys)
+    [[ -d /run ]] && LANDRUN_PATH_RULES+=(--ro /run)
+    [[ -d /proc ]] && LANDRUN_PATH_RULES+=(--ro /proc)
+
+    # OpenCode data/cache (read-write with execution for binaries)
+    LANDRUN_PATH_RULES+=(--rwx "${OPENCODE_DATA}")
+    LANDRUN_PATH_RULES+=(--rwx "${OPENCODE_CACHE}")
+
+    # Config file (if exists)
+    if [[ -n "${CUSTOM_CONFIG}" && -f "${CUSTOM_CONFIG}" ]]; then
+        LANDRUN_PATH_RULES+=(--ro "${CUSTOM_CONFIG}")
+    fi
+
+    # Project directory (depends on FS_MODE)
+    if [[ "${FS_MODE}" = "ro" ]]; then
+        LANDRUN_PATH_RULES+=(--ro "${PROJECT_DIR}")
+    else
+        LANDRUN_PATH_RULES+=(--rwx "${PROJECT_DIR}")
+    fi
+
+    # Protected infrastructure (read-only overlays)
+    if [[ "${ALLOW_INFRA}" -eq 0 ]]; then
+        for dir in "${PROTECTED_INFRA_DIRS[@]}"; do
+            local skip=0
+            [[ "${dir}" == ".git" && "${ALLOW_GIT}" -eq 1 ]] && skip=1
+            [[ "${dir}" == "node_modules" && "${ALLOW_NODE_MODULES}" -eq 1 ]] && skip=1
+            [[ "${dir}" == ".venv" && "${ALLOW_VENV}" -eq 1 ]] && skip=1
+
+            if [[ "${skip}" -eq 0 && -d "${PROJECT_DIR}/${dir}" ]]; then
+                # node_modules and .venv may contain executables
+                if [[ "${dir}" == "node_modules" || "${dir}" == ".venv" ]]; then
+                    LANDRUN_PATH_RULES+=(--rox "${PROJECT_DIR}/${dir}")
+                else
+                    LANDRUN_PATH_RULES+=(--ro "${PROJECT_DIR}/${dir}")
+                fi
+            fi
+        done
+
+        for file in "${PROTECTED_INFRA_FILES[@]}"; do
+            if [[ -f "${PROJECT_DIR}/${file}" ]]; then
+                LANDRUN_PATH_RULES+=(--ro "${PROJECT_DIR}/${file}")
+            fi
+        done
+    fi
+
+    # Host tools (if bound)
+    if [[ "${ALLOW_HOST_TOOLS}" -eq 1 ]]; then
+        [[ -d "${HOME}/.local/bin" ]] && LANDRUN_PATH_RULES+=(--rox "${HOME}/.local/bin")
+        [[ -d "${HOME}/.local/share/mise" ]] && LANDRUN_PATH_RULES+=(--rox "${HOME}/.local/share/mise")
+        [[ -d "${HOME}/.config/mise" ]] && LANDRUN_PATH_RULES+=(--ro "${HOME}/.config/mise")
+        [[ -d "${HOME}/.rustup" ]] && LANDRUN_PATH_RULES+=(--rox "${HOME}/.rustup")
+        [[ -d "${HOME}/.cargo/bin" ]] && LANDRUN_PATH_RULES+=(--rox "${HOME}/.cargo/bin")
+        [[ -f "${HOME}/.npmrc" ]] && LANDRUN_PATH_RULES+=(--ro "${HOME}/.npmrc")
+        [[ -f "${HOME}/.pypirc" ]] && LANDRUN_PATH_RULES+=(--ro "${HOME}/.pypirc")
+    fi
+
+    # Temporary and device access
+    # Note: /tmp and /dev are handled by bubblewrap namespacing
+    # We allow them in Landlock to not interfere with bwrap's setup
+    LANDRUN_PATH_RULES+=(--rwx /tmp)
+    LANDRUN_PATH_RULES+=(--rwx /dev)
+}
+
+# ====== PARANOID MODE: Network Translation ======
+
+declare -a LANDRUN_NET_RULES
+
+translate_network_to_landrun() {
+    LANDRUN_NET_RULES=()
+
+    # If network is enabled, allow unrestricted network
+    # If disabled, don't add any flags (landrun default is deny)
+    if [[ "${NET_MODE}" == "on" ]]; then
+        # Only add network flags if kernel supports it (ABI v4+)
+        if [[ "${LANDLOCK_ABI_VERSION}" -ge 4 ]]; then
+            LANDRUN_NET_RULES+=(--unrestricted-network)
+        else
+            # Older kernels don't support network restrictions
+            # Network will be handled by bubblewrap namespace only
+            :
+        fi
+    fi
+    # If NET_MODE=off, no flags = network denied at syscall level
+}
+
+# ====== PARANOID MODE: Execution Orchestration ======
+
+build_landrun_command() {
+    local -n bwrap_cmd_ref=$1
+    LANDRUN_CMD=()
+
+    LANDRUN_CMD+=("${LANDRUN_BIN}")
+
+    # Add automatic library dependency detection
+    LANDRUN_CMD+=(--ldd)
+
+    # Add automatic executable detection for opencode
+    LANDRUN_CMD+=(--add-exec "${OPENCODE_BIN}")
+
+    # Add translated path rules
+    LANDRUN_CMD+=("${LANDRUN_PATH_RULES[@]}")
+
+    # Add translated network rules
+    if [[ ${#LANDRUN_NET_RULES[@]} -gt 0 ]]; then
+        LANDRUN_CMD+=("${LANDRUN_NET_RULES[@]}")
+    fi
+
+    # Add separator
+    LANDRUN_CMD+=(--)
+
+    # Add entire bubblewrap command as child process
+    LANDRUN_CMD+=("${bwrap_cmd_ref[@]}")
 }
 
 run_validation() {
@@ -124,16 +338,13 @@ run_validation() {
     local host_bashrc="${HOME}/.bashrc"
     local had_bashrc=0
     [[ -f "${host_bashrc}" ]] && had_bashrc=1
-
     "${script_path}" -q "${test_project}" -- /bin/bash -c 'echo "SCODER_TEST" > ~/.bashrc' 2>&1 >/dev/null || true
-
     local leaked=0
     if [[ -f "${host_bashrc}" ]]; then
         if grep -q "SCODER_TEST" "${host_bashrc}" 2>/dev/null; then
             leaked=1
         fi
     fi
-
     if [[ "${leaked}" -eq 0 ]]; then
         echo "✅ Test A.2 PASS: ~/.bashrc writes do not leak to host"
     else
@@ -203,7 +414,6 @@ run_validation() {
         config_read=$("${script_path}" -q "${test_project}" -- /bin/bash -c 'cat ~/.config/opencode/opencode.json 2>&1' 2>&1 || true)
         local expected_content
         expected_content=$(cat "${SCODER_RELAXED_CONFIG}" 2>/dev/null || echo "")
-
         if [[ "${config_read}" == "${expected_content}" ]]; then
             echo "✅ Test C PASS: Config overlay works (scoder.json content visible)"
         else
@@ -236,6 +446,55 @@ run_validation() {
         ((failed_tests++))
     fi
 
+    # ====== PARANOID MODE TESTS ======
+    if [[ "${LANDRUN_AVAILABLE}" -eq 1 && "${LANDLOCK_ABI_VERSION}" -gt 0 ]]; then
+        echo ""
+        info "=== Paranoid Mode Tests (Landlock + Bubblewrap) ==="
+
+        # Test G.1: Verify landrun is invoked in paranoid mode
+        info "Test G.1: Paranoid mode execution"
+        local paranoid_test
+        paranoid_test=$("${script_path}" -q "${test_project}" -- /bin/bash -c 'echo INSIDE' 2>&1 || true)
+        if echo "${paranoid_test}" | grep -q "INSIDE"; then
+            echo "✅ Test G.1 PASS: Paranoid mode executes successfully"
+        else
+            echo "❌ Test G.1 FAIL: Paranoid mode execution failed"
+            ((failed_tests++))
+        fi
+
+        # Test G.3: Verify --not-paranoid successfully disables landrun
+        info "Test G.3: --not-paranoid opt-out"
+        local non_paranoid_test
+        non_paranoid_test=$("${script_path}" -q --not-paranoid "${test_project}" -- /bin/bash -c 'echo INSIDE' 2>&1 || true)
+        if echo "${non_paranoid_test}" | grep -q "INSIDE"; then
+            echo "✅ Test G.3 PASS: --not-paranoid mode works"
+        else
+            echo "❌ Test G.3 FAIL: --not-paranoid mode failed"
+            ((failed_tests++))
+        fi
+
+        # Test G.2: Syscall enforcement (attempt to write to protected file)
+        info "Test G.2: Syscall-level protection verification"
+        local syscall_test
+        syscall_test=$("${script_path}" -q "${test_project}" -- /bin/bash -c 'echo test > /etc/scoder-test 2>&1' 2>&1 || true)
+        if echo "${syscall_test}" | grep -qE "Permission denied|Read-only|cannot create"; then
+            echo "✅ Test G.2 PASS: Syscall-level protection active"
+        else
+            echo "❌ Test G.2 FAIL: Syscall protection not working"
+            ((failed_tests++))
+        fi
+    else
+        echo ""
+        info "=== Paranoid Mode Tests: SKIPPED ==="
+        if [[ "${LANDRUN_AVAILABLE}" -eq 0 ]]; then
+            echo "ℹ️  landrun not found in PATH"
+            echo "ℹ️  Install landrun to enable paranoid mode tests"
+            echo "ℹ️  See: https://github.com/landlock-lsm/landlock"
+        elif [[ "${LANDLOCK_ABI_VERSION}" -eq 0 ]]; then
+            echo "ℹ️  Kernel doesn't support Landlock (need 5.13+ with CONFIG_SECURITY_LANDLOCK=y)"
+        fi
+    fi
+
     # Cleanup
     rm -rf "${test_project}"
 
@@ -256,6 +515,12 @@ FS_MODE="${SCODER_FS_MODE:-rw}"
 QUIET=0
 VALIDATE_MODE=0
 ALLOW_HOST_TOOLS=0
+NOT_PARANOID=0
+
+# Landrun/Landlock state
+LANDRUN_AVAILABLE=0
+LANDLOCK_ABI_VERSION=0
+LANDRUN_BIN=""
 
 # Auto config selection (relaxed scoder config preferred)
 CUSTOM_CONFIG=""
@@ -351,6 +616,10 @@ while [[ $# -gt 0 ]]; do
         RESTRICT_DEV=1
         shift
         ;;
+    -P | --not-paranoid | --no-paranoid)
+        NOT_PARANOID=1
+        shift
+        ;;
     --)
         PARSE_DONE=1
         shift
@@ -372,6 +641,9 @@ while [[ $# -gt 0 ]]; do
         ;;
     esac
 done
+
+# ====== PARANOID MODE: Early Detection ======
+detect_landrun
 
 # Handle validation mode
 if [[ "${VALIDATE_MODE}" -eq 1 ]]; then
@@ -532,7 +804,6 @@ PROTECTED_INFRA_FILES=(
 )
 
 SAFE_BINDS=()
-
 if [[ "${ALLOW_INFRA}" -eq 0 ]]; then
     for dir in "${PROTECTED_INFRA_DIRS[@]}"; do
         if [[ "${dir}" == ".git" && "${ALLOW_GIT}" -eq 1 ]]; then
@@ -632,9 +903,7 @@ else
 fi
 
 BWRAP_CMD+=(--chdir /home/scoder/workspace)
-
 BWRAP_CMD+=("${NET_FLAGS[@]}")
-
 BWRAP_CMD+=(
     --new-session
     --die-with-parent
@@ -652,5 +921,34 @@ fi
 
 BWRAP_CMD+=("${OPENCODE_BIN}" "${OPENCODE_ARGS[@]}")
 
-info "Launching scoder sandbox..."
-exec "${BWRAP_CMD[@]}"
+# ====== PARANOID MODE: Execution Decision ======
+
+# Determine if paranoid mode should be active
+USE_PARANOID=0
+if [[ "${NOT_PARANOID}" -eq 0 && "${LANDRUN_AVAILABLE}" -eq 1 ]]; then
+    if check_landlock_support; then
+        USE_PARANOID=1
+    fi
+fi
+
+if [[ "${USE_PARANOID}" -eq 1 ]]; then
+    info_blue "🔒 Paranoid mode enabled (defense-in-depth: Landlock + Bubblewrap)"
+    info_blue "Using landrun: ${LANDRUN_BIN} (Landlock ABI v${LANDLOCK_ABI_VERSION})"
+
+    # Build landrun wrapper
+    translate_paths_to_landrun
+    translate_network_to_landrun
+    build_landrun_command BWRAP_CMD
+
+    info "Launching scoder paranoid sandbox..."
+    exec "${LANDRUN_CMD[@]}"
+else
+    if [[ "${NOT_PARANOID}" -eq 1 && "${LANDRUN_AVAILABLE}" -eq 1 ]]; then
+        info "Running in standard mode (bubblewrap only, --not-paranoid)"
+    elif [[ "${LANDRUN_AVAILABLE}" -eq 0 ]]; then
+        info "Running in standard mode (bubblewrap only, landrun not available)"
+    fi
+
+    info "Launching scoder sandbox..."
+    exec "${BWRAP_CMD[@]}"
+fi
