@@ -7,7 +7,7 @@
 
 set -euo pipefail
 readonly PROGRAM_NAME="scoder"
-readonly PROGRAM_VERSION="0.7.3"
+readonly PROGRAM_VERSION="0.8.0"
 readonly OPENCODE_BIN_DEFAULT="/usr/bin/opencode"
 
 # Colors for output
@@ -18,7 +18,7 @@ readonly NC='\033[0m' # No Color
 
 usage() {
     cat <<'EOF'
-scoder 0.7.3
+scoder 0.8.0
 Safe OpenCode wrapper using bubblewrap.
 
 Usage:
@@ -30,14 +30,15 @@ Options:
   -n, --no-net            Disable network access inside the sandbox (default: on)
   -b, --bin PATH          Path to opencode binary (default: "opencode")
   -q, --quiet             Suppress informational output
-  --validate              Run validation tests and exit
+  --validate              Run comprehensive validation tests and exit
   --ro                    Mount project directory read-only (safe)
-  --rw                    Mount project directory read-write (default, less safe)
+  --rw                    Mount project directory read-write (default)
   --allow-git             Allow write access to .git directory (default: read-only)
   --allow-node-modules    Allow write access to node_modules (default: read-only)
   --allow-venv            Allow write access to .venv (default: read-only)
   --allow-infra           Allow write access to all protected infra dirs
   --restrict-dev          Restrict /dev access to essential devices only
+  --allow-host-tools      Bind host user tools (~/.local/bin, mise, cargo, etc)
 
 Arguments:
   PROJECT_DIR    Project directory to expose as /workspace (default: $PWD)
@@ -52,28 +53,25 @@ Protected Directories (read-only by default):
   .git, .venv, node_modules, .turbo, .next, dist, build, target, .cargo
   .gitignore, package-lock.json, poetry.lock, Cargo.lock, .github/
 
+Config Precedence (automatic):
+  1. ~/.config/scoder/scoder.json (if exists)
+  2. ~/.config/opencode/opencode.json (if exists)
+  3. No config binding (OpenCode defaults)
+
 Examples:
   scoder                           # rw sandbox of $PWD, infra protected
-  scoder --validate                # run validation tests
+  scoder --validate                # run comprehensive validation tests
   scoder --ro                      # read-only sandbox of $PWD
   scoder --allow-git               # allow .git writes
-  scoder --allow-node-modules      # allow node_modules writes
-  scoder --allow-venv              # allow .venv writes
-  scoder --allow-infra             # allow all infra writes
+  scoder --allow-host-tools        # bind host dev tools (mise, cargo, etc)
   scoder -n myproj -- --verbose    # network off, pass --verbose to opencode
 
 Security Note:
-  HOME is set to /home/scoder on tmpfs (isolated from your real home).
-  OpenCode config is overlaid from ~/.config/scoder/scoder.json if it exists,
-  otherwise from ~/.config/opencode/opencode.json.
+  HOME is set to /home/scoder on tmpfs (fully isolated from your real home).
+  OpenCode config is overlaid from scoder.json/opencode.json as single file.
+  Host tools are NOT bound by default (use --allow-host-tools if needed).
   The project is writable by default, but critical infrastructure directories
   are protected read-only unless you explicitly opt in.
-
-Project-Local Tools:
-  Project-local venvs (.venv), cargo (.cargo), node_modules, and go bins
-  are automatically accessible. Configure mise for project-local installs:
-    mise settings set experimental true
-    mise settings set venv_auto_create true
 
 EOF
 }
@@ -97,92 +95,158 @@ info() {
 }
 
 run_validation() {
-    info "Running scoder validation tests..."
-
+    local script_path="$0"
     local test_project="/tmp/scoder-validation-$$"
-    mkdir -p "${test_project}"
+    local failed_tests=0
 
-    # Create test infrastructure
-    mkdir -p "${test_project}/.git"
-    mkdir -p "${test_project}/node_modules"
-    echo "test" >"${test_project}/.gitignore"
+    info "=== Running scoder comprehensive validation tests ==="
 
-    info "Test 1: HOME isolation check"
-    local test_cmd=(
-        bwrap
-        --ro-bind /usr /usr
-        --ro-bind /bin /bin
-        --ro-bind /lib /lib
-        --ro-bind /etc /etc
-        --proc /proc
-        --dev /dev
-        --tmpfs /tmp
-        --tmpfs /home
-        --dir /home/scoder
-        --bind "${test_project}" /home/scoder/workspace
-        --chdir /home/scoder/workspace
-        --clearenv
-        --setenv HOME /home/scoder
-        --setenv PATH /usr/bin:/bin
-        /bin/bash -c "echo \$HOME"
-    )
+    # Setup test project
+    mkdir -p "${test_project}"/{.git,node_modules,.venv/bin}
+    echo "test content" >"${test_project}/test.py"
+    echo '#!/bin/bash' >"${test_project}/.venv/bin/python"
+    chmod +x "${test_project}/.venv/bin/python"
 
-    local home_result
-    home_result=$("${test_cmd[@]}" 2>/dev/null || echo "FAILED")
-
-    if [[ "${home_result}" == "/home/scoder" ]]; then
-        echo "✅ Test 1 PASS: HOME is /home/scoder (isolated)"
-    else
-        echo "❌ Test 1 FAIL: HOME is ${home_result} (expected /home/scoder)"
-        rm -rf "${test_project}"
-        return 1
-    fi
-
-    info "Test 2: Infrastructure protection check"
-    local write_test_cmd=(
-        bwrap
-        --ro-bind /usr /usr
-        --ro-bind /bin /bin
-        --ro-bind /lib /lib
-        --ro-bind /etc /etc
-        --proc /proc
-        --dev /dev
-        --tmpfs /tmp
-        --tmpfs /home
-        --dir /home/scoder
-        --bind "${test_project}" /home/scoder/workspace
-        --ro-bind "${test_project}/.git" /home/scoder/workspace/.git
-        --chdir /home/scoder/workspace
-        --clearenv
-        --setenv HOME /home/scoder
-        --setenv PATH /usr/bin:/bin
-        /bin/bash -c "touch .git/test 2>&1"
-    )
-
-    local write_result
-    write_result=$("${write_test_cmd[@]}" 2>&1 || true)
-
-    if echo "${write_result}" | grep -q "Read-only\|Permission denied"; then
-        echo "✅ Test 2 PASS: .git is read-only protected"
-    else
-        echo "❌ Test 2 FAIL: .git is writable (should be read-only)"
-        rm -rf "${test_project}"
-        return 1
-    fi
-
-    info "Test 3: Config precedence check"
-    if [[ -f "${SCODER_RELAXED_CONFIG}" ]]; then
-        echo "✅ Test 3 PASS: scoder.json found at ${SCODER_RELAXED_CONFIG}"
-    elif [[ -f "${OPENCODE_DEFAULT_CONFIG}" ]]; then
-        echo "⚠️  Test 3 WARN: Using fallback config at ${OPENCODE_DEFAULT_CONFIG}"
-    else
-        echo "ℹ️  Test 3 INFO: No config files found, will use OpenCode defaults"
-    fi
-
-    rm -rf "${test_project}"
+    # Test A.1: HOME isolation
     echo ""
-    echo "Validation complete. All critical tests passed."
-    return 0
+    info "Test A.1: HOME isolation"
+    local home_result
+    home_result=$("${script_path}" -q "${test_project}" -- /bin/bash -c 'echo $HOME' 2>&1 || true)
+    if [[ "${home_result}" == "/home/scoder" ]]; then
+        echo "✅ Test A.1 PASS: HOME is /home/scoder (isolated)"
+    else
+        echo "❌ Test A.1 FAIL: HOME is ${home_result} (expected /home/scoder)"
+        ((failed_tests++))
+    fi
+
+    # Test A.2: bashrc write isolation (no leak to host)
+    info "Test A.2: ~/.bashrc write isolation"
+    local host_bashrc="${HOME}/.bashrc"
+    local had_bashrc=0
+    [[ -f "${host_bashrc}" ]] && had_bashrc=1
+
+    "${script_path}" -q "${test_project}" -- /bin/bash -c 'echo "SCODER_TEST" > ~/.bashrc' 2>&1 >/dev/null || true
+
+    local leaked=0
+    if [[ -f "${host_bashrc}" ]]; then
+        if grep -q "SCODER_TEST" "${host_bashrc}" 2>/dev/null; then
+            leaked=1
+        fi
+    fi
+
+    if [[ "${leaked}" -eq 0 ]]; then
+        echo "✅ Test A.2 PASS: ~/.bashrc writes do not leak to host"
+    else
+        echo "❌ Test A.2 FAIL: ~/.bashrc writes leaked to host"
+        ((failed_tests++))
+    fi
+
+    # Test A.3: System file write protection
+    info "Test A.3: System file write protection"
+    local sys_write
+    sys_write=$("${script_path}" -q "${test_project}" -- /bin/bash -c 'touch /usr/bin/scoder-test 2>&1' 2>&1 || true)
+    if echo "${sys_write}" | grep -qE "Read-only|Permission denied|cannot touch"; then
+        echo "✅ Test A.3 PASS: System files are read-only"
+    else
+        echo "❌ Test A.3 FAIL: System files are writable"
+        ((failed_tests++))
+    fi
+
+    # Test B.1: Workspace is writable
+    info "Test B.1: Workspace writability"
+    local workspace_write
+    workspace_write=$("${script_path}" -q "${test_project}" -- /bin/bash -c 'touch new_file.py && echo SUCCESS' 2>&1 || true)
+    if echo "${workspace_write}" | grep -q "SUCCESS"; then
+        echo "✅ Test B.1 PASS: Workspace is writable"
+    else
+        echo "❌ Test B.1 FAIL: Cannot write to workspace"
+        ((failed_tests++))
+    fi
+
+    # Test B.2: .git protection
+    info "Test B.2: .git directory protection"
+    local git_write
+    git_write=$("${script_path}" -q "${test_project}" -- /bin/bash -c 'touch .git/test 2>&1' 2>&1 || true)
+    if echo "${git_write}" | grep -qE "Read-only|Permission denied|cannot touch"; then
+        echo "✅ Test B.2 PASS: .git is read-only"
+    else
+        echo "❌ Test B.2 FAIL: .git is writable"
+        ((failed_tests++))
+    fi
+
+    # Test B.3: node_modules protection
+    info "Test B.3: node_modules directory protection"
+    local nm_write
+    nm_write=$("${script_path}" -q "${test_project}" -- /bin/bash -c 'touch node_modules/test 2>&1' 2>&1 || true)
+    if echo "${nm_write}" | grep -qE "Read-only|Permission denied|cannot touch"; then
+        echo "✅ Test B.3 PASS: node_modules is read-only"
+    else
+        echo "❌ Test B.3 FAIL: node_modules is writable"
+        ((failed_tests++))
+    fi
+
+    # Test B.4: --allow-git override
+    info "Test B.4: --allow-git override functionality"
+    local git_override
+    git_override=$("${script_path}" -q --allow-git "${test_project}" -- /bin/bash -c 'touch .git/test && echo SUCCESS' 2>&1 || true)
+    if echo "${git_override}" | grep -q "SUCCESS"; then
+        echo "✅ Test B.4 PASS: --allow-git override works"
+    else
+        echo "❌ Test B.4 FAIL: --allow-git override failed"
+        ((failed_tests++))
+    fi
+
+    # Test C: Config overlay (if scoder.json exists)
+    if [[ -f "${SCODER_RELAXED_CONFIG}" ]]; then
+        info "Test C: Config overlay verification"
+        local config_read
+        config_read=$("${script_path}" -q "${test_project}" -- /bin/bash -c 'cat ~/.config/opencode/opencode.json 2>&1' 2>&1 || true)
+        local expected_content
+        expected_content=$(cat "${SCODER_RELAXED_CONFIG}" 2>/dev/null || echo "")
+
+        if [[ "${config_read}" == "${expected_content}" ]]; then
+            echo "✅ Test C PASS: Config overlay works (scoder.json content visible)"
+        else
+            echo "❌ Test C FAIL: Config overlay mismatch"
+            ((failed_tests++))
+        fi
+    else
+        echo "ℹ️  Test C SKIP: No scoder.json found (${SCODER_RELAXED_CONFIG})"
+    fi
+
+    # Test D: Tooling PATH
+    info "Test D: .venv in PATH"
+    local venv_path
+    venv_path=$("${script_path}" -q "${test_project}" -- /bin/bash -c 'echo $PATH' 2>&1 || true)
+    if echo "${venv_path}" | grep -q ".venv/bin"; then
+        echo "✅ Test D PASS: .venv/bin is in PATH"
+    else
+        echo "❌ Test D FAIL: .venv/bin not in PATH"
+        ((failed_tests++))
+    fi
+
+    # Test E: Network restriction
+    info "Test E: Network restriction with --no-net"
+    local net_test
+    net_test=$("${script_path}" -q -n "${test_project}" -- /bin/bash -c 'ping -c 1 -W 1 8.8.8.8 2>&1' 2>&1 || true)
+    if echo "${net_test}" | grep -qE "Network is unreachable|Name or service not known|Invalid argument"; then
+        echo "✅ Test E PASS: Network restriction works"
+    else
+        echo "❌ Test E FAIL: Network not restricted"
+        ((failed_tests++))
+    fi
+
+    # Cleanup
+    rm -rf "${test_project}"
+
+    echo ""
+    if [[ "${failed_tests}" -eq 0 ]]; then
+        echo "🎉 All validation tests passed!"
+        return 0
+    else
+        echo "⚠️  ${failed_tests} test(s) failed"
+        return 1
+    fi
 }
 
 # -------- defaults (SECURE BY DEFAULT, BUT WRITABLE) --------
@@ -191,6 +255,7 @@ NET_MODE="${SCODER_NET:-on}"
 FS_MODE="${SCODER_FS_MODE:-rw}"
 QUIET=0
 VALIDATE_MODE=0
+ALLOW_HOST_TOOLS=0
 
 # Auto config selection (relaxed scoder config preferred)
 CUSTOM_CONFIG=""
@@ -278,6 +343,10 @@ while [[ $# -gt 0 ]]; do
         ALLOW_INFRA=1
         shift
         ;;
+    --allow-host-tools)
+        ALLOW_HOST_TOOLS=1
+        shift
+        ;;
     --restrict-dev)
         RESTRICT_DEV=1
         shift
@@ -347,11 +416,9 @@ fi
 
 PROJECT_DIR="$(realpath "${PROJECT_DIR}")"
 
-# Ensure OpenCode config/data/cache dirs exist with subdirectories
-OPENCODE_CONFIG="${HOME}/.config/opencode"
+# Ensure OpenCode data/cache dirs exist (config handled separately)
 OPENCODE_DATA="${HOME}/.local/share/opencode"
 OPENCODE_CACHE="${HOME}/.cache/opencode"
-mkdir -p "${OPENCODE_CONFIG}"
 mkdir -p "${OPENCODE_DATA}/sessions"
 mkdir -p "${OPENCODE_DATA}/permissions"
 mkdir -p "${OPENCODE_CACHE}"
@@ -370,11 +437,10 @@ else
 fi
 
 # -------- OPTIMIZED path setup --------
-# Base PATH (system bins already mounted via /usr, /bin, etc)
 SANDBOX_PATH="/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin"
 EXTRA_BINDS=()
 
-# Helper: opt_bind
+# Helper: opt_bind (only used when --allow-host-tools is set)
 opt_bind() {
     local host_p="$1"
     local sand_p="$2"
@@ -383,29 +449,40 @@ opt_bind() {
     fi
 }
 
-# 1. User binaries (if exists)
-if [[ -d "${HOME}/.local/bin" ]]; then
-    EXTRA_BINDS+=(--ro-bind "${HOME}/.local/bin" "/home/scoder/.local/bin")
-    SANDBOX_PATH="${SANDBOX_PATH}:/home/scoder/.local/bin"
+# Bind host tools only if explicitly requested
+if [[ "${ALLOW_HOST_TOOLS}" -eq 1 ]]; then
+    info "Binding host development tools (--allow-host-tools)"
+
+    # User binaries
+    if [[ -d "${HOME}/.local/bin" ]]; then
+        EXTRA_BINDS+=(--ro-bind "${HOME}/.local/bin" "/home/scoder/.local/bin")
+        SANDBOX_PATH="${SANDBOX_PATH}:/home/scoder/.local/bin"
+    fi
+
+    # Mise
+    opt_bind "${HOME}/.local/share/mise" "/home/scoder/.local/share/mise"
+    opt_bind "${HOME}/.config/mise" "/home/scoder/.config/mise"
+    if [[ -d "${HOME}/.local/share/mise/shims" ]]; then
+        SANDBOX_PATH="${SANDBOX_PATH}:/home/scoder/.local/share/mise/shims"
+    fi
+
+    # Rust
+    opt_bind "${HOME}/.rustup" "/home/scoder/.rustup"
+    if [[ -d "${HOME}/.cargo/bin" ]]; then
+        EXTRA_BINDS+=(--ro-bind "${HOME}/.cargo/bin" "/home/scoder/.cargo-home/bin")
+        SANDBOX_PATH="${SANDBOX_PATH}:/home/scoder/.cargo-home/bin"
+    fi
+
+    # Config files
+    [[ -f "${HOME}/.npmrc" ]] && EXTRA_BINDS+=(--ro-bind "${HOME}/.npmrc" "/home/scoder/.npmrc")
+    [[ -f "${HOME}/.pypirc" ]] && EXTRA_BINDS+=(--ro-bind "${HOME}/.pypirc" "/home/scoder/.pypirc")
 fi
 
-# 2. Mise (Version Manager)
-opt_bind "${HOME}/.local/share/mise" "/home/scoder/.local/share/mise"
-opt_bind "${HOME}/.config/mise" "/home/scoder/.config/mise"
-
-# Add mise shims to PATH if they exist
-if [[ -d "${HOME}/.local/share/mise/shims" ]]; then
-    SANDBOX_PATH="${SANDBOX_PATH}:/home/scoder/.local/share/mise/shims"
-fi
-
-# Create project-local state dir for mise if it doesn't exist
+# Project-local state for mise (always)
 if [[ -n "${PROJECT_DIR}" ]]; then
     mkdir -p "${PROJECT_DIR}/.local/state/mise"
     EXTRA_BINDS+=(--bind "${PROJECT_DIR}/.local/state/mise" "/home/scoder/.local/state/mise")
 fi
-
-# 3. Rust toolchains (if exists)
-opt_bind "${HOME}/.rustup" "/home/scoder/.rustup"
 
 # Project-local Cargo binaries
 if [[ -d "${PROJECT_DIR}/.cargo/bin" ]]; then
@@ -413,41 +490,25 @@ if [[ -d "${PROJECT_DIR}/.cargo/bin" ]]; then
     SANDBOX_PATH="/home/scoder/.cargo/bin:${SANDBOX_PATH}"
 fi
 
-# User Cargo binaries (fallback)
-if [[ -d "${HOME}/.cargo/bin" ]]; then
-    EXTRA_BINDS+=(--ro-bind "${HOME}/.cargo/bin" "/home/scoder/.cargo-home/bin")
-    SANDBOX_PATH="${SANDBOX_PATH}:/home/scoder/.cargo-home/bin"
-fi
-
-# 4. Python virtual environments (project-local)
+# Python virtual environments (project-local)
 if [[ -d "${PROJECT_DIR}/.venv/bin" ]]; then
     EXTRA_BINDS+=(--bind "${PROJECT_DIR}/.venv/bin" "/home/scoder/workspace/.venv/bin")
     SANDBOX_PATH="/home/scoder/workspace/.venv/bin:${SANDBOX_PATH}"
 fi
 
-# 5. Node.js project-local binaries
+# Node.js project-local binaries
 if [[ -d "${PROJECT_DIR}/node_modules/.bin" ]]; then
     EXTRA_BINDS+=(--bind "${PROJECT_DIR}/node_modules/.bin" "/home/scoder/workspace/node_modules/.bin")
     SANDBOX_PATH="/home/scoder/workspace/node_modules/.bin:${SANDBOX_PATH}"
 fi
 
-# 6. Go project-local binaries
+# Go project-local binaries
 if [[ -d "${PROJECT_DIR}/bin" && -f "${PROJECT_DIR}/go.mod" ]]; then
     EXTRA_BINDS+=(--bind "${PROJECT_DIR}/bin" "/home/scoder/workspace/bin")
     SANDBOX_PATH="/home/scoder/workspace/bin:${SANDBOX_PATH}"
 fi
 
-# 7. Config files (Read-Only, only if they exist)
-if [[ -f "${HOME}/.npmrc" ]]; then
-    EXTRA_BINDS+=(--ro-bind "${HOME}/.npmrc" "/home/scoder/.npmrc")
-fi
-
-if [[ -f "${HOME}/.pypirc" ]]; then
-    EXTRA_BINDS+=(--ro-bind "${HOME}/.pypirc" "/home/scoder/.pypirc")
-fi
-
 # -------- Infrastructure Protection --------
-# Protected directories (writable project but read-only infrastructure)
 PROTECTED_INFRA_DIRS=(
     ".git"
     ".venv"
@@ -461,7 +522,6 @@ PROTECTED_INFRA_DIRS=(
     ".github"
 )
 
-# Protected files (lock files, CI configs)
 PROTECTED_INFRA_FILES=(
     ".gitignore"
     "package-lock.json"
@@ -474,9 +534,7 @@ PROTECTED_INFRA_FILES=(
 SAFE_BINDS=()
 
 if [[ "${ALLOW_INFRA}" -eq 0 ]]; then
-    # Protect directories
     for dir in "${PROTECTED_INFRA_DIRS[@]}"; do
-        # Skip if specific allow flags are set
         if [[ "${dir}" == ".git" && "${ALLOW_GIT}" -eq 1 ]]; then
             continue
         fi
@@ -493,7 +551,6 @@ if [[ "${ALLOW_INFRA}" -eq 0 ]]; then
         fi
     done
 
-    # Protect files
     for file in "${PROTECTED_INFRA_FILES[@]}"; do
         if [[ -f "${PROJECT_DIR}/${file}" ]]; then
             SAFE_BINDS+=(--ro-bind "${PROJECT_DIR}/${file}" "/home/scoder/workspace/${file}")
@@ -545,49 +602,33 @@ BWRAP_CMD+=(
     --dir /home/scoder/.local
     --dir /home/scoder/.local/share
     --dir /home/scoder/.config
+    --dir /home/scoder/.config/opencode
     --dir /home/scoder/.cache
 )
 
 BWRAP_CMD+=("${EXTRA_BINDS[@]}")
 BWRAP_CMD+=("${BIND_FLAG}" "${PROJECT_DIR}" /home/scoder/workspace)
 
-# Apply infrastructure protection AFTER project bind (overlay pattern)
 if [[ ${#SAFE_BINDS[@]} -gt 0 ]]; then
     BWRAP_CMD+=("${SAFE_BINDS[@]}")
 fi
 
-# Config/data/cache for OpenCode
-# CRITICAL FIX: Mount config directory read-only when using custom config overlay
-# to prevent config leak to host
+# Data/cache binding (always for persistence)
+BWRAP_CMD+=(
+    --bind "${OPENCODE_DATA}" /home/scoder/.local/share/opencode
+    --bind "${OPENCODE_CACHE}" /home/scoder/.cache/opencode
+)
+
+# Config overlay: ONLY bind the specific config file, not the directory
 if [[ -n "${CUSTOM_CONFIG}" ]]; then
     if [[ ! -f "${CUSTOM_CONFIG}" ]]; then
         error "Selected config file not found: ${CUSTOM_CONFIG}"
         exit 1
     fi
-
-    # Mount data/cache as writable (for sessions, logs, etc)
-    BWRAP_CMD+=(
-        --bind "${OPENCODE_DATA}" /home/scoder/.local/share/opencode
-        --bind "${OPENCODE_CACHE}" /home/scoder/.cache/opencode
-    )
-
-    # Mount config directory READ-ONLY when using overlay to prevent leak
-    BWRAP_CMD+=(--ro-bind "${OPENCODE_CONFIG}" /home/scoder/.config/opencode)
-
-    # Overlay the chosen config as opencode.json inside the sandbox
     BWRAP_CMD+=(--ro-bind "${CUSTOM_CONFIG}" /home/scoder/.config/opencode/opencode.json)
-
     info "Using config: ${CUSTOM_CONFIG}"
 else
-    # No custom config - bind directories normally (writable for config changes)
-    if [[ -d "${OPENCODE_CONFIG}" ]] || [[ -d "${OPENCODE_DATA}" ]] || [[ -d "${OPENCODE_CACHE}" ]]; then
-        BWRAP_CMD+=(
-            --bind "${OPENCODE_DATA}" /home/scoder/.local/share/opencode
-            --bind "${OPENCODE_CACHE}" /home/scoder/.cache/opencode
-            --bind "${OPENCODE_CONFIG}" /home/scoder/.config/opencode
-        )
-        info "No custom config found, using OpenCode defaults"
-    fi
+    info "No custom config found, OpenCode will use defaults"
 fi
 
 BWRAP_CMD+=(--chdir /home/scoder/workspace)
