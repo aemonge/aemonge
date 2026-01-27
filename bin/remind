@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # remind - Quick reference for commonly forgotten commands
 # Usage: remind [category|file]
-# Categories: markdown, pdf, zsh, containers
+# Categories: markdown, pdf, zsh, containers, security
 
 set -euo pipefail
 
@@ -10,12 +10,12 @@ SCRIPT_NAME="$(basename "$0")"
 
 # Colors for output
 if [[ -t 1 ]]; then
-    DIM='\033[2m'
-    RESET='\033[0m'
-    BLUE='\033[34m'
-    GREEN='\033[32m'
-    YELLOW='\033[33m'
-    RED='\033[31m'
+    DIM='\\033[2m'
+    RESET='\\033[0m'
+    BLUE='\\033[34m'
+    GREEN='\\033[32m'
+    YELLOW='\\033[33m'
+    RED='\\033[31m'
 else
     DIM='' RESET='' BLUE='' GREEN='' YELLOW='' RED=''
 fi
@@ -41,6 +41,7 @@ CATEGORIES:
     pdf              PDF manipulation (split/merge/etc)
     zsh, shell       Modern zsh/shell utilities
     containers       Container management (Podman)
+    security         Sandboxing tools (bubblewrap, landrun)
 
 EXAMPLES:
     $SCRIPT_NAME                    # Show all categories
@@ -95,7 +96,7 @@ show_pdf_help() {
     echo -e "  ${BLUE}qpdf input.pdf --rotate=90:1-z -- rotated.pdf${RESET}"
     echo ""
     echo "Compress:"
-    echo -e "  ${BLUE}gs -sDEVICE=pdfwrite -dPDFSETTINGS=/ebook -dNOPAUSE -dQUIET \\\\${RESET}"
+    echo -e "  ${BLUE}gs -sDEVICE=pdfwrite -dPDFSETTINGS=/ebook -dNOPAUSE -dQUIET \\\\\\\\${RESET}"
     echo -e "  ${BLUE}     -dBATCH -sOutputFile=compressed.pdf input.pdf${RESET}"
     echo ""
     echo "To images:"
@@ -205,6 +206,59 @@ show_containers_install() {
 }
 
 # ============================================================================
+# SECURITY CATEGORY
+# ============================================================================
+
+show_security_help() {
+    echo -e "${GREEN}Bubblewrap (bwrap)${RESET} - Low-level sandboxing (used by Flatpak)"
+    echo ""
+    echo -e "${YELLOW}Basic sandbox:${RESET}"
+    echo -e "  ${BLUE}bwrap --ro-bind /usr /usr --tmpfs /tmp --proc /proc \\\\${RESET}"
+    echo -e "  ${BLUE}        --dev /dev --unshare-all --share-net \\\\${RESET}"
+    echo -e "  ${BLUE}        /usr/bin/command${RESET}"
+    echo ""
+    echo -e "${YELLOW}Isolate with custom home:${RESET}"
+    echo -e "  ${BLUE}bwrap --ro-bind /usr /usr --bind ~/sandbox ~/sandbox \\\\${RESET}"
+    echo -e "  ${BLUE}        --tmpfs /tmp --proc /proc --dev /dev \\\\${RESET}"
+    echo -e "  ${BLUE}        --unshare-all --setenv HOME ~/sandbox \\\\${RESET}"
+    echo -e "  ${BLUE}        /usr/bin/firefox --no-remote${RESET}"
+    echo ""
+    echo -e "${GREEN}Landrun${RESET} - Kernel-native sandboxing via Landlock LSM"
+    echo ""
+    echo -e "${YELLOW}Basic usage:${RESET}"
+    echo -e "  ${BLUE}landrun --ro /usr --rw /tmp command${RESET}"
+    echo ""
+    echo -e "${YELLOW}Restrict filesystem access:${RESET}"
+    echo -e "  ${BLUE}landrun --ro /usr/bin/python3 --rw ./data \\\\${RESET}"
+    echo -e "  ${BLUE}          /usr/bin/python3 script.py${RESET}"
+    echo ""
+    echo -e "${YELLOW}Network restrictions:${RESET}"
+    echo -e "  ${BLUE}landrun --ro /usr --no-net command${RESET}"
+    echo -e "  ${BLUE}landrun --ro /usr --tcp-bind 8080 server${RESET}"
+    echo ""
+    echo -e "${DIM}Bubblewrap: Fine-grained control with namespaces (complex)${RESET}"
+    echo -e "${DIM}Landrun: Simple CLI, kernel-native, no root required${RESET}"
+    echo -e "${DIM}@see: https://wiki.archlinux.org/title/Bubblewrap${RESET}"
+    echo -e "${DIM}@see: https://github.com/Zouuup/landrun${RESET}"
+}
+
+show_security_install() {
+    echo -e "${GREEN}Bubblewrap:${RESET}"
+    echo -e "  ${BLUE}pamac install bubblewrap${RESET}"
+    echo ""
+    echo -e "${DIM}Note: linux-hardened users may need bubblewrap-suid${RESET}"
+    echo ""
+    echo -e "${GREEN}Landrun:${RESET}"
+    echo -e "  ${BLUE}yay -S landrun${RESET}              ${DIM}# From AUR${RESET}"
+    echo ""
+    echo -e "${DIM}Or install from source:${RESET}"
+    echo -e "  ${BLUE}git clone https://github.com/Zouuup/landrun${RESET}"
+    echo -e "  ${BLUE}cd landrun && go build && sudo cp landrun /usr/local/bin/${RESET}"
+    echo ""
+    echo -e "${DIM}Requirements: Linux kernel >= 5.13 (for Landlock support)${RESET}"
+}
+
+# ============================================================================
 # MAIN LOGIC
 # ============================================================================
 
@@ -214,6 +268,7 @@ show_all_categories() {
     echo -e "  ${YELLOW}pdf${RESET}              PDF manipulation (merge/split/etc)"
     echo -e "  ${YELLOW}zsh${RESET}, ${YELLOW}shell${RESET}       Modern shell utilities & CLI tools"
     echo -e "  ${YELLOW}containers${RESET}       Container management (Podman)"
+    echo -e "  ${YELLOW}security${RESET}         Sandboxing tools (bubblewrap, landrun)"
     echo ""
     echo "Usage:"
     echo "  $SCRIPT_NAME [category]"
@@ -235,6 +290,9 @@ detect_category() {
         ;;
     containers | podman | docker)
         echo "containers"
+        ;;
+    security | sandbox | bwrap | bubblewrap | landrun)
+        echo "security"
         ;;
     *)
         echo "$input"
@@ -309,6 +367,13 @@ main() {
             show_containers_install
         else
             show_containers_help
+        fi
+        ;;
+    security)
+        if [[ "$show_install" == true ]]; then
+            show_security_install
+        else
+            show_security_help
         fi
         ;;
     *)
