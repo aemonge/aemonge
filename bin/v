@@ -391,9 +391,9 @@ function session() {
 
     cmd=(nvim +':terminal')
     if [ $# -eq 0 ]; then
-        cmd=(nvim +':terminal' +':startinsert')
+        cmd=(nvim +':terminal' +':startinsert' +"autocmd User VeryLazy ++once set laststatus=0")
     else
-        cmd=(nvim +":cd $@" +':terminal' +':startinsert')
+        cmd=(nvim +":cd $@" +':terminal' +':startinsert' +"autocmd User VeryLazy ++once set laststatus=0")
     fi
 
     "${cmd[@]}"
