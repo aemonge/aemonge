@@ -783,14 +783,6 @@ fi
 # -------- Infrastructure Protection --------
 PROTECTED_INFRA_DIRS=(
     ".git"
-    ".venv"
-    "node_modules"
-    ".turbo"
-    ".next"
-    "dist"
-    "build"
-    "target"
-    ".cargo"
     ".github"
 )
 
