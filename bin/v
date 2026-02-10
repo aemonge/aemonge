@@ -2,6 +2,74 @@
 
 VERSION="0.0.1"
 
+function get_project_root() {
+    local dir=$(readlink -f "${1:-$PWD}")
+    while [[ "$dir" != "/" ]]; do
+        if [[ -f "$dir/mise.toml" || -d "$dir/.git" || -f "$dir/package.json" || -f "$dir/pyproject.toml" || -f "$dir/Cargo.toml" ]]; then
+            echo "$dir"
+            return 0
+        fi
+        dir="$(dirname "$dir")"
+    done
+    return 1
+}
+
+function load_project_env() {
+    local target_path="${1:-$PWD}"
+    local project_root=$(get_project_root "$target_path")
+
+    if [[ -n "$project_root" ]]; then
+        export HOOKIE_PROJECT_ROOT="$project_root"
+        export HOOKIE_CURRENT_PROJECT="${project_root:t}"
+        if command -v mise &>/dev/null; then
+            eval "$(mise hook-env -s zsh)"
+        fi
+    else
+        unset HOOKIE_PROJECT_ROOT
+        unset HOOKIE_CURRENT_PROJECT
+    fi
+}
+
+function cmd_load_project() {
+    local target_path="${1:-$PWD}"
+    local project_root=$(get_project_root "$target_path")
+
+    # Optimization: Only output or update if project changed or forced
+    if [[ -n "$project_root" ]]; then
+        local project_name="${project_root:t}"
+        
+        # Inside Neovim: Just update host Neovim context silently
+        if [ -n "$NVIM" ]; then
+            nvr -c "let \$HOOKIE_PROJECT_ROOT = '$project_root'" \
+                -c "let \$HOOKIE_CURRENT_PROJECT = '$project_name'" \
+                -c "lua if package.loaded.lualine then require('lualine').refresh() end" > /dev/null 2>&1
+            return
+        fi
+
+        # Outside Neovim: Output exports
+        # We always output if we are in a project to ensure mise stays in sync
+        # unless you really want to skip it for speed. 
+        # But 'cd project_path ain't working' might be due to over-optimization.
+        echo "export HOOKIE_PROJECT_ROOT=\"$project_root\""
+        echo "export HOOKIE_CURRENT_PROJECT=\"$project_name\""
+        
+        if command -v mise &>/dev/null; then
+             mise hook-env -s zsh
+        fi
+    else
+        # No project found: Clean up
+        if [[ -n "$HOOKIE_PROJECT_ROOT" ]]; then
+            echo "unset HOOKIE_PROJECT_ROOT"
+            echo "unset HOOKIE_CURRENT_PROJECT"
+            # Optional: deactivate venv etc? 
+            # mise hook-env usually handles unsetting its own vars
+            if command -v mise &>/dev/null; then
+                 mise hook-env -s zsh
+            fi
+        fi
+    fi
+}
+
 function show_help() {
     echo "v - Versatile Neovim wrapper script with term-multiplier powers using neovim-remote"
     echo ""
@@ -307,6 +375,7 @@ function vim_func() {
         _opener=(nvr --remote-tab)
     else
         _opener=(nvim -p)
+        load_project_env "$1"
     fi
 
     files=()
@@ -389,6 +458,8 @@ function session() {
         exit 1
     fi
 
+    load_project_env "${1:-.}"
+
     cmd=(nvim +':terminal')
     if [ $# -eq 0 ]; then
         # cmd=(nvim +':terminal' +':startinsert' +"autocmd User VeryLazy ++once set laststatus=0")
@@ -451,6 +522,10 @@ if ! command -v nvr >/dev/null; then
 fi
 
 case "$1" in
+    load_project)
+        shift
+        cmd_load_project "$@"
+        ;;
     cd)
         vcd
         ;;
@@ -502,6 +577,10 @@ case "$1" in
         ;;
     completions)
         completions
+        ;;
+    get_root)
+        shift
+        get_project_root "$@"
         ;;
     -h|--help)
         show_help
