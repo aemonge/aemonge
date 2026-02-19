@@ -40,7 +40,8 @@ Options:
       --allow-venv        Allow write access to .venv (default: read-only)
       --allow-infra       Allow write access to all protected infra dirs
       --restrict-dev      Restrict /dev access to essential devices only
-      --allow-host-tools  Bind host user tools (~/.local/bin, mise, cargo, etc)
+  --allow-host-tools  Bind host user tools (~/.local/bin, mise, pyenv, uv, rustup/cargo, etc) (default)
+  --no-host-tools     Disable binding host user tools
 USAGE_EOF
 
     # Add --not-paranoid flag only if landrun is available
@@ -95,7 +96,7 @@ Examples:
 Security Note:
   HOME is set to /home/scoder on tmpfs (fully isolated from your real home).
   OpenCode config is overlaid from scoder.json/opencode.json as single file.
-  Host tools are NOT bound by default (use --allow-host-tools if needed).
+  Host tools are bound by default (use --allow-host-tools to be explicit).
   The project is writable by default, but critical infrastructure directories
   are protected read-only unless you explicitly opt in.
 USAGE_END
@@ -243,9 +244,12 @@ translate_paths_to_landrun() {
     if [[ "${ALLOW_HOST_TOOLS}" -eq 1 ]]; then
         [[ -d "${HOME}/.local/bin" ]] && LANDRUN_PATH_RULES+=(--rox "${HOME}/.local/bin")
         [[ -d "${HOME}/.local/share/mise" ]] && LANDRUN_PATH_RULES+=(--rox "${HOME}/.local/share/mise")
+        [[ -d "${HOME}/.local/share/uv" ]] && LANDRUN_PATH_RULES+=(--rox "${HOME}/.local/share/uv")
         [[ -d "${HOME}/.config/mise" ]] && LANDRUN_PATH_RULES+=(--ro "${HOME}/.config/mise")
         [[ -d "${HOME}/.rustup" ]] && LANDRUN_PATH_RULES+=(--rox "${HOME}/.rustup")
+        [[ -d "${HOME}/.cargo" ]] && LANDRUN_PATH_RULES+=(--rox "${HOME}/.cargo")
         [[ -d "${HOME}/.cargo/bin" ]] && LANDRUN_PATH_RULES+=(--rox "${HOME}/.cargo/bin")
+        [[ -d "${HOME}/.pyenv" ]] && LANDRUN_PATH_RULES+=(--rox "${HOME}/.pyenv")
         [[ -f "${HOME}/.npmrc" ]] && LANDRUN_PATH_RULES+=(--ro "${HOME}/.npmrc")
         [[ -f "${HOME}/.pypirc" ]] && LANDRUN_PATH_RULES+=(--ro "${HOME}/.pypirc")
     fi
@@ -514,8 +518,11 @@ NET_MODE="${SCODER_NET:-on}"
 FS_MODE="${SCODER_FS_MODE:-rw}"
 QUIET=0
 VALIDATE_MODE=0
-ALLOW_HOST_TOOLS=0
+ALLOW_HOST_TOOLS=1
+ALLOW_HOST_TOOLS_SET=0
+ALLOW_HOST_TOOLS_DISABLE_SET=0
 NOT_PARANOID=0
+HOST_HOME="${HOME}"
 
 # Landrun/Landlock state
 LANDRUN_AVAILABLE=0
@@ -610,6 +617,12 @@ while [[ $# -gt 0 ]]; do
         ;;
     --allow-host-tools)
         ALLOW_HOST_TOOLS=1
+        ALLOW_HOST_TOOLS_SET=1
+        shift
+        ;;
+    --no-host-tools)
+        ALLOW_HOST_TOOLS=0
+        ALLOW_HOST_TOOLS_DISABLE_SET=1
         shift
         ;;
     --restrict-dev)
@@ -654,6 +667,11 @@ fi
 # Check for conflicting flags
 if [[ "${RO_SET}" -eq 1 && "${RW_SET}" -eq 1 ]]; then
     error "--ro and --rw are mutually exclusive"
+    exit 1
+fi
+
+if [[ "${ALLOW_HOST_TOOLS_SET}" -eq 1 && "${ALLOW_HOST_TOOLS_DISABLE_SET}" -eq 1 ]]; then
+    error "--allow-host-tools and --no-host-tools are mutually exclusive"
     exit 1
 fi
 
@@ -711,6 +729,7 @@ fi
 # -------- OPTIMIZED path setup --------
 SANDBOX_PATH="/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin"
 EXTRA_BINDS=()
+EXTRA_DIRS=()
 
 # Helper: opt_bind (only used when --allow-host-tools is set)
 opt_bind() {
@@ -738,11 +757,41 @@ if [[ "${ALLOW_HOST_TOOLS}" -eq 1 ]]; then
         SANDBOX_PATH="${SANDBOX_PATH}:/home/scoder/.local/share/mise/shims"
     fi
 
+    # uv
+    if [[ -d "${HOME}/.local/share/uv" ]]; then
+        EXTRA_BINDS+=(--ro-bind "${HOME}/.local/share/uv" "/home/scoder/.local/share/uv")
+        if [[ "${HOST_HOME}" != "/home/scoder" ]]; then
+            EXTRA_DIRS+=(--dir "${HOST_HOME}")
+            EXTRA_BINDS+=(--ro-bind "${HOME}/.local/share/uv" "${HOST_HOME}/.local/share/uv")
+        fi
+    fi
+
+    # Pyenv
+    if [[ -d "${HOME}/.pyenv" ]]; then
+        EXTRA_BINDS+=(--ro-bind "${HOME}/.pyenv" "/home/scoder/.pyenv")
+        SANDBOX_PATH="${SANDBOX_PATH}:/home/scoder/.pyenv/shims:/home/scoder/.pyenv/bin"
+        PYENV_ROOT_SANDBOX="/home/scoder/.pyenv"
+
+        # Mirror pyenv into original host home path for existing venvs
+        if [[ "${HOST_HOME}" != "/home/scoder" ]]; then
+            EXTRA_DIRS+=(--dir "${HOST_HOME}")
+            EXTRA_BINDS+=(--ro-bind "${HOME}/.pyenv" "${HOST_HOME}/.pyenv")
+        fi
+    fi
+
     # Rust
-    opt_bind "${HOME}/.rustup" "/home/scoder/.rustup"
-    if [[ -d "${HOME}/.cargo/bin" ]]; then
-        EXTRA_BINDS+=(--ro-bind "${HOME}/.cargo/bin" "/home/scoder/.cargo-home/bin")
-        SANDBOX_PATH="${SANDBOX_PATH}:/home/scoder/.cargo-home/bin"
+    if [[ -d "${HOME}/.rustup" ]]; then
+        EXTRA_BINDS+=(--ro-bind "${HOME}/.rustup" "/home/scoder/.rustup")
+        RUSTUP_HOME_SANDBOX="/home/scoder/.rustup"
+    fi
+    if [[ -d "${HOME}/.cargo" ]]; then
+        EXTRA_BINDS+=(--ro-bind "${HOME}/.cargo" "/home/scoder/.cargo")
+        SANDBOX_PATH="${SANDBOX_PATH}:/home/scoder/.cargo/bin"
+        CARGO_HOME_SANDBOX="/home/scoder/.cargo"
+    elif [[ -d "${HOME}/.cargo/bin" ]]; then
+        EXTRA_BINDS+=(--ro-bind "${HOME}/.cargo/bin" "/home/scoder/.cargo/bin")
+        SANDBOX_PATH="${SANDBOX_PATH}:/home/scoder/.cargo/bin"
+        CARGO_HOME_SANDBOX="/home/scoder/.cargo"
     fi
 
     # Config files
@@ -869,6 +918,7 @@ BWRAP_CMD+=(
     --dir /home/scoder/.cache
 )
 
+BWRAP_CMD+=("${EXTRA_DIRS[@]}")
 BWRAP_CMD+=("${EXTRA_BINDS[@]}")
 BWRAP_CMD+=("${BIND_FLAG}" "${PROJECT_DIR}" /home/scoder/workspace)
 
@@ -905,7 +955,20 @@ BWRAP_CMD+=(
     --setenv USER scoder
     --setenv LOGNAME scoder
     --setenv MISE_SKIP_ACTIVATE 1
+    --setenv UV_LINK_MODE copy
 )
+
+if [[ -n "${PYENV_ROOT_SANDBOX:-}" ]]; then
+    BWRAP_CMD+=(--setenv PYENV_ROOT "${PYENV_ROOT_SANDBOX}")
+fi
+
+if [[ -n "${RUSTUP_HOME_SANDBOX:-}" ]]; then
+    BWRAP_CMD+=(--setenv RUSTUP_HOME "${RUSTUP_HOME_SANDBOX}")
+fi
+
+if [[ -n "${CARGO_HOME_SANDBOX:-}" ]]; then
+    BWRAP_CMD+=(--setenv CARGO_HOME "${CARGO_HOME_SANDBOX}")
+fi
 
 if [[ -n "${PYO3_PYTHON:-}" ]]; then
     BWRAP_CMD+=(--setenv PYO3_PYTHON "/home/scoder/workspace/.venv/bin/python")
