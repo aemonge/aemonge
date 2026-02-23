@@ -2,7 +2,7 @@
 
 VERSION="0.1.0"
 
-USERNAME="aemonge"
+USERNAME="${USER:aemonge}"
 MOUNT_ROOT="/home/$USERNAME/.mounts"
 MOUNT_POINT="$MOUNT_ROOT/cloud"
 SMOUNT_POINT="$MOUNT_ROOT/scloud"
@@ -11,7 +11,6 @@ QUIET=false
 set -euo pipefail
 
 # Define directories to sync
-# shellcheck source=/home/aemonge/.pcloud-structure
 source "/home/$USERNAME/.pcloud-structure"
 
 # Array to store PIDs of background processes
