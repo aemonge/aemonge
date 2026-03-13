@@ -37,7 +37,7 @@ function cmd_load_project() {
     # Optimization: Only output or update if project changed or forced
     if [[ -n "$project_root" ]]; then
         local project_name="${project_root:t}"
-        
+
         # Inside Neovim: Just update host Neovim context silently
         if [ -n "$NVIM" ]; then
             nvr -c "let \$HOOKIE_PROJECT_ROOT = '$project_root'" \
@@ -48,11 +48,11 @@ function cmd_load_project() {
 
         # Outside Neovim: Output exports
         # We always output if we are in a project to ensure mise stays in sync
-        # unless you really want to skip it for speed. 
+        # unless you really want to skip it for speed.
         # But 'cd project_path ain't working' might be due to over-optimization.
         echo "export HOOKIE_PROJECT_ROOT=\"$project_root\""
         echo "export HOOKIE_CURRENT_PROJECT=\"$project_name\""
-        
+
         if command -v mise &>/dev/null; then
              mise hook-env -s zsh
         fi
@@ -61,7 +61,7 @@ function cmd_load_project() {
         if [[ -n "$HOOKIE_PROJECT_ROOT" ]]; then
             echo "unset HOOKIE_PROJECT_ROOT"
             echo "unset HOOKIE_CURRENT_PROJECT"
-            # Optional: deactivate venv etc? 
+            # Optional: deactivate venv etc?
             # mise hook-env usually handles unsetting its own vars
             if command -v mise &>/dev/null; then
                  mise hook-env -s zsh
@@ -504,6 +504,7 @@ function venv() {
 function vcd() {
     if [ -n "$NVIM" ]; then
         nvr -c "cd $(pwd)"
+        nvr -c "lua vim.env.HOOKIE_CURRENT_PROJECT = '$(echo -n $HOOKIE_CURRENT_PROJECT)'"
     else
         echo "Please start a v session: 'v .' "
         exit 1

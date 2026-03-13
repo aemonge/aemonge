@@ -727,7 +727,14 @@ else
 fi
 
 # -------- OPTIMIZED path setup --------
-SANDBOX_PATH="/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin"
+SANDBOX_PATH="/usr/local/bin:""\
+/usr/local/sbin:""\
+/usr/bin:""\
+/usr/sbin:""\
+/bin:""\
+/sbin:""\
+/usr/bin/site_perl"
+
 EXTRA_BINDS=()
 EXTRA_DIRS=()
 
