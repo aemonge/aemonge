@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # remind - Quick reference for commonly forgotten commands
 # Usage: remind [category|file]
-# Categories: markdown, pdf, zsh, containers, security, cloud
+# Categories: markdown, db, pdf, zsh, containers, security, cloud
 
 set -euo pipefail
 
@@ -43,6 +43,7 @@ CATEGORIES:
     zsh, shell       Modern zsh/shell utilities
     containers       Container management (Podman)
     security         Sandboxing tools (bubblewrap, landrun)
+    db, sql, sqlite  Database browser (sqlit)
 
 EXAMPLES:
     $SCRIPT_NAME                    # Show all categories
@@ -54,6 +55,26 @@ EXAMPLES:
 AUTHOR:
     Andres Monge (aemonge)
 EOF
+}
+
+# ============================================================================
+# DATABASE CATEGORY
+# ============================================================================
+
+show_db_help() {
+    echo -e "${BLUE}sqlit${RESET}"
+    echo -e "${DIM}# Open the sqlit TUI and pick a saved connection${RESET}"
+    echo ""
+    echo -e "${BLUE}sqlit sqlite:///path/to/database.db${RESET}"
+    echo -e "${DIM}# Connect directly to a local SQLite database${RESET}"
+    echo ""
+    echo -e "${BLUE}sqlit query -c \"MyConnection\" -q \"SELECT * FROM users\"${RESET}"
+    echo -e "${DIM}# Run a query from CLI mode${RESET}"
+}
+
+show_db_install() {
+    echo -e "${GREEN}Install sqlit:${RESET}"
+    echo -e "  ${BLUE}pamac install sqlit python-psycopg2${RESET}"
 }
 
 # ============================================================================
@@ -186,6 +207,7 @@ show_all_categories() {
     echo "Categories:"
     echo -e "  ${YELLOW}markdown${RESET}, ${YELLOW}md${RESET}      Markdown to PDF conversion"
     echo -e "  ${YELLOW}cloud${RESET}            Cloud storage tools (pCloud)"
+    echo -e "  ${YELLOW}db${RESET}, ${YELLOW}sql${RESET}, ${YELLOW}sqlite${RESET}   Database browser (sqlit)"
     echo -e "  ${YELLOW}pdf${RESET}              PDF manipulation (merge/split/etc)"
     echo -e "  ${YELLOW}zsh${RESET}, ${YELLOW}shell${RESET}       Modern shell utilities & CLI tools"
     echo -e "  ${YELLOW}containers${RESET}       Container management (Podman)"
@@ -202,6 +224,9 @@ detect_category() {
     case "$input" in
     cloud | pcloud)
         echo "cloud"
+        ;;
+    db | sql | sqlite | sqlit | *.db | *.sqlite | *.sqlite3)
+        echo "db"
         ;;
     *.md | markdown | md)
         echo "markdown"
@@ -265,6 +290,13 @@ main() {
     category="$(detect_category "$category")"
 
     case "$category" in
+    db)
+        if [[ "$show_install" == true ]]; then
+            show_db_install
+        else
+            show_db_help
+        fi
+        ;;
     markdown | md)
         if [[ "$show_install" == true ]]; then
             show_markdown_install
