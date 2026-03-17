@@ -126,6 +126,26 @@ summary.navigation-language {
 	color: var(--primary-color);
 }
 
+.buy-coffee-badge {
+	display: block;
+	margin: 0.45rem auto 0.15rem;
+	width: 230px;
+	max-width: calc(100% - 1rem);
+	height: 44px;
+	overflow: hidden;
+}
+
+.buy-coffee-badge img {
+	display: block;
+	width: 100%;
+	height: auto;
+	margin-top: -1px;
+}
+
+.buy-coffee-mobile {
+	display: none;
+}
+
 .iframe-container {
 	flex: 1;
 	height: 100vh;

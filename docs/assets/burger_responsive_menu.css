@@ -69,12 +69,10 @@
 
     .nav-menu {
         position: fixed;
-        left: -100%;
         top: 5rem;
         flex-direction: column;
         background-color: var(--sidebar-bg);
         width: 100%;
-        text-align: center;
         transition: 0.3s;
         box-shadow: 0 10px 27px rgba(0, 0, 0, 0.05);
         left: 0;
@@ -93,6 +91,11 @@
 
     .nav-item {
         margin: 0.5rem 1.5rem;
+    }
+
+    .buy-coffee-mobile {
+        display: block;
+        margin: 0.75rem auto 0.35rem;
     }
 
     .submenu-toggle {

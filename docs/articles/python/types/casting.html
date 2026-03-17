@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.7.32">
+<meta name="generator" content="quarto-1.8.27">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -63,6 +63,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="/articles/libs/clipboard/clipboard.min.js"></script>
 <script src="/articles/libs/quarto-html/quarto.js" type="module"></script>
 <script src="/articles/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="/articles/libs/quarto-html/axe/axe-check.js" type="module"></script>
 <script src="/articles/libs/quarto-html/popper.min.js"></script>
 <script src="/articles/libs/quarto-html/tippy.umd.min.js"></script>
 <script src="/articles/libs/quarto-html/anchor.min.js"></script>
@@ -72,6 +73,22 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="/articles/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="/articles/libs/bootstrap/bootstrap.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <style>html{ scroll-behavior: smooth; }</style>
+<script type="module">
+  import { AnsiUp } from "/assets/ansi_up.esm.js";
+  document.addEventListener("DOMContentLoaded", function () {
+    const ansiUp = new AnsiUp({ escape_for_html: false });
+    const selector = '[data-class-output="code-rendered"] p';
+    const codeOutputs = document.querySelectorAll(selector);
+    const LINE_BREAKS = ["[BR", "<br />"]
+
+    codeOutputs.forEach((output) => {
+      const lines = output.innerText.split(LINE_BREAKS[0]);
+      let processedLines = lines.map((line) => ansiUp.ansi_to_html(line));
+      processedLines = processedLines.map(line => line.replace(/:::$/g, ''));
+      output.innerHTML = processedLines.join(LINE_BREAKS[1]);
+    });
+  });
+</script>
 
 
 <link rel="stylesheet" href="/assets/style.css">
@@ -128,10 +145,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="upcasting-in-python" class="level3">
 <h3 class="anchored" data-anchor-id="upcasting-in-python">Upcasting in Python</h3>
 <p>Upcasting is the process of treating a derived class object as an instance of its base class. This is always safe because a derived class inherits all properties of its base class.</p>
-<div id="ecb777e2" class="cell" data-execution_count="1">
+<div id="dd3ec8a7" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Base:</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Base:</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, a, b):</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.a <span class="op">=</span> a</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.b <span class="op">=</span> b</span>
@@ -158,7 +175,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>base_reference: Base <span class="op">=</span> derived_obj  <span class="co"># Upcasting happens automatically</span></span>
 <span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(base_reference.base_method())  <span class="co"># Works - inherited method</span></span>
-<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="co"># print(base_reference.derived_method())  # Would fail - not visible through Base reference</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="co"># print(base_reference.derived_method())  # Would fail - not visible through Base reference</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>Base: 1, 2</code></pre>
@@ -177,10 +194,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="downcasting-in-python" class="level3">
 <h3 class="anchored" data-anchor-id="downcasting-in-python">Downcasting in Python</h3>
 <p>Downcasting is the reverse process - treating a base class object as an instance of a derived class. This is potentially unsafe because the base object might not actually be an instance of the derived class.</p>
-<div id="e0092ff3" class="cell" data-execution_count="2">
+<div id="7d2ce44b" class="cell" data-execution_count="2">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Downcasting example - potentially unsafe</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Downcasting example - potentially unsafe</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> unsafe_downcast(obj: Base) <span class="op">-&gt;</span> BaseInDB:</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># This is downcasting: Base → BaseInDB</span></span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Dangerous - assumes obj is actually a BaseInDB</span></span>
@@ -204,7 +221,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a><span class="co"># This succeeds</span></span>
 <span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> safe_downcast(derived_obj)</span>
-<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(result.derived_method())  <span class="co"># Now we can access derived methods</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(result.derived_method())  <span class="co"># Now we can access derived methods</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>Downcast failed: Object is not an instance of BaseInDB
@@ -229,10 +246,10 @@ Derived: uuid-123</code></pre>
 <li><p><strong>Transparent Inheritance</strong>: In Python, if a class inherits from another, it’s already considered an instance of both its own class and all its parent classes.</p></li>
 <li><p><strong>Type Hints are Non-binding</strong>: Python’s type hints, including the <code>cast()</code> function, are for static type checkers and don’t affect runtime behavior.</p></li>
 </ol>
-<div id="fc03c84f" class="cell" data-execution_count="3">
+<div id="151da8e8" class="cell" data-execution_count="3">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> cast</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> cast</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Type hints don't change runtime behavior</span></span>
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> demonstrate_type_hints():</span>
@@ -244,7 +261,7 @@ Derived: uuid-123</code></pre>
 <span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Both work the same way:</span></span>
 <span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(base_ref1.base_method())</span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(base_ref2.base_method())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(base_ref2.base_method())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 </section>
@@ -256,10 +273,10 @@ Derived: uuid-123</code></pre>
 <li><p><strong>Document Interface Expectations</strong>: Clearly document what methods/attributes your functions expect, rather than relying on specific class hierarchies.</p></li>
 <li><p><strong>Leverage Protocols</strong>: For better type safety, consider using typing.Protocol to define structural subtyping:</p></li>
 </ol>
-<div id="0fb9f3c7" class="cell" data-execution_count="4">
+<div id="35264dcd" class="cell" data-execution_count="4">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Protocol</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Protocol</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> BaseProtocol(Protocol):</span>
 <span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    a: <span class="bu">int</span></span>
@@ -268,7 +285,7 @@ Derived: uuid-123</code></pre>
 <span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> process_protocol(obj: BaseProtocol) <span class="op">-&gt;</span> <span class="bu">str</span>:</span>
 <span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Works with any object that has the required interface</span></span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> obj.base_method()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> obj.base_method()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 </section>
@@ -339,13 +356,14 @@ Derived: uuid-123</code></pre>
       e.clearSelection();
     }
     const getTextToCopy = function(trigger) {
-        const codeEl = trigger.previousElementSibling.cloneNode(true);
-        for (const childEl of codeEl.children) {
-          if (isCodeAnnotation(childEl)) {
-            childEl.remove();
-          }
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
         }
-        return codeEl.innerText;
+      }
+      return codeEl.innerText;
     }
     const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
       text: getTextToCopy
@@ -767,7 +785,7 @@ Derived: uuid-123</code></pre>
   }
   loadGiscus();
 </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
-<div class="sourceCode" id="cb7" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "Understanding Casting in Python: Upcasting vs Downcasting"</span></span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="an">author:</span><span class="co"> "Andres Monge &lt;aemonge&gt;"</span></span>
 <span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> "2024-12-28"</span></span>
@@ -953,7 +971,7 @@ Derived: uuid-123</code></pre>
 <span id="cb7-192"><a href="#cb7-192" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb7-193"><a href="#cb7-193" aria-hidden="true" tabindex="-1"></a>This fundamental understanding helps write more idiomatic Python code that leverages the</span>
 <span id="cb7-194"><a href="#cb7-194" aria-hidden="true" tabindex="-1"></a>language's strengths while avoiding potential pitfalls.</span>
-</code><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></pre></div>
+</code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->
 
