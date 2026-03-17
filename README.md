@@ -1,5 +1,7 @@
 # Andres Monge - Python Technical Lead
 
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-yellow?logo=buy-me-a-coffee)](https://www.buymeacoffee.com/aemonge)
+
 ## About Me
 
 I am a seasoned technical lead and solutions architect with over 15 years of experience
@@ -19,27 +21,27 @@ development workflow:
 
 ### Utility Scripts
 
--   `bin/boxify`: A command-line tool for formatting output in boxes
--   `bin/pcloud`: A unified pCloud management script
--   `bin/v`: A versatile Neovim wrapper script with term-multiplier capabilities
+- `bin/boxify`: A command-line tool for formatting output in boxes
+- `bin/pcloud`: A unified pCloud management script
+- `bin/v`: A versatile Neovim wrapper script with term-multiplier capabilities
 
 ### System Administration
 
--   `sbin/lsport`: List processes listening on a specific port
--   `sbin/psall`: List all processes matching a given pattern
--   `sbin/usball`: List USB devices matching a given pattern
--   `sbin/rtx-gpu-compute-only.sh`: Set NVIDIA GPU to compute mode
--   `sbin/updater`: System-wide update script for various package managers
+- `sbin/lsport`: List processes listening on a specific port
+- `sbin/psall`: List all processes matching a given pattern
+- `sbin/usball`: List USB devices matching a given pattern
+- `sbin/rtx-gpu-compute-only.sh`: Set NVIDIA GPU to compute mode
+- `sbin/updater`: System-wide update script for various package managers
 
 ### Configuration
 
--   `os-init/`: Operating system initialization scripts
--   `build.sh`: Build script for the project
--   `resume.tex`: LaTeX source for my resume
+- `os-init/`: Operating system initialization scripts
+- `build.sh`: Build script for the project
+- `resume.tex`: LaTeX source for my resume
 
 ### Documentation
 
--   `docs/`: Contains various documentation files, including my PDF resume
+- `docs/`: Contains various documentation files, including my PDF resume
 
 ## Key Features
 
