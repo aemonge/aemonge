@@ -1,192 +1,234 @@
 .navbar {
-    display: none;
+  display: none;
 }
 
 @media only screen and (max-width: 768px) {
-    body {
-        flex-direction: column;
-    }
+  body {
+    flex-direction: column;
+  }
 
-    body.landing {
-        overflow: auto;
-    }
+  body.landing {
+    overflow: auto;
+  }
 
-    body.landing > div {
-      padding-right: 4rem;
-    }
+  body.landing > div {
+    padding-right: 4rem;
+  }
 
-    body.main {
-      margin-bottom: 2rem;
-    }
+  body.main {
+    margin-bottom: 2rem;
+  }
 
-    .navbar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 1rem 1.5rem;
-        z-index: 100;
-        background-color: var(--sidebar-bg);
-        margin-bottom: 0;
-    }
+  .navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.9rem 1rem;
+    z-index: 100;
+    background-color: var(--sidebar-bg);
+    margin-bottom: 0;
+  }
 
-    .navbar-brand {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
+  .navbar-brand {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 0.45rem;
+    min-width: 0;
+    flex: 1;
+  }
 
-    .navbar-avatar {
-        width: 30px;
-        height: 30px;
-        border-radius: 50%;
-        object-fit: cover;
-    }
+  .navbar-ctas {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    flex-shrink: 0;
+  }
 
-    .navbar-name {
-        font-size: 1rem;
-        font-weight: bold;
-        color: var(--primary-color);
-        text-decoration: none;
-    }
+  .navbar .resume {
+    margin: 0;
+    padding: 0.3rem 0.65rem;
+    font-size: 0.9rem;
+    white-space: nowrap;
+  }
 
-    .hamburger-toggle {
-        display: none;
-    }
+  .buy-coffee-top {
+    display: block;
+    margin: 0 16px 0;
+  }
 
-    .hamburger {
-        display: block;
-        cursor: pointer;
-    }
+  .buy-coffee-top img {
+    display: block;
+    width: 190px;
+    max-width: 190px;
+    height: auto;
+  }
 
-    .bar {
-        display: block;
-        width: 25px;
-        height: 3px;
-        margin: 5px auto;
-        transition: all 0.3s ease-in-out;
-        background-color: var(--primary-color);
-    }
+  .navbar-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
 
-    .nav-menu {
-        position: fixed;
-        top: 5rem;
-        flex-direction: column;
-        background-color: var(--sidebar-bg);
-        width: 100%;
-        transition: 0.3s;
-        box-shadow: 0 10px 27px rgba(0, 0, 0, 0.05);
-        left: 0;
-        text-align: left;
-        margin: 0;
-        padding: 0;
-        display: none;
-        max-height: 74vh;
-        overflow-y: auto;
-        overflow-x: hidden;
-    }
+  .navbar-name {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 10rem;
+  }
 
-    .hamburger-toggle:checked ~ .nav-menu {
-        display: block;
-    }
+  .hamburger-toggle {
+    display: none;
+  }
 
-    .nav-item {
-        margin: 0.5rem 1.5rem;
-    }
+  .hamburger {
+    display: block;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
 
-    .buy-coffee-mobile {
-        display: block;
-        margin: 0.75rem auto 0.35rem;
-    }
+  .bar {
+    display: block;
+    width: 25px;
+    height: 3px;
+    margin: 5px auto;
+    transition: all 0.3s ease-in-out;
+    background-color: var(--primary-color);
+  }
 
-    .submenu-toggle {
-        display: none;
-    }
+  .nav-menu {
+    position: fixed;
+    top: 5rem;
+    flex-direction: column;
+    background-color: var(--sidebar-bg);
+    width: 100%;
+    transition: 0.3s;
+    box-shadow: 0 10px 27px rgba(0, 0, 0, 0.05);
+    left: 0;
+    text-align: left;
+    margin: 0;
+    padding: 0;
+    display: none;
+    max-height: 74vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
 
-    .submenu {
-        display: none;
-        margin-left: 1rem;
-    }
+  .hamburger-toggle:checked ~ .nav-menu {
+    display: block;
+  }
 
-    .submenu-toggle:checked ~ .submenu {
-        display: block;
-    }
+  .nav-item {
+    margin: 0.5rem 1.5rem;
+  }
 
-    .sidebar {
-        display: none;
-    }
+  .buy-coffee-mobile {
+    display: block;
+    margin: 0.75rem auto 0.35rem;
+    width: 190px;
+  }
 
-    .hamburger-toggle:checked + .hamburger .bar:nth-child(2) {
-        opacity: 0;
-    }
+  .submenu-toggle {
+    display: none;
+  }
 
-    .hamburger-toggle:checked + .hamburger .bar:nth-child(1) {
-        transform: translateY(8px) rotate(45deg);
-    }
+  .submenu {
+    display: none;
+    margin-left: 1rem;
+  }
 
-    .hamburger-toggle:checked + .hamburger .bar:nth-child(3) {
-        transform: translateY(-8px) rotate(-45deg);
-    }
+  .submenu-toggle:checked ~ .submenu {
+    display: block;
+  }
 
-    iframe#content {
-        margin-top: -15px;
-        width: calc(100% + 25px);
-        height: calc(100% + 15px);
-    }
+  .sidebar {
+    display: none;
+  }
 
-    /* Ensure the mobile menu uses the same styles as the regular menu */
-    .nav-menu details {
-        position: relative;
-        width: 100%;
-        background-color: var(--sidebar-bg);
-        font-family: var(--font-primary);
-    }
+  .hamburger-toggle:checked + .hamburger .bar:nth-child(2) {
+    opacity: 0;
+  }
 
-    .nav-menu summary {
-        cursor: pointer;
-        margin: 0.5rem auto;
-        padding-left: 1rem;
-        font-size: 1.2rem;
-        border-bottom: 1px solid var(--border-color);
-        padding-bottom: 0.5rem;
-        color: var(--primary-color);
-        list-style-type: none;
-    }
+  .hamburger-toggle:checked + .hamburger .bar:nth-child(1) {
+    transform: translateY(8px) rotate(45deg);
+  }
 
-    .nav-menu summary::before {
-        content: "\2261";
-        font-size: 1.2rem;
-        margin-right: 0.5rem;
-        transition: transform 0.2s ease;
-    }
+  .hamburger-toggle:checked + .hamburger .bar:nth-child(3) {
+    transform: translateY(-8px) rotate(-45deg);
+  }
 
-    .nav-menu details[open] > summary::before {
-        transform: rotate(45deg);
-    }
+  iframe#content {
+    margin-top: -15px;
+    width: calc(100% + 25px);
+    height: calc(100% + 15px);
+  }
 
-    .nav-menu summary:hover,
-    .nav-menu summary:focus {
-        color: var(--secondary-color);
-        background-color: var(--hover-color);
-    }
+  /* Ensure the mobile menu uses the same styles as the regular menu */
+  .nav-menu details {
+    position: relative;
+    width: 100%;
+    background-color: var(--sidebar-bg);
+    font-family: var(--font-primary);
+  }
 
-    .nav-menu details ul {
-        display: block;
-        list-style: none;
-        padding: 0;
-        border: 2px solid var(--border-color);
-        width: 100%;
-        z-index: 100;
-        position: relative;
-        background: var(--sidebar-bg);
-        color: var(--text-color);
-        font-family: var(--font-primary);
-    }
+  .nav-menu summary {
+    cursor: pointer;
+    margin: 0.5rem auto;
+    padding-left: 1rem;
+    font-size: 1.2rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+    color: var(--primary-color);
+    list-style-type: none;
+  }
 
-    .nav-menu details[open] summary ~ * {
-        animation: open 0.5s ease-in;
-    }
+  .nav-menu summary::before {
+    content: "\2261";
+    font-size: 1.2rem;
+    margin-right: 0.5rem;
+    transition: transform 0.2s ease;
+  }
 
-    .nav-menu details:not([open]) summary ~ * {
-        animation: close 0.5s ease-out;
-    }
+  .nav-menu details[open] > summary::before {
+    transform: rotate(45deg);
+  }
+
+  .nav-menu summary:hover,
+  .nav-menu summary:focus {
+    color: var(--secondary-color);
+    background-color: var(--hover-color);
+  }
+
+  .nav-menu details ul {
+    display: block;
+    list-style: none;
+    padding: 0;
+    border: 2px solid var(--border-color);
+    width: 100%;
+    z-index: 100;
+    position: relative;
+    background: var(--sidebar-bg);
+    color: var(--text-color);
+    font-family: var(--font-primary);
+  }
+
+  .nav-menu details[open] summary ~ * {
+    animation: open 0.5s ease-in;
+  }
+
+  .nav-menu details:not([open]) summary ~ * {
+    animation: close 0.5s ease-out;
+  }
+}
+
+@media only screen and (max-width: 420px) {
+  .navbar-name {
+    display: none;
+  }
 }

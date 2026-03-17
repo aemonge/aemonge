@@ -146,6 +146,10 @@ summary.navigation-language {
 	display: none;
 }
 
+.buy-coffee-top {
+	display: none;
+}
+
 .iframe-container {
 	flex: 1;
 	height: 100vh;
