@@ -36,10 +36,13 @@ Options:
       --ro                Mount project directory read-only (safe)
       --rw                Mount project directory read-write (default)
       --allow-git         Allow write access to .git directory (default: read-only)
-      --allow-node-modules Allow write access to node_modules (default: read-only)
-      --allow-venv        Allow write access to .venv (default: read-only)
+      --allow-node-modules Allow write access to node_modules (default: read-write)
+      --allow-venv        Allow write access to .venv (default: read-write)
       --allow-infra       Allow write access to all protected infra dirs
       --restrict-dev      Restrict /dev access to essential devices only
+      --quiet-landlock    Suppress Landlock fallback warnings
+      --quite-landlock    Alias for --quiet-landlock
+      --require-landlock  Fail if Landlock cannot be enabled
   --allow-host-tools  Bind host user tools (~/.local/bin, mise, pyenv, uv, rustup/cargo, etc) (default)
   --no-host-tools     Disable binding host user tools
 USAGE_EOF
@@ -54,7 +57,7 @@ PARANOID_EOF
     cat <<'USAGE_END'
 
 Arguments:
-  PROJECT_DIR             Project directory to expose as /workspace (default: $PWD)
+  PROJECT_DIR             Project directory exposed at same absolute path (default: $PWD)
   OPENCODE_ARGS           Arguments passed verbatim to opencode after "--"
 
 Environment:
@@ -63,7 +66,7 @@ Environment:
   SCODER_FS_MODE          "ro" (secure) or "rw" (default, allow writes)
 
 Protected Directories (read-only by default):
-  .git, .venv, node_modules, .turbo, .next, dist, build, target, .cargo
+  .git, .turbo, .next, dist, build, target, .cargo
   .gitignore, package-lock.json, poetry.lock, Cargo.lock, .github/
 
 Config Precedence (automatic):
@@ -145,6 +148,102 @@ info_blue() {
     fi
 }
 
+json_escape() {
+    local value="$1"
+    value=${value//\\/\\\\}
+    value=${value//\"/\\\"}
+    value=${value//$'\n'/\\n}
+    printf '%s' "${value}"
+}
+
+update_phase() {
+    local phase="$1"
+    if [[ "${SCODER_META_ENABLED:-0}" -eq 1 ]]; then
+        printf '%s\n' "${phase}" >"${SCODER_PHASE_FILE}" || true
+    fi
+}
+
+append_session_log() {
+    local message="$1"
+    if [[ "${SCODER_META_ENABLED:-0}" -eq 1 ]]; then
+        printf '[%s] %s\n' "$(date -Iseconds)" "${message}" >>"${SCODER_SESSION_LOG}" || true
+    fi
+}
+
+append_approval_log() {
+    local message="$1"
+    if [[ "${SCODER_META_ENABLED:-0}" -eq 1 ]]; then
+        printf '[%s] %s\n' "$(date -Iseconds)" "${message}" >>"${SCODER_APPROVAL_LOG}" || true
+    fi
+}
+
+write_command_json() {
+    local mode="$1"
+    local command_path="$2"
+    if [[ "${SCODER_META_ENABLED:-0}" -ne 1 ]]; then
+        return
+    fi
+
+    local project_json
+    local mode_json
+    local cmd_json
+    local args_json=""
+    local index=0
+    project_json=$(json_escape "${PROJECT_DIR}")
+    mode_json=$(json_escape "${mode}")
+    cmd_json=$(json_escape "${command_path}")
+
+    for arg in "${OPENCODE_ARGS[@]}"; do
+        local escaped
+        escaped=$(json_escape "${arg}")
+        if [[ "${index}" -gt 0 ]]; then
+            args_json+=$',\n'
+        fi
+        args_json+="    \"${escaped}\""
+        ((index += 1))
+    done
+
+    cat >"${SCODER_COMMAND_JSON}" <<EOF
+{
+  "timestamp": "$(date -Iseconds)",
+  "project_dir": "${project_json}",
+  "mode": "${mode_json}",
+  "network": "${NET_MODE}",
+  "fs_mode": "${FS_MODE}",
+  "allow_git": ${ALLOW_GIT},
+  "allow_node_modules": ${ALLOW_NODE_MODULES},
+  "allow_venv": ${ALLOW_VENV},
+  "allow_infra": ${ALLOW_INFRA},
+  "allow_host_tools": ${ALLOW_HOST_TOOLS},
+  "not_paranoid": ${NOT_PARANOID},
+  "quiet_landlock": ${QUIET_LANDLOCK},
+  "require_landlock": ${REQUIRE_LANDLOCK},
+  "command": "${cmd_json}",
+  "opencode_args": [
+${args_json}
+  ]
+}
+EOF
+}
+
+init_metadata_dir() {
+    SCODER_META_ENABLED=0
+    SCODER_META_DIR="${PROJECT_DIR}/.scoder"
+    SCODER_SESSION_LOG="${SCODER_META_DIR}/session.log"
+    SCODER_PHASE_FILE="${SCODER_META_DIR}/phase"
+    SCODER_COMMAND_JSON="${SCODER_META_DIR}/command.json"
+    SCODER_APPROVAL_LOG="${SCODER_META_DIR}/approval.log"
+
+    if mkdir -p "${SCODER_META_DIR}" 2>/dev/null; then
+        SCODER_META_ENABLED=1
+        : >"${SCODER_PHASE_FILE}" || true
+        : >"${SCODER_COMMAND_JSON}" || true
+        touch "${SCODER_SESSION_LOG}" "${SCODER_APPROVAL_LOG}" 2>/dev/null || true
+    else
+        warning "cannot write metadata in ${SCODER_META_DIR}"
+    fi
+}
+
 # ====== PARANOID MODE: Landrun Detection ======
 
 detect_landrun() {
@@ -166,13 +265,21 @@ detect_landrun() {
 
 check_landlock_support() {
     if [[ "${LANDRUN_AVAILABLE}" -eq 1 && "${LANDLOCK_ABI_VERSION}" -eq 0 ]]; then
-        warning "landrun found but kernel doesn't support Landlock"
-        warning "Kernel 5.13+ required with CONFIG_SECURITY_LANDLOCK=y"
-        warning "Falling back to bubblewrap-only mode"
+        if [[ "${REQUIRE_LANDLOCK}" -eq 1 ]]; then
+            error "landrun found but kernel doesn't support Landlock"
+            error "Kernel 5.13+ with CONFIG_SECURITY_LANDLOCK=y is required"
+            return 2
+        fi
+
+        if [[ "${QUIET_LANDLOCK}" -eq 0 ]]; then
+            warning "landrun found but kernel doesn't support Landlock"
+            warning "Kernel 5.13+ required with CONFIG_SECURITY_LANDLOCK=y"
+            warning "Falling back to bubblewrap-only mode"
+        fi
         return 1
     fi
 
-    if [[ "${LANDLOCK_ABI_VERSION}" -gt 0 && "${LANDLOCK_ABI_VERSION}" -lt 4 ]]; then
+    if [[ "${LANDLOCK_ABI_VERSION}" -gt 0 && "${LANDLOCK_ABI_VERSION}" -lt 4 && "${QUIET_LANDLOCK}" -eq 0 ]]; then
         info_blue "Note: Landlock ABI v${LANDLOCK_ABI_VERSION} detected (kernel < 6.7)"
         info_blue "Network syscall restrictions unavailable (requires ABI v4+)"
     fi
@@ -522,6 +629,8 @@ ALLOW_HOST_TOOLS=1
 ALLOW_HOST_TOOLS_SET=0
 ALLOW_HOST_TOOLS_DISABLE_SET=0
 NOT_PARANOID=0
+QUIET_LANDLOCK=0
+REQUIRE_LANDLOCK=0
 HOST_HOME="${HOME}"
 
 # Landrun/Landlock state
@@ -547,8 +656,8 @@ OPENCODE_ARGS=()
 RO_SET=0
 RW_SET=0
 ALLOW_GIT=0
-ALLOW_NODE_MODULES=0
-ALLOW_VENV=0
+ALLOW_NODE_MODULES=1
+ALLOW_VENV=1
 ALLOW_INFRA=0
 RESTRICT_DEV=0
 PARSE_DONE=0
@@ -609,6 +718,14 @@ while [[ $# -gt 0 ]]; do
         ;;
     --allow-venv)
         ALLOW_VENV=1
+        shift
+        ;;
+    --quiet-landlock | --quite-landlock)
+        QUIET_LANDLOCK=1
+        shift
+        ;;
+    --require-landlock)
+        REQUIRE_LANDLOCK=1
         shift
         ;;
     --allow-infra)
@@ -680,6 +797,8 @@ if [[ -z "${PROJECT_DIR}" ]]; then
     PROJECT_DIR="${PWD}"
 fi
 
+update_phase "parsed"
+
 # -------- validation --------
 if ! command -v bwrap >/dev/null 2>&1; then
     error "bubblewrap (bwrap) not found in PATH"
@@ -687,6 +806,11 @@ if ! command -v bwrap >/dev/null 2>&1; then
     error "         apt install bubblewrap  # Debian/Ubuntu"
     error "         dnf install bubblewrap  # Fedora/RHEL"
     exit 1
+fi
+
+BWRAP_DISABLE_USERNS_SUPPORTED=0
+if bwrap --help 2>/dev/null | grep -q -- "--disable-userns"; then
+    BWRAP_DISABLE_USERNS_SUPPORTED=1
 fi
 
 if ! command -v "${OPENCODE_BIN}" >/dev/null 2>&1; then
@@ -705,6 +829,24 @@ if [[ "${FS_MODE}" != "ro" && "${FS_MODE}" != "rw" ]]; then
 fi
 
 PROJECT_DIR="$(realpath "${PROJECT_DIR}")"
+SANDBOX_WORKDIR="${PROJECT_DIR}"
+
+init_metadata_dir
+update_phase "validated"
+append_session_log "starting session for ${PROJECT_DIR}"
+
+if [[ "${ALLOW_GIT}" -eq 1 ]]; then
+    append_approval_log "--allow-git enabled"
+fi
+if [[ "${ALLOW_INFRA}" -eq 1 ]]; then
+    append_approval_log "--allow-infra enabled"
+fi
+if [[ "${NOT_PARANOID}" -eq 1 ]]; then
+    append_approval_log "--not-paranoid enabled"
+fi
+if [[ "${REQUIRE_LANDLOCK}" -eq 1 ]]; then
+    append_approval_log "--require-landlock enabled"
+fi
 
 # Ensure OpenCode data/cache dirs exist (config handled separately)
 OPENCODE_DATA="${HOME}/.local/share/opencode"
@@ -820,26 +962,32 @@ fi
 
 # Python virtual environments (project-local)
 if [[ -d "${PROJECT_DIR}/.venv/bin" ]]; then
-    EXTRA_BINDS+=(--bind "${PROJECT_DIR}/.venv/bin" "/home/scoder/workspace/.venv/bin")
-    SANDBOX_PATH="/home/scoder/workspace/.venv/bin:${SANDBOX_PATH}"
+    EXTRA_BINDS+=(--bind "${PROJECT_DIR}/.venv/bin" "${SANDBOX_WORKDIR}/.venv/bin")
+    SANDBOX_PATH="${SANDBOX_WORKDIR}/.venv/bin:${SANDBOX_PATH}"
 fi
 
 # Node.js project-local binaries
 if [[ -d "${PROJECT_DIR}/node_modules/.bin" ]]; then
-    EXTRA_BINDS+=(--bind "${PROJECT_DIR}/node_modules/.bin" "/home/scoder/workspace/node_modules/.bin")
-    SANDBOX_PATH="/home/scoder/workspace/node_modules/.bin:${SANDBOX_PATH}"
+    EXTRA_BINDS+=(--bind "${PROJECT_DIR}/node_modules/.bin" "${SANDBOX_WORKDIR}/node_modules/.bin")
+    SANDBOX_PATH="${SANDBOX_WORKDIR}/node_modules/.bin:${SANDBOX_PATH}"
 fi
 
 # Go project-local binaries
 if [[ -d "${PROJECT_DIR}/bin" && -f "${PROJECT_DIR}/go.mod" ]]; then
-    EXTRA_BINDS+=(--bind "${PROJECT_DIR}/bin" "/home/scoder/workspace/bin")
-    SANDBOX_PATH="/home/scoder/workspace/bin:${SANDBOX_PATH}"
+    EXTRA_BINDS+=(--bind "${PROJECT_DIR}/bin" "${SANDBOX_WORKDIR}/bin")
+    SANDBOX_PATH="${SANDBOX_WORKDIR}/bin:${SANDBOX_PATH}"
 fi
 
 # -------- Infrastructure Protection --------
 PROTECTED_INFRA_DIRS=(
     ".git"
     ".github"
+    ".turbo"
+    ".next"
+    "dist"
+    "build"
+    "target"
+    ".cargo"
 )
 
 PROTECTED_INFRA_FILES=(
@@ -865,14 +1013,14 @@ if [[ "${ALLOW_INFRA}" -eq 0 ]]; then
         fi
 
         if [[ -d "${PROJECT_DIR}/${dir}" ]]; then
-            SAFE_BINDS+=(--ro-bind "${PROJECT_DIR}/${dir}" "/home/scoder/workspace/${dir}")
+            SAFE_BINDS+=(--ro-bind "${PROJECT_DIR}/${dir}" "${SANDBOX_WORKDIR}/${dir}")
             info "Protecting ${dir}/ (read-only)"
         fi
     done
 
     for file in "${PROTECTED_INFRA_FILES[@]}"; do
         if [[ -f "${PROJECT_DIR}/${file}" ]]; then
-            SAFE_BINDS+=(--ro-bind "${PROJECT_DIR}/${file}" "/home/scoder/workspace/${file}")
+            SAFE_BINDS+=(--ro-bind "${PROJECT_DIR}/${file}" "${SANDBOX_WORKDIR}/${file}")
             info "Protecting ${file} (read-only)"
         fi
     done
@@ -885,6 +1033,13 @@ BWRAP_CMD=(
     --ro-bind /bin /bin
     --ro-bind /lib /lib
 )
+
+if [[ "${BWRAP_DISABLE_USERNS_SUPPORTED}" -eq 1 ]]; then
+    BWRAP_CMD=(bwrap --unshare-user "${BWRAP_CMD[@]:1}")
+    BWRAP_CMD+=(--disable-userns)
+else
+    BWRAP_CMD=(bwrap --unshare-user-try "${BWRAP_CMD[@]:1}")
+fi
 
 if [[ -d /lib64 ]]; then
     BWRAP_CMD+=(--ro-bind /lib64 /lib64)
@@ -927,7 +1082,10 @@ BWRAP_CMD+=(
 
 BWRAP_CMD+=("${EXTRA_DIRS[@]}")
 BWRAP_CMD+=("${EXTRA_BINDS[@]}")
-BWRAP_CMD+=("${BIND_FLAG}" "${PROJECT_DIR}" /home/scoder/workspace)
+if [[ "${SANDBOX_WORKDIR}" != "/" ]]; then
+    BWRAP_CMD+=(--dir "${SANDBOX_WORKDIR}")
+fi
+BWRAP_CMD+=("${BIND_FLAG}" "${PROJECT_DIR}" "${SANDBOX_WORKDIR}")
 
 if [[ ${#SAFE_BINDS[@]} -gt 0 ]]; then
     BWRAP_CMD+=("${SAFE_BINDS[@]}")
@@ -951,7 +1109,7 @@ else
     info "No custom config found, OpenCode will use defaults"
 fi
 
-BWRAP_CMD+=(--chdir /home/scoder/workspace)
+BWRAP_CMD+=(--chdir "${SANDBOX_WORKDIR}")
 BWRAP_CMD+=("${NET_FLAGS[@]}")
 BWRAP_CMD+=(
     --new-session
@@ -978,7 +1136,7 @@ if [[ -n "${CARGO_HOME_SANDBOX:-}" ]]; then
 fi
 
 if [[ -n "${PYO3_PYTHON:-}" ]]; then
-    BWRAP_CMD+=(--setenv PYO3_PYTHON "/home/scoder/workspace/.venv/bin/python")
+    BWRAP_CMD+=(--setenv PYO3_PYTHON "${SANDBOX_WORKDIR}/.venv/bin/python")
 fi
 
 BWRAP_CMD+=("${OPENCODE_BIN}" "${OPENCODE_ARGS[@]}")
@@ -987,13 +1145,30 @@ BWRAP_CMD+=("${OPENCODE_BIN}" "${OPENCODE_ARGS[@]}")
 
 # Determine if paranoid mode should be active
 USE_PARANOID=0
+LANDLOCK_CHECK_RC=0
+
+if [[ "${REQUIRE_LANDLOCK}" -eq 1 && "${LANDRUN_AVAILABLE}" -eq 0 ]]; then
+    error "--require-landlock set, but landrun is not available in PATH"
+    update_phase "error"
+    append_session_log "landlock requirement failed: landrun missing"
+    exit 1
+fi
+
 if [[ "${NOT_PARANOID}" -eq 0 && "${LANDRUN_AVAILABLE}" -eq 1 ]]; then
     if check_landlock_support; then
         USE_PARANOID=1
+    else
+        LANDLOCK_CHECK_RC=$?
+        if [[ "${LANDLOCK_CHECK_RC}" -eq 2 ]]; then
+            update_phase "error"
+            append_session_log "landlock requirement failed: kernel support unavailable"
+            exit 1
+        fi
     fi
 fi
 
 if [[ "${USE_PARANOID}" -eq 1 ]]; then
+    update_phase "build-landrun"
     info_blue "🔒 Paranoid mode enabled (defense-in-depth: Landlock + Bubblewrap)"
     info_blue "Using landrun: ${LANDRUN_BIN} (Landlock ABI v${LANDLOCK_ABI_VERSION})"
 
@@ -1002,15 +1177,22 @@ if [[ "${USE_PARANOID}" -eq 1 ]]; then
     translate_network_to_landrun
     build_landrun_command BWRAP_CMD
 
+    write_command_json "paranoid" "${LANDRUN_BIN}"
+    append_session_log "launch mode=paranoid net=${NET_MODE} fs=${FS_MODE}"
+    update_phase "execute"
     info "Launching scoder paranoid sandbox..."
     exec "${LANDRUN_CMD[@]}"
 else
+    update_phase "build-bwrap"
     if [[ "${NOT_PARANOID}" -eq 1 && "${LANDRUN_AVAILABLE}" -eq 1 ]]; then
         info "Running in standard mode (bubblewrap only, --not-paranoid)"
     elif [[ "${LANDRUN_AVAILABLE}" -eq 0 ]]; then
         info "Running in standard mode (bubblewrap only, landrun not available)"
     fi
 
+    write_command_json "bubblewrap-only" "bwrap"
+    append_session_log "launch mode=bubblewrap-only net=${NET_MODE} fs=${FS_MODE}"
+    update_phase "execute"
     info "Launching scoder sandbox..."
     exec "${BWRAP_CMD[@]}"
 fi
