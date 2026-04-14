@@ -38,6 +38,7 @@ show_help() {
     echo "  go                  Update go packages"
     echo "  gem                 Update ruby packages"
     echo "  pnpm                Update pnpm packages"
+    echo "  bun                 Update bun runtime and global packages"
     echo "  pip                 Update pipx packages"
     echo "  zinit               Update zinit plugins"
     echo "  clean-dev           Clean (nvim, zinit, treesitter, mason) dev packages"
@@ -243,6 +244,17 @@ update_pnpm() {
     fi
 }
 
+update_bun() {
+    # Check if running as user, and if so proceed
+    if [[ $EUID -ne 0 ]]; then
+        if check_command "bun" "bun update"; then
+            $QUIET || title "Running: 'bun upgrade && bun update -g'"
+            bun upgrade || true
+            bun update -g || true
+        fi
+    fi
+}
+
 update_zinit() {
     # Check if running as user, and if so proceed
     if [[ $EUID -ne 0 ]]; then
@@ -284,6 +296,7 @@ clean_dev() {
 
         local commands=(
             "pnpm:pnpm cache clean --force"
+            "bun:bun pm cache rm"
             "go:GO111MODULE=off go clean -cache -modcache -i -r"
         )
 
@@ -371,6 +384,7 @@ run_user_updates() {
         update_go >/dev/null
         update_gem >/dev/null
         update_pnpm >/dev/null
+        update_bun >/dev/null
         update_pip >/dev/null
         update_zinit >/dev/null
         update_neovim >/dev/null
@@ -383,11 +397,12 @@ run_user_updates() {
         $QUIET || title "Updating Runtimes (mise)"
         update_mise
 
-        $QUIET || title "Updating Libraries (cargo, go, gem, pnpm, pip)"
+        $QUIET || title "Updating Libraries (cargo, go, gem, pnpm, bun, pip)"
         update_cargo
         update_go
         update_gem
         update_pnpm
+        update_bun
         update_pip
 
         $QUIET || title "Updating terminal (zsh, nvim)"
@@ -451,6 +466,7 @@ completions() {
     echo "    'cargo:Update cargo packages'" >>~/.zfunc/_updater
     echo "    'go:Update go packages'" >>~/.zfunc/_updater
     echo "    'pnpm:Update pnpm packages'" >>~/.zfunc/_updater
+    echo "    'bun:Update bun runtime and global packages'" >>~/.zfunc/_updater
     echo "    'pip:Update pipx packages'" >>~/.zfunc/_updater
     echo "    'zinit:Update zinit plugins'" >>~/.zfunc/_updater
     echo "    'clean-dev:Clean dev packages'" >>~/.zfunc/_updater
@@ -600,6 +616,13 @@ main() {
                     update_pnpm >/dev/null
                 else
                     update_pnpm
+                fi
+                ;;
+            bun)
+                if $QUIET; then
+                    update_bun >/dev/null
+                else
+                    update_bun
                 fi
                 ;;
             zinit)

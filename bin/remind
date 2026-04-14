@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-VERSION="2.2.0"
+VERSION="2.2.1"
 SCRIPT_NAME="$(basename "$0")"
 
 # Colors for output
@@ -85,12 +85,16 @@ show_markdown_help() {
     echo -e "${BLUE}go-grip --theme dark file.md${RESET}"
     echo -e "${DIM}# Opens in browser, use Print to PDF (Ctrl+P)${RESET}"
     echo ""
+    echo -e "${BLUE}mdt file.md${RESET}"
+    echo -e "${DIM}# Markdown TUI / utility helper${RESET}"
+    echo ""
     echo "Options: --theme light | --theme dark"
 }
 
 show_markdown_install() {
-    echo -e "${GREEN}Install go-grip:${RESET}"
+    echo -e "${GREEN}Install markdown tools:${RESET}"
     echo -e "  ${BLUE}pamac build go-grip-git${RESET}"
+    echo -e "  ${BLUE}cargo install mdt${RESET}            ${DIM}# Or your preferred package source${RESET}"
 }
 
 # ============================================================================
@@ -130,11 +134,15 @@ show_zsh_help() {
     echo ""
     echo -e "${BLUE}bat file.txt${RESET}"
     echo -e "${DIM}# cat with syntax highlighting${RESET}"
+    echo ""
+    echo -e "${BLUE}sem diff HEAD~1${RESET}"
+    echo -e "${DIM}# Semantic diff with entity-level changes${RESET}"
 }
 
 show_zsh_install() {
     echo -e "${GREEN}Install modern CLI tools:${RESET}"
     echo -e "  ${BLUE}pamac install atuin zoxide eza bat fd ripgrep fzf${RESET}"
+    echo -e "  ${BLUE}cargo install sem${RESET}            ${DIM}# Semantic diff CLI${RESET}"
 }
 
 # ============================================================================
