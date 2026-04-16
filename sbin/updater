@@ -2,6 +2,7 @@
 # vim: ft=bash
 
 set -e
+set -o pipefail
 
 title() {
     if command -v "boxify" &>/dev/null; then
@@ -20,19 +21,22 @@ subtitle() {
 }
 
 show_help() {
-    echo "Usage: $0 [OPTION]"
+    echo "Usage: $SCRIPT_NAME [OPTION]"
     echo "Run system updates for various package managers."
     echo
     echo "Options:"
     echo "  -h, --help, help    Show this help message and exit"
     echo "  -q, --quiet         Disable info and verbose output, show only errors and warnings"
-    echo "  pamac               Update using Manajaro 'pamac'"
+    echo "  --only LIST         Run only stages in comma list (e.g. cargo,go,pip)"
+    echo "  --skip LIST         Skip stages in comma list (e.g. neovim,zinit)"
+    echo "  --json              Print machine-readable stage summary"
+    echo "  pamac               Update using Manjaro 'pamac'"
     echo "  pacman-mirrors      Update Arch 'pacman-mirrors'"
     echo "  snap                Update using snap"
     echo "  flatpak             Update using flatpak"
     echo "  hardware            Update hardware firmware"
     echo "  clam                Update ClamAV database"
-    echo "  clam-scan           Use preconfigured clams scan settings"
+    echo "  clam-scan           Use preconfigured ClamAV scan settings"
     echo "  cargo               Update cargo packages"
     echo "  mise                Update dev run-time's with mise (rustup, nodenv, ...)"
     echo "  go                  Update go packages"
@@ -49,6 +53,172 @@ show_help() {
 }
 
 QUIET=false
+JSON_SUMMARY=false
+LOCK_FD=9
+LOCK_FILE="${XDG_RUNTIME_DIR:-/tmp}/updater.lock"
+SCRIPT_NAME="$(basename "$0")"
+
+typeset -a ONLY_STAGES=()
+typeset -a SKIP_STAGES=()
+typeset -a ALL_STAGES=(
+    pamac
+    pacman-mirrors
+    snap
+    flatpak
+    hardware
+    clam
+    clam-scan
+    mise
+    cargo
+    go
+    gem
+    pnpm
+    bun
+    pip
+    zinit
+    clean-dev
+    neovim
+    bins
+)
+
+typeset -a STAGES_SUCCESS=()
+typeset -a STAGES_FAILED=()
+typeset -a STAGES_SKIPPED=()
+typeset -a NORMALIZED_STAGE_LIST=()
+
+trim_whitespace() {
+    local value="$1"
+    value="${value#"${value%%[![:space:]]*}"}"
+    value="${value%"${value##*[![:space:]]}"}"
+    printf '%s' "$value"
+}
+
+normalize_stage_list() {
+    local mode="$1"
+    shift
+
+    local stage trimmed
+    NORMALIZED_STAGE_LIST=()
+
+    for stage in "$@"; do
+        trimmed="$(trim_whitespace "$stage")"
+        [[ -z "$trimmed" ]] && continue
+
+        if list_contains "$trimmed" "${ALL_STAGES[@]}"; then
+            NORMALIZED_STAGE_LIST+=("$trimmed")
+        else
+            subtitle "Warning: unknown stage '$trimmed' in --$mode. Ignoring it." >&2
+        fi
+    done
+}
+
+list_contains() {
+    local needle="$1"
+    shift
+    local item
+    for item in "$@"; do
+        [[ "$item" == "$needle" ]] && return 0
+    done
+    return 1
+}
+
+stage_selected() {
+    local stage="$1"
+
+    if (( ${#ONLY_STAGES[@]} > 0 )) && ! list_contains "$stage" "${ONLY_STAGES[@]}"; then
+        return 1
+    fi
+
+    if list_contains "$stage" "${SKIP_STAGES[@]}"; then
+        return 1
+    fi
+
+    return 0
+}
+
+record_stage_success() {
+    STAGES_SUCCESS+=("$1")
+}
+
+record_stage_failure() {
+    STAGES_FAILED+=("$1")
+}
+
+record_stage_skipped() {
+    STAGES_SKIPPED+=("$1")
+}
+
+run_stage() {
+    local stage="$1"
+    local func="$2"
+
+    if ! stage_selected "$stage"; then
+        record_stage_skipped "$stage"
+        return 0
+    fi
+
+    if "$func"; then
+        record_stage_success "$stage"
+    else
+        record_stage_failure "$stage"
+        subtitle "Warning: stage '$stage' failed. Continuing..." >&2
+    fi
+}
+
+print_stage_summary() {
+    if $JSON_SUMMARY; then
+        local success_json="$(array_to_json "${STAGES_SUCCESS[@]}")"
+        local failed_json="$(array_to_json "${STAGES_FAILED[@]}")"
+        local skipped_json="$(array_to_json "${STAGES_SKIPPED[@]}")"
+        printf '{"success":[%s],"failed":[%s],"skipped":[%s]}\n' \
+            "$success_json" \
+            "$failed_json" \
+            "$skipped_json"
+        return 0
+    fi
+
+    $QUIET || title "Update summary"
+    echo "  success: ${#STAGES_SUCCESS[@]} (${STAGES_SUCCESS[*]:-none})"
+    echo "  failed:  ${#STAGES_FAILED[@]} (${STAGES_FAILED[*]:-none})"
+    echo "  skipped: ${#STAGES_SKIPPED[@]} (${STAGES_SKIPPED[*]:-none})"
+}
+
+json_escape() {
+    local value="$1"
+    value="${value//\\/\\\\}"
+    value="${value//\"/\\\"}"
+    value="${value//$'\n'/\\n}"
+    value="${value//$'\r'/\\r}"
+    value="${value//$'\t'/\\t}"
+    printf '%s' "$value"
+}
+
+array_to_json() {
+    local item escaped
+    local output=""
+    local separator=""
+
+    for item in "$@"; do
+        escaped="$(json_escape "$item")"
+        output+="$separator\"$escaped\""
+        separator=","
+    done
+
+    printf '%s' "$output"
+}
+
+acquire_lock() {
+    if ! command -v flock &>/dev/null; then
+        subtitle "Warning: flock not found. Running without updater lock." >&2
+        return 0
+    fi
+
+    eval "exec ${LOCK_FD}>\"$LOCK_FILE\""
+    if ! flock -n "$LOCK_FD"; then
+        subtitle "Warning: another updater process is already running." >&2
+        exit 1
+    fi
+}
 
 check_command() {
     if ! command -v "$1" &>/dev/null; then
@@ -123,11 +293,28 @@ update_mirrors() {
 
 update_snap() {
     if [[ $EUID -eq 0 ]]; then
-        if check_command "snap" "snap update" && check_command "systemctl" "systemd operations"; then
+        if check_command "snap" "snap update" && check_command "systemctl" "systemd operations" && check_command "pamac" "pamac snap update"; then
             $QUIET || title "Running 'pamac upgrade --enable-snap --no-confirm'"
-            systemctl start snapd.apparmor.service snapd.service
-            pamac update --enable-snap --no-confirm
-            systemctl stop snapd.apparmor.service snapd.service snapd.socket
+
+            local update_status=0
+            local snap_services_started=false
+            if systemctl start snapd.apparmor.service snapd.service; then
+                snap_services_started=true
+            else
+                subtitle "Warning: failed to start snap services. Skipping snap updates." >&2
+                return 1
+            fi
+
+            if ! pamac update --enable-snap --no-confirm; then
+                subtitle "Warning: snap update failed." >&2
+                update_status=1
+            fi
+
+            if [[ "$snap_services_started" == true ]]; then
+                systemctl stop snapd.apparmor.service snapd.service snapd.socket || true
+            fi
+
+            return $update_status
         else
             $QUIET || subtitle "No 'systemctl status snapd.apparmor.service snapd.service'"
             $QUIET || subtitle "pamac install snapd libpamac-snap-plugin"
@@ -163,8 +350,8 @@ clam_scan_and_quarantine() {
     if [[ $EUID -eq 0 ]]; then
         if check_command "clamscan" "ClamAV scan"; then
             $QUIET || title "Scanning entire system with ClamAV and quarantining infected files to $quarantine_dir"
-            sudo mkdir -p "$quarantine_dir"
-            sudo clamscan --recursive --infected --exclude-dir='^/sys|^/dev' --move="$quarantine_dir" /
+            mkdir -p "$quarantine_dir"
+            clamscan --recursive --infected --exclude-dir='^/sys|^/dev' --move="$quarantine_dir" /
         fi
     else
         subtitle "Warning: ClamAV quarantine scan requires root privileges." >&2
@@ -189,12 +376,18 @@ update_cargo() {
     if [[ $EUID -ne 0 ]]; then
         if check_command "cargo" "cargo packages update"; then
             $QUIET || title "Running: 'rustup update && cargo install-update -a'"
+            local update_status=0
             rustup update || true
             if ! cargo install-update -a; then
                 subtitle "Warning: cargo install-update failed. Installing cargo-update..." >&2
-                cargo install cargo-update
-                cargo install-update -a
+                cargo install cargo-update || true
+                if ! cargo install-update -a; then
+                    subtitle "Warning: cargo install-update failed again. Continuing with remaining updates." >&2
+                    update_status=1
+                fi
             fi
+
+            return $update_status
         fi
     fi
 }
@@ -245,12 +438,12 @@ update_pnpm() {
 }
 
 update_bun() {
-    # Check if running as user, and if so proceed
     if [[ $EUID -ne 0 ]]; then
         if check_command "bun" "bun update"; then
-            $QUIET || title "Running: 'bun upgrade && bun update -g'"
+            $QUIET || title "Running: 'bun upgrade && bun update (global)'"
             bun upgrade || true
-            bun update -g || true
+            # Update global packages in their install dir
+            (cd "$HOME/.bun/install/global" && bun update) || true
         fi
     fi
 }
@@ -374,62 +567,60 @@ shutdown_system() {
 }
 
 run_user_updates() {
-    check_last_clean
-
     if $QUIET; then
-        update_pamac >/dev/null
-        update_flatpak >/dev/null
-        update_mise >/dev/null
-        update_cargo >/dev/null
-        update_go >/dev/null
-        update_gem >/dev/null
-        update_pnpm >/dev/null
-        update_bun >/dev/null
-        update_pip >/dev/null
-        update_zinit >/dev/null
-        update_neovim >/dev/null
-        link_bins >/dev/null
+        run_stage pamac update_pamac >/dev/null
+        run_stage flatpak update_flatpak >/dev/null
+        run_stage mise update_mise >/dev/null
+        run_stage cargo update_cargo >/dev/null
+        run_stage go update_go >/dev/null
+        run_stage gem update_gem >/dev/null
+        run_stage pnpm update_pnpm >/dev/null
+        run_stage bun update_bun >/dev/null
+        run_stage pip update_pip >/dev/null
+        run_stage zinit update_zinit >/dev/null
+        run_stage neovim update_neovim >/dev/null
+        run_stage bins link_bins >/dev/null
     else
         $QUIET || title "Updating System (pamac, flatpak)"
-        update_pamac
-        update_flatpak
+        run_stage pamac update_pamac
+        run_stage flatpak update_flatpak
 
         $QUIET || title "Updating Runtimes (mise)"
-        update_mise
+        run_stage mise update_mise
 
         $QUIET || title "Updating Libraries (cargo, go, gem, pnpm, bun, pip)"
-        update_cargo
-        update_go
-        update_gem
-        update_pnpm
-        update_bun
-        update_pip
+        run_stage cargo update_cargo
+        run_stage go update_go
+        run_stage gem update_gem
+        run_stage pnpm update_pnpm
+        run_stage bun update_bun
+        run_stage pip update_pip
 
         $QUIET || title "Updating terminal (zsh, nvim)"
-        update_zinit
-        update_neovim
+        run_stage zinit update_zinit
+        run_stage neovim update_neovim
 
         $QUIET || title "Re-linking local (s)binaries"
-        link_bins
+        run_stage bins link_bins
     fi
 }
 
 run_all_updates() {
+    check_last_clean
+
     if [[ $EUID -eq 0 ]]; then
         # Root: hardware + clam + mirrors then regular updates
-        check_last_clean
-
         if $QUIET; then
-            update_mirrors >/dev/null
-            update_hardware >/dev/null
-            update_clam >/dev/null
-            update_snap >/dev/null
+            run_stage pacman-mirrors update_mirrors >/dev/null
+            run_stage hardware update_hardware >/dev/null
+            run_stage clam update_clam >/dev/null
+            run_stage snap update_snap >/dev/null
         else
             $QUIET || title "Updating System (mirrors, hardware, clam, snap)"
-            update_mirrors
-            update_hardware
-            update_clam
-            update_snap
+            run_stage pacman-mirrors update_mirrors
+            run_stage hardware update_hardware
+            run_stage clam update_clam
+            run_stage snap update_snap
         fi
 
         # Now run user updates
@@ -475,7 +666,13 @@ completions() {
     echo "    'completions:Generate Zsh completions'" >>~/.zfunc/_updater
     echo "    'and-shutdown:Run all updates and then shutdown'" >>~/.zfunc/_updater
     echo "  )" >>~/.zfunc/_updater
-    echo "  _describe -t commands 'updater commands' commands" >>~/.zfunc/_updater
+    echo "  _arguments -s \\" >>~/.zfunc/_updater
+    echo "    '(-h --help help)'{-h,--help}'[Show help message]' \\" >>~/.zfunc/_updater
+    echo "    '(-q --quiet)'{-q,--quiet}'[Show only warnings and errors]' \\" >>~/.zfunc/_updater
+    echo "    '--json[Print machine-readable stage summary]' \\" >>~/.zfunc/_updater
+    echo "    '--only=[Run only listed stages (comma-separated)]' \\" >>~/.zfunc/_updater
+    echo "    '--skip=[Skip listed stages (comma-separated)]' \\" >>~/.zfunc/_updater
+    echo "    '*:command:_describe -t commands updater-commands commands'" >>~/.zfunc/_updater
     echo "}" >>~/.zfunc/_updater
     echo "" >>~/.zfunc/_updater
     echo "_updater \"\$@\"" >>~/.zfunc/_updater
@@ -485,10 +682,40 @@ completions() {
 
 main() {
     local shutdown_after=false
+    local only_flag_used=false
     while [[ $# -gt 0 ]]; do
         case $1 in
         -q | --quiet)
             QUIET=true
+            shift
+            ;;
+        --json)
+            JSON_SUMMARY=true
+            shift
+            ;;
+        --only)
+            shift
+            if [[ -z "$1" ]]; then
+                echo "Missing value for --only"
+                exit 1
+            fi
+            only_flag_used=true
+            local -a parsed_only
+            parsed_only=(${(s:,:)"$1"})
+            normalize_stage_list only "${parsed_only[@]}"
+            ONLY_STAGES=("${NORMALIZED_STAGE_LIST[@]}")
+            shift
+            ;;
+        --skip)
+            shift
+            if [[ -z "$1" ]]; then
+                echo "Missing value for --skip"
+                exit 1
+            fi
+            local -a parsed_skip
+            parsed_skip=(${(s:,:)"$1"})
+            normalize_stage_list skip "${parsed_skip[@]}"
+            SKIP_STAGES=("${NORMALIZED_STAGE_LIST[@]}")
             shift
             ;;
         -h | --help | help)
@@ -504,6 +731,14 @@ main() {
             ;;
         esac
     done
+
+    if $only_flag_used && (( ${#ONLY_STAGES[@]} == 0 )); then
+        subtitle "Warning: no valid stages found in --only. Nothing to run." >&2
+        exit 1
+    fi
+
+    acquire_lock
+
     if [ $shutdown_after = true ]; then
         if $QUIET; then
             time_function run_all_updates >/dev/null
@@ -522,135 +757,128 @@ main() {
             case $arg in
             pamac)
                 if $QUIET; then
-                    update_pamac 1 >/dev/null
+                    run_stage pamac update_pamac >/dev/null
                 else
-                    update_pamac 1
+                    run_stage pamac update_pamac
                 fi
                 ;;
             pacman-mirrors)
                 if $QUIET; then
-                    update_mirrors 1 >/dev/null
+                    run_stage pacman-mirrors update_mirrors >/dev/null
                 else
-                    update_mirrors 1
-                fi
-                ;;
-            aura)
-                if $QUIET; then
-                    update_aura 1 >/dev/null
-                else
-                    update_aura 1
+                    run_stage pacman-mirrors update_mirrors
                 fi
                 ;;
             snap)
                 if $QUIET; then
-                    update_snap >/dev/null
+                    run_stage snap update_snap >/dev/null
                 else
-                    update_snap
+                    run_stage snap update_snap
                 fi
                 ;;
             flatpak)
                 if $QUIET; then
-                    update_flatpak >/dev/null
+                    run_stage flatpak update_flatpak >/dev/null
                 else
-                    update_flatpak
+                    run_stage flatpak update_flatpak
                 fi
                 ;;
             hardware)
                 if $QUIET; then
-                    update_hardware >/dev/null
+                    run_stage hardware update_hardware >/dev/null
                 else
-                    update_hardware
+                    run_stage hardware update_hardware
                 fi
                 ;;
             clam)
                 if $QUIET; then
-                    update_clam >/dev/null
+                    run_stage clam update_clam >/dev/null
                 else
-                    update_clam
+                    run_stage clam update_clam
                 fi
                 ;;
             clam-scan)
                 if $QUIET; then
-                    clam_scan_and_quarantine >/dev/null
+                    run_stage clam-scan clam_scan_and_quarantine >/dev/null
                 else
-                    clam_scan_and_quarantine
+                    run_stage clam-scan clam_scan_and_quarantine
                 fi
                 ;;
             mise)
                 if $QUIET; then
-                    update_mise >/dev/null
+                    run_stage mise update_mise >/dev/null
                 else
-                    update_mise
+                    run_stage mise update_mise
                 fi
                 ;;
             cargo)
                 if $QUIET; then
-                    update_cargo >/dev/null
+                    run_stage cargo update_cargo >/dev/null
                 else
-                    update_cargo
+                    run_stage cargo update_cargo
                 fi
                 ;;
             go)
                 if $QUIET; then
-                    update_go >/dev/null
+                    run_stage go update_go >/dev/null
                 else
-                    update_go
+                    run_stage go update_go
                 fi
                 ;;
             gem)
                 if $QUIET; then
-                    update_gem >/dev/null
+                    run_stage gem update_gem >/dev/null
                 else
-                    update_gem
+                    run_stage gem update_gem
                 fi
                 ;;
             pip)
                 if $QUIET; then
-                    update_pip >/dev/null
+                    run_stage pip update_pip >/dev/null
                 else
-                    update_pip
+                    run_stage pip update_pip
                 fi
                 ;;
             pnpm)
                 if $QUIET; then
-                    update_pnpm >/dev/null
+                    run_stage pnpm update_pnpm >/dev/null
                 else
-                    update_pnpm
+                    run_stage pnpm update_pnpm
                 fi
                 ;;
             bun)
                 if $QUIET; then
-                    update_bun >/dev/null
+                    run_stage bun update_bun >/dev/null
                 else
-                    update_bun
+                    run_stage bun update_bun
                 fi
                 ;;
             zinit)
                 if $QUIET; then
-                    update_zinit >/dev/null
+                    run_stage zinit update_zinit >/dev/null
                 else
-                    update_zinit
+                    run_stage zinit update_zinit
                 fi
                 ;;
             clean-dev)
                 if $QUIET; then
-                    clean_dev >/dev/null
+                    run_stage clean-dev clean_dev >/dev/null
                 else
-                    clean_dev
+                    run_stage clean-dev clean_dev
                 fi
                 ;;
             bins)
                 if $QUIET; then
-                    link_bins >/dev/null
+                    run_stage bins link_bins >/dev/null
                 else
-                    link_bins
+                    run_stage bins link_bins
                 fi
                 ;;
             neovim)
                 if $QUIET; then
-                    update_neovim >/dev/null
+                    run_stage neovim update_neovim >/dev/null
                 else
-                    update_neovim
+                    run_stage neovim update_neovim
                 fi
                 ;;
             completions)
@@ -665,6 +893,8 @@ main() {
             esac
         done
     fi
+
+    print_stage_summary
 }
 
 main "$@"

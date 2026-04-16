@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-04-16T08:28:43+02:00",
+  "project_dir": "/home/andres/usr/sbin",
+  "mode": "bubblewrap-only",
+  "network": "on",
+  "fs_mode": "rw",
+  "allow_git": 0,
+  "allow_node_modules": 1,
+  "allow_venv": 1,
+  "allow_infra": 0,
+  "allow_host_tools": 1,
+  "strict_tty": 0,
+  "tty_mode": "compat",
+  "tty_mode_reason": "auto-interactive",
+  "tty_interactive": 1,
+  "not_paranoid": 0,
+  "quiet_landlock": 0,
+  "require_landlock": 0,
+  "command": "bwrap",
+  "opencode_args": [
+
+  ]
+}
