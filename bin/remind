@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # remind - Quick reference for commonly forgotten commands
 # Usage: remind [category|file]
-# Categories: markdown, db, pdf, zsh, containers, security, cloud
+# Categories: markdown, db, pdf, zsh, containers, security, cloud, network
 
 set -euo pipefail
 
@@ -26,55 +26,21 @@ show_version() {
 
 show_help() {
     cat <<EOF
-$SCRIPT_NAME - Quick reference for commonly forgotten commands
+Usage: $SCRIPT_NAME [OPTIONS] [category|file]
 
-USAGE:
-    $SCRIPT_NAME [OPTIONS] [CATEGORY|FILE]
+Quick reference for commonly forgotten commands.
 
-OPTIONS:
-    -h, --help       Show this help message
-    -v, --version    Show version information
-    -i, --install    Show installation commands instead of usage
+Options:
+  -h, --help       Show this help message
+  -v, --version    Show version information
+  -i, --install    Show installation commands for a category
 
-CATEGORIES:
-    markdown, md     Markdown to PDF conversion commands
-    cloud            Cloud storage tools (pCloud)
-    pdf              PDF manipulation (split/merge/etc)
-    zsh, shell       Modern zsh/shell utilities
-    containers       Container management (Podman)
-    security         Sandboxing tools (bubblewrap, landrun)
-    db, sql, sqlite  Database browser (sqlit)
-
-EXAMPLES:
-    $SCRIPT_NAME                    # Show all categories
-    $SCRIPT_NAME zsh                # Show zsh tools usage
-    $SCRIPT_NAME -i zsh             # Show zsh tools installation
-    $SCRIPT_NAME markdown           # Show markdown conversion help
-    $SCRIPT_NAME file.md            # Auto-detect from file extension
-
-AUTHOR:
-    Andres Monge (aemonge)
+Examples:
+  $SCRIPT_NAME             # Show all categories
+  $SCRIPT_NAME db          # Show database commands
+  $SCRIPT_NAME -i db       # Show database install commands
+  $SCRIPT_NAME file.db     # Auto-detect category from file extension
 EOF
-}
-
-# ============================================================================
-# DATABASE CATEGORY
-# ============================================================================
-
-show_db_help() {
-    echo -e "${BLUE}sqlit${RESET}"
-    echo -e "${DIM}# Open the sqlit TUI and pick a saved connection${RESET}"
-    echo ""
-    echo -e "${BLUE}sqlit sqlite:///path/to/database.db${RESET}"
-    echo -e "${DIM}# Connect directly to a local SQLite database${RESET}"
-    echo ""
-    echo -e "${BLUE}sqlit query -c \"MyConnection\" -q \"SELECT * FROM users\"${RESET}"
-    echo -e "${DIM}# Run a query from CLI mode${RESET}"
-}
-
-show_db_install() {
-    echo -e "${GREEN}Install sqlit:${RESET}"
-    echo -e "  ${BLUE}pamac install sqlit python-psycopg2${RESET}"
 }
 
 # ============================================================================
@@ -82,19 +48,48 @@ show_db_install() {
 # ============================================================================
 
 show_markdown_help() {
-    echo -e "${BLUE}go-grip --theme dark file.md${RESET}"
-    echo -e "${DIM}# Opens in browser, use Print to PDF (Ctrl+P)${RESET}"
+    echo -e "${BLUE}pandoc input.md -o output.pdf${RESET}"
+    echo -e "${DIM}# Convert Markdown to PDF via LaTeX${RESET}"
     echo ""
-    echo -e "${BLUE}mdt file.md${RESET}"
-    echo -e "${DIM}# Markdown TUI / utility helper${RESET}"
+    echo -e "${BLUE}pandoc input.md -o output.pdf --pdf-engine=weasyprint${RESET}"
+    echo -e "${DIM}# Convert using WeasyPrint (CSS-based, no LaTeX)${RESET}"
     echo ""
-    echo "Options: --theme light | --theme dark"
+    echo -e "${BLUE}pandoc input.md -o output.html${RESET}"
+    echo -e "${DIM}# Convert to HTML${RESET}"
 }
 
 show_markdown_install() {
-    echo -e "${GREEN}Install markdown tools:${RESET}"
-    echo -e "  ${BLUE}pamac build go-grip-git${RESET}"
-    echo -e "  ${BLUE}cargo install mdt${RESET}            ${DIM}# Or your preferred package source${RESET}"
+    echo -e "${GREEN}Install pandoc:${RESET}"
+    echo -e "  ${BLUE}pamac install pandoc${RESET}"
+    echo ""
+    echo -e "${DIM}For WeasyPrint backend:${RESET}"
+    echo -e "  ${BLUE}pip install weasyprint${RESET}"
+}
+
+# ============================================================================
+# DB CATEGORY
+# ============================================================================
+
+show_db_help() {
+    echo -e "${BLUE}sqlit file.db${RESET}"
+    echo -e "${DIM}# Open a SQLite database in a TUI browser${RESET}"
+    echo ""
+    echo -e "${BLUE}sqlite3 file.db${RESET}"
+    echo -e "${DIM}# Open raw SQLite3 shell${RESET}"
+    echo ""
+    echo -e "${BLUE}sqlite3 file.db .tables${RESET}"
+    echo -e "${DIM}# List tables${RESET}"
+    echo ""
+    echo -e "${BLUE}sqlite3 file.db .dump${RESET}"
+    echo -e "${DIM}# Dump full SQL${RESET}"
+}
+
+show_db_install() {
+    echo -e "${GREEN}Install sqlit (TUI browser):${RESET}"
+    echo -e "  ${BLUE}cargo install sqlit${RESET}"
+    echo ""
+    echo -e "${GREEN}Install sqlite3 CLI:${RESET}"
+    echo -e "  ${BLUE}pamac install sqlite${RESET}"
 }
 
 # ============================================================================
@@ -102,20 +97,22 @@ show_markdown_install() {
 # ============================================================================
 
 show_pdf_help() {
-    echo -e "${BLUE}pdftk file1.pdf file2.pdf cat output merged.pdf${RESET}"
+    echo -e "${BLUE}pdftk input1.pdf input2.pdf cat output merged.pdf${RESET}"
     echo -e "${DIM}# Merge PDFs${RESET}"
     echo ""
-    echo -e "${BLUE}pdfseparate input.pdf page-%d.pdf${RESET}"
-    echo -e "${DIM}# Split PDF into pages${RESET}"
+    echo -e "${BLUE}pdftk input.pdf burst${RESET}"
+    echo -e "${DIM}# Split into individual pages${RESET}"
     echo ""
-    echo -e "${BLUE}pdfunite page-1.pdf page-2.pdf output.pdf${RESET}"
-    echo -e "${DIM}# Merge pages back into a PDF${RESET}"
+    echo -e "${BLUE}gs -sDEVICE=pdfwrite -dNOPAUSE -dBATCH -dSAFER -sOutputFile=out.pdf in.pdf${RESET}"
+    echo -e "${DIM}# Compress PDF with Ghostscript${RESET}"
+    echo ""
+    echo -e "${BLUE}pdftotext input.pdf -${RESET}"
+    echo -e "${DIM}# Extract text to stdout${RESET}"
 }
 
 show_pdf_install() {
     echo -e "${GREEN}Install PDF tools:${RESET}"
-    echo -e "  ${BLUE}pamac install poppler${RESET}          ${DIM}# pdfseparate/pdfunite${RESET}"
-    echo -e "  ${BLUE}pamac install pdftk${RESET}            ${DIM}# pdftk${RESET}"
+    echo -e "  ${BLUE}pamac install pdftk ghostscript poppler${RESET}"
 }
 
 # ============================================================================
@@ -123,10 +120,10 @@ show_pdf_install() {
 # ============================================================================
 
 show_zsh_help() {
-    echo -e "${BLUE}atuin search <query>${RESET}"
+    echo -e "${BLUE}atuin search ${RESET}"
     echo -e "${DIM}# Search shell history (sync optional)${RESET}"
     echo ""
-    echo -e "${BLUE}zoxide query <dir>${RESET}"
+    echo -e "${BLUE}zoxide query ${RESET}"
     echo -e "${DIM}# Smarter cd${RESET}"
     echo ""
     echo -e "${BLUE}eza -lah --git${RESET}"
@@ -142,7 +139,7 @@ show_zsh_help() {
 show_zsh_install() {
     echo -e "${GREEN}Install modern CLI tools:${RESET}"
     echo -e "  ${BLUE}pamac install atuin zoxide eza bat fd ripgrep fzf${RESET}"
-    echo -e "  ${BLUE}cargo install sem${RESET}            ${DIM}# Semantic diff CLI${RESET}"
+    echo -e "  ${BLUE}cargo install sem${RESET} ${DIM}# Semantic diff CLI${RESET}"
 }
 
 # ============================================================================
@@ -170,10 +167,10 @@ show_containers_install() {
 # ============================================================================
 
 show_security_help() {
-    echo -e "${BLUE}bwrap --ro-bind /usr /usr --ro-bind /lib /lib --ro-bind /lib64 /lib64 --proc /proc --dev /dev --tmpfs /tmp --unshare-all --die-with-parent --new-session <cmd>${RESET}"
+    echo -e "${BLUE}bwrap --ro-bind /usr /usr --ro-bind /lib /lib --ro-bind /lib64 /lib64 --proc /proc --dev /dev --tmpfs /tmp --unshare-all --die-with-parent --new-session ${RESET}"
     echo -e "${DIM}# Bubblewrap sandbox example${RESET}"
     echo ""
-    echo -e "${BLUE}landrun --config <profile.toml> <cmd>${RESET}"
+    echo -e "${BLUE}landrun --config ${RESET}"
     echo -e "${DIM}# Landrun (Landlock) sandbox with a config profile${RESET}"
 }
 
@@ -184,7 +181,7 @@ show_security_install() {
     echo -e "${DIM}Note: Some hardened setups may need bubblewrap-suid (if available).${RESET}"
     echo ""
     echo -e "${GREEN}Landrun:${RESET}"
-    echo -e "  ${BLUE}yay -S landrun${RESET}              ${DIM}# From AUR${RESET}"
+    echo -e "  ${BLUE}yay -S landrun${RESET} ${DIM}# From AUR${RESET}"
     echo ""
     echo -e "${DIM}Or install from source:${RESET}"
     echo -e "  ${BLUE}git clone https://github.com/Zouuup/landrun${RESET}"
@@ -208,22 +205,51 @@ show_cloud_install() {
 }
 
 # ============================================================================
+# NETWORK CATEGORY
+# ============================================================================
+
+show_network_help() {
+    echo -e "${BLUE}sudo systemctl restart NetworkManager${RESET}"
+    echo -e "${DIM}# Restart NetworkManager (drops active connections briefly)${RESET}"
+    echo ""
+    echo -e "${BLUE}sudo systemctl reload NetworkManager${RESET}"
+    echo -e "${DIM}# Reload config without full restart${RESET}"
+    echo ""
+    echo -e "${BLUE}systemctl status NetworkManager${RESET}"
+    echo -e "${DIM}# Check NetworkManager status${RESET}"
+    echo ""
+    echo -e "${BLUE}sudo systemctl restart systemd-networkd${RESET}"
+    echo -e "${DIM}# If using systemd-networkd instead of NetworkManager${RESET}"
+    echo ""
+    echo -e "${BLUE}sudo resolvectl flush-caches${RESET}"
+    echo -e "${DIM}# Flush DNS resolver cache (/etc/resolv.conf stale)${RESET}"
+    echo ""
+    echo -e "${DIM}Note: restart drops active connections — avoid over SSH${RESET}"
+}
+
+show_network_install() {
+    echo -e "${GREEN}NetworkManager is installed by default on Manjaro desktops.${RESET}"
+    echo -e "  ${BLUE}pamac install networkmanager${RESET}"
+}
+
+# ============================================================================
 # MAIN LOGIC
 # ============================================================================
 
 show_all_categories() {
     echo "Categories:"
-    echo -e "  ${YELLOW}markdown${RESET}, ${YELLOW}md${RESET}      Markdown to PDF conversion"
-    echo -e "  ${YELLOW}cloud${RESET}            Cloud storage tools (pCloud)"
-    echo -e "  ${YELLOW}db${RESET}, ${YELLOW}sql${RESET}, ${YELLOW}sqlite${RESET}   Database browser (sqlit)"
-    echo -e "  ${YELLOW}pdf${RESET}              PDF manipulation (merge/split/etc)"
-    echo -e "  ${YELLOW}zsh${RESET}, ${YELLOW}shell${RESET}       Modern shell utilities & CLI tools"
-    echo -e "  ${YELLOW}containers${RESET}       Container management (Podman)"
-    echo -e "  ${YELLOW}security${RESET}         Sandboxing tools (bubblewrap, landrun)"
+    echo -e "  ${YELLOW}markdown${RESET}, ${YELLOW}md${RESET}               Markdown to PDF conversion"
+    echo -e "  ${YELLOW}cloud${RESET}                    Cloud storage tools (pCloud)"
+    echo -e "  ${YELLOW}db${RESET}, ${YELLOW}sql${RESET}, ${YELLOW}sqlite${RESET}          Database browser (sqlit)"
+    echo -e "  ${YELLOW}pdf${RESET}                      PDF manipulation (merge/split/etc)"
+    echo -e "  ${YELLOW}zsh${RESET}, ${YELLOW}shell${RESET}               Modern shell utilities & CLI tools"
+    echo -e "  ${YELLOW}containers${RESET}               Container management (Podman)"
+    echo -e "  ${YELLOW}security${RESET}                 Sandboxing tools (bubblewrap, landrun)"
+    echo -e "  ${YELLOW}network${RESET}, ${YELLOW}net${RESET}, ${YELLOW}nm${RESET}         Network/DNS management (NetworkManager)"
     echo ""
     echo "Usage:"
     echo "  $SCRIPT_NAME [category]"
-    echo "  $SCRIPT_NAME -i [category]    # Show installation commands"
+    echo "  $SCRIPT_NAME -i [category]  # Show installation commands"
 }
 
 detect_category() {
@@ -235,6 +261,9 @@ detect_category() {
         ;;
     db | sql | sqlite | sqlit | *.db | *.sqlite | *.sqlite3)
         echo "db"
+        ;;
+    network | net | nm | dns | resolv | networkmanager | systemd-networkd)
+        echo "network"
         ;;
     *.md | markdown | md)
         echo "markdown"
@@ -310,6 +339,13 @@ main() {
             show_markdown_install
         else
             show_markdown_help
+        fi
+        ;;
+    network)
+        if [[ "$show_install" == true ]]; then
+            show_network_install
+        else
+            show_network_help
         fi
         ;;
     pdf)
