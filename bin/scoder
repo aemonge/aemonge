@@ -25,19 +25,17 @@ Safe OpenCode wrapper using bubblewrap.
 
 Usage:
   scoder [options] [PROJECT_DIR] [-- [OPENCODE_ARGS...]]
+  scoder [options] [PROJECT_DIR] -- COMMAND [ARG...]
 
 Options:
   -h, --help              Show this help and exit
   -V, --version           Show version and exit
-  -n, --no-net            Disable network access inside the sandbox (default: on)
   -b, --bin PATH          Path to opencode binary (default: "opencode")
   -q, --quiet             Suppress informational output
       --validate          Run comprehensive validation tests and exit
       --ro                Mount project directory read-only (safe)
       --rw                Mount project directory read-write (default)
       --allow-git         Allow write access to .git directory (default: read-only)
-      --allow-node-modules Allow write access to node_modules (default: read-write)
-      --allow-venv        Allow write access to .venv (default: read-write)
       --allow-infra       Allow write access to all protected infra dirs
       --full-dev          Allow full /dev access inside sandbox
   --allow-host-tools  Bind host user tools (~/.local/bin, mise, pyenv, uv, rustup/cargo, etc) (default)
@@ -48,11 +46,11 @@ USAGE_EOF
 
 Arguments:
   PROJECT_DIR             Project directory exposed at same absolute path (default: $PWD)
-  OPENCODE_ARGS           Arguments passed verbatim to opencode after "--"
+  OPENCODE_ARGS           Arguments passed verbatim to opencode when first arg after "--" starts with "-"
+  COMMAND [ARG...]        Raw command executed inside the sandbox when first arg after "--" does not start with "-"
 
 Environment:
   OPENCODE_BIN            Overrides default opencode binary
-  SCODER_NET              "on" to enable network by default ("off" otherwise)
   SCODER_FS_MODE          "ro" (secure) or "rw" (default, allow writes)
   SCODER_DEFAULT_AGENT    Default OpenCode agent when none is provided (default: OpenAgent)
 
@@ -74,14 +72,17 @@ Examples:
   scoder --ro               # read-only sandbox of $PWD
   scoder --allow-git        # allow .git writes
   scoder --allow-host-tools # bind host dev tools (mise, cargo, etc)
-  scoder -n myproj -- --verbose # network off, pass --verbose to opencode
+  scoder . -- /bin/bash -lc 'env | grep HOME' # run raw command in sandbox
+  scoder myproj -- --verbose # pass --verbose to opencode
 
 Security Note:
   HOME is set to /home/scoder on tmpfs (fully isolated from your real home).
   OpenCode and Bun runtime state is persisted via explicit writable binds.
-  Host tools are bound by default (use --allow-host-tools to be explicit).
+  Host tools are bound by default (use --no-host-tools to disable them).
   The project is writable by default, but critical infrastructure directories
   are protected read-only unless you explicitly opt in.
+  When launching OpenCode without an explicit --agent, scoder prepends
+  the default agent from SCODER_DEFAULT_AGENT.
 USAGE_END
 }
 
@@ -134,8 +135,7 @@ apply_default_agent_if_needed() {
     local opencode_bin_name
     opencode_bin_name=$(basename -- "$OPENCODE_BIN")
     case "$opencode_bin_name" in
-    opencode | opencode-*)
-        ;;
+    opencode | opencode-*) ;;
     *)
         return
         ;;
@@ -153,12 +153,33 @@ run_validation() {
     local script_path="$0"
     local test_project="/tmp/scoder-validation-$$"
     local failed_tests=0
+    local cmd_status
+    local selected_opencode_bin
 
     info "=== Running scoder comprehensive validation tests ==="
+
+    selected_opencode_bin="${OPENCODE_BIN:-${OPENCODE_BIN_DEFAULT}}"
+
+    info "Test 0.1: bwrap availability"
+    if command -v bwrap >/dev/null 2>&1; then
+        echo "✅ Test 0.1 PASS: bwrap found at $(command -v bwrap)"
+    else
+        echo "❌ Test 0.1 FAIL: bwrap not found"
+        ((failed_tests++))
+    fi
+
+    info "Test 0.2: opencode binary availability"
+    if command -v "${selected_opencode_bin}" >/dev/null 2>&1; then
+        echo "✅ Test 0.2 PASS: opencode binary found at $(command -v "${selected_opencode_bin}")"
+    else
+        echo "❌ Test 0.2 FAIL: opencode binary not found: ${selected_opencode_bin}"
+        ((failed_tests++))
+    fi
 
     # Setup test project
     mkdir -p "${test_project}"/{.git,node_modules,.venv/bin}
     echo "test content" >"${test_project}/test.py"
+    echo "SCODER_VALIDATION=1" >"${test_project}/.env"
     echo '#!/bin/bash' >"${test_project}/.venv/bin/python"
     chmod +x "${test_project}/.venv/bin/python"
 
@@ -166,7 +187,7 @@ run_validation() {
     echo ""
     info "Test A.1: HOME isolation"
     local home_result
-    home_result=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- -c 'echo $HOME' 2>&1 || true)
+    home_result=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc "echo \"\$HOME\"" 2>&1 || true)
     if [[ "${home_result}" == "/home/scoder" ]]; then
         echo "✅ Test A.1 PASS: HOME is /home/scoder (isolated)"
     else
@@ -177,9 +198,7 @@ run_validation() {
     # Test A.2: bashrc write isolation (no leak to host)
     info "Test A.2: ~/.bashrc write isolation"
     local host_bashrc="${HOME}/.bashrc"
-    local had_bashrc=0
-    [[ -f "${host_bashrc}" ]] && had_bashrc=1
-    OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- -c 'echo "SCODER_TEST" > ~/.bashrc' 2>&1 >/dev/null || true
+    OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'echo "SCODER_TEST" > ~/.bashrc' >/dev/null 2>&1 || true
     local leaked=0
     if [[ -f "${host_bashrc}" ]]; then
         if grep -q "SCODER_TEST" "${host_bashrc}" 2>/dev/null; then
@@ -196,7 +215,7 @@ run_validation() {
     # Test A.3: System file write protection
     info "Test A.3: System file write protection"
     local sys_write
-    sys_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- -c 'touch /usr/bin/scoder-test 2>&1' 2>&1 || true)
+    sys_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'touch /usr/bin/scoder-test 2>&1' 2>&1 || true)
     if echo "${sys_write}" | grep -qE "Read-only|Permission denied|cannot touch"; then
         echo "✅ Test A.3 PASS: System files are read-only"
     else
@@ -207,7 +226,7 @@ run_validation() {
     # Test B.1: Workspace is writable
     info "Test B.1: Workspace writability"
     local workspace_write
-    workspace_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- -c 'touch new_file.py && echo SUCCESS' 2>&1 || true)
+    workspace_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'touch new_file.py && echo SUCCESS' 2>&1 || true)
     if echo "${workspace_write}" | grep -q "SUCCESS"; then
         echo "✅ Test B.1 PASS: Workspace is writable"
     else
@@ -218,7 +237,7 @@ run_validation() {
     # Test B.2: .git protection
     info "Test B.2: .git directory protection"
     local git_write
-    git_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- -c 'touch .git/test 2>&1' 2>&1 || true)
+    git_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'touch .git/test 2>&1' 2>&1 || true)
     if echo "${git_write}" | grep -qE "Read-only|Permission denied|cannot touch"; then
         echo "✅ Test B.2 PASS: .git is read-only"
     else
@@ -229,7 +248,7 @@ run_validation() {
     # Test B.3: node_modules writability
     info "Test B.3: node_modules directory writability"
     local nm_write
-    nm_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- -c 'touch node_modules/test && echo SUCCESS' 2>&1 || true)
+    nm_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'touch node_modules/test && echo SUCCESS' 2>&1 || true)
     if echo "${nm_write}" | grep -q "SUCCESS"; then
         echo "✅ Test B.3 PASS: node_modules is writable"
     else
@@ -240,7 +259,7 @@ run_validation() {
     # Test B.4: --allow-git override
     info "Test B.4: --allow-git override functionality"
     local git_override
-    git_override=$(OPENCODE_BIN=/bin/bash "${script_path}" -q --allow-git "${test_project}" -- -c 'touch .git/test && echo SUCCESS' 2>&1 || true)
+    git_override=$(OPENCODE_BIN=/bin/bash "${script_path}" -q --allow-git "${test_project}" -- /bin/bash -lc 'touch .git/test && echo SUCCESS' 2>&1 || true)
     if echo "${git_override}" | grep -q "SUCCESS"; then
         echo "✅ Test B.4 PASS: --allow-git override works"
     else
@@ -248,11 +267,44 @@ run_validation() {
         ((failed_tests++))
     fi
 
+    # Test B.5: project .env visibility
+    info "Test B.5: project .env visibility"
+    local env_visible
+    env_visible=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'test -e .env && echo SUCCESS' 2>&1 || true)
+    if echo "${env_visible}" | grep -q "SUCCESS"; then
+        echo "✅ Test B.5 PASS: project .env is visible"
+    else
+        echo "❌ Test B.5 FAIL: project .env is not visible"
+        ((failed_tests++))
+    fi
+
+    # Test B.6: --ro must not mutate project-local mise state
+    info "Test B.6: --ro blocks project-local mise state writes"
+    rm -rf "${test_project}/.local"
+    OPENCODE_BIN=/bin/bash "${script_path}" -q --ro "${test_project}" -- /bin/bash -lc 'test ! -w . && echo RO' >/dev/null 2>&1 || true
+    if [[ ! -e "${test_project}/.local/state/mise" ]]; then
+        echo "✅ Test B.6 PASS: --ro does not create project-local mise state"
+    else
+        echo "❌ Test B.6 FAIL: --ro created project-local mise state"
+        ((failed_tests++))
+    fi
+
+    # Test B.7: raw command execution after --
+    info "Test B.7: raw command execution after --"
+    local raw_command_test
+    raw_command_test=$("${script_path}" -q "${test_project}" -- /bin/bash -lc 'printf RAW_OK' 2>&1 || true)
+    if [[ "${raw_command_test}" == "RAW_OK" ]]; then
+        echo "✅ Test B.7 PASS: raw commands execute inside sandbox"
+    else
+        echo "❌ Test B.7 FAIL: raw command output was '${raw_command_test}'"
+        ((failed_tests++))
+    fi
+
     # Test C: Config bind (if opencode.json exists)
     if [[ -f "${OPENCODE_DEFAULT_CONFIG}" ]]; then
         info "Test C: Config bind verification"
         local config_read
-        config_read=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- -c 'cat ~/.config/opencode/opencode.json 2>&1' 2>&1 || true)
+        config_read=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'cat ~/.config/opencode/opencode.json 2>&1' 2>&1 || true)
         local expected_content
         expected_content=$(cat "${OPENCODE_DEFAULT_CONFIG}" 2>/dev/null || echo "")
         if [[ "${config_read}" == "${expected_content}" ]]; then
@@ -268,7 +320,7 @@ run_validation() {
     # Test D: Tooling PATH
     info "Test D: .venv in PATH"
     local venv_path
-    venv_path=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- -c 'echo $PATH' 2>&1 || true)
+    venv_path=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc "echo \"\$PATH\"" 2>&1 || true)
     if echo "${venv_path}" | grep -q ".venv/bin"; then
         echo "✅ Test D PASS: .venv/bin is in PATH"
     else
@@ -276,21 +328,21 @@ run_validation() {
         ((failed_tests++))
     fi
 
-    # Test E: Network restriction
-    info "Test E: Network restriction with --no-net"
-    local net_test
-    net_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q -n "${test_project}" -- -c 'ping -c 1 -W 1 8.8.8.8 2>&1' 2>&1 || true)
-    if echo "${net_test}" | grep -qE "Network is unreachable|Name or service not known|Invalid argument"; then
-        echo "✅ Test E PASS: Network restriction works"
+    # Test E: DNS resolver configuration
+    info "Test E: DNS resolver configuration"
+    local dns_test
+    dns_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'grep -q "^nameserver " /etc/resolv.conf && echo SUCCESS' 2>&1 || true)
+    if echo "${dns_test}" | grep -q "SUCCESS"; then
+        echo "✅ Test E PASS: DNS resolver config is available"
     else
-        echo "❌ Test E FAIL: Network not restricted"
+        echo "❌ Test E FAIL: DNS resolver config unavailable"
         ((failed_tests++))
     fi
 
     # Test F: OpenCode writable runtime state
     info "Test F: OpenCode writable runtime state"
     local oc_state_test
-    oc_state_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- -c 'test -w /home/scoder/.config/opencode && test -w /home/scoder/.cache/opencode && test -w /home/scoder/.local/share/opencode && echo SUCCESS' 2>&1 || true)
+    oc_state_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'test -w /home/scoder/.config/opencode && test -w /home/scoder/.cache/opencode && test -w /home/scoder/.local/share/opencode && test -w /home/scoder/.opencode && echo SUCCESS' 2>&1 || true)
     if echo "${oc_state_test}" | grep -q "SUCCESS"; then
         echo "✅ Test F PASS: OpenCode runtime paths are writable"
     else
@@ -301,7 +353,7 @@ run_validation() {
     # Test G: Bun writable runtime state
     info "Test G: Bun writable runtime state"
     local bun_state_test
-    bun_state_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- -c 'test -w /home/scoder/.bun && test -w /home/scoder/.cache/bun && echo SUCCESS' 2>&1 || true)
+    bun_state_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'test -w /home/scoder/.bun && test -w /home/scoder/.cache/bun && echo SUCCESS' 2>&1 || true)
     if echo "${bun_state_test}" | grep -q "SUCCESS"; then
         echo "✅ Test G PASS: Bun runtime paths are writable"
     else
@@ -312,11 +364,61 @@ run_validation() {
     # Test H: TUI environment essentials
     info "Test H: TUI environment essentials"
     local tui_env_test
-    tui_env_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- -c 'test -n "$TERM" && test -n "$LANG" && test -n "$SHELL" && test "$GIT_OPTIONAL_LOCKS" = "0" && echo SUCCESS' 2>&1 || true)
+    tui_env_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc "test -n \"\$TERM\" && test -n \"\$LANG\" && test -n \"\$SHELL\" && test \"\$GIT_OPTIONAL_LOCKS\" = \"0\" && echo SUCCESS" 2>&1 || true)
     if echo "${tui_env_test}" | grep -q "SUCCESS"; then
         echo "✅ Test H PASS: TUI environment variables are present"
     else
         echo "❌ Test H FAIL: Missing required TUI environment variables"
+        ((failed_tests++))
+    fi
+
+    # Test I: project path preserved inside sandbox
+    info "Test I: project path preserved"
+    local project_path_test
+    project_path_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'pwd' 2>&1 || true)
+    if [[ "${project_path_test}" == "${test_project}" ]]; then
+        echo "✅ Test I PASS: project path preserved"
+    else
+        echo "❌ Test I FAIL: project path changed to ${project_path_test}"
+        ((failed_tests++))
+    fi
+
+    # Test J: browser plugin state bind
+    if [[ -d "${HOME}/.opencode-browser" ]]; then
+        info "Test J: browser plugin state bind"
+        local browser_state_test
+        browser_state_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'test -w /home/scoder/.opencode-browser && echo SUCCESS' 2>&1 || true)
+        if echo "${browser_state_test}" | grep -q "SUCCESS"; then
+            echo "✅ Test J PASS: browser plugin state is writable"
+        else
+            echo "❌ Test J FAIL: browser plugin state is not writable"
+            ((failed_tests++))
+        fi
+    else
+        echo "ℹ️  Test J SKIP: ~/.opencode-browser not present on host"
+    fi
+
+    # Test K: tool launcher status
+    info "Test K: host tool and launcher status"
+    for cmd_status in node npm npx bun uv uvx; do
+        if command -v "${cmd_status}" >/dev/null 2>&1; then
+            echo "✅ ${cmd_status}: $(command -v "${cmd_status}")"
+        else
+            echo "ℹ️  ${cmd_status}: unavailable on host"
+        fi
+    done
+
+    if command -v npx >/dev/null 2>&1; then
+        echo "✅ context7 launcher: npx available"
+    else
+        echo "❌ context7 launcher: npx unavailable"
+        ((failed_tests++))
+    fi
+
+    if command -v uvx >/dev/null 2>&1; then
+        echo "✅ fetch launcher: uvx available"
+    else
+        echo "❌ fetch launcher: uvx unavailable"
         ((failed_tests++))
     fi
 
@@ -335,7 +437,6 @@ run_validation() {
 
 # -------- defaults (SECURE BY DEFAULT, BUT WRITABLE) --------
 OPENCODE_BIN="${OPENCODE_BIN:-${OPENCODE_BIN_DEFAULT}}"
-NET_MODE="${SCODER_NET:-on}"
 FS_MODE="${SCODER_FS_MODE:-rw}"
 QUIET=0
 VALIDATE_MODE=0
@@ -349,19 +450,22 @@ OPENCODE_DEFAULT_CONFIG="${HOME}/.config/opencode/opencode.json"
 
 PROJECT_DIR=""
 OPENCODE_ARGS=()
+RAW_COMMAND=()
 
 # -------- option parsing --------
 RO_SET=0
 RW_SET=0
 ALLOW_GIT=0
-ALLOW_NODE_MODULES=1
-ALLOW_VENV=1
 ALLOW_INFRA=0
 RESTRICT_DEV=1
 PARSE_DONE=0
 
 while [[ $# -gt 0 ]]; do
     if [[ "${PARSE_DONE}" -eq 1 ]]; then
+        if [[ ${#OPENCODE_ARGS[@]} -eq 0 && ${#RAW_COMMAND[@]} -eq 0 && "$1" != -* ]]; then
+            RAW_COMMAND=("$@")
+            break
+        fi
         OPENCODE_ARGS+=("$1")
         shift
         continue
@@ -384,10 +488,6 @@ while [[ $# -gt 0 ]]; do
         VALIDATE_MODE=1
         shift
         ;;
-    -n | --no-net)
-        NET_MODE="off"
-        shift
-        ;;
     -b | --bin)
         if [[ $# -lt 2 ]]; then
             error "missing argument for $1"
@@ -408,14 +508,6 @@ while [[ $# -gt 0 ]]; do
         ;;
     --allow-git)
         ALLOW_GIT=1
-        shift
-        ;;
-    --allow-node-modules)
-        ALLOW_NODE_MODULES=1
-        shift
-        ;;
-    --allow-venv)
-        ALLOW_VENV=1
         shift
         ;;
     --allow-infra)
@@ -512,7 +604,9 @@ fi
 PROJECT_DIR="$(realpath "${PROJECT_DIR}")"
 SANDBOX_WORKDIR="${PROJECT_DIR}"
 
-apply_default_agent_if_needed
+if [[ ${#RAW_COMMAND[@]} -eq 0 ]]; then
+    apply_default_agent_if_needed
+fi
 
 # Ensure OpenCode data/cache dirs exist (config handled separately)
 OPENCODE_DATA="${HOME}/.local/share/opencode"
@@ -528,12 +622,6 @@ mkdir -p "${OPENCODE_CONFIG_DIR}"
 mkdir -p "${OPENCODE_ALT_DIR}"
 mkdir -p "${BUN_HOME}"
 mkdir -p "${BUN_CACHE}"
-
-# Network flags
-NET_FLAGS=()
-if [[ "${NET_MODE}" != "on" ]]; then
-    NET_FLAGS+=(--unshare-net)
-fi
 
 # FS bind mode
 if [[ "${FS_MODE}" = "ro" ]]; then
@@ -555,7 +643,7 @@ SANDBOX_PATH="/home/scoder/.bun/bin:${SANDBOX_PATH}"
 EXTRA_BINDS=()
 EXTRA_DIRS=()
 
-# Helper: opt_bind (only used when --allow-host-tools is set)
+# Helper: opt_bind (used for optional host-path binds)
 opt_bind() {
     local host_p="$1"
     local sand_p="$2"
@@ -564,9 +652,37 @@ opt_bind() {
     fi
 }
 
-# Bind host tools only if explicitly requested
+add_extra_dir_once() {
+    local dir_path="$1"
+    local existing
+    local index
+
+    for ((index = 0; index < ${#EXTRA_DIRS[@]}; index += 2)); do
+        existing="${EXTRA_DIRS[index + 1]}"
+        if [[ "${existing}" == "${dir_path}" ]]; then
+            return
+        fi
+    done
+
+    EXTRA_DIRS+=(--dir "${dir_path}")
+}
+
+add_parent_dirs_once() {
+    local dir_path="$1"
+    local parent=""
+    local segment
+
+    IFS='/' read -r -a segments <<<"${dir_path}"
+    for segment in "${segments[@]}"; do
+        [[ -z "${segment}" ]] && continue
+        parent="${parent}/${segment}"
+        add_extra_dir_once "${parent}"
+    done
+}
+
+# Bind host tools unless explicitly disabled
 if [[ "${ALLOW_HOST_TOOLS}" -eq 1 ]]; then
-    info "Binding host development tools (--allow-host-tools)"
+    info "Binding host development tools"
 
     # User binaries
     if [[ -d "${HOME}/.local/bin" ]]; then
@@ -585,7 +701,7 @@ if [[ "${ALLOW_HOST_TOOLS}" -eq 1 ]]; then
     if [[ -d "${HOME}/.local/share/uv" ]]; then
         EXTRA_BINDS+=(--ro-bind "${HOME}/.local/share/uv" "/home/scoder/.local/share/uv")
         if [[ "${HOST_HOME}" != "/home/scoder" ]]; then
-            EXTRA_DIRS+=(--dir "${HOST_HOME}")
+            add_extra_dir_once "${HOST_HOME}"
             EXTRA_BINDS+=(--ro-bind "${HOME}/.local/share/uv" "${HOST_HOME}/.local/share/uv")
         fi
     fi
@@ -598,7 +714,7 @@ if [[ "${ALLOW_HOST_TOOLS}" -eq 1 ]]; then
 
         # Mirror pyenv into original host home path for existing venvs
         if [[ "${HOST_HOME}" != "/home/scoder" ]]; then
-            EXTRA_DIRS+=(--dir "${HOST_HOME}")
+            add_extra_dir_once "${HOST_HOME}"
             EXTRA_BINDS+=(--ro-bind "${HOME}/.pyenv" "${HOST_HOME}/.pyenv")
         fi
     fi
@@ -614,10 +730,21 @@ if [[ "${ALLOW_HOST_TOOLS}" -eq 1 ]]; then
     fi
 fi
 
-# Project-local state for mise (always)
+# Project-local state for mise
 if [[ -n "${PROJECT_DIR}" ]]; then
-    mkdir -p "${PROJECT_DIR}/.local/state/mise"
-    EXTRA_BINDS+=(--bind "${PROJECT_DIR}/.local/state/mise" "/home/scoder/.local/state/mise")
+    if [[ "${FS_MODE}" = "ro" ]]; then
+        MISE_STATE_DIR="${HOST_HOME}/.local/state/scoder/mise$(printf '%s' "${PROJECT_DIR}" | tr '/' '_')"
+    else
+        MISE_STATE_DIR="${PROJECT_DIR}/.local/state/mise"
+    fi
+    mkdir -p "${MISE_STATE_DIR}"
+    EXTRA_BINDS+=(--bind "${MISE_STATE_DIR}" "/home/scoder/.local/state/mise")
+fi
+
+RESOLV_CONF_TARGET="$(readlink -f /etc/resolv.conf 2>/dev/null || true)"
+if [[ -n "${RESOLV_CONF_TARGET}" && "${RESOLV_CONF_TARGET}" != "/etc/resolv.conf" && -f "${RESOLV_CONF_TARGET}" ]]; then
+    add_parent_dirs_once "$(dirname "${RESOLV_CONF_TARGET}")"
+    EXTRA_BINDS+=(--ro-bind "${RESOLV_CONF_TARGET}" "${RESOLV_CONF_TARGET}")
 fi
 
 # Project-local Cargo binaries
@@ -665,12 +792,6 @@ SAFE_BINDS=()
 if [[ "${ALLOW_INFRA}" -eq 0 ]]; then
     for dir in "${PROTECTED_INFRA_DIRS[@]}"; do
         if [[ "${dir}" == ".git" && "${ALLOW_GIT}" -eq 1 ]]; then
-            continue
-        fi
-        if [[ "${dir}" == "node_modules" && "${ALLOW_NODE_MODULES}" -eq 1 ]]; then
-            continue
-        fi
-        if [[ "${dir}" == ".venv" && "${ALLOW_VENV}" -eq 1 ]]; then
             continue
         fi
 
@@ -763,6 +884,10 @@ BWRAP_CMD+=(
     --bind "${BUN_CACHE}" /home/scoder/.cache/bun
 )
 
+if [[ -d "${HOME}/.opencode-browser" ]]; then
+    BWRAP_CMD+=(--bind "${HOME}/.opencode-browser" /home/scoder/.opencode-browser)
+fi
+
 if [[ -f "${OPENCODE_CONFIG_DIR}/opencode.json" ]]; then
     info "Using config: ${OPENCODE_CONFIG_DIR}/opencode.json"
 else
@@ -770,7 +895,6 @@ else
 fi
 
 BWRAP_CMD+=(--chdir "${SANDBOX_WORKDIR}")
-BWRAP_CMD+=("${NET_FLAGS[@]}")
 BWRAP_CMD+=(
     --new-session
     --die-with-parent
@@ -803,7 +927,11 @@ if [[ -n "${PYO3_PYTHON:-}" ]]; then
     BWRAP_CMD+=(--setenv PYO3_PYTHON "${SANDBOX_WORKDIR}/.venv/bin/python")
 fi
 
-BWRAP_CMD+=("${OPENCODE_BIN}" "${OPENCODE_ARGS[@]}")
+if [[ ${#RAW_COMMAND[@]} -gt 0 ]]; then
+    BWRAP_CMD+=("${RAW_COMMAND[@]}")
+else
+    BWRAP_CMD+=("${OPENCODE_BIN}" "${OPENCODE_ARGS[@]}")
+fi
 
 info "Launching scoder sandbox..."
 exec "${BWRAP_CMD[@]}"
