@@ -1,0 +1,31 @@
+#!/usr/bin/expect -f
+
+set timeout -1
+
+if {[auto_execok pipes-rs] eq ""} {
+    send_user "Missing dependency: pipes-rs\n"
+    send_user "Install with: pamac install pipes-rs\n"
+    exit 0
+}
+
+spawn -noecho pipes-rs
+interact -nobuffer -re . { send "q"; return }
+expect eof
+#!/usr/bin/expect -f
+
+set timeout -1
+
+if {[auto_execok pipes-rs] eq ""} {
+    send_user "Missing dependency: pipes-rs\nInstall with: pamac install pipes-rs\n"
+    exit 0
+}
+
+spawn -noecho pipes-rs
+interact -nobuffer -re (.) {
+    set key $interact_out(1,string)
+    send "q"
+}
+expect eof
+
+# Forward the captured key back to the real terminal
+exec /bin/sh -c "printf '%s' '$key' > /dev/tty"
