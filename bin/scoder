@@ -151,6 +151,22 @@ apply_default_agent_if_needed() {
     OPENCODE_ARGS=(--agent "$default_agent" "${OPENCODE_ARGS[@]}")
 }
 
+normalize_raw_command_if_needed() {
+    if [[ ${#RAW_COMMAND[@]} -lt 2 ]]; then
+        return
+    fi
+
+    case "${RAW_COMMAND[0]}" in
+    bash | /bin/bash)
+        case "${RAW_COMMAND[1]}" in
+        -c | -lc)
+            RAW_COMMAND=("${RAW_COMMAND[0]}" --noprofile --norc "${RAW_COMMAND[1]}" "${RAW_COMMAND[@]:2}")
+            ;;
+        esac
+        ;;
+    esac
+}
+
 run_validation() {
     local script_path="$0"
     local test_project="/tmp/scoder-validation-$$"
@@ -189,7 +205,7 @@ run_validation() {
     echo ""
     info "Test A.1: HOME isolation"
     local home_result
-    home_result=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc "printf '%s' \"\$HOME\"" || true)
+    home_result=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc "printf '%s' \"\$HOME\"" || true)
     if [[ "${home_result}" == "${HOME}" ]]; then
         echo "✅ Test A.1 PASS: HOME mirrors host home path"
     else
@@ -200,7 +216,7 @@ run_validation() {
     # Test A.1b: EDITOR default
     info "Test A.1b: EDITOR default"
     local editor_result
-    editor_result=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc "printf '%s' \"\$EDITOR\"" || true)
+    editor_result=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc "printf '%s' \"\$EDITOR\"" || true)
     if [[ "${editor_result}" == "v_quickedit_hover" ]]; then
         echo "✅ Test A.1b PASS: EDITOR defaults to v_quickedit_hover"
     else
@@ -212,7 +228,7 @@ run_validation() {
     if [[ -n "${NVIM:-}" && -S "${NVIM}" ]]; then
         info "Test A.1c: active Neovim socket bridge"
         local nvim_result
-        nvim_result=$(OPENCODE_BIN=/bin/bash NVIM="${NVIM}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-}" "${script_path}" -q "${test_project}" -- /bin/bash -lc "printf '%s' \"\$NVIM\"" || true)
+        nvim_result=$(OPENCODE_BIN=/bin/bash NVIM="${NVIM}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-}" "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc "printf '%s' \"\$NVIM\"" || true)
         if [[ "${nvim_result}" == "${NVIM}" ]]; then
             echo "✅ Test A.1c PASS: NVIM propagated into sandbox"
         else
@@ -221,7 +237,7 @@ run_validation() {
         fi
 
         local nvim_socket_test
-        nvim_socket_test=$(OPENCODE_BIN=/bin/bash NVIM="${NVIM}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-}" "${script_path}" -q "${test_project}" -- /bin/bash -lc 'test -S "$NVIM" && printf SOCKET_OK' || true)
+        nvim_socket_test=$(OPENCODE_BIN=/bin/bash NVIM="${NVIM}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-}" "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'test -S "$NVIM" && printf SOCKET_OK' || true)
         if [[ "${nvim_socket_test}" == "SOCKET_OK" ]]; then
             echo "✅ Test A.1c PASS: active Neovim socket is visible"
         else
@@ -231,7 +247,7 @@ run_validation() {
 
         if [[ -n "${XDG_RUNTIME_DIR:-}" ]]; then
             local xdg_runtime_result
-            xdg_runtime_result=$(OPENCODE_BIN=/bin/bash NVIM="${NVIM}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" "${script_path}" -q "${test_project}" -- /bin/bash -lc "printf '%s' \"\$XDG_RUNTIME_DIR\"" || true)
+            xdg_runtime_result=$(OPENCODE_BIN=/bin/bash NVIM="${NVIM}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc "printf '%s' \"\$XDG_RUNTIME_DIR\"" || true)
             if [[ "${xdg_runtime_result}" == "${XDG_RUNTIME_DIR}" ]]; then
                 echo "✅ Test A.1c PASS: XDG runtime dir propagated"
             else
@@ -246,7 +262,7 @@ run_validation() {
     # Test A.2: bashrc write isolation (no leak to host)
     info "Test A.2: ~/.bashrc write isolation"
     local host_bashrc="${HOME}/.bashrc"
-    OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'echo "SCODER_TEST" > ~/.bashrc' >/dev/null 2>&1 || true
+    OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'echo "SCODER_TEST" > ~/.bashrc' >/dev/null 2>&1 || true
     local leaked=0
     if [[ -f "${host_bashrc}" ]]; then
         if grep -q "SCODER_TEST" "${host_bashrc}" 2>/dev/null; then
@@ -263,7 +279,7 @@ run_validation() {
     # Test A.3: System file write protection
     info "Test A.3: System file write protection"
     local sys_write
-    sys_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'touch /usr/bin/scoder-test 2>&1' 2>&1 || true)
+    sys_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'touch /usr/bin/scoder-test 2>&1' 2>&1 || true)
     if echo "${sys_write}" | grep -qE "Read-only|Permission denied|cannot touch"; then
         echo "✅ Test A.3 PASS: System files are read-only"
     else
@@ -274,7 +290,7 @@ run_validation() {
     # Test B.1: Workspace is writable
     info "Test B.1: Workspace writability"
     local workspace_write
-    workspace_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'touch new_file.py && echo SUCCESS' 2>&1 || true)
+    workspace_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'touch new_file.py && echo SUCCESS' 2>&1 || true)
     if echo "${workspace_write}" | grep -q "SUCCESS"; then
         echo "✅ Test B.1 PASS: Workspace is writable"
     else
@@ -285,7 +301,7 @@ run_validation() {
     # Test B.2: .git protection
     info "Test B.2: .git directory protection"
     local git_write
-    git_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'touch .git/test 2>&1' 2>&1 || true)
+    git_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'touch .git/test 2>&1' 2>&1 || true)
     if echo "${git_write}" | grep -qE "Read-only|Permission denied|cannot touch"; then
         echo "✅ Test B.2 PASS: .git is read-only"
     else
@@ -296,7 +312,7 @@ run_validation() {
     # Test B.3: node_modules writability
     info "Test B.3: node_modules directory writability"
     local nm_write
-    nm_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'touch node_modules/test && echo SUCCESS' 2>&1 || true)
+    nm_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'touch node_modules/test && echo SUCCESS' 2>&1 || true)
     if echo "${nm_write}" | grep -q "SUCCESS"; then
         echo "✅ Test B.3 PASS: node_modules is writable"
     else
@@ -307,7 +323,7 @@ run_validation() {
     # Test B.4: --allow-git override
     info "Test B.4: --allow-git override functionality"
     local git_override
-    git_override=$(OPENCODE_BIN=/bin/bash "${script_path}" -q --allow-git "${test_project}" -- /bin/bash -lc 'touch .git/test && echo SUCCESS' 2>&1 || true)
+    git_override=$(OPENCODE_BIN=/bin/bash "${script_path}" -q --allow-git "${test_project}" -- /bin/bash --noprofile --norc -lc 'touch .git/test && echo SUCCESS' 2>&1 || true)
     if echo "${git_override}" | grep -q "SUCCESS"; then
         echo "✅ Test B.4 PASS: --allow-git override works"
     else
@@ -318,7 +334,7 @@ run_validation() {
     # Test B.5: project .env visibility
     info "Test B.5: project .env visibility"
     local env_visible
-    env_visible=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'test -e .env && echo SUCCESS' 2>&1 || true)
+    env_visible=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'test -e .env && echo SUCCESS' 2>&1 || true)
     if echo "${env_visible}" | grep -q "SUCCESS"; then
         echo "✅ Test B.5 PASS: project .env is visible"
     else
@@ -329,7 +345,7 @@ run_validation() {
     # Test B.6: --ro must not mutate project-local mise state
     info "Test B.6: --ro blocks project-local mise state writes"
     rm -rf "${test_project}/.local"
-    OPENCODE_BIN=/bin/bash "${script_path}" -q --ro "${test_project}" -- /bin/bash -lc 'test ! -w . && echo RO' >/dev/null 2>&1 || true
+    OPENCODE_BIN=/bin/bash "${script_path}" -q --ro "${test_project}" -- /bin/bash --noprofile --norc -lc 'test ! -w . && echo RO' >/dev/null 2>&1 || true
     if [[ ! -e "${test_project}/.local/state/mise" ]]; then
         echo "✅ Test B.6 PASS: --ro does not create project-local mise state"
     else
@@ -340,7 +356,7 @@ run_validation() {
     # Test B.7: raw command execution after --
     info "Test B.7: raw command execution after --"
     local raw_command_test
-    raw_command_test=$("${script_path}" -q "${test_project}" -- /bin/bash -lc 'printf RAW_OK' || true)
+    raw_command_test=$("${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'printf RAW_OK' || true)
     if [[ "${raw_command_test}" == "RAW_OK" ]]; then
         echo "✅ Test B.7 PASS: raw commands execute inside sandbox"
     else
@@ -352,7 +368,7 @@ run_validation() {
     if [[ -f "${OPENCODE_DEFAULT_CONFIG}" ]]; then
         info "Test C: Config bind verification"
         local config_read
-        config_read=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'cat ~/.config/opencode/opencode.json' || true)
+        config_read=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'cat ~/.config/opencode/opencode.json' || true)
         local expected_content
         expected_content=$(cat "${OPENCODE_DEFAULT_CONFIG}" 2>/dev/null || echo "")
         if [[ "${config_read}" == "${expected_content}" ]]; then
@@ -368,7 +384,7 @@ run_validation() {
     # Test D: Tooling PATH
     info "Test D: .venv in PATH"
     local venv_path
-    venv_path=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc "echo \"\$PATH\"" 2>&1 || true)
+    venv_path=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc "echo \"\$PATH\"" 2>&1 || true)
     if echo "${venv_path}" | grep -q ".venv/bin"; then
         echo "✅ Test D PASS: .venv/bin is in PATH"
     else
@@ -379,7 +395,7 @@ run_validation() {
     # Test E: DNS resolver configuration
     info "Test E: DNS resolver configuration"
     local dns_test
-    dns_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'grep -q "^nameserver " /etc/resolv.conf && echo SUCCESS' 2>&1 || true)
+    dns_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'grep -q "^nameserver " /etc/resolv.conf && echo SUCCESS' 2>&1 || true)
     if echo "${dns_test}" | grep -q "SUCCESS"; then
         echo "✅ Test E PASS: DNS resolver config is available"
     else
@@ -390,7 +406,7 @@ run_validation() {
     # Test F: OpenCode writable runtime state
     info "Test F: OpenCode writable runtime state"
     local oc_state_test
-    oc_state_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'test -w "$HOME/.config/opencode" && test -w "$HOME/.cache/opencode" && test -w "$HOME/.local/share/opencode" && test -w "$HOME/.opencode" && echo SUCCESS' 2>&1 || true)
+    oc_state_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'test -w "$HOME/.config/opencode" && test -w "$HOME/.cache/opencode" && test -w "$HOME/.local/share/opencode" && test -w "$HOME/.opencode" && echo SUCCESS' 2>&1 || true)
     if echo "${oc_state_test}" | grep -q "SUCCESS"; then
         echo "✅ Test F PASS: OpenCode runtime paths are writable"
     else
@@ -401,7 +417,7 @@ run_validation() {
     # Test G: Bun writable runtime state
     info "Test G: Bun writable runtime state"
     local bun_state_test
-    bun_state_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'test -w "$HOME/.bun" && test -w "$HOME/.cache/bun" && echo SUCCESS' 2>&1 || true)
+    bun_state_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'test -w "$HOME/.bun" && test -w "$HOME/.cache/bun" && echo SUCCESS' 2>&1 || true)
     if echo "${bun_state_test}" | grep -q "SUCCESS"; then
         echo "✅ Test G PASS: Bun runtime paths are writable"
     else
@@ -412,7 +428,7 @@ run_validation() {
     # Test H: TUI environment essentials
     info "Test H: TUI environment essentials"
     local tui_env_test
-    tui_env_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc "test -n \"\$TERM\" && test -n \"\$LANG\" && test -n \"\$SHELL\" && test \"\$GIT_OPTIONAL_LOCKS\" = \"0\" && echo SUCCESS" 2>&1 || true)
+    tui_env_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc "test -n \"\$TERM\" && test -n \"\$LANG\" && test -n \"\$SHELL\" && test \"\$GIT_OPTIONAL_LOCKS\" = \"0\" && echo SUCCESS" 2>&1 || true)
     if echo "${tui_env_test}" | grep -q "SUCCESS"; then
         echo "✅ Test H PASS: TUI environment variables are present"
     else
@@ -423,7 +439,7 @@ run_validation() {
     # Test I: project path preserved inside sandbox
     info "Test I: project path preserved"
     local project_path_test
-    project_path_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'pwd' || true)
+    project_path_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'pwd' || true)
     if [[ "${project_path_test}" == "${test_project}" ]]; then
         echo "✅ Test I PASS: project path preserved"
     else
@@ -435,7 +451,7 @@ run_validation() {
     if [[ -d "${HOME}/.opencode-browser" ]]; then
         info "Test J: browser plugin state bind"
         local browser_state_test
-        browser_state_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'test -w "$HOME/.opencode-browser" && echo SUCCESS' 2>&1 || true)
+        browser_state_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'test -w "$HOME/.opencode-browser" && echo SUCCESS' 2>&1 || true)
         if echo "${browser_state_test}" | grep -q "SUCCESS"; then
             echo "✅ Test J PASS: browser plugin state is writable"
         else
@@ -673,6 +689,8 @@ SANDBOX_OPENCODE_DATA_DIR="${SANDBOX_LOCAL_SHARE_DIR}/opencode"
 
 if [[ ${#RAW_COMMAND[@]} -eq 0 ]]; then
     apply_default_agent_if_needed
+else
+    normalize_raw_command_if_needed
 fi
 
 # Ensure OpenCode data/cache dirs exist (config handled separately)
