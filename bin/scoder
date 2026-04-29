@@ -76,7 +76,7 @@ Examples:
   scoder myproj -- --verbose # pass --verbose to opencode
 
 Security Note:
-  HOME is set to /home/scoder on tmpfs (fully isolated from your real home).
+  HOME mirrors your host home path on tmpfs with explicit binds.
   OpenCode and Bun runtime state is persisted via explicit writable binds.
   Host tools are bound by default (use --no-host-tools to disable them).
   The project is writable by default, but critical infrastructure directories
@@ -187,11 +187,22 @@ run_validation() {
     echo ""
     info "Test A.1: HOME isolation"
     local home_result
-    home_result=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc "echo \"\$HOME\"" 2>&1 || true)
-    if [[ "${home_result}" == "/home/scoder" ]]; then
-        echo "✅ Test A.1 PASS: HOME is /home/scoder (isolated)"
+    home_result=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc "printf '%s' \"\$HOME\"" || true)
+    if [[ "${home_result}" == "${HOME}" ]]; then
+        echo "✅ Test A.1 PASS: HOME mirrors host home path"
     else
-        echo "❌ Test A.1 FAIL: HOME is ${home_result} (expected /home/scoder)"
+        echo "❌ Test A.1 FAIL: HOME is ${home_result} (expected ${HOME})"
+        ((failed_tests++))
+    fi
+
+    # Test A.1b: EDITOR default
+    info "Test A.1b: EDITOR default"
+    local editor_result
+    editor_result=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc "printf '%s' \"\$EDITOR\"" || true)
+    if [[ "${editor_result}" == "v_quickedit_hover" ]]; then
+        echo "✅ Test A.1b PASS: EDITOR defaults to v_quickedit_hover"
+    else
+        echo "❌ Test A.1b FAIL: EDITOR is ${editor_result} (expected v_quickedit_hover)"
         ((failed_tests++))
     fi
 
@@ -292,7 +303,7 @@ run_validation() {
     # Test B.7: raw command execution after --
     info "Test B.7: raw command execution after --"
     local raw_command_test
-    raw_command_test=$("${script_path}" -q "${test_project}" -- /bin/bash -lc 'printf RAW_OK' 2>&1 || true)
+    raw_command_test=$("${script_path}" -q "${test_project}" -- /bin/bash -lc 'printf RAW_OK' || true)
     if [[ "${raw_command_test}" == "RAW_OK" ]]; then
         echo "✅ Test B.7 PASS: raw commands execute inside sandbox"
     else
@@ -304,7 +315,7 @@ run_validation() {
     if [[ -f "${OPENCODE_DEFAULT_CONFIG}" ]]; then
         info "Test C: Config bind verification"
         local config_read
-        config_read=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'cat ~/.config/opencode/opencode.json 2>&1' 2>&1 || true)
+        config_read=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'cat ~/.config/opencode/opencode.json' || true)
         local expected_content
         expected_content=$(cat "${OPENCODE_DEFAULT_CONFIG}" 2>/dev/null || echo "")
         if [[ "${config_read}" == "${expected_content}" ]]; then
@@ -342,7 +353,7 @@ run_validation() {
     # Test F: OpenCode writable runtime state
     info "Test F: OpenCode writable runtime state"
     local oc_state_test
-    oc_state_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'test -w /home/scoder/.config/opencode && test -w /home/scoder/.cache/opencode && test -w /home/scoder/.local/share/opencode && test -w /home/scoder/.opencode && echo SUCCESS' 2>&1 || true)
+    oc_state_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'test -w "$HOME/.config/opencode" && test -w "$HOME/.cache/opencode" && test -w "$HOME/.local/share/opencode" && test -w "$HOME/.opencode" && echo SUCCESS' 2>&1 || true)
     if echo "${oc_state_test}" | grep -q "SUCCESS"; then
         echo "✅ Test F PASS: OpenCode runtime paths are writable"
     else
@@ -353,7 +364,7 @@ run_validation() {
     # Test G: Bun writable runtime state
     info "Test G: Bun writable runtime state"
     local bun_state_test
-    bun_state_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'test -w /home/scoder/.bun && test -w /home/scoder/.cache/bun && echo SUCCESS' 2>&1 || true)
+    bun_state_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'test -w "$HOME/.bun" && test -w "$HOME/.cache/bun" && echo SUCCESS' 2>&1 || true)
     if echo "${bun_state_test}" | grep -q "SUCCESS"; then
         echo "✅ Test G PASS: Bun runtime paths are writable"
     else
@@ -375,7 +386,7 @@ run_validation() {
     # Test I: project path preserved inside sandbox
     info "Test I: project path preserved"
     local project_path_test
-    project_path_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'pwd' 2>&1 || true)
+    project_path_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'pwd' || true)
     if [[ "${project_path_test}" == "${test_project}" ]]; then
         echo "✅ Test I PASS: project path preserved"
     else
@@ -387,7 +398,7 @@ run_validation() {
     if [[ -d "${HOME}/.opencode-browser" ]]; then
         info "Test J: browser plugin state bind"
         local browser_state_test
-        browser_state_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'test -w /home/scoder/.opencode-browser && echo SUCCESS' 2>&1 || true)
+        browser_state_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash -lc 'test -w "$HOME/.opencode-browser" && echo SUCCESS' 2>&1 || true)
         if echo "${browser_state_test}" | grep -q "SUCCESS"; then
             echo "✅ Test J PASS: browser plugin state is writable"
         else
@@ -603,6 +614,20 @@ fi
 
 PROJECT_DIR="$(realpath "${PROJECT_DIR}")"
 SANDBOX_WORKDIR="${PROJECT_DIR}"
+SANDBOX_HOME="${HOST_HOME}"
+SANDBOX_EDITOR="v_quickedit_hover"
+SANDBOX_LOCAL_DIR="${SANDBOX_HOME}/.local"
+SANDBOX_LOCAL_SHARE_DIR="${SANDBOX_HOME}/.local/share"
+SANDBOX_LOCAL_STATE_DIR="${SANDBOX_HOME}/.local/state"
+SANDBOX_CONFIG_DIR="${SANDBOX_HOME}/.config"
+SANDBOX_OPENCODE_CONFIG_DIR="${SANDBOX_CONFIG_DIR}/opencode"
+SANDBOX_CACHE_DIR="${SANDBOX_HOME}/.cache"
+SANDBOX_OPENCODE_CACHE_DIR="${SANDBOX_CACHE_DIR}/opencode"
+SANDBOX_BUN_CACHE_DIR="${SANDBOX_CACHE_DIR}/bun"
+SANDBOX_OPENCODE_DATA_DIR="${SANDBOX_LOCAL_SHARE_DIR}/opencode"
+SANDBOX_OPENCODE_ALT_DIR="${SANDBOX_HOME}/.opencode"
+SANDBOX_BUN_HOME="${SANDBOX_HOME}/.bun"
+SANDBOX_BROWSER_DIR="${SANDBOX_HOME}/.opencode-browser"
 
 if [[ ${#RAW_COMMAND[@]} -eq 0 ]]; then
     apply_default_agent_if_needed
@@ -638,7 +663,7 @@ SANDBOX_PATH="/usr/local/bin:""\
 /bin:""\
 /sbin:""\
 /usr/bin/site_perl"
-SANDBOX_PATH="/home/scoder/.bun/bin:${SANDBOX_PATH}"
+SANDBOX_PATH="${SANDBOX_BUN_HOME}/bin:${SANDBOX_PATH}"
 
 EXTRA_BINDS=()
 EXTRA_DIRS=()
@@ -686,47 +711,37 @@ if [[ "${ALLOW_HOST_TOOLS}" -eq 1 ]]; then
 
     # User binaries
     if [[ -d "${HOME}/.local/bin" ]]; then
-        EXTRA_BINDS+=(--ro-bind "${HOME}/.local/bin" "/home/scoder/.local/bin")
-        SANDBOX_PATH="${SANDBOX_PATH}:/home/scoder/.local/bin"
+        EXTRA_BINDS+=(--ro-bind "${HOME}/.local/bin" "${SANDBOX_HOME}/.local/bin")
+        SANDBOX_PATH="${SANDBOX_PATH}:${SANDBOX_HOME}/.local/bin"
     fi
 
     # Mise
-    opt_bind "${HOME}/.local/share/mise" "/home/scoder/.local/share/mise"
-    opt_bind "${HOME}/.config/mise" "/home/scoder/.config/mise"
+    opt_bind "${HOME}/.local/share/mise" "${SANDBOX_HOME}/.local/share/mise"
+    opt_bind "${HOME}/.config/mise" "${SANDBOX_HOME}/.config/mise"
     if [[ -d "${HOME}/.local/share/mise/shims" ]]; then
-        SANDBOX_PATH="${SANDBOX_PATH}:/home/scoder/.local/share/mise/shims"
+        SANDBOX_PATH="${SANDBOX_PATH}:${SANDBOX_HOME}/.local/share/mise/shims"
     fi
 
     # uv
     if [[ -d "${HOME}/.local/share/uv" ]]; then
-        EXTRA_BINDS+=(--ro-bind "${HOME}/.local/share/uv" "/home/scoder/.local/share/uv")
-        if [[ "${HOST_HOME}" != "/home/scoder" ]]; then
-            add_extra_dir_once "${HOST_HOME}"
-            EXTRA_BINDS+=(--ro-bind "${HOME}/.local/share/uv" "${HOST_HOME}/.local/share/uv")
-        fi
+        EXTRA_BINDS+=(--ro-bind "${HOME}/.local/share/uv" "${SANDBOX_HOME}/.local/share/uv")
     fi
 
     # Pyenv
     if [[ -d "${HOME}/.pyenv" ]]; then
-        EXTRA_BINDS+=(--ro-bind "${HOME}/.pyenv" "/home/scoder/.pyenv")
-        SANDBOX_PATH="${SANDBOX_PATH}:/home/scoder/.pyenv/shims:/home/scoder/.pyenv/bin"
-        PYENV_ROOT_SANDBOX="/home/scoder/.pyenv"
-
-        # Mirror pyenv into original host home path for existing venvs
-        if [[ "${HOST_HOME}" != "/home/scoder" ]]; then
-            add_extra_dir_once "${HOST_HOME}"
-            EXTRA_BINDS+=(--ro-bind "${HOME}/.pyenv" "${HOST_HOME}/.pyenv")
-        fi
+        EXTRA_BINDS+=(--ro-bind "${HOME}/.pyenv" "${SANDBOX_HOME}/.pyenv")
+        SANDBOX_PATH="${SANDBOX_PATH}:${SANDBOX_HOME}/.pyenv/shims:${SANDBOX_HOME}/.pyenv/bin"
+        PYENV_ROOT_SANDBOX="${SANDBOX_HOME}/.pyenv"
     fi
 
     # Rust
     if [[ -d "${HOME}/.rustup" ]]; then
-        EXTRA_BINDS+=(--ro-bind "${HOME}/.rustup" "/home/scoder/.rustup")
-        RUSTUP_HOME_SANDBOX="/home/scoder/.rustup"
+        EXTRA_BINDS+=(--ro-bind "${HOME}/.rustup" "${SANDBOX_HOME}/.rustup")
+        RUSTUP_HOME_SANDBOX="${SANDBOX_HOME}/.rustup"
     fi
     if [[ -d "${HOME}/.cargo/bin" ]]; then
-        EXTRA_BINDS+=(--ro-bind "${HOME}/.cargo/bin" "/home/scoder/.cargo/bin")
-        SANDBOX_PATH="${SANDBOX_PATH}:/home/scoder/.cargo/bin"
+        EXTRA_BINDS+=(--ro-bind "${HOME}/.cargo/bin" "${SANDBOX_HOME}/.cargo/bin")
+        SANDBOX_PATH="${SANDBOX_PATH}:${SANDBOX_HOME}/.cargo/bin"
     fi
 fi
 
@@ -738,7 +753,7 @@ if [[ -n "${PROJECT_DIR}" ]]; then
         MISE_STATE_DIR="${PROJECT_DIR}/.local/state/mise"
     fi
     mkdir -p "${MISE_STATE_DIR}"
-    EXTRA_BINDS+=(--bind "${MISE_STATE_DIR}" "/home/scoder/.local/state/mise")
+    EXTRA_BINDS+=(--bind "${MISE_STATE_DIR}" "${SANDBOX_HOME}/.local/state/mise")
 fi
 
 RESOLV_CONF_TARGET="$(readlink -f /etc/resolv.conf 2>/dev/null || true)"
@@ -749,8 +764,8 @@ fi
 
 # Project-local Cargo binaries
 if [[ -d "${PROJECT_DIR}/.cargo/bin" ]]; then
-    EXTRA_BINDS+=(--bind "${PROJECT_DIR}/.cargo/bin" "/home/scoder/.cargo/bin")
-    SANDBOX_PATH="/home/scoder/.cargo/bin:${SANDBOX_PATH}"
+    EXTRA_BINDS+=(--bind "${PROJECT_DIR}/.cargo/bin" "${SANDBOX_HOME}/.cargo/bin")
+    SANDBOX_PATH="${SANDBOX_HOME}/.cargo/bin:${SANDBOX_PATH}"
 fi
 
 # Python virtual environments (project-local)
@@ -851,13 +866,14 @@ BWRAP_CMD+=(
     --proc /proc
     --tmpfs /tmp
     --tmpfs /home
-    --dir /home/scoder
-    --dir /home/scoder/.local
-    --dir /home/scoder/.local/share
-    --dir /home/scoder/.config
-    --dir /home/scoder/.config/opencode
-    --dir /home/scoder/.cache
-    --dir /home/scoder/.cache/bun
+    --dir "${SANDBOX_HOME}"
+    --dir "${SANDBOX_LOCAL_DIR}"
+    --dir "${SANDBOX_LOCAL_SHARE_DIR}"
+    --dir "${SANDBOX_LOCAL_STATE_DIR}"
+    --dir "${SANDBOX_CONFIG_DIR}"
+    --dir "${SANDBOX_OPENCODE_CONFIG_DIR}"
+    --dir "${SANDBOX_CACHE_DIR}"
+    --dir "${SANDBOX_BUN_CACHE_DIR}"
 )
 
 BWRAP_CMD+=("${EXTRA_DIRS[@]}")
@@ -876,16 +892,16 @@ fi
 
 # Data/cache binding (always for persistence)
 BWRAP_CMD+=(
-    --bind "${OPENCODE_CONFIG_DIR}" /home/scoder/.config/opencode
-    --bind "${OPENCODE_DATA}" /home/scoder/.local/share/opencode
-    --bind "${OPENCODE_CACHE}" /home/scoder/.cache/opencode
-    --bind "${OPENCODE_ALT_DIR}" /home/scoder/.opencode
-    --bind "${BUN_HOME}" /home/scoder/.bun
-    --bind "${BUN_CACHE}" /home/scoder/.cache/bun
+    --bind "${OPENCODE_CONFIG_DIR}" "${SANDBOX_OPENCODE_CONFIG_DIR}"
+    --bind "${OPENCODE_DATA}" "${SANDBOX_OPENCODE_DATA_DIR}"
+    --bind "${OPENCODE_CACHE}" "${SANDBOX_OPENCODE_CACHE_DIR}"
+    --bind "${OPENCODE_ALT_DIR}" "${SANDBOX_OPENCODE_ALT_DIR}"
+    --bind "${BUN_HOME}" "${SANDBOX_BUN_HOME}"
+    --bind "${BUN_CACHE}" "${SANDBOX_BUN_CACHE_DIR}"
 )
 
 if [[ -d "${HOME}/.opencode-browser" ]]; then
-    BWRAP_CMD+=(--bind "${HOME}/.opencode-browser" /home/scoder/.opencode-browser)
+    BWRAP_CMD+=(--bind "${HOME}/.opencode-browser" "${SANDBOX_BROWSER_DIR}")
 fi
 
 if [[ -f "${OPENCODE_CONFIG_DIR}/opencode.json" ]]; then
@@ -899,15 +915,15 @@ BWRAP_CMD+=(
     --die-with-parent
     --clearenv
     --setenv PATH "${SANDBOX_PATH}"
-    --setenv HOME /home/scoder
+    --setenv HOME "${SANDBOX_HOME}"
     --setenv USER scoder
     --setenv LOGNAME scoder
     --setenv TERM "${TERM:-xterm-256color}"
     --setenv COLORTERM "${COLORTERM:-truecolor}"
     --setenv LANG "${LANG:-C.UTF-8}"
     --setenv LC_ALL "${LC_ALL:-C.UTF-8}"
-    --setenv EDITOR "${EDITOR:-vi}"
-    --setenv VISUAL "${VISUAL:-${EDITOR:-vi}}"
+    --setenv EDITOR "${SANDBOX_EDITOR}"
+    --setenv VISUAL "${SANDBOX_EDITOR}"
     --setenv SHELL "${SHELL:-/bin/bash}"
     --setenv GIT_OPTIONAL_LOCKS 0
     --setenv MISE_SKIP_ACTIVATE 1
