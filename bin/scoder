@@ -38,6 +38,7 @@ Options:
       --allow-git         Allow write access to .git directory (default: read-only)
       --allow-infra       Allow write access to all protected infra dirs
       --full-dev          Allow full /dev access inside sandbox
+      --no-nvim-remote    Disable active Neovim socket bridge
   --allow-host-tools  Bind host user tools (~/.local/bin, mise, pyenv, uv, rustup/cargo, etc) (default)
   --no-host-tools     Disable binding host user tools
 USAGE_EOF
@@ -77,6 +78,7 @@ Examples:
 
 Security Note:
   HOME mirrors your host home path on tmpfs with explicit binds.
+  The active Neovim socket is exposed by default when NVIM points to a socket.
   OpenCode and Bun runtime state is persisted via explicit writable binds.
   Host tools are bound by default (use --no-host-tools to disable them).
   The project is writable by default, but critical infrastructure directories
@@ -204,6 +206,41 @@ run_validation() {
     else
         echo "❌ Test A.1b FAIL: EDITOR is ${editor_result} (expected v_quickedit_hover)"
         ((failed_tests++))
+    fi
+
+    # Test A.1c: NVIM/XDG runtime propagation and socket visibility
+    if [[ -n "${NVIM:-}" && -S "${NVIM}" ]]; then
+        info "Test A.1c: active Neovim socket bridge"
+        local nvim_result
+        nvim_result=$(OPENCODE_BIN=/bin/bash NVIM="${NVIM}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-}" "${script_path}" -q "${test_project}" -- /bin/bash -lc "printf '%s' \"\$NVIM\"" || true)
+        if [[ "${nvim_result}" == "${NVIM}" ]]; then
+            echo "✅ Test A.1c PASS: NVIM propagated into sandbox"
+        else
+            echo "❌ Test A.1c FAIL: NVIM is ${nvim_result} (expected ${NVIM})"
+            ((failed_tests++))
+        fi
+
+        local nvim_socket_test
+        nvim_socket_test=$(OPENCODE_BIN=/bin/bash NVIM="${NVIM}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-}" "${script_path}" -q "${test_project}" -- /bin/bash -lc 'test -S "$NVIM" && printf SOCKET_OK' || true)
+        if [[ "${nvim_socket_test}" == "SOCKET_OK" ]]; then
+            echo "✅ Test A.1c PASS: active Neovim socket is visible"
+        else
+            echo "❌ Test A.1c FAIL: active Neovim socket not visible"
+            ((failed_tests++))
+        fi
+
+        if [[ -n "${XDG_RUNTIME_DIR:-}" ]]; then
+            local xdg_runtime_result
+            xdg_runtime_result=$(OPENCODE_BIN=/bin/bash NVIM="${NVIM}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" "${script_path}" -q "${test_project}" -- /bin/bash -lc "printf '%s' \"\$XDG_RUNTIME_DIR\"" || true)
+            if [[ "${xdg_runtime_result}" == "${XDG_RUNTIME_DIR}" ]]; then
+                echo "✅ Test A.1c PASS: XDG runtime dir propagated"
+            else
+                echo "❌ Test A.1c FAIL: XDG runtime dir is ${xdg_runtime_result} (expected ${XDG_RUNTIME_DIR})"
+                ((failed_tests++))
+            fi
+        fi
+    else
+        echo "ℹ️  Test A.1c SKIP: No active NVIM socket in host environment"
     fi
 
     # Test A.2: bashrc write isolation (no leak to host)
@@ -454,6 +491,7 @@ VALIDATE_MODE=0
 ALLOW_HOST_TOOLS=1
 ALLOW_HOST_TOOLS_SET=0
 ALLOW_HOST_TOOLS_DISABLE_SET=0
+ALLOW_NVIM_REMOTE=1
 HOST_HOME="${HOME}"
 
 # Config path
@@ -533,6 +571,10 @@ while [[ $# -gt 0 ]]; do
     --no-host-tools)
         ALLOW_HOST_TOOLS=0
         ALLOW_HOST_TOOLS_DISABLE_SET=1
+        shift
+        ;;
+    --no-nvim-remote)
+        ALLOW_NVIM_REMOTE=0
         shift
         ;;
     --full-dev)
@@ -677,6 +719,14 @@ opt_bind() {
     fi
 }
 
+opt_bind_path() {
+    local host_p="$1"
+    local sand_p="$2"
+    if [[ -e "${host_p}" ]]; then
+        EXTRA_BINDS+=(--bind "${host_p}" "${sand_p}")
+    fi
+}
+
 add_extra_dir_once() {
     local dir_path="$1"
     local existing
@@ -712,14 +762,14 @@ if [[ "${ALLOW_HOST_TOOLS}" -eq 1 ]]; then
     # User binaries
     if [[ -d "${HOME}/.local/bin" ]]; then
         EXTRA_BINDS+=(--ro-bind "${HOME}/.local/bin" "${SANDBOX_HOME}/.local/bin")
-        SANDBOX_PATH="${SANDBOX_PATH}:${SANDBOX_HOME}/.local/bin"
+        SANDBOX_PATH="${SANDBOX_HOME}/.local/bin:${SANDBOX_PATH}"
     fi
 
     # Mise
     opt_bind "${HOME}/.local/share/mise" "${SANDBOX_HOME}/.local/share/mise"
     opt_bind "${HOME}/.config/mise" "${SANDBOX_HOME}/.config/mise"
     if [[ -d "${HOME}/.local/share/mise/shims" ]]; then
-        SANDBOX_PATH="${SANDBOX_PATH}:${SANDBOX_HOME}/.local/share/mise/shims"
+        SANDBOX_PATH="${SANDBOX_HOME}/.local/share/mise/shims:${SANDBOX_PATH}"
     fi
 
     # uv
@@ -730,7 +780,7 @@ if [[ "${ALLOW_HOST_TOOLS}" -eq 1 ]]; then
     # Pyenv
     if [[ -d "${HOME}/.pyenv" ]]; then
         EXTRA_BINDS+=(--ro-bind "${HOME}/.pyenv" "${SANDBOX_HOME}/.pyenv")
-        SANDBOX_PATH="${SANDBOX_PATH}:${SANDBOX_HOME}/.pyenv/shims:${SANDBOX_HOME}/.pyenv/bin"
+        SANDBOX_PATH="${SANDBOX_HOME}/.pyenv/shims:${SANDBOX_HOME}/.pyenv/bin:${SANDBOX_PATH}"
         PYENV_ROOT_SANDBOX="${SANDBOX_HOME}/.pyenv"
     fi
 
@@ -741,7 +791,7 @@ if [[ "${ALLOW_HOST_TOOLS}" -eq 1 ]]; then
     fi
     if [[ -d "${HOME}/.cargo/bin" ]]; then
         EXTRA_BINDS+=(--ro-bind "${HOME}/.cargo/bin" "${SANDBOX_HOME}/.cargo/bin")
-        SANDBOX_PATH="${SANDBOX_PATH}:${SANDBOX_HOME}/.cargo/bin"
+        SANDBOX_PATH="${SANDBOX_HOME}/.cargo/bin:${SANDBOX_PATH}"
     fi
 fi
 
@@ -754,6 +804,13 @@ if [[ -n "${PROJECT_DIR}" ]]; then
     fi
     mkdir -p "${MISE_STATE_DIR}"
     EXTRA_BINDS+=(--bind "${MISE_STATE_DIR}" "${SANDBOX_HOME}/.local/state/mise")
+fi
+
+if [[ "${ALLOW_NVIM_REMOTE}" -eq 1 && -n "${NVIM:-}" && -S "${NVIM}" ]]; then
+    NVIM_SOCKET_HOST="${NVIM}"
+    NVIM_SOCKET_SANDBOX="${NVIM_SOCKET_HOST}"
+    add_parent_dirs_once "$(dirname "${NVIM_SOCKET_SANDBOX}")"
+    opt_bind_path "${NVIM_SOCKET_HOST}" "${NVIM_SOCKET_SANDBOX}"
 fi
 
 RESOLV_CONF_TARGET="$(readlink -f /etc/resolv.conf 2>/dev/null || true)"
@@ -936,6 +993,18 @@ fi
 
 if [[ -n "${RUSTUP_HOME_SANDBOX:-}" ]]; then
     BWRAP_CMD+=(--setenv RUSTUP_HOME "${RUSTUP_HOME_SANDBOX}")
+fi
+
+if [[ "${ALLOW_NVIM_REMOTE}" -eq 1 && -n "${NVIM_SOCKET_SANDBOX:-}" ]]; then
+    BWRAP_CMD+=(--setenv NVIM "${NVIM_SOCKET_SANDBOX}")
+fi
+
+if [[ "${ALLOW_NVIM_REMOTE}" -eq 1 && -n "${NVIM_LISTEN_ADDRESS:-}" ]]; then
+    BWRAP_CMD+=(--setenv NVIM_LISTEN_ADDRESS "${NVIM_LISTEN_ADDRESS}")
+fi
+
+if [[ "${ALLOW_NVIM_REMOTE}" -eq 1 && -n "${XDG_RUNTIME_DIR:-}" ]]; then
+    BWRAP_CMD+=(--setenv XDG_RUNTIME_DIR "${XDG_RUNTIME_DIR}")
 fi
 
 if [[ -n "${PYO3_PYTHON:-}" ]]; then
