@@ -659,17 +659,17 @@ SANDBOX_WORKDIR="${PROJECT_DIR}"
 SANDBOX_HOME="${HOST_HOME}"
 SANDBOX_EDITOR="v_quickedit_hover"
 SANDBOX_LOCAL_DIR="${SANDBOX_HOME}/.local"
-SANDBOX_LOCAL_SHARE_DIR="${SANDBOX_HOME}/.local/share"
-SANDBOX_LOCAL_STATE_DIR="${SANDBOX_HOME}/.local/state"
 SANDBOX_CONFIG_DIR="${SANDBOX_HOME}/.config"
-SANDBOX_OPENCODE_CONFIG_DIR="${SANDBOX_CONFIG_DIR}/opencode"
 SANDBOX_CACHE_DIR="${SANDBOX_HOME}/.cache"
-SANDBOX_OPENCODE_CACHE_DIR="${SANDBOX_CACHE_DIR}/opencode"
-SANDBOX_BUN_CACHE_DIR="${SANDBOX_CACHE_DIR}/bun"
-SANDBOX_OPENCODE_DATA_DIR="${SANDBOX_LOCAL_SHARE_DIR}/opencode"
 SANDBOX_OPENCODE_ALT_DIR="${SANDBOX_HOME}/.opencode"
 SANDBOX_BUN_HOME="${SANDBOX_HOME}/.bun"
 SANDBOX_BROWSER_DIR="${SANDBOX_HOME}/.opencode-browser"
+SANDBOX_LOCAL_SHARE_DIR="${SANDBOX_LOCAL_DIR}/share"
+SANDBOX_LOCAL_STATE_DIR="${SANDBOX_LOCAL_DIR}/state"
+SANDBOX_OPENCODE_CONFIG_DIR="${SANDBOX_CONFIG_DIR}/opencode"
+SANDBOX_OPENCODE_CACHE_DIR="${SANDBOX_CACHE_DIR}/opencode"
+SANDBOX_BUN_CACHE_DIR="${SANDBOX_CACHE_DIR}/bun"
+SANDBOX_OPENCODE_DATA_DIR="${SANDBOX_LOCAL_SHARE_DIR}/opencode"
 
 if [[ ${#RAW_COMMAND[@]} -eq 0 ]]; then
     apply_default_agent_if_needed
@@ -690,6 +690,17 @@ mkdir -p "${OPENCODE_ALT_DIR}"
 mkdir -p "${BUN_HOME}"
 mkdir -p "${BUN_CACHE}"
 
+OPENCODE_DATA="$(realpath "${OPENCODE_DATA}")"
+OPENCODE_CACHE="$(realpath "${OPENCODE_CACHE}")"
+OPENCODE_CONFIG_DIR="$(realpath "${OPENCODE_CONFIG_DIR}")"
+OPENCODE_ALT_DIR="$(realpath "${OPENCODE_ALT_DIR}")"
+BUN_HOME="$(realpath "${BUN_HOME}")"
+BUN_CACHE="$(realpath "${BUN_CACHE}")"
+
+if [[ -d "${HOME}/.opencode-browser" ]]; then
+    OPENCODE_BROWSER_DIR="$(realpath "${HOME}/.opencode-browser")"
+fi
+
 # FS bind mode
 if [[ "${FS_MODE}" = "ro" ]]; then
     BIND_FLAG="--ro-bind"
@@ -709,21 +720,26 @@ SANDBOX_PATH="${SANDBOX_BUN_HOME}/bin:${SANDBOX_PATH}"
 
 EXTRA_BINDS=()
 EXTRA_DIRS=()
+SANDBOX_SYMLINKS=()
 
 # Helper: opt_bind (used for optional host-path binds)
 opt_bind() {
     local host_p="$1"
     local sand_p="$2"
+    local resolved_host_p
     if [[ -d "${host_p}" ]]; then
-        EXTRA_BINDS+=(--ro-bind "${host_p}" "${sand_p}")
+        resolved_host_p="$(realpath "${host_p}")"
+        EXTRA_BINDS+=(--ro-bind "${resolved_host_p}" "${sand_p}")
     fi
 }
 
 opt_bind_path() {
     local host_p="$1"
     local sand_p="$2"
+    local resolved_host_p
     if [[ -e "${host_p}" ]]; then
-        EXTRA_BINDS+=(--bind "${host_p}" "${sand_p}")
+        resolved_host_p="$(realpath "${host_p}")"
+        EXTRA_BINDS+=(--bind "${resolved_host_p}" "${sand_p}")
     fi
 }
 
@@ -755,13 +771,59 @@ add_parent_dirs_once() {
     done
 }
 
+map_host_path_to_sandbox() {
+    local host_path="$1"
+
+    if [[ "${host_path}" == "${HOST_HOME}"* ]]; then
+        REPLY="${SANDBOX_HOME}${host_path#${HOST_HOME}}"
+        return
+    fi
+
+    REPLY="${host_path}"
+}
+
+mirror_persistent_subpath_symlink() {
+    local host_path="$1"
+    local visible_sandbox_path="$2"
+    local resolved_target
+    local target_sandbox_path
+
+    if [[ ! -L "${host_path}" ]]; then
+        REPLY="${visible_sandbox_path}"
+        return
+    fi
+
+    resolved_target="$(realpath "${host_path}")"
+    map_host_path_to_sandbox "${resolved_target}"
+    target_sandbox_path="${REPLY}"
+    add_parent_dirs_once "$(dirname "${visible_sandbox_path}")"
+    add_parent_dirs_once "$(dirname "${target_sandbox_path}")"
+    SANDBOX_SYMLINKS+=(--symlink "${target_sandbox_path}" "${visible_sandbox_path}")
+    REPLY="${target_sandbox_path}"
+}
+
+mirror_persistent_subpath_symlink "${HOST_HOME}/.config/opencode" "${SANDBOX_OPENCODE_CONFIG_DIR}"
+SANDBOX_OPENCODE_CONFIG_DIR="${REPLY}"
+mirror_persistent_subpath_symlink "${HOST_HOME}/.local/share/opencode" "${SANDBOX_OPENCODE_DATA_DIR}"
+SANDBOX_OPENCODE_DATA_DIR="${REPLY}"
+mirror_persistent_subpath_symlink "${HOST_HOME}/.cache/opencode" "${SANDBOX_OPENCODE_CACHE_DIR}"
+SANDBOX_OPENCODE_CACHE_DIR="${REPLY}"
+mirror_persistent_subpath_symlink "${HOST_HOME}/.cache/bun" "${SANDBOX_BUN_CACHE_DIR}"
+SANDBOX_BUN_CACHE_DIR="${REPLY}"
+mirror_persistent_subpath_symlink "${HOST_HOME}/.opencode" "${SANDBOX_OPENCODE_ALT_DIR}"
+SANDBOX_OPENCODE_ALT_DIR="${REPLY}"
+mirror_persistent_subpath_symlink "${HOST_HOME}/.bun" "${SANDBOX_BUN_HOME}"
+SANDBOX_BUN_HOME="${REPLY}"
+mirror_persistent_subpath_symlink "${HOST_HOME}/.opencode-browser" "${SANDBOX_BROWSER_DIR}"
+SANDBOX_BROWSER_DIR="${REPLY}"
+
 # Bind host tools unless explicitly disabled
 if [[ "${ALLOW_HOST_TOOLS}" -eq 1 ]]; then
     info "Binding host development tools"
 
     # User binaries
     if [[ -d "${HOME}/.local/bin" ]]; then
-        EXTRA_BINDS+=(--ro-bind "${HOME}/.local/bin" "${SANDBOX_HOME}/.local/bin")
+        EXTRA_BINDS+=(--ro-bind "$(realpath "${HOME}/.local/bin")" "${SANDBOX_HOME}/.local/bin")
         SANDBOX_PATH="${SANDBOX_HOME}/.local/bin:${SANDBOX_PATH}"
     fi
 
@@ -774,23 +836,23 @@ if [[ "${ALLOW_HOST_TOOLS}" -eq 1 ]]; then
 
     # uv
     if [[ -d "${HOME}/.local/share/uv" ]]; then
-        EXTRA_BINDS+=(--ro-bind "${HOME}/.local/share/uv" "${SANDBOX_HOME}/.local/share/uv")
+        EXTRA_BINDS+=(--ro-bind "$(realpath "${HOME}/.local/share/uv")" "${SANDBOX_HOME}/.local/share/uv")
     fi
 
     # Pyenv
     if [[ -d "${HOME}/.pyenv" ]]; then
-        EXTRA_BINDS+=(--ro-bind "${HOME}/.pyenv" "${SANDBOX_HOME}/.pyenv")
+        EXTRA_BINDS+=(--ro-bind "$(realpath "${HOME}/.pyenv")" "${SANDBOX_HOME}/.pyenv")
         SANDBOX_PATH="${SANDBOX_HOME}/.pyenv/shims:${SANDBOX_HOME}/.pyenv/bin:${SANDBOX_PATH}"
         PYENV_ROOT_SANDBOX="${SANDBOX_HOME}/.pyenv"
     fi
 
     # Rust
     if [[ -d "${HOME}/.rustup" ]]; then
-        EXTRA_BINDS+=(--ro-bind "${HOME}/.rustup" "${SANDBOX_HOME}/.rustup")
+        EXTRA_BINDS+=(--ro-bind "$(realpath "${HOME}/.rustup")" "${SANDBOX_HOME}/.rustup")
         RUSTUP_HOME_SANDBOX="${SANDBOX_HOME}/.rustup"
     fi
     if [[ -d "${HOME}/.cargo/bin" ]]; then
-        EXTRA_BINDS+=(--ro-bind "${HOME}/.cargo/bin" "${SANDBOX_HOME}/.cargo/bin")
+        EXTRA_BINDS+=(--ro-bind "$(realpath "${HOME}/.cargo/bin")" "${SANDBOX_HOME}/.cargo/bin")
         SANDBOX_PATH="${SANDBOX_HOME}/.cargo/bin:${SANDBOX_PATH}"
     fi
 fi
@@ -934,6 +996,7 @@ BWRAP_CMD+=(
 )
 
 BWRAP_CMD+=("${EXTRA_DIRS[@]}")
+BWRAP_CMD+=("${SANDBOX_SYMLINKS[@]}")
 BWRAP_CMD+=("${EXTRA_BINDS[@]}")
 if [[ "${SANDBOX_WORKDIR}" != "/" ]]; then
     BWRAP_CMD+=(--dir "$(dirname "${SANDBOX_WORKDIR}")")
@@ -957,8 +1020,8 @@ BWRAP_CMD+=(
     --bind "${BUN_CACHE}" "${SANDBOX_BUN_CACHE_DIR}"
 )
 
-if [[ -d "${HOME}/.opencode-browser" ]]; then
-    BWRAP_CMD+=(--bind "${HOME}/.opencode-browser" "${SANDBOX_BROWSER_DIR}")
+if [[ -n "${OPENCODE_BROWSER_DIR:-}" ]]; then
+    BWRAP_CMD+=(--bind "${OPENCODE_BROWSER_DIR}" "${SANDBOX_BROWSER_DIR}")
 fi
 
 if [[ -f "${OPENCODE_CONFIG_DIR}/opencode.json" ]]; then
