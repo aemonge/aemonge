@@ -896,7 +896,6 @@ fi
 
 BWRAP_CMD+=(--chdir "${SANDBOX_WORKDIR}")
 BWRAP_CMD+=(
-    --new-session
     --die-with-parent
     --clearenv
     --setenv PATH "${SANDBOX_PATH}"
