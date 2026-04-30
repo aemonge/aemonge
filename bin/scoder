@@ -24,8 +24,8 @@ scoder 0.9.0
 Safe OpenCode wrapper using bubblewrap.
 
 Usage:
-  scoder [options] [PROJECT_DIR] [-- [OPENCODE_ARGS...]]
-  scoder [options] [PROJECT_DIR] -- COMMAND [ARG...]
+  scoder [options] [TARGET] [-- [OPENCODE_ARGS...]]
+  scoder [options] [TARGET] -- COMMAND [ARG...]
 
 Options:
   -h, --help              Show this help and exit
@@ -46,7 +46,7 @@ USAGE_EOF
     cat <<'USAGE_END'
 
 Arguments:
-  PROJECT_DIR             Project directory exposed at same absolute path (default: $PWD)
+  TARGET                  Directory or regular file exposed at same absolute path (default: $PWD)
   OPENCODE_ARGS           Arguments passed verbatim to opencode when first arg after "--" starts with "-"
   COMMAND [ARG...]        Raw command executed inside the sandbox when first arg after "--" does not start with "-"
 
@@ -74,6 +74,7 @@ Examples:
   scoder --allow-git        # allow .git writes
   scoder --allow-host-tools # bind host dev tools (mise, cargo, etc)
   scoder . -- /bin/bash -lc 'env | grep HOME' # run raw command in sandbox
+  scoder src/lib/target.txt -- /bin/bash -lc 'cat src/lib/target.txt'
   scoder myproj -- --verbose # pass --verbose to opencode
 
 Security Note:
@@ -167,9 +168,114 @@ normalize_raw_command_if_needed() {
     esac
 }
 
+is_path_within() {
+    local parent_path="$1"
+    local child_path="$2"
+
+    [[ "${child_path}" == "${parent_path}" || "${child_path}" == "${parent_path}"/* ]]
+}
+
+resolve_target_mode() {
+    local requested_target="$1"
+    local resolved_target
+    local resolved_pwd
+
+    if [[ ! -e "${requested_target}" ]]; then
+        error "target path does not exist: ${requested_target}"
+        exit 1
+    fi
+
+    resolved_target="$(realpath "${requested_target}")"
+    resolved_pwd="$(realpath "${PWD}")"
+
+    if [[ -d "${resolved_target}" ]]; then
+        TARGET_KIND="dir"
+        TARGET_PATH="${resolved_target}"
+        TARGET_PARENT_DIR="$(dirname "${resolved_target}")"
+        VISIBLE_ROOT="${resolved_target}"
+        return
+    fi
+
+    if [[ -f "${resolved_target}" ]]; then
+        TARGET_KIND="file"
+        TARGET_PATH="${resolved_target}"
+        TARGET_FILE="${resolved_target}"
+        TARGET_PARENT_DIR="$(dirname "${resolved_target}")"
+        if is_path_within "${resolved_pwd}" "${resolved_target}"; then
+            VISIBLE_ROOT="${resolved_pwd}"
+        else
+            VISIBLE_ROOT="${TARGET_PARENT_DIR}"
+        fi
+        return
+    fi
+
+    error "target must be a directory or regular file: ${requested_target}"
+    exit 1
+}
+
+cleanup_file_mode_tmp_dir() {
+    if [[ -n "${FILE_MODE_TMP_DIR:-}" && -d "${FILE_MODE_TMP_DIR}" ]]; then
+        rm -rf "${FILE_MODE_TMP_DIR}"
+    fi
+}
+
+prepare_single_file_overlay() {
+    local entry
+    local target_parent_container
+    local target_name
+    local had_dotglob=0
+    local had_nullglob=0
+
+    target_name="$(basename "${TARGET_FILE}")"
+    FILE_MODE_TMP_DIR="$(mktemp -d /tmp/scoder-filemode-XXXXXX)"
+    FILE_MODE_PARENT_DIR="${FILE_MODE_TMP_DIR}/parent"
+    FILE_MODE_TARGET_PATH="${FILE_MODE_PARENT_DIR}/${target_name}"
+    FILE_MODE_RO_SOURCE_SANDBOX_PATH="/tmp/.scoder-ro-parent-$$"
+
+    mkdir -p "${FILE_MODE_PARENT_DIR}"
+    cp -p "${TARGET_FILE}" "${FILE_MODE_TARGET_PATH}"
+
+    shopt -q dotglob && had_dotglob=1
+    shopt -q nullglob && had_nullglob=1
+    shopt -s dotglob nullglob
+    for entry in "${TARGET_PARENT_DIR}"/*; do
+        if [[ "$(basename "${entry}")" == "${target_name}" ]]; then
+            continue
+        fi
+        ln -s "${FILE_MODE_RO_SOURCE_SANDBOX_PATH}/$(basename "${entry}")" "${FILE_MODE_PARENT_DIR}/$(basename "${entry}")"
+    done
+    ((had_dotglob)) || shopt -u dotglob
+    ((had_nullglob)) || shopt -u nullglob
+
+    add_parent_dirs_once "${TARGET_PARENT_DIR}"
+    add_parent_dirs_once "${FILE_MODE_RO_SOURCE_SANDBOX_PATH}"
+    FILE_MODE_BINDS=(--ro-bind "${TARGET_PARENT_DIR}" "${FILE_MODE_RO_SOURCE_SANDBOX_PATH}")
+
+    target_parent_container="$(dirname "${TARGET_PARENT_DIR}")"
+    if [[ "${target_parent_container}" != "/" ]]; then
+        FILE_MODE_BINDS+=(--ro-bind "${target_parent_container}" "${target_parent_container}")
+    fi
+
+    FILE_MODE_BINDS+=(--bind "${FILE_MODE_PARENT_DIR}" "${TARGET_PARENT_DIR}")
+}
+
+sync_single_file_target_back() {
+    local overlay_target_path
+
+    overlay_target_path="${FILE_MODE_PARENT_DIR}/$(basename "${TARGET_FILE}")"
+    if [[ ! -f "${overlay_target_path}" ]]; then
+        error "single-file target disappeared during sandbox session: ${TARGET_FILE}"
+        return 1
+    fi
+
+    cp -p "${overlay_target_path}" "${TARGET_FILE}"
+}
+
 run_validation() {
     local script_path="$0"
     local test_project="/tmp/scoder-validation-$$"
+    local target_file_path
+    local sibling_file_path
     local failed_tests=0
     local cmd_status
     local selected_opencode_bin
@@ -196,10 +302,15 @@ run_validation() {
 
     # Setup test project
     mkdir -p "${test_project}"/{.git,node_modules,.venv/bin}
+    mkdir -p "${test_project}/src/lib"
     echo "test content" >"${test_project}/test.py"
     echo "SCODER_VALIDATION=1" >"${test_project}/.env"
     echo '#!/bin/bash' >"${test_project}/.venv/bin/python"
+    printf 'alpha\n' >"${test_project}/src/lib/target.txt"
+    printf 'beta\n' >"${test_project}/src/lib/sibling.txt"
     chmod +x "${test_project}/.venv/bin/python"
+    target_file_path="${test_project}/src/lib/target.txt"
+    sibling_file_path="${test_project}/src/lib/sibling.txt"
 
     # Test A.1: HOME isolation
     echo ""
@@ -447,6 +558,72 @@ run_validation() {
         ((failed_tests++))
     fi
 
+    # Test L.1: single-file mode keeps sibling files visible
+    info "Test L.1: single-file mode keeps workspace visible"
+    local file_mode_read
+    file_mode_read=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${target_file_path}" -- /bin/bash --noprofile --norc -lc "cat '${sibling_file_path}'" 2>&1 || true)
+    if [[ "${file_mode_read}" == "beta" ]]; then
+        echo "✅ Test L.1 PASS: sibling files remain readable in file mode"
+    else
+        echo "❌ Test L.1 FAIL: sibling read output was '${file_mode_read}'"
+        ((failed_tests++))
+    fi
+
+    # Test L.2: single-file mode allows target writes
+    info "Test L.2: single-file mode allows target writes"
+    local file_mode_target_write
+    file_mode_target_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${target_file_path}" -- /bin/bash --noprofile --norc -lc "printf updated > '${target_file_path}' && cat '${target_file_path}'" 2>&1 || true)
+    if [[ "${file_mode_target_write}" == "updated" ]]; then
+        echo "✅ Test L.2 PASS: target file is writable"
+    else
+        echo "❌ Test L.2 FAIL: target write output was '${file_mode_target_write}'"
+        ((failed_tests++))
+    fi
+
+    # Test L.3: single-file mode blocks sibling writes
+    info "Test L.3: single-file mode blocks sibling writes"
+    local file_mode_sibling_write
+    file_mode_sibling_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${target_file_path}" -- /bin/bash --noprofile --norc -lc "printf nope > '${sibling_file_path}'" 2>&1 || true)
+    if echo "${file_mode_sibling_write}" | grep -qE 'Read-only|Permission denied|cannot create|Operation not permitted'; then
+        echo "✅ Test L.3 PASS: sibling files are protected"
+    else
+        echo "❌ Test L.3 FAIL: sibling write output was '${file_mode_sibling_write}'"
+        ((failed_tests++))
+    fi
+
+    # Test L.4: single-file mode supports rename-over-target saves
+    info "Test L.4: single-file mode supports atomic save"
+    local file_mode_atomic_save
+    file_mode_atomic_save=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${target_file_path}" -- /bin/bash --noprofile --norc -lc "printf swapped > '${test_project}/src/lib/.target.txt.tmp' && mv '${test_project}/src/lib/.target.txt.tmp' '${target_file_path}' && cat '${target_file_path}'" 2>&1 || true)
+    if [[ "${file_mode_atomic_save}" == "swapped" ]]; then
+        echo "✅ Test L.4 PASS: rename-over-target save works"
+    else
+        echo "❌ Test L.4 FAIL: atomic save output was '${file_mode_atomic_save}'"
+        ((failed_tests++))
+    fi
+
+    # Test L.5: single-file mode blocks unrelated nested file creation
+    info "Test L.5: single-file mode blocks unrelated nested file creation"
+    local file_mode_nested_write
+    file_mode_nested_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${target_file_path}" -- /bin/bash --noprofile --norc -lc "mkdir -p '${test_project}/src/other' && printf bad > '${test_project}/src/other/new.txt'" 2>&1 || true)
+    if echo "${file_mode_nested_write}" | grep -qE 'Read-only|Permission denied|cannot create|Operation not permitted'; then
+        echo "✅ Test L.5 PASS: unrelated nested writes are blocked"
+    else
+        echo "❌ Test L.5 FAIL: nested write output was '${file_mode_nested_write}'"
+        ((failed_tests++))
+    fi
+
+    # Test L.6: --ro keeps the target file read-only in file mode
+    info "Test L.6: --ro keeps target read-only in file mode"
+    local file_mode_ro_write
+    file_mode_ro_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q --ro "${target_file_path}" -- /bin/bash --noprofile --norc -lc "printf blocked > '${target_file_path}'" 2>&1 || true)
+    if echo "${file_mode_ro_write}" | grep -qE 'Read-only|Permission denied|cannot create|Operation not permitted'; then
+        echo "✅ Test L.6 PASS: --ro blocks target writes in file mode"
+    else
+        echo "❌ Test L.6 FAIL: --ro write output was '${file_mode_ro_write}'"
+        ((failed_tests++))
+    fi
+
     # Test J: browser plugin state bind
     if [[ -d "${HOME}/.opencode-browser" ]]; then
         info "Test J: browser plugin state bind"
@@ -513,9 +690,23 @@ HOST_HOME="${HOME}"
 # Config path
 OPENCODE_DEFAULT_CONFIG="${HOME}/.config/opencode/opencode.json"
 
+PROJECT_TARGET=""
 PROJECT_DIR=""
+TARGET_KIND=""
+TARGET_PATH=""
+TARGET_FILE=""
+TARGET_PARENT_DIR=""
+INVOCATION_CWD=""
+VISIBLE_ROOT=""
+FILE_MODE_TMP_DIR=""
+FILE_MODE_PARENT_DIR=""
+FILE_MODE_TARGET_PATH=""
+FILE_MODE_RO_SOURCE_SANDBOX_PATH=""
+FILE_MODE_BINDS=()
 OPENCODE_ARGS=()
 RAW_COMMAND=()
+
+trap cleanup_file_mode_tmp_dir EXIT
 
 # -------- option parsing --------
 RO_SET=0
@@ -607,8 +798,8 @@ while [[ $# -gt 0 ]]; do
         exit 1
         ;;
     *)
-        if [[ -z "${PROJECT_DIR}" ]]; then
-            PROJECT_DIR="$1"
+        if [[ -z "${PROJECT_TARGET}" ]]; then
+            PROJECT_TARGET="$1"
         else
             error "unexpected argument before '--': $1"
             echo "Try '${PROGRAM_NAME} --help' for more information." >&2
@@ -636,9 +827,9 @@ if [[ "${ALLOW_HOST_TOOLS_SET}" -eq 1 && "${ALLOW_HOST_TOOLS_DISABLE_SET}" -eq 1
     exit 1
 fi
 
-# PROJECT_DIR default
-if [[ -z "${PROJECT_DIR}" ]]; then
-    PROJECT_DIR="${PWD}"
+# PROJECT_TARGET default
+if [[ -z "${PROJECT_TARGET}" ]]; then
+    PROJECT_TARGET="${PWD}"
 fi
 
 # -------- validation --------
@@ -660,18 +851,24 @@ if ! command -v "${OPENCODE_BIN}" >/dev/null 2>&1; then
     exit 1
 fi
 
-if [[ ! -d "${PROJECT_DIR}" ]]; then
-    error "project directory does not exist: ${PROJECT_DIR}"
-    exit 1
-fi
-
 if [[ "${FS_MODE}" != "ro" && "${FS_MODE}" != "rw" ]]; then
     error "invalid FS mode '${FS_MODE}' (expected 'ro' or 'rw')"
     exit 1
 fi
 
-PROJECT_DIR="$(realpath "${PROJECT_DIR}")"
-SANDBOX_WORKDIR="${PROJECT_DIR}"
+resolve_target_mode "${PROJECT_TARGET}"
+INVOCATION_CWD="$(realpath "${PWD}")"
+
+if [[ "${TARGET_KIND}" == "dir" ]]; then
+    PROJECT_DIR="${TARGET_PATH}"
+    SANDBOX_WORKDIR="${TARGET_PATH}"
+    SANDBOX_PROJECT_ROOT="${PROJECT_DIR}"
+else
+    PROJECT_DIR="${TARGET_PARENT_DIR}"
+    SANDBOX_WORKDIR="${INVOCATION_CWD}"
+    SANDBOX_PROJECT_ROOT="${PROJECT_DIR}"
+fi
+
 SANDBOX_HOME="${HOST_HOME}"
 SANDBOX_EDITOR="v_quickedit_hover"
 SANDBOX_LOCAL_DIR="${SANDBOX_HOME}/.local"
@@ -720,10 +917,12 @@ if [[ -d "${HOME}/.opencode-browser" ]]; then
 fi
 
 # FS bind mode
-if [[ "${FS_MODE}" = "ro" ]]; then
-    BIND_FLAG="--ro-bind"
+if [[ "${TARGET_KIND}" == "file" || "${FS_MODE}" = "ro" ]]; then
+    PROJECT_BIND_FLAG="--ro-bind"
+    PROJECT_TOOL_BIND_FLAG="--ro-bind"
 else
-    BIND_FLAG="--bind"
+    PROJECT_BIND_FLAG="--bind"
+    PROJECT_TOOL_BIND_FLAG="--bind"
 fi
 
 # -------- OPTIMIZED path setup --------
@@ -877,7 +1076,7 @@ fi
 
 # Project-local state for mise
 if [[ -n "${PROJECT_DIR}" ]]; then
-    if [[ "${FS_MODE}" = "ro" ]]; then
+    if [[ "${FS_MODE}" = "ro" || "${TARGET_KIND}" == "file" ]]; then
         MISE_STATE_DIR="${HOST_HOME}/.local/state/scoder/mise$(printf '%s' "${PROJECT_DIR}" | tr '/' '_')"
     else
         MISE_STATE_DIR="${PROJECT_DIR}/.local/state/mise"
@@ -901,26 +1100,30 @@ fi
 
 # Project-local Cargo binaries
 if [[ -d "${PROJECT_DIR}/.cargo/bin" ]]; then
-    EXTRA_BINDS+=(--bind "${PROJECT_DIR}/.cargo/bin" "${SANDBOX_HOME}/.cargo/bin")
+    EXTRA_BINDS+=("${PROJECT_TOOL_BIND_FLAG}" "${PROJECT_DIR}/.cargo/bin" "${SANDBOX_HOME}/.cargo/bin")
     SANDBOX_PATH="${SANDBOX_HOME}/.cargo/bin:${SANDBOX_PATH}"
 fi
 
 # Python virtual environments (project-local)
 if [[ -d "${PROJECT_DIR}/.venv/bin" ]]; then
-    EXTRA_BINDS+=(--bind "${PROJECT_DIR}/.venv/bin" "${SANDBOX_WORKDIR}/.venv/bin")
-    SANDBOX_PATH="${SANDBOX_WORKDIR}/.venv/bin:${SANDBOX_PATH}"
+    EXTRA_BINDS+=("${PROJECT_TOOL_BIND_FLAG}" "${PROJECT_DIR}/.venv/bin" "${SANDBOX_PROJECT_ROOT}/.venv/bin")
+    SANDBOX_PATH="${SANDBOX_PROJECT_ROOT}/.venv/bin:${SANDBOX_PATH}"
 fi
 
 # Node.js project-local binaries
 if [[ -d "${PROJECT_DIR}/node_modules/.bin" ]]; then
-    EXTRA_BINDS+=(--bind "${PROJECT_DIR}/node_modules/.bin" "${SANDBOX_WORKDIR}/node_modules/.bin")
-    SANDBOX_PATH="${SANDBOX_WORKDIR}/node_modules/.bin:${SANDBOX_PATH}"
+    EXTRA_BINDS+=("${PROJECT_TOOL_BIND_FLAG}" "${PROJECT_DIR}/node_modules/.bin" "${SANDBOX_PROJECT_ROOT}/node_modules/.bin")
+    SANDBOX_PATH="${SANDBOX_PROJECT_ROOT}/node_modules/.bin:${SANDBOX_PATH}"
 fi
 
 # Go project-local binaries
 if [[ -d "${PROJECT_DIR}/bin" && -f "${PROJECT_DIR}/go.mod" ]]; then
-    EXTRA_BINDS+=(--bind "${PROJECT_DIR}/bin" "${SANDBOX_WORKDIR}/bin")
-    SANDBOX_PATH="${SANDBOX_WORKDIR}/bin:${SANDBOX_PATH}"
+    EXTRA_BINDS+=("${PROJECT_TOOL_BIND_FLAG}" "${PROJECT_DIR}/bin" "${SANDBOX_PROJECT_ROOT}/bin")
+    SANDBOX_PATH="${SANDBOX_PROJECT_ROOT}/bin:${SANDBOX_PATH}"
+fi
+
+if [[ "${TARGET_KIND}" == "file" ]] && ! is_path_within "${PROJECT_DIR}" "${INVOCATION_CWD}"; then
+    EXTRA_BINDS+=(--ro-bind "${INVOCATION_CWD}" "${INVOCATION_CWD}")
 fi
 
 # -------- Infrastructure Protection --------
@@ -1016,13 +1219,22 @@ BWRAP_CMD+=(
 BWRAP_CMD+=("${EXTRA_DIRS[@]}")
 BWRAP_CMD+=("${SANDBOX_SYMLINKS[@]}")
 BWRAP_CMD+=("${EXTRA_BINDS[@]}")
-if [[ "${SANDBOX_WORKDIR}" != "/" ]]; then
-    BWRAP_CMD+=(--dir "$(dirname "${SANDBOX_WORKDIR}")")
+if [[ "${SANDBOX_PROJECT_ROOT}" != "/" ]]; then
+    BWRAP_CMD+=(--dir "$(dirname "${SANDBOX_PROJECT_ROOT}")")
 fi
-if [[ "${SANDBOX_WORKDIR}" != "/" ]]; then
-    BWRAP_CMD+=(--dir "${SANDBOX_WORKDIR}")
+if [[ "${SANDBOX_PROJECT_ROOT}" != "/" ]]; then
+    BWRAP_CMD+=(--dir "${SANDBOX_PROJECT_ROOT}")
 fi
-BWRAP_CMD+=("${BIND_FLAG}" "${PROJECT_DIR}" "${SANDBOX_WORKDIR}")
+BWRAP_CMD+=("${PROJECT_BIND_FLAG}" "${PROJECT_DIR}" "${SANDBOX_PROJECT_ROOT}")
+
+if [[ "${SANDBOX_WORKDIR}" != "/" && "${SANDBOX_WORKDIR}" != "${SANDBOX_PROJECT_ROOT}" ]]; then
+    add_parent_dirs_once "${SANDBOX_WORKDIR}"
+fi
+
+if [[ "${TARGET_KIND}" == "file" && "${FS_MODE}" != "ro" ]]; then
+    prepare_single_file_overlay
+    BWRAP_CMD+=("${FILE_MODE_BINDS[@]}")
+fi
 
 if [[ ${#SAFE_BINDS[@]} -gt 0 ]]; then
     BWRAP_CMD+=("${SAFE_BINDS[@]}")
@@ -1099,4 +1311,13 @@ else
 fi
 
 info "Launching scoder sandbox..."
+if [[ "${TARGET_KIND}" == "file" && "${FS_MODE}" != "ro" ]]; then
+    "${BWRAP_CMD[@]}"
+    BWRAP_STATUS=$?
+    if [[ ${BWRAP_STATUS} -eq 0 ]]; then
+        sync_single_file_target_back || exit 1
+    fi
+    exit ${BWRAP_STATUS}
+fi
+
 exec "${BWRAP_CMD[@]}"
