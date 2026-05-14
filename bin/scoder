@@ -134,6 +134,16 @@ has_agent_argument() {
     return 1
 }
 
+is_opencode_subcommand() {
+    case "$1" in
+    completion | acp | mcp | attach | run | debug | providers | auth | agent | upgrade | uninstall | serve | web | models | stats | export | import | github | pr | session | plugin | plug | db)
+        return 0
+        ;;
+    esac
+
+    return 1
+}
+
 apply_default_agent_if_needed() {
     local opencode_bin_name
     opencode_bin_name=$(basename -- "$OPENCODE_BIN")
@@ -693,6 +703,8 @@ ALLOW_HOST_TOOLS_SET=0
 ALLOW_HOST_TOOLS_DISABLE_SET=0
 ALLOW_NVIM_REMOTE=1
 HOST_HOME="${HOME}"
+HOST_USER="${USER:-andres}"
+HOST_LOGNAME="${LOGNAME:-${HOST_USER}}"
 
 # Config path
 OPENCODE_DEFAULT_CONFIG="${HOME}/.config/opencode/opencode.json"
@@ -806,7 +818,14 @@ while [[ $# -gt 0 ]]; do
         ;;
     *)
         if [[ -z "${PROJECT_TARGET}" ]]; then
-            PROJECT_TARGET="$1"
+            if [[ -e "$1" ]]; then
+                PROJECT_TARGET="$1"
+            elif is_opencode_subcommand "$1"; then
+                OPENCODE_ARGS=("$@")
+                break
+            else
+                PROJECT_TARGET="$1"
+            fi
         else
             error "unexpected argument before '--': $1"
             echo "Try '${PROGRAM_NAME} --help' for more information." >&2
@@ -1313,8 +1332,8 @@ BWRAP_CMD+=(
     --clearenv
     --setenv PATH "${SANDBOX_PATH}"
     --setenv HOME "${SANDBOX_HOME}"
-    --setenv USER scoder
-    --setenv LOGNAME scoder
+    --setenv USER "${HOST_USER}"
+    --setenv LOGNAME "${HOST_LOGNAME}"
     --setenv TERM "${TERM:-xterm-256color}"
     --setenv COLORTERM "${COLORTERM:-truecolor}"
     --setenv LANG "${LANG:-C.UTF-8}"

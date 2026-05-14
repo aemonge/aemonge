@@ -199,17 +199,7 @@ function hover_vim() {
     target_file=$(readlink -f "$1")
   fi
 
-  local done_file="${target_file}.hoverdone"
-  rm -f "$done_file"
-
-  # Open the float (non-blocking)
-  nvr -c "HoverEdit ${target_file}"
-
-  # Block in shell until BufWipeout touches the signal file
-  while [[ ! -f "$done_file" ]]; do
-    sleep 0.1
-  done
-  rm -f "$done_file"
+  nvr --remote-wait +"HoverEdit ${target_file}"
 }
 
 function svim() {
