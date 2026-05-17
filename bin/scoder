@@ -64,6 +64,7 @@ Writable Runtime State:
   - ~/.cache/opencode
   - ~/.local/share/opencode
   - ~/.opencode
+  - ~/.agents
   - ~/.bun
   - ~/.cache/bun
 
@@ -509,6 +510,23 @@ run_validation() {
         echo "ℹ️  Test C SKIP: No opencode.json found (${OPENCODE_DEFAULT_CONFIG})"
     fi
 
+    # Test C.1: Symlinked config file target visibility
+    info "Test C.1: Symlinked config file target visibility"
+    local symlink_home="${test_project}/host-home"
+    local symlink_target_dir="${test_project}/config-target"
+    local symlink_expected='{"scoder":"symlink-config"}'
+    mkdir -p "${symlink_home}/.config/opencode" "${symlink_target_dir}"
+    printf '%s\n' "${symlink_expected}" >"${symlink_target_dir}/opencode.json"
+    ln -s "${symlink_target_dir}/opencode.json" "${symlink_home}/.config/opencode/opencode.json"
+    local symlink_config_read
+    symlink_config_read=$(HOME="${symlink_home}" OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'cat ~/.config/opencode/opencode.json' || true)
+    if [[ "${symlink_config_read}" == "${symlink_expected}" ]]; then
+        echo "✅ Test C.1 PASS: Symlinked opencode.json target is visible"
+    else
+        echo "❌ Test C.1 FAIL: Symlinked opencode.json target is not visible"
+        ((failed_tests++))
+    fi
+
     # Test D: Tooling PATH
     info "Test D: .venv in PATH"
     local venv_path
@@ -534,7 +552,7 @@ run_validation() {
     # Test F: OpenCode writable runtime state
     info "Test F: OpenCode writable runtime state"
     local oc_state_test
-    oc_state_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'test -w "$HOME/.config/opencode" && test -w "$HOME/.cache/opencode" && test -w "$HOME/.local/share/opencode" && test -w "$HOME/.opencode" && echo SUCCESS' 2>&1 || true)
+    oc_state_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'test -w "$HOME/.config/opencode" && test -w "$HOME/.cache/opencode" && test -w "$HOME/.local/share/opencode" && test -w "$HOME/.opencode" && test -w "$HOME/.agents" && echo SUCCESS' 2>&1 || true)
     if echo "${oc_state_test}" | grep -q "SUCCESS"; then
         echo "✅ Test F PASS: OpenCode runtime paths are writable"
     else
@@ -901,6 +919,7 @@ SANDBOX_LOCAL_DIR="${SANDBOX_HOME}/.local"
 SANDBOX_CONFIG_DIR="${SANDBOX_HOME}/.config"
 SANDBOX_CACHE_DIR="${SANDBOX_HOME}/.cache"
 SANDBOX_OPENCODE_ALT_DIR="${SANDBOX_HOME}/.opencode"
+SANDBOX_AGENTS_DIR="${SANDBOX_HOME}/.agents"
 SANDBOX_BUN_HOME="${SANDBOX_HOME}/.bun"
 SANDBOX_BROWSER_DIR="${SANDBOX_HOME}/.opencode-browser"
 SANDBOX_LOCAL_SHARE_DIR="${SANDBOX_LOCAL_DIR}/share"
@@ -921,6 +940,7 @@ OPENCODE_DATA="${HOME}/.local/share/opencode"
 OPENCODE_CACHE="${HOME}/.cache/opencode"
 OPENCODE_CONFIG_DIR="${HOME}/.config/opencode"
 OPENCODE_ALT_DIR="${HOME}/.opencode"
+AGENTS_DIR="${HOME}/.agents"
 BUN_HOME="${HOME}/.bun"
 BUN_CACHE="${HOME}/.cache/bun"
 mkdir -p "${OPENCODE_DATA}/sessions"
@@ -928,6 +948,7 @@ mkdir -p "${OPENCODE_DATA}/permissions"
 mkdir -p "${OPENCODE_CACHE}"
 mkdir -p "${OPENCODE_CONFIG_DIR}"
 mkdir -p "${OPENCODE_ALT_DIR}"
+mkdir -p "${AGENTS_DIR}"
 mkdir -p "${BUN_HOME}"
 mkdir -p "${BUN_CACHE}"
 
@@ -935,6 +956,7 @@ OPENCODE_DATA="$(realpath "${OPENCODE_DATA}")"
 OPENCODE_CACHE="$(realpath "${OPENCODE_CACHE}")"
 OPENCODE_CONFIG_DIR="$(realpath "${OPENCODE_CONFIG_DIR}")"
 OPENCODE_ALT_DIR="$(realpath "${OPENCODE_ALT_DIR}")"
+AGENTS_DIR="$(realpath "${AGENTS_DIR}")"
 BUN_HOME="$(realpath "${BUN_HOME}")"
 BUN_CACHE="$(realpath "${BUN_CACHE}")"
 
@@ -1056,6 +1078,39 @@ mirror_persistent_subpath_symlink() {
     REPLY="${target_sandbox_path}"
 }
 
+bind_symlink_targets_in_dir() {
+    local host_dir="$1"
+    local host_path
+    local resolved_target
+    local target_sandbox_path
+    local restore_nullglob
+    local restore_dotglob
+    local -a symlink_candidates=()
+
+    if [[ ! -d "${host_dir}" ]]; then
+        return
+    fi
+
+    restore_nullglob="$(shopt -p nullglob || true)"
+    restore_dotglob="$(shopt -p dotglob || true)"
+    shopt -s nullglob dotglob
+    symlink_candidates=("${host_dir}"/*)
+    eval "${restore_nullglob}"
+    eval "${restore_dotglob}"
+
+    for host_path in "${symlink_candidates[@]}"; do
+        if [[ ! -L "${host_path}" ]]; then
+            continue
+        fi
+
+        resolved_target="$(realpath "${host_path}")"
+        map_host_path_to_sandbox "${resolved_target}"
+        target_sandbox_path="${REPLY}"
+        add_parent_dirs_once "$(dirname "${target_sandbox_path}")"
+        EXTRA_BINDS+=(--bind "${resolved_target}" "${target_sandbox_path}")
+    done
+}
+
 mirror_persistent_subpath_symlink "${HOST_HOME}/.config/opencode" "${SANDBOX_OPENCODE_CONFIG_DIR}"
 SANDBOX_OPENCODE_CONFIG_DIR="${REPLY}"
 mirror_persistent_subpath_symlink "${HOST_HOME}/.local/share/opencode" "${SANDBOX_OPENCODE_DATA_DIR}"
@@ -1066,10 +1121,14 @@ mirror_persistent_subpath_symlink "${HOST_HOME}/.cache/bun" "${SANDBOX_BUN_CACHE
 SANDBOX_BUN_CACHE_DIR="${REPLY}"
 mirror_persistent_subpath_symlink "${HOST_HOME}/.opencode" "${SANDBOX_OPENCODE_ALT_DIR}"
 SANDBOX_OPENCODE_ALT_DIR="${REPLY}"
+mirror_persistent_subpath_symlink "${HOST_HOME}/.agents" "${SANDBOX_AGENTS_DIR}"
+SANDBOX_AGENTS_DIR="${REPLY}"
 mirror_persistent_subpath_symlink "${HOST_HOME}/.bun" "${SANDBOX_BUN_HOME}"
 SANDBOX_BUN_HOME="${REPLY}"
 mirror_persistent_subpath_symlink "${HOST_HOME}/.opencode-browser" "${SANDBOX_BROWSER_DIR}"
 SANDBOX_BROWSER_DIR="${REPLY}"
+
+bind_symlink_targets_in_dir "${OPENCODE_CONFIG_DIR}"
 
 # Bind host tools unless explicitly disabled
 if [[ "${ALLOW_HOST_TOOLS}" -eq 1 ]]; then
@@ -1312,6 +1371,7 @@ BWRAP_CMD+=(
     --bind "${OPENCODE_DATA}" "${SANDBOX_OPENCODE_DATA_DIR}"
     --bind "${OPENCODE_CACHE}" "${SANDBOX_OPENCODE_CACHE_DIR}"
     --bind "${OPENCODE_ALT_DIR}" "${SANDBOX_OPENCODE_ALT_DIR}"
+    --bind "${AGENTS_DIR}" "${SANDBOX_AGENTS_DIR}"
     --bind "${BUN_HOME}" "${SANDBOX_BUN_HOME}"
     --bind "${BUN_CACHE}" "${SANDBOX_BUN_CACHE_DIR}"
 )
