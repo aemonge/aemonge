@@ -67,6 +67,7 @@ Writable Runtime State:
   - ~/.agents
   - ~/.bun
   - ~/.cache/bun
+  - ~/.cache/ms-playwright
 
 Examples:
   scoder                    # rw sandbox of $PWD, infra protected
@@ -427,14 +428,14 @@ run_validation() {
         ((failed_tests++))
     fi
 
-    # Test B.2: .git protection
-    info "Test B.2: .git directory protection"
+    # Test B.2: .git writability for scoder-git managed commits
+    info "Test B.2: .git directory writability"
     local git_write
-    git_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'touch .git/test 2>&1' 2>&1 || true)
-    if echo "${git_write}" | grep -qE "Read-only|Permission denied|cannot touch"; then
-        echo "✅ Test B.2 PASS: .git is read-only"
+    git_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'touch .git/test && echo SUCCESS' 2>&1 || true)
+    if echo "${git_write}" | grep -q "SUCCESS"; then
+        echo "✅ Test B.2 PASS: .git is writable for managed git operations"
     else
-        echo "❌ Test B.2 FAIL: .git is writable"
+        echo "❌ Test B.2 FAIL: .git is not writable (${git_write})"
         ((failed_tests++))
     fi
 
@@ -449,14 +450,12 @@ run_validation() {
         ((failed_tests++))
     fi
 
-    # Test B.4: --allow-git override
-    info "Test B.4: --allow-git override functionality"
-    local git_override
-    git_override=$(OPENCODE_BIN=/bin/bash "${script_path}" -q --allow-git "${test_project}" -- /bin/bash --noprofile --norc -lc 'touch .git/test && echo SUCCESS' 2>&1 || true)
-    if echo "${git_override}" | grep -q "SUCCESS"; then
-        echo "✅ Test B.4 PASS: --allow-git override works"
+    # Test B.4: --allow-git remains accepted for compatibility
+    info "Test B.4: --allow-git compatibility"
+    if OPENCODE_BIN=/bin/bash "${script_path}" -q --allow-git "${test_project}" -- /bin/bash --noprofile --norc -lc 'true' >/dev/null 2>&1; then
+        echo "✅ Test B.4 PASS: --allow-git is still accepted"
     else
-        echo "❌ Test B.4 FAIL: --allow-git override failed"
+        echo "❌ Test B.4 FAIL: --allow-git compatibility failed"
         ((failed_tests++))
     fi
 
@@ -698,6 +697,40 @@ run_validation() {
         ((failed_tests++))
     fi
 
+    # Test M: scoder-git shadowing and safety policy
+    info "Test M.1: /usr/bin/git is shadowed by scoder-git"
+    local sandbox_git_identity
+    sandbox_git_identity=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'readlink /usr/bin/git 2>/dev/null || /usr/bin/git --scoder-git-version 2>/dev/null' 2>&1 || true)
+    if echo "${sandbox_git_identity}" | grep -q "scoder-git"; then
+        echo "✅ Test M.1 PASS: /usr/bin/git is shadowed by scoder-git"
+    else
+        echo "❌ Test M.1 FAIL: /usr/bin/git is not shadowed (${sandbox_git_identity})"
+        ((failed_tests++))
+    fi
+
+    info "Test M.2: scoder-git blocks network/destructive commands"
+    local git_push_result
+    git_push_result=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'git push 2>&1' 2>&1 || true)
+    if echo "${git_push_result}" | grep -q "Denied dangerous git command"; then
+        echo "✅ Test M.2 PASS: git push is denied"
+    else
+        echo "❌ Test M.2 FAIL: git push was not denied by scoder-git (${git_push_result})"
+        ((failed_tests++))
+    fi
+
+    info "Test M.3: scoder-git allows normal commits when --allow-git is set"
+    git -C "${test_project}" init -q
+    git -C "${test_project}" config user.email scoder-validation@example.invalid
+    git -C "${test_project}" config user.name 'scoder validation'
+    local git_commit_result
+    git_commit_result=$(OPENCODE_BIN=/bin/bash "${script_path}" -q --allow-git "${test_project}" -- /bin/bash --noprofile --norc -lc 'printf commit-ok > committed.txt && git add committed.txt && git commit -m "validation commit" >/dev/null && git log --oneline -1' 2>&1 || true)
+    if echo "${git_commit_result}" | grep -q "validation commit"; then
+        echo "✅ Test M.3 PASS: git add/commit works with --allow-git"
+    else
+        echo "❌ Test M.3 FAIL: git add/commit failed (${git_commit_result})"
+        ((failed_tests++))
+    fi
+
     # Cleanup
     rm -rf "${test_project}"
 
@@ -748,7 +781,7 @@ trap cleanup_file_mode_tmp_dir EXIT
 # -------- option parsing --------
 RO_SET=0
 RW_SET=0
-ALLOW_GIT=0
+ALLOW_GIT=1
 ALLOW_INFRA=0
 RESTRICT_DEV=1
 PARSE_DONE=0
@@ -895,6 +928,21 @@ if ! command -v "${OPENCODE_BIN}" >/dev/null 2>&1; then
     exit 1
 fi
 
+SCODER_SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+SCODER_GIT_HOST="${SCODER_GIT:-${SCODER_SCRIPT_DIR}/scoder-git}"
+if [[ ! -x "${SCODER_GIT_HOST}" ]]; then
+    error "scoder-git wrapper not found or not executable: ${SCODER_GIT_HOST}"
+    exit 1
+fi
+
+REAL_GIT_HOST="$(command -v git 2>/dev/null || true)"
+if [[ -z "${REAL_GIT_HOST}" || ! -x "${REAL_GIT_HOST}" ]]; then
+    error "real git binary not found in host PATH"
+    exit 1
+fi
+REAL_GIT_HOST="$(realpath "${REAL_GIT_HOST}")"
+SCODER_GIT_HOST="$(realpath "${SCODER_GIT_HOST}")"
+
 if [[ "${FS_MODE}" != "ro" && "${FS_MODE}" != "rw" ]]; then
     error "invalid FS mode '${FS_MODE}' (expected 'ro' or 'rw')"
     exit 1
@@ -922,6 +970,7 @@ SANDBOX_OPENCODE_ALT_DIR="${SANDBOX_HOME}/.opencode"
 SANDBOX_AGENTS_DIR="${SANDBOX_HOME}/.agents"
 SANDBOX_BUN_HOME="${SANDBOX_HOME}/.bun"
 SANDBOX_BROWSER_DIR="${SANDBOX_HOME}/.opencode-browser"
+SANDBOX_PLAYWRIGHT_BROWSERS_CACHE="${SANDBOX_HOME}/.cache/ms-playwright"
 SANDBOX_LOCAL_SHARE_DIR="${SANDBOX_LOCAL_DIR}/share"
 SANDBOX_LOCAL_STATE_DIR="${SANDBOX_LOCAL_DIR}/state"
 SANDBOX_OPENCODE_CONFIG_DIR="${SANDBOX_CONFIG_DIR}/opencode"
@@ -943,6 +992,7 @@ OPENCODE_ALT_DIR="${HOME}/.opencode"
 AGENTS_DIR="${HOME}/.agents"
 BUN_HOME="${HOME}/.bun"
 BUN_CACHE="${HOME}/.cache/bun"
+PLAYWRIGHT_BROWSERS_CACHE="${HOME}/.cache/ms-playwright"
 mkdir -p "${OPENCODE_DATA}/sessions"
 mkdir -p "${OPENCODE_DATA}/permissions"
 mkdir -p "${OPENCODE_CACHE}"
@@ -951,6 +1001,7 @@ mkdir -p "${OPENCODE_ALT_DIR}"
 mkdir -p "${AGENTS_DIR}"
 mkdir -p "${BUN_HOME}"
 mkdir -p "${BUN_CACHE}"
+mkdir -p "${PLAYWRIGHT_BROWSERS_CACHE}"
 
 OPENCODE_DATA="$(realpath "${OPENCODE_DATA}")"
 OPENCODE_CACHE="$(realpath "${OPENCODE_CACHE}")"
@@ -959,6 +1010,7 @@ OPENCODE_ALT_DIR="$(realpath "${OPENCODE_ALT_DIR}")"
 AGENTS_DIR="$(realpath "${AGENTS_DIR}")"
 BUN_HOME="$(realpath "${BUN_HOME}")"
 BUN_CACHE="$(realpath "${BUN_CACHE}")"
+PLAYWRIGHT_BROWSERS_CACHE="$(realpath "${PLAYWRIGHT_BROWSERS_CACHE}")"
 
 if [[ -d "${HOME}/.opencode-browser" ]]; then
     OPENCODE_BROWSER_DIR="$(realpath "${HOME}/.opencode-browser")"
@@ -1314,6 +1366,13 @@ fi
 
 BWRAP_CMD+=(--ro-bind /etc /etc)
 
+# Shadow git inside the sandbox with scoder-git while preserving the real git
+# binary at a private path for the wrapper to call after policy checks.
+BWRAP_CMD+=(
+    --ro-bind "${REAL_GIT_HOST}" /scoder/real-git
+    --ro-bind "${SCODER_GIT_HOST}" /usr/bin/git
+)
+
 if [[ "${RESTRICT_DEV}" -eq 1 ]]; then
     BWRAP_CMD+=(
         --dev-bind /dev/null /dev/null
@@ -1374,6 +1433,7 @@ BWRAP_CMD+=(
     --bind "${AGENTS_DIR}" "${SANDBOX_AGENTS_DIR}"
     --bind "${BUN_HOME}" "${SANDBOX_BUN_HOME}"
     --bind "${BUN_CACHE}" "${SANDBOX_BUN_CACHE_DIR}"
+    --bind "${PLAYWRIGHT_BROWSERS_CACHE}" "${SANDBOX_PLAYWRIGHT_BROWSERS_CACHE}"
 )
 
 if [[ -n "${OPENCODE_BROWSER_DIR:-}" ]]; then
@@ -1402,6 +1462,8 @@ BWRAP_CMD+=(
     --setenv VISUAL "${SANDBOX_EDITOR}"
     --setenv SHELL "${SHELL:-/bin/bash}"
     --setenv GIT_OPTIONAL_LOCKS 0
+    --setenv SCODER_REAL_GIT /scoder/real-git
+    --setenv PLAYWRIGHT_BROWSERS_PATH "${SANDBOX_PLAYWRIGHT_BROWSERS_CACHE}"
     --setenv MISE_SKIP_ACTIVATE 1
     --setenv UV_LINK_MODE copy
 )

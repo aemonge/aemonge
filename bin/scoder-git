@@ -1,0 +1,209 @@
+#!/usr/bin/env bash
+
+# scoder-git - policy-enforcing git wrapper for scoder sandboxes.
+# Intended to be mounted over /usr/bin/git inside scoder, with the real git
+# binary provided through SCODER_REAL_GIT.
+
+set -Eeuo pipefail
+
+readonly PROGRAM_NAME="scoder-git"
+readonly PROGRAM_VERSION="0.1.0"
+
+error() {
+    printf '%s: %s\n' "${PROGRAM_NAME}" "$*" >&2
+}
+
+deny() {
+    error "Denied $*"
+    exit 126
+}
+
+find_real_git() {
+    if [[ -n "${SCODER_REAL_GIT:-}" ]]; then
+        if [[ -x "${SCODER_REAL_GIT}" ]]; then
+            printf '%s\n' "${SCODER_REAL_GIT}"
+            return 0
+        fi
+
+        error "SCODER_REAL_GIT is not executable: ${SCODER_REAL_GIT}"
+        exit 127
+    fi
+
+    local candidate
+    for candidate in /usr/libexec/scoder/real-git /usr/bin/git /bin/git; do
+        if [[ -x "${candidate}" && "$(realpath "$candidate")" != "$(realpath "$0")" ]]; then
+            printf '%s\n' "${candidate}"
+            return 0
+        fi
+    done
+
+    error "real git binary not found"
+    exit 127
+}
+
+arg_present() {
+    local needle="$1"
+    shift
+
+    local arg
+    for arg in "$@"; do
+        if [[ "${arg}" == "${needle}" ]]; then
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+validate_add_paths() {
+    local real_git="$1"
+    shift
+
+    local repo_root
+    if ! repo_root="$("${real_git}" rev-parse --show-toplevel 2>/dev/null)"; then
+        deny "git add outside a repository"
+    fi
+
+    local arg
+    local resolved_path
+    for arg in "$@"; do
+        case "${arg}" in
+        -A | --all | -u | --update | . | :/*)
+            continue
+            ;;
+        --)
+            continue
+            ;;
+        -*)
+            continue
+            ;;
+        esac
+
+        if [[ "${arg}" = /* ]]; then
+            resolved_path="$(realpath -m -- "${arg}")"
+        else
+            resolved_path="$(realpath -m -- "${PWD}/${arg}")"
+        fi
+
+        if [[ "${resolved_path}" != "${repo_root}" && "${resolved_path}" != "${repo_root}"/* ]]; then
+            deny "git add path outside repo: ${arg}"
+        fi
+    done
+}
+
+validate_commit_file_paths() {
+    local real_git="$1"
+    shift
+
+    local repo_root
+    if ! repo_root="$("${real_git}" rev-parse --show-toplevel 2>/dev/null)"; then
+        deny "git commit -F outside a repository"
+    fi
+
+    local index=1
+    local arg
+    local message_file
+    local resolved_path
+    while [[ ${index} -le $# ]]; do
+        arg="${!index}"
+        case "${arg}" in
+        -F | --file)
+            index=$((index + 1))
+            if [[ ${index} -gt $# ]]; then
+                deny "git commit ${arg} without a message file"
+            fi
+            message_file="${!index}"
+            if [[ "${message_file}" = /* ]]; then
+                resolved_path="$(realpath -m -- "${message_file}")"
+            else
+                resolved_path="$(realpath -m -- "${PWD}/${message_file}")"
+            fi
+            if [[ "${resolved_path}" != "${repo_root}" && "${resolved_path}" != "${repo_root}"/* ]]; then
+                deny "git commit message file outside repo: ${message_file}"
+            fi
+            ;;
+        --file=*)
+            message_file="${arg#--file=}"
+            if [[ "${message_file}" = /* ]]; then
+                resolved_path="$(realpath -m -- "${message_file}")"
+            else
+                resolved_path="$(realpath -m -- "${PWD}/${message_file}")"
+            fi
+            if [[ "${resolved_path}" != "${repo_root}" && "${resolved_path}" != "${repo_root}"/* ]]; then
+                deny "git commit message file outside repo: ${message_file}"
+            fi
+            ;;
+        esac
+        index=$((index + 1))
+    done
+}
+
+main() {
+    if [[ "${1:-}" == "--scoder-git-version" ]]; then
+        printf '%s %s\n' "${PROGRAM_NAME}" "${PROGRAM_VERSION}"
+        return 0
+    fi
+
+    local real_git
+    real_git="$(find_real_git)"
+
+    local subcommand="${1:-}"
+    if [[ -z "${subcommand}" ]]; then
+        exec "${real_git}"
+    fi
+
+    case "${subcommand}" in
+    status | diff | log | show | branch | rev-parse | ls-files)
+        exec "${real_git}" "$@"
+        ;;
+    remote)
+        case "${2:-}" in
+        "" | -v)
+            exec "${real_git}" "$@"
+            ;;
+        *)
+            deny "git remote ${2:-}"
+            ;;
+        esac
+        ;;
+    worktree)
+        case "${2:-}" in
+        list)
+            exec "${real_git}" "$@"
+            ;;
+        *)
+            deny "git worktree ${2:-}"
+            ;;
+        esac
+        ;;
+    add)
+        validate_add_paths "${real_git}" "${@:2}"
+        exec "${real_git}" "$@"
+        ;;
+    commit)
+        if arg_present --amend "${@:2}" || arg_present -c "${@:2}" || arg_present -C "${@:2}"; then
+            deny "git commit history rewrite/reuse options"
+        fi
+
+        if ! arg_present -m "${@:2}" && ! arg_present -F "${@:2}"; then
+            deny "git commit without explicit -m or -F"
+        fi
+
+        validate_commit_file_paths "${real_git}" "${@:2}"
+
+        exec "${real_git}" \
+            -c core.hooksPath=/dev/null \
+            -c commit.gpgsign=false \
+            -c core.editor=true \
+            "$@"
+        ;;
+    push | pull | fetch | rebase | reset | clean | merge | cherry-pick | revert | tag | checkout | switch)
+        deny "dangerous git command: git ${subcommand}"
+        ;;
+    *)
+        deny "unknown git command: git ${subcommand}"
+        ;;
+    esac
+}
+
+main "$@"
