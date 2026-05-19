@@ -10,3 +10,10 @@ else
     printf '❌ scoder still defaults .git read-only; git add/commit cannot work by default\n' >&2
     exit 1
 fi
+
+if grep -q 'HOST_HOME}/\.gitconfig' "${SCODER}" && grep -q 'HOST_HOME}/\.config/git/config' "${SCODER}"; then
+    printf '✅ scoder binds host git identity config read-only\n'
+else
+    printf '❌ scoder does not bind host git identity config\n' >&2
+    exit 1
+fi

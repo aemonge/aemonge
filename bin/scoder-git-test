@@ -35,10 +35,54 @@ assert_denied() {
         return
     fi
 
-    if grep -q 'Denied' <<<"${output}"; then
+    if grep -qE 'Denied|BLOCKED|fatal: scoder blocked' <<<"${output}"; then
         pass "${name}"
     else
         fail "${name}: expected denial, got: ${output}"
+    fi
+}
+
+assert_denied_stdout_visible() {
+    local tmpdir="$1"
+    local name="$2"
+    shift 2
+
+    local stdout_file="${tmpdir}/stdout.txt"
+    local stderr_file="${tmpdir}/stderr.txt"
+    local status=0
+
+    run_scoder_git "${tmpdir}" "$@" >"${stdout_file}" 2>"${stderr_file}" || status=$?
+
+    if [[ "${status}" -eq 0 ]]; then
+        fail "${name}: command unexpectedly succeeded"
+        return
+    fi
+
+    if grep -qE 'Denied|BLOCKED|fatal: scoder blocked' "${stdout_file}" && grep -qE 'Denied|BLOCKED|fatal: scoder blocked' "${stderr_file}"; then
+        pass "${name}"
+    else
+        fail "${name}: denial not visible on both stdout and stderr (stdout=$(<"${stdout_file}"), stderr=$(<"${stderr_file}"))"
+    fi
+}
+
+assert_push_denied_as_fatal() {
+    local tmpdir="$1"
+    local name="$2"
+
+    local output=""
+    local status=0
+    output="$(run_scoder_git "${tmpdir}" push 2>&1)" || status=$?
+
+    if [[ "${status}" -ne 128 ]]; then
+        fail "${name}: expected exit 128, got ${status}; output=${output}"
+        return
+    fi
+
+    if [[ "${output}" == *"fatal: scoder blocked git push"* && \
+        "${output}" == *"no push was performed"* ]]; then
+        pass "${name}"
+    else
+        fail "${name}: missing fatal blocked push message; output=${output}"
     fi
 }
 
@@ -113,14 +157,18 @@ FAKE_GIT
     assert_allowed "${tmpdir}" "allows git worktree list" worktree list
     assert_allowed "${tmpdir}" "allows git add inside repo" add .
     assert_commit_hardened "${tmpdir}" "allows normal git commit" commit -m 'safe commit'
+    assert_commit_hardened "${tmpdir}" "allows git global -c before commit" -c user.name=OpenAgent -c user.email=openagent@example.com commit -m 'safe commit'
 
     assert_denied "${tmpdir}" "denies git push" push
+    assert_denied_stdout_visible "${tmpdir}" "denial is visible on stdout and stderr" push
+    assert_push_denied_as_fatal "${tmpdir}" "git push is reported as fatal blocked failure"
     assert_denied "${tmpdir}" "denies git pull" pull
     assert_denied "${tmpdir}" "denies git rebase" rebase main
     assert_denied "${tmpdir}" "denies git reset" reset --hard
     assert_denied "${tmpdir}" "denies git clean" clean -fd
     assert_denied "${tmpdir}" "denies git commit --amend" commit --amend
     assert_denied "${tmpdir}" "denies git commit -F outside repo" commit -F /tmp/scoder-outside-message
+    assert_denied "${tmpdir}" "denies git global unsafe -c" -c core.hooksPath=.githooks commit -m unsafe
     assert_denied "${tmpdir}" "denies git worktree add" worktree add ../x
     assert_denied "${tmpdir}" "denies unknown git subcommand" daemon
 

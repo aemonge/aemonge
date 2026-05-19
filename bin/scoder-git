@@ -14,8 +14,21 @@ error() {
 }
 
 deny() {
-    error "Denied $*"
+    local message="${PROGRAM_NAME}: Denied $*"
+    printf '%s\n' "${message}" >&2
+    printf '%s\n' "${message}"
     exit 126
+}
+
+deny_run_outside_scoder() {
+    local command_text="$1"
+    local -a lines=(
+        "fatal: scoder blocked ${command_text}; no ${command_text#git } was performed"
+        "fatal: run ${command_text} outside scoder if you really want to ${command_text#git }"
+    )
+    printf '%s\n' "${lines[@]}" >&2
+    printf '%s\n' "${lines[@]}"
+    exit 128
 }
 
 find_real_git() {
@@ -53,6 +66,56 @@ arg_present() {
     done
 
     return 1
+}
+
+split_global_options() {
+    GLOBAL_GIT_ARGS=()
+    REMAINING_GIT_ARGS=()
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+        -c)
+            if [[ $# -lt 2 ]]; then
+                deny "git -c without key=value"
+            fi
+            case "$2" in
+            user.name=* | user.email=* | author.name=* | author.email=* | committer.name=* | committer.email=*)
+                GLOBAL_GIT_ARGS+=("$1" "$2")
+                shift 2
+                ;;
+            core.hooksPath=* | commit.gpgsign=* | core.editor=*)
+                deny "git global config override blocked: $2"
+                ;;
+            *)
+                deny "git global config not allowlisted: $2"
+                ;;
+            esac
+            ;;
+        --config=*)
+            case "${1#--config=}" in
+            user.name=* | user.email=* | author.name=* | author.email=* | committer.name=* | committer.email=*)
+                GLOBAL_GIT_ARGS+=("$1")
+                shift
+                ;;
+            core.hooksPath=* | commit.gpgsign=* | core.editor=*)
+                deny "git global config override blocked: ${1#--config=}"
+                ;;
+            *)
+                deny "git global config not allowlisted: ${1#--config=}"
+                ;;
+            esac
+            ;;
+        --)
+            shift
+            REMAINING_GIT_ARGS+=("$@")
+            return 0
+            ;;
+        *)
+            REMAINING_GIT_ARGS=("$@")
+            return 0
+            ;;
+        esac
+    done
 }
 
 validate_add_paths() {
@@ -147,6 +210,11 @@ main() {
     local real_git
     real_git="$(find_real_git)"
 
+    local -a GLOBAL_GIT_ARGS=()
+    local -a REMAINING_GIT_ARGS=()
+    split_global_options "$@"
+    set -- "${REMAINING_GIT_ARGS[@]}"
+
     local subcommand="${1:-}"
     if [[ -z "${subcommand}" ]]; then
         exec "${real_git}"
@@ -154,12 +222,12 @@ main() {
 
     case "${subcommand}" in
     status | diff | log | show | branch | rev-parse | ls-files)
-        exec "${real_git}" "$@"
+        exec "${real_git}" "${GLOBAL_GIT_ARGS[@]}" "$@"
         ;;
     remote)
         case "${2:-}" in
         "" | -v)
-            exec "${real_git}" "$@"
+            exec "${real_git}" "${GLOBAL_GIT_ARGS[@]}" "$@"
             ;;
         *)
             deny "git remote ${2:-}"
@@ -169,7 +237,7 @@ main() {
     worktree)
         case "${2:-}" in
         list)
-            exec "${real_git}" "$@"
+            exec "${real_git}" "${GLOBAL_GIT_ARGS[@]}" "$@"
             ;;
         *)
             deny "git worktree ${2:-}"
@@ -178,7 +246,7 @@ main() {
         ;;
     add)
         validate_add_paths "${real_git}" "${@:2}"
-        exec "${real_git}" "$@"
+        exec "${real_git}" "${GLOBAL_GIT_ARGS[@]}" "$@"
         ;;
     commit)
         if arg_present --amend "${@:2}" || arg_present -c "${@:2}" || arg_present -C "${@:2}"; then
@@ -192,13 +260,14 @@ main() {
         validate_commit_file_paths "${real_git}" "${@:2}"
 
         exec "${real_git}" \
+            "${GLOBAL_GIT_ARGS[@]}" \
             -c core.hooksPath=/dev/null \
             -c commit.gpgsign=false \
             -c core.editor=true \
             "$@"
         ;;
     push | pull | fetch | rebase | reset | clean | merge | cherry-pick | revert | tag | checkout | switch)
-        deny "dangerous git command: git ${subcommand}"
+        deny_run_outside_scoder "git ${subcommand}"
         ;;
     *)
         deny "unknown git command: git ${subcommand}"

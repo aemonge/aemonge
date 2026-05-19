@@ -1182,6 +1182,17 @@ SANDBOX_BROWSER_DIR="${REPLY}"
 
 bind_symlink_targets_in_dir "${OPENCODE_CONFIG_DIR}"
 
+# Git identity/config is visible read-only so commits can use the user's normal
+# identity without allowing agents to persist global git config changes.
+if [[ -f "${HOST_HOME}/.gitconfig" ]]; then
+    EXTRA_BINDS+=(--ro-bind "$(realpath "${HOST_HOME}/.gitconfig")" "${SANDBOX_HOME}/.gitconfig")
+fi
+
+if [[ -f "${HOST_HOME}/.config/git/config" ]]; then
+    add_parent_dirs_once "${SANDBOX_HOME}/.config/git"
+    EXTRA_BINDS+=(--ro-bind "$(realpath "${HOST_HOME}/.config/git/config")" "${SANDBOX_HOME}/.config/git/config")
+fi
+
 # Bind host tools unless explicitly disabled
 if [[ "${ALLOW_HOST_TOOLS}" -eq 1 ]]; then
     info "Binding host development tools"
