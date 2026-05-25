@@ -236,7 +236,7 @@ main() {
         ;;
     worktree)
         case "${2:-}" in
-        list)
+        list | add | remove | move | prune | repair | lock | unlock)
             exec "${real_git}" "${GLOBAL_GIT_ARGS[@]}" "$@"
             ;;
         *)

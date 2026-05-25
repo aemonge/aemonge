@@ -155,6 +155,13 @@ FAKE_GIT
     assert_allowed "${tmpdir}" "allows git status" status
     assert_allowed "${tmpdir}" "allows git diff" diff -- README.md
     assert_allowed "${tmpdir}" "allows git worktree list" worktree list
+    assert_allowed "${tmpdir}" "allows git worktree add" worktree add ../x
+    assert_allowed "${tmpdir}" "allows git worktree remove" worktree remove ../x
+    assert_allowed "${tmpdir}" "allows git worktree move" worktree move ../x ../y
+    assert_allowed "${tmpdir}" "allows git worktree prune" worktree prune
+    assert_allowed "${tmpdir}" "allows git worktree repair" worktree repair
+    assert_allowed "${tmpdir}" "allows git worktree lock" worktree lock ../x
+    assert_allowed "${tmpdir}" "allows git worktree unlock" worktree unlock ../x
     assert_allowed "${tmpdir}" "allows git add inside repo" add .
     assert_commit_hardened "${tmpdir}" "allows normal git commit" commit -m 'safe commit'
     assert_commit_hardened "${tmpdir}" "allows git global -c before commit" -c user.name=OpenAgent -c user.email=openagent@example.com commit -m 'safe commit'
@@ -169,7 +176,7 @@ FAKE_GIT
     assert_denied "${tmpdir}" "denies git commit --amend" commit --amend
     assert_denied "${tmpdir}" "denies git commit -F outside repo" commit -F /tmp/scoder-outside-message
     assert_denied "${tmpdir}" "denies git global unsafe -c" -c core.hooksPath=.githooks commit -m unsafe
-    assert_denied "${tmpdir}" "denies git worktree add" worktree add ../x
+    assert_denied "${tmpdir}" "denies unknown git worktree subcommand" worktree bogus
     assert_denied "${tmpdir}" "denies unknown git subcommand" daemon
 
     if [[ "${FAILED}" -eq 0 ]]; then
