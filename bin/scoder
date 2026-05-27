@@ -53,7 +53,6 @@ Arguments:
 Environment:
   OPENCODE_BIN            Overrides default opencode binary
   SCODER_FS_MODE          "ro" (secure) or "rw" (default, allow writes)
-  SCODER_DEFAULT_AGENT    Default OpenCode agent when none is provided (default: OpenAgent)
 
 Protected Directories (read-only by default):
   .git, .github, .turbo, .cargo
@@ -86,8 +85,6 @@ Security Note:
   Host tools are bound by default (use --no-host-tools to disable them).
   The project is writable by default, but critical infrastructure directories
   are protected read-only unless you explicitly opt in.
-  When launching OpenCode without an explicit --agent, scoder prepends
-  the default agent from SCODER_DEFAULT_AGENT.
 USAGE_END
 }
 
@@ -124,18 +121,6 @@ json_escape() {
     printf '%s' "${value}"
 }
 
-has_agent_argument() {
-    local arg
-    for arg in "$@"; do
-        case "$arg" in
-        --agent | --agent=*)
-            return 0
-            ;;
-        esac
-    done
-    return 1
-}
-
 is_opencode_subcommand() {
     case "$1" in
     completion | acp | mcp | attach | run | debug | providers | auth | agent | upgrade | uninstall | serve | web | models | stats | export | import | github | pr | session | plugin | plug | db)
@@ -146,29 +131,38 @@ is_opencode_subcommand() {
     return 1
 }
 
-apply_default_agent_if_needed() {
-    local opencode_bin_name
-    opencode_bin_name=$(basename -- "$OPENCODE_BIN")
-    case "$opencode_bin_name" in
-    opencode | opencode-*) ;;
-    *)
-        return
-        ;;
-    esac
-
-    if has_agent_argument "${OPENCODE_ARGS[@]}"; then
-        return
-    fi
-
-    local default_agent="${SCODER_DEFAULT_AGENT:-OpenAgent}"
-    OPENCODE_ARGS=(--agent "$default_agent" "${OPENCODE_ARGS[@]}")
-}
-
 pass_env_if_set() {
     local env_name="$1"
     if [[ -n "${!env_name:-}" ]]; then
         BWRAP_CMD+=(--setenv "${env_name}" "${!env_name}")
     fi
+}
+
+should_inherit_env() {
+    local env_name="$1"
+
+    case "${env_name}" in
+    HOME | PATH | PWD | OLDPWD | SHELL | SHLVL | _ | USER | LOGNAME | TERM | COLORTERM | LANG | LC_ALL | \
+        EDITOR | VISUAL | GIT_OPTIONAL_LOCKS | SCODER_* | PLAYWRIGHT_BROWSERS_PATH | MISE_SKIP_ACTIVATE | \
+        UV_LINK_MODE | PYENV_ROOT | RUSTUP_HOME | PYO3_PYTHON)
+        return 1
+        ;;
+    SSH_AUTH_SOCK | GPG_AGENT_INFO | DBUS_SESSION_BUS_ADDRESS | SESSION_MANAGER | XAUTHORITY | DISPLAY | WAYLAND_DISPLAY)
+        return 1
+        ;;
+    esac
+
+    return 0
+}
+
+inherit_host_environment() {
+    local env_name
+
+    while IFS= read -r env_name; do
+        if should_inherit_env "${env_name}"; then
+            pass_env_if_set "${env_name}"
+        fi
+    done < <(compgen -e || true)
 }
 
 normalize_raw_command_if_needed() {
@@ -711,7 +705,7 @@ run_validation() {
     info "Test M.2: scoder-git blocks network/destructive commands"
     local git_push_result
     git_push_result=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'git push 2>&1' 2>&1 || true)
-    if echo "${git_push_result}" | grep -q "Denied dangerous git command"; then
+    if echo "${git_push_result}" | grep -q "fatal: scoder blocked git push"; then
         echo "✅ Test M.2 PASS: git push is denied"
     else
         echo "❌ Test M.2 FAIL: git push was not denied by scoder-git (${git_push_result})"
@@ -968,6 +962,7 @@ SANDBOX_CONFIG_DIR="${SANDBOX_HOME}/.config"
 SANDBOX_CACHE_DIR="${SANDBOX_HOME}/.cache"
 SANDBOX_OPENCODE_ALT_DIR="${SANDBOX_HOME}/.opencode"
 SANDBOX_AGENTS_DIR="${SANDBOX_HOME}/.agents"
+SANDBOX_CLAUDE_DIR="${SANDBOX_HOME}/.claude"
 SANDBOX_BUN_HOME="${SANDBOX_HOME}/.bun"
 SANDBOX_BROWSER_DIR="${SANDBOX_HOME}/.opencode-browser"
 SANDBOX_PLAYWRIGHT_BROWSERS_CACHE="${SANDBOX_HOME}/.cache/ms-playwright"
@@ -979,7 +974,7 @@ SANDBOX_BUN_CACHE_DIR="${SANDBOX_CACHE_DIR}/bun"
 SANDBOX_OPENCODE_DATA_DIR="${SANDBOX_LOCAL_SHARE_DIR}/opencode"
 
 if [[ ${#RAW_COMMAND[@]} -eq 0 ]]; then
-    apply_default_agent_if_needed
+    :
 else
     normalize_raw_command_if_needed
 fi
@@ -1011,6 +1006,10 @@ AGENTS_DIR="$(realpath "${AGENTS_DIR}")"
 BUN_HOME="$(realpath "${BUN_HOME}")"
 BUN_CACHE="$(realpath "${BUN_CACHE}")"
 PLAYWRIGHT_BROWSERS_CACHE="$(realpath "${PLAYWRIGHT_BROWSERS_CACHE}")"
+
+if [[ -d "${HOME}/.claude" ]]; then
+    CLAUDE_DIR="$(realpath "${HOME}/.claude")"
+fi
 
 if [[ -d "${HOME}/.opencode-browser" ]]; then
     OPENCODE_BROWSER_DIR="$(realpath "${HOME}/.opencode-browser")"
@@ -1175,6 +1174,8 @@ mirror_persistent_subpath_symlink "${HOST_HOME}/.opencode" "${SANDBOX_OPENCODE_A
 SANDBOX_OPENCODE_ALT_DIR="${REPLY}"
 mirror_persistent_subpath_symlink "${HOST_HOME}/.agents" "${SANDBOX_AGENTS_DIR}"
 SANDBOX_AGENTS_DIR="${REPLY}"
+mirror_persistent_subpath_symlink "${HOST_HOME}/.claude" "${SANDBOX_CLAUDE_DIR}"
+SANDBOX_CLAUDE_DIR="${REPLY}"
 mirror_persistent_subpath_symlink "${HOST_HOME}/.bun" "${SANDBOX_BUN_HOME}"
 SANDBOX_BUN_HOME="${REPLY}"
 mirror_persistent_subpath_symlink "${HOST_HOME}/.opencode-browser" "${SANDBOX_BROWSER_DIR}"
@@ -1447,6 +1448,10 @@ BWRAP_CMD+=(
     --bind "${PLAYWRIGHT_BROWSERS_CACHE}" "${SANDBOX_PLAYWRIGHT_BROWSERS_CACHE}"
 )
 
+if [[ -n "${CLAUDE_DIR:-}" ]]; then
+    BWRAP_CMD+=(--bind "${CLAUDE_DIR}" "${SANDBOX_CLAUDE_DIR}")
+fi
+
 if [[ -n "${OPENCODE_BROWSER_DIR:-}" ]]; then
     BWRAP_CMD+=(--bind "${OPENCODE_BROWSER_DIR}" "${SANDBOX_BROWSER_DIR}")
 fi
@@ -1461,6 +1466,11 @@ BWRAP_CMD+=(--chdir "${SANDBOX_WORKDIR}")
 BWRAP_CMD+=(
     --die-with-parent
     --clearenv
+)
+
+inherit_host_environment
+
+BWRAP_CMD+=(
     --setenv PATH "${SANDBOX_PATH}"
     --setenv HOME "${SANDBOX_HOME}"
     --setenv USER "${HOST_USER}"
@@ -1478,27 +1488,6 @@ BWRAP_CMD+=(
     --setenv MISE_SKIP_ACTIVATE 1
     --setenv UV_LINK_MODE copy
 )
-
-for env_name in \
-    BRAVE_API_KEY \
-    GITHUB_TOKEN \
-    GITHUB_PERSONAL_ACCESS_TOKEN \
-    OPENAI_API_KEY \
-    ANTHROPIC_API_KEY \
-    GOOGLE_API_KEY \
-    MCP_SERVER_REQUEST_TIMEOUT \
-    HTTP_PROXY \
-    HTTPS_PROXY \
-    ALL_PROXY \
-    NO_PROXY \
-    SSL_CERT_FILE \
-    SSL_CERT_DIR \
-    NODE_EXTRA_CA_CERTS \
-    UV_INDEX_URL \
-    UV_EXTRA_INDEX_URL \
-    UV_DEFAULT_INDEX; do
-    pass_env_if_set "${env_name}"
-done
 
 if [[ -n "${PYENV_ROOT_SANDBOX:-}" ]]; then
     BWRAP_CMD+=(--setenv PYENV_ROOT "${PYENV_ROOT_SANDBOX}")
