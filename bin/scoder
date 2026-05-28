@@ -39,8 +39,10 @@ Options:
       --allow-infra       Allow write access to all protected infra dirs
       --full-dev          Allow full /dev access inside sandbox
       --no-nvim-remote    Disable active Neovim socket bridge
-  --allow-host-tools  Bind host user tools (~/.local/bin, mise, pyenv, uv, rustup/cargo, etc) (default)
-  --no-host-tools     Disable binding host user tools
+  -g, --allow-gui         Allow GUI/session access for desktop apps like Chromium
+  -w, --web-developer     Enable browser-dev mode and auto-start Chromium DevTools
+  --allow-host-tools      Bind host user tools (~/.local/bin, mise, pyenv, uv, rustup/cargo, etc) (default)
+  --no-host-tools         Disable binding host user tools
 USAGE_EOF
 
     cat <<'USAGE_END'
@@ -73,6 +75,7 @@ Examples:
   scoder --validate         # run comprehensive validation tests
   scoder --ro               # read-only sandbox of $PWD
   scoder --allow-git        # allow .git writes
+  scoder --web-developer    # start/attach Chromium DevTools on :9222
   scoder --allow-host-tools # bind host dev tools (mise, cargo, etc)
   scoder . -- /bin/bash -lc 'env | grep HOME' # run raw command in sandbox
   scoder src/lib/target.txt -- /bin/bash -lc 'cat src/lib/target.txt'
@@ -141,6 +144,14 @@ pass_env_if_set() {
 should_inherit_env() {
     local env_name="$1"
 
+    if [[ "${ALLOW_GUI:-0}" -eq 1 ]]; then
+        case "${env_name}" in
+        DISPLAY | WAYLAND_DISPLAY | XAUTHORITY | DBUS_SESSION_BUS_ADDRESS | SESSION_MANAGER)
+            return 0
+            ;;
+        esac
+    fi
+
     case "${env_name}" in
     HOME | PATH | PWD | OLDPWD | SHELL | SHLVL | _ | USER | LOGNAME | TERM | COLORTERM | LANG | LC_ALL | \
         EDITOR | VISUAL | GIT_OPTIONAL_LOCKS | SCODER_* | PLAYWRIGHT_BROWSERS_PATH | MISE_SKIP_ACTIVATE | \
@@ -157,12 +168,15 @@ should_inherit_env() {
 
 inherit_host_environment() {
     local env_name
+    local env_output
+
+    env_output="$(compgen -e || true)"
 
     while IFS= read -r env_name; do
         if should_inherit_env "${env_name}"; then
             pass_env_if_set "${env_name}"
         fi
-    done < <(compgen -e || true)
+    done <<<"${env_output}"
 }
 
 normalize_raw_command_if_needed() {
@@ -179,6 +193,113 @@ normalize_raw_command_if_needed() {
         esac
         ;;
     esac
+}
+
+find_chromium_binary() {
+    local candidate
+    local -a candidates=()
+
+    if [[ -n "${SCODER_CHROMIUM_BIN:-}" ]]; then
+        candidates+=("${SCODER_CHROMIUM_BIN}")
+    fi
+
+    candidates+=(chromium google-chrome-stable google-chrome chrome)
+
+    for candidate in "${candidates[@]}"; do
+        if command -v "${candidate}" >/dev/null 2>&1; then
+            printf '%s' "$(command -v "${candidate}")"
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+is_devtools_endpoint_ready() {
+    if command -v curl >/dev/null 2>&1; then
+        curl --silent --show-error --fail "http://127.0.0.1:9222/json/version" >/dev/null 2>&1
+        return $?
+    fi
+
+    if command -v python3 >/dev/null 2>&1; then
+        python3 - <<'PY' >/dev/null 2>&1
+import sys
+import urllib.request
+
+try:
+    with urllib.request.urlopen("http://127.0.0.1:9222/json/version", timeout=1):
+        pass
+except Exception:
+    sys.exit(1)
+
+sys.exit(0)
+PY
+        return $?
+    fi
+
+    return 1
+}
+
+ensure_chromium_devtools() {
+    local chromium_bin
+    local chromium_profile
+    local chromium_log
+
+    if is_devtools_endpoint_ready; then
+        info "Chromium DevTools already available on 127.0.0.1:9222"
+        return 0
+    fi
+
+    chromium_bin="$(find_chromium_binary || true)"
+    if [[ -z "${chromium_bin}" ]]; then
+        error "web-developer mode could not find a Chromium-compatible browser"
+        error "set SCODER_CHROMIUM_BIN or install chromium/google-chrome"
+        return 1
+    fi
+
+    chromium_profile="${SCODER_CHROMIUM_PROFILE:-/tmp/opencode-chrome}"
+    chromium_log="${SCODER_CHROMIUM_LOG:-/tmp/scoder-chromium.log}"
+    mkdir -p "${chromium_profile}"
+
+    info "Starting Chromium DevTools via ${chromium_bin}"
+    nohup "${chromium_bin}" \
+        --remote-debugging-port=9222 \
+        --user-data-dir="${chromium_profile}" \
+        --no-first-run \
+        --no-default-browser-check \
+        about:blank >"${chromium_log}" 2>&1 < /dev/null &
+
+    local attempt
+    for attempt in {1..20}; do
+        if is_devtools_endpoint_ready; then
+            info "Chromium DevTools ready on 127.0.0.1:9222"
+            return 0
+        fi
+        sleep 0.5
+    done
+
+    error "Chromium launched but DevTools endpoint did not become ready"
+    error "check log: ${chromium_log}"
+    return 1
+}
+
+check_bwrap_namespace_support() {
+    local probe_output
+
+    if probe_output="$(bwrap --unshare-user-try --ro-bind /usr /usr --proc /proc --dev /dev -- /bin/sh -c 'exit 0' 2>&1)"; then
+        return 0
+    fi
+
+    case "${probe_output}" in
+    *"Creating new namespace failed"* | *"max_*_namespaces exceeded"* | *"(ENOSPC)"*)
+        error "bubblewrap cannot create the namespaces scoder needs in this environment"
+        error "this usually means scoder is running inside another sandbox/container, or user namespaces are restricted"
+        error "run scoder from your normal host shell instead of inside another sandboxed session"
+        return 1
+        ;;
+    esac
+
+    return 0
 }
 
 is_path_within() {
@@ -746,6 +867,8 @@ VALIDATE_MODE=0
 ALLOW_HOST_TOOLS=1
 ALLOW_HOST_TOOLS_SET=0
 ALLOW_HOST_TOOLS_DISABLE_SET=0
+ALLOW_GUI=0
+WEB_DEVELOPER_MODE=0
 ALLOW_NVIM_REMOTE=1
 HOST_HOME="${HOME}"
 HOST_USER="${USER:-andres}"
@@ -839,6 +962,15 @@ while [[ $# -gt 0 ]]; do
         ALLOW_HOST_TOOLS_SET=1
         shift
         ;;
+    -g | --allow-gui)
+        ALLOW_GUI=1
+        shift
+        ;;
+    -w | --web-developer)
+        WEB_DEVELOPER_MODE=1
+        ALLOW_GUI=1
+        shift
+        ;;
     --no-host-tools)
         ALLOW_HOST_TOOLS=0
         ALLOW_HOST_TOOLS_DISABLE_SET=1
@@ -917,6 +1049,10 @@ if bwrap --help 2>/dev/null | grep -q -- "--disable-userns"; then
     BWRAP_DISABLE_USERNS_SUPPORTED=1
 fi
 
+if ! check_bwrap_namespace_support; then
+    exit 1
+fi
+
 if ! command -v "${OPENCODE_BIN}" >/dev/null 2>&1; then
     error "opencode binary not found: ${OPENCODE_BIN}"
     exit 1
@@ -940,6 +1076,10 @@ SCODER_GIT_HOST="$(realpath "${SCODER_GIT_HOST}")"
 if [[ "${FS_MODE}" != "ro" && "${FS_MODE}" != "rw" ]]; then
     error "invalid FS mode '${FS_MODE}' (expected 'ro' or 'rw')"
     exit 1
+fi
+
+if [[ "${WEB_DEVELOPER_MODE}" -eq 1 ]]; then
+    ensure_chromium_devtools || exit 1
 fi
 
 resolve_target_mode "${PROJECT_TARGET}"
@@ -1279,6 +1419,27 @@ if [[ "${ALLOW_NVIM_REMOTE}" -eq 1 && -n "${NVIM:-}" && -S "${NVIM}" ]]; then
     NVIM_SOCKET_SANDBOX="${NVIM_SOCKET_HOST}"
     add_parent_dirs_once "$(dirname "${NVIM_SOCKET_SANDBOX}")"
     opt_bind_path "${NVIM_SOCKET_HOST}" "${NVIM_SOCKET_SANDBOX}"
+fi
+
+if [[ "${ALLOW_GUI}" -eq 1 ]]; then
+    info "Allowing GUI/session access"
+
+    if [[ -d /tmp/.X11-unix ]]; then
+        add_parent_dirs_once /tmp/.X11-unix
+        EXTRA_BINDS+=(--ro-bind /tmp/.X11-unix /tmp/.X11-unix)
+    fi
+
+    if [[ -n "${XAUTHORITY:-}" && -e "${XAUTHORITY}" ]]; then
+        add_parent_dirs_once "$(dirname "${XAUTHORITY}")"
+        EXTRA_BINDS+=(--ro-bind "$(realpath "${XAUTHORITY}")" "${XAUTHORITY}")
+    elif [[ -f "${HOST_HOME}/.Xauthority" ]]; then
+        add_parent_dirs_once "$(dirname "${SANDBOX_HOME}/.Xauthority")"
+        EXTRA_BINDS+=(--ro-bind "$(realpath "${HOST_HOME}/.Xauthority")" "${SANDBOX_HOME}/.Xauthority")
+    fi
+
+    if [[ -n "${XDG_RUNTIME_DIR:-}" && -d "${XDG_RUNTIME_DIR}" ]]; then
+        bind_runtime_dir "${XDG_RUNTIME_DIR}" "${XDG_RUNTIME_DIR}"
+    fi
 fi
 
 RESOLV_CONF_TARGET="$(readlink -f /etc/resolv.conf 2>/dev/null || true)"
