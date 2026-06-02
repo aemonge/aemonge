@@ -30,6 +30,8 @@ Usage:
 Options:
   -h, --help              Show this help and exit
   -V, --version           Show version and exit
+  -a, --add PATH          Add extra file/dir to sandbox read-only
+  -A, --add-rw PATH       Add extra file/dir to sandbox read-write
   -b, --bin PATH          Path to opencode binary (default: "opencode")
   -q, --quiet             Suppress informational output
       --validate          Run comprehensive validation tests and exit
@@ -75,6 +77,8 @@ Examples:
   scoder --validate         # run comprehensive validation tests
   scoder --ro               # read-only sandbox of $PWD
   scoder --allow-git        # allow .git writes
+  scoder -a ../shared.env   # add extra file read-only
+  scoder -A ../scratch      # add extra directory read-write
   scoder --web-developer    # start/attach Chromium DevTools on :9222
   scoder --allow-host-tools # bind host dev tools (mise, cargo, etc)
   scoder . -- /bin/bash -lc 'env | grep HOME' # run raw command in sandbox
@@ -351,6 +355,21 @@ cleanup_file_mode_tmp_dir() {
     if [[ -n "${FILE_MODE_TMP_DIR:-}" && -d "${FILE_MODE_TMP_DIR}" ]]; then
         rm -rf "${FILE_MODE_TMP_DIR}"
     fi
+}
+
+add_custom_bind() {
+    local bind_flag="$1"
+    local requested_path="$2"
+    local resolved_path
+
+    if [[ ! -e "${requested_path}" ]]; then
+        error "added path does not exist: ${requested_path}"
+        exit 1
+    fi
+
+    resolved_path="$(realpath "${requested_path}")"
+    add_parent_dirs_once "$(dirname "${resolved_path}")"
+    SAFE_BINDS+=("${bind_flag}" "${resolved_path}" "${resolved_path}")
 }
 
 prepare_single_file_overlay() {
@@ -846,8 +865,45 @@ run_validation() {
         ((failed_tests++))
     fi
 
+    info "Test N.1: --add exposes extra path read-only"
+    local shared_ro_dir="/tmp/scoder-shared-ro-$$"
+    mkdir -p "${shared_ro_dir}"
+    printf 'shared-ro\n' >"${shared_ro_dir}/note.txt"
+    local add_ro_read
+    add_ro_read=$(OPENCODE_BIN=/bin/bash "${script_path}" -q -a "${shared_ro_dir}" "${test_project}" -- /bin/bash --noprofile --norc -lc "cat '${shared_ro_dir}/note.txt'" 2>&1 || true)
+    if [[ "${add_ro_read}" == "shared-ro" ]]; then
+        echo "✅ Test N.1 PASS: --add exposes extra path"
+    else
+        echo "❌ Test N.1 FAIL: extra path read output was '${add_ro_read}'"
+        ((failed_tests++))
+    fi
+
+    info "Test N.2: --add keeps extra path read-only"
+    local add_ro_write
+    add_ro_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q -a "${shared_ro_dir}" "${test_project}" -- /bin/bash --noprofile --norc -lc "printf blocked > '${shared_ro_dir}/note.txt'" 2>&1 || true)
+    if echo "${add_ro_write}" | grep -qE 'Read-only|Permission denied|cannot create|Operation not permitted'; then
+        echo "✅ Test N.2 PASS: --add blocks writes"
+    else
+        echo "❌ Test N.2 FAIL: extra path write output was '${add_ro_write}'"
+        ((failed_tests++))
+    fi
+
+    info "Test N.3: --add-rw exposes extra path read-write"
+    local shared_rw_dir="/tmp/scoder-shared-rw-$$"
+    mkdir -p "${shared_rw_dir}"
+    printf 'shared-rw\n' >"${shared_rw_dir}/note.txt"
+    local add_rw_write
+    add_rw_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q -A "${shared_rw_dir}" "${test_project}" -- /bin/bash --noprofile --norc -lc "printf updated > '${shared_rw_dir}/note.txt' && cat '${shared_rw_dir}/note.txt'" 2>&1 || true)
+    if [[ "${add_rw_write}" == "updated" ]]; then
+        echo "✅ Test N.3 PASS: --add-rw allows writes"
+    else
+        echo "❌ Test N.3 FAIL: extra path rw output was '${add_rw_write}'"
+        ((failed_tests++))
+    fi
+
     # Cleanup
     rm -rf "${test_project}"
+    rm -rf "${shared_ro_dir}" "${shared_rw_dir}"
 
     echo ""
     if [[ "${failed_tests}" -eq 0 ]]; then
@@ -892,6 +948,8 @@ FILE_MODE_RO_SOURCE_SANDBOX_PATH=""
 FILE_MODE_BINDS=()
 OPENCODE_ARGS=()
 RAW_COMMAND=()
+ADD_RO_PATHS=()
+ADD_RW_PATHS=()
 
 trap cleanup_file_mode_tmp_dir EXIT
 
@@ -922,6 +980,22 @@ while [[ $# -gt 0 ]]; do
     -V | --version)
         version
         exit 0
+        ;;
+    -a | --add)
+        if [[ $# -lt 2 ]]; then
+            error "missing argument for $1"
+            exit 1
+        fi
+        ADD_RO_PATHS+=("$2")
+        shift 2
+        ;;
+    -A | --add-rw)
+        if [[ $# -lt 2 ]]; then
+            error "missing argument for $1"
+            exit 1
+        fi
+        ADD_RW_PATHS+=("$2")
+        shift 2
         ;;
     -q | --quiet)
         QUIET=1
@@ -1513,6 +1587,16 @@ if [[ "${ALLOW_INFRA}" -eq 0 ]]; then
         fi
     done
 fi
+
+for added_path in "${ADD_RO_PATHS[@]}"; do
+    add_custom_bind --ro-bind "${added_path}"
+    info "Adding ${added_path} (read-only)"
+done
+
+for added_path in "${ADD_RW_PATHS[@]}"; do
+    add_custom_bind --bind "${added_path}"
+    info "Adding ${added_path} (read-write)"
+done
 
 # -------- run sandbox --------
 BWRAP_CMD=(
