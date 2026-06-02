@@ -22,3 +22,6 @@
 **/python/unittest/mock_name_attr.qmd
 **/quarto/render/colorfull-output.qmd
 **/unix/network/networkless_commands.qmd
+**/rust/basics/borrowing-and-lifetimes.qmd
+**/rust/basics/mutability-and-references.qmd
+**/rust/functional/iterator-order-enumerate-rev.qmd

@@ -375,6 +375,7 @@ h1 .playful-note {
   color: var(--secondary-color);
   display: list-item;
   width: 100%;
+  list-style: none;
 }
 .link::before {
   content: "- ";
