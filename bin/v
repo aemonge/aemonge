@@ -71,7 +71,7 @@ function cmd_load_project() {
 }
 
 function show_help() {
-    echo "v - Versatile Neovim wrapper script with term-multiplier powers using neovim-remote"
+    echo "v - Versatile Neovim wrapper script with terminal-multiplexer powers using neovim-remote"
     echo ""
     echo "  This script provides a convenient interface for various Neovim operations,"
     echo "  including changing directories, opening files in split views, clearing the"
@@ -91,6 +91,7 @@ function show_help() {
     echo "    restore         Using sessions.nvim restore the last session"
     echo "    cd              Change directory in Neovim"
     echo "    clear           Clear terminal in Neovim"
+    echo "    clean, -        Reset hidden unmodified TermMux buffers"
     echo "    venv            Call the nvim set venv to change  env in current v session"
     echo "    reset_venv      Call the nvim set reset the current  venv"
     echo "    completions     Generate zsh completions for this script"
@@ -124,6 +125,7 @@ function completions() {
     echo "    'restore'" >> "$completions_file"
     echo "    'cd'" >> "$completions_file"
     echo "    'clear'" >> "$completions_file"
+    echo "    'clean'" >> "$completions_file"
     echo "    'venv'" >> "$completions_file"
     echo "    'reset_venv'" >> "$completions_file"
     echo "    'completions'" >> "$completions_file"
@@ -149,7 +151,7 @@ function completions() {
     echo "        isplit|split|hover|waits|spliting|bg)" >> "$completions_file"
     echo "          _files" >> "$completions_file"
     echo "          ;;" >> "$completions_file"
-    echo "        clear|save|restore|venv|reset_venv)" >> "$completions_file"
+    echo "        clear|clean|save|restore|venv|reset_venv)" >> "$completions_file"
     echo "          # No further arguments for these commands" >> "$completions_file"
     echo "          ;;" >> "$completions_file"
     echo "        *)" >> "$completions_file"
@@ -283,7 +285,6 @@ function spliting() {
         _opener=(
             nvr
             -c "setlocal bufhidden=wipe"
-            -c "startinsert!"
             -cc $split_command
             --remote-wait-silent
         )
@@ -390,14 +391,12 @@ function save() {
                 -c "split | terminal"\
                 -c "SessionsSave! $1" \
                 -c "bd!" \
-                -c "lua vim.defer_fn(function() vim.cmd('startinsert') end, 100)" \
                 -c "lua vim.notify(\"Session saved at $1\", vim.log.levels.OFF, {title= \"Session Management\"})"
         else
             nvr -c "cd $(pwd)" \
                 -c "split | terminal"\
                 -c "SessionsSave!" \
                 -c "bd!" \
-                -c "lua vim.defer_fn(function() vim.cmd('startinsert') end, 100)" \
                 -c "lua vim.notify(\"Default Session saved\", vim.log.levels.OFF, {title= \"Session Management\"})"
         fi
     else
@@ -414,7 +413,6 @@ function restore() {
                     -c "SessionsLoad! $1" \
                     -c "winc w" \
                     -c "bd!" \
-                    -c "lua vim.defer_fn(function() vim.cmd('startinsert') end, 100)" \
                     -c "lua vim.notify(\"Session loaded from $1\", vim.log.levels.INFO, {title= \"Session Management\"})"
             else
                 echo "Error: Specified session file does not exist."
@@ -425,7 +423,6 @@ function restore() {
                 -c "SessionsLoad!" \
                 -c "winc w" \
                 -c "bd!" \
-                -c "lua vim.defer_fn(function() vim.cmd('startinsert') end, 100)" \
                 -c "lua vim.notify(\"Default Session loaded\", vim.log.levels.INFO, {title= \"Session Management\"})"
         fi
     else
@@ -442,17 +439,23 @@ function session() {
 
     load_project_env "${1:-.}"
 
-    cmd=(nvim +':terminal')
     if [ $# -eq 0 ]; then
-        # cmd=(nvim +':terminal' +':startinsert' +"autocmd User VeryLazy ++once set laststatus=0")
-        cmd=(nvim +':terminal' +':startinsert')
+        cmd=(nvim +':TermMux')
     else
         # No laststatus=0 since it creates a buggy behavior
-        # cmd=(nvim +":cd $@" +':terminal' +':startinsert' +"autocmd User VeryLazy ++once set laststatus=0")
-        cmd=(nvim +":cd $@" +':terminal' +':startinsert')
+        cmd=(nvim +":cd $@" +':TermMux')
     fi
 
     "${cmd[@]}"
+}
+
+function termmux_clean() {
+    if [ -n "$NVIM" ]; then
+        nvr -c "TermMuxClean"
+    else
+        echo "Please start a v session: 'v .' "
+        return 1
+    fi
 }
 
 
@@ -538,6 +541,9 @@ case "$1" in
             exit 1
         fi
         ;;
+    -|clean)
+        termmux_clean
+        ;;
     save)
         shift
         save "$@"
@@ -572,7 +578,7 @@ case "$1" in
         show_version
         ;;
     *)
-        if [ -z "$NVIM" ] && [ -d "$@" ]; then;
+        if [ -z "$NVIM" ] && [ -d "$@" ]; then
             session "$@"
         else
             vim_func "$@"
