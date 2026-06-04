@@ -244,6 +244,16 @@ main() {
             ;;
         esac
         ;;
+    maintenance)
+        case "${2:-}" in
+        run)
+            exec "${real_git}" "${GLOBAL_GIT_ARGS[@]}" "$@"
+            ;;
+        *)
+            deny "git maintenance ${2:-}"
+            ;;
+        esac
+        ;;
     add)
         validate_add_paths "${real_git}" "${@:2}"
         exec "${real_git}" "${GLOBAL_GIT_ARGS[@]}" "$@"
