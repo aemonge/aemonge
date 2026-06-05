@@ -86,6 +86,8 @@ function show_help() {
     echo "    isplit          Open file in split view (inverted)"
     echo "    waits           Open file for quick editing (auto-closes buffer)"
     echo "    spliting        Combine split and waits"
+    echo "    see             Open file or directory with :See"
+    echo "    in-place        Open file(s) with :EditInPlaceClose"
     echo "    bg              Open file in background tab in Neovim"
     echo "    save            Using sessions.nvim save the current session"
     echo "    restore         Using sessions.nvim restore the last session"
@@ -120,6 +122,8 @@ function completions() {
     echo "    'isplit'" >> "$completions_file"
     echo "    'waits'" >> "$completions_file"
     echo "    'spliting'" >> "$completions_file"
+    echo "    'see'" >> "$completions_file"
+    echo "    'in-place'" >> "$completions_file"
     echo "    'bg'" >> "$completions_file"
     echo "    'save'" >> "$completions_file"
     echo "    'restore'" >> "$completions_file"
@@ -148,7 +152,7 @@ function completions() {
     echo "        cd)" >> "$completions_file"
     echo "          _directories" >> "$completions_file"
     echo "          ;;" >> "$completions_file"
-    echo "        isplit|split|hover|waits|spliting|bg)" >> "$completions_file"
+    echo "        isplit|split|hover|waits|spliting|see|in-place|bg)" >> "$completions_file"
     echo "          _files" >> "$completions_file"
     echo "          ;;" >> "$completions_file"
     echo "        clear|clean|save|restore|venv|reset_venv)" >> "$completions_file"
@@ -349,6 +353,37 @@ function waits() {
 
     # Then, open all files at once
     "${_opener[@]}" "${files[@]}"
+}
+
+function see() {
+    if [ -z "$NVIM" ]; then
+        echo "Please start a v session: 'v .'"
+        return 1
+    fi
+
+    if [ -z "$1" ]; then
+        echo "No file or directory specified."
+        return 1
+    fi
+
+    nvr -c ":See $1"
+}
+
+function in_place() {
+    if [ -z "$NVIM" ]; then
+        echo "Please start a v session: 'v .'"
+        return 1
+    fi
+
+    if [ -z "$1" ]; then
+        echo "No file specified."
+        return 1
+    fi
+
+    for file in "$@"; do
+        nvr --remote-wait -c ":EditInPlace $file" # BUG: Check the nvim function
+        # It wont wait so not working with git commit
+    done
 }
 
 function vim_func() {
@@ -559,6 +594,14 @@ case "$1" in
     waits)
         shift
         waits "$@"
+        ;;
+    see)
+        shift
+        see "$@"
+        ;;
+    in-place)
+        shift
+        in_place "$@"
         ;;
     bg)
         shift
