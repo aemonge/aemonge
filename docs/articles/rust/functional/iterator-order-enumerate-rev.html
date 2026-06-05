@@ -419,6 +419,7 @@ f has positional power 0</code></pre>
 <p>reverse the values, then add new indices.</p>
 </blockquote>
 <p>Rust iterators are lazy, like Python generator pipelines, so method chains usually define work rather than immediately doing it. The actual <code>O(n)</code> cost appears when the iterator is consumed by a <code>for</code> loop, <code>collect()</code>, <code>sum()</code>, <code>fold()</code>, or a similar consumer.</p>
+<p>If you want the deeper follow-up on laziness, single-pass consumption, <code>fold()</code>, <code>try_fold()</code>, <code>sum()</code>, <code>collect()</code>, and common exhausted-iterator bugs, see <a href="./iterator-laziness-consumption-fold-collect.qmd">Rust Iterators: laziness, consumption, fold, and collect</a>.</p>
 <p>If your index has semantic meaning, especially for positional math, be careful with method order.</p>
 <p>For right-based positional logic, <code>(0..v.len()).rev().zip(v.iter())</code> is usually the clearest pattern.</p>
 <!-- -->
@@ -1337,11 +1338,15 @@ f has positional power 0</code></pre>
 <span id="cb33-428"><a href="#cb33-428" aria-hidden="true" tabindex="-1"></a>work rather than immediately doing it. The actual <span class="in">`O(n)`</span> cost appears when the iterator is</span>
 <span id="cb33-429"><a href="#cb33-429" aria-hidden="true" tabindex="-1"></a>consumed by a <span class="in">`for`</span> loop, <span class="in">`collect()`</span>, <span class="in">`sum()`</span>, <span class="in">`fold()`</span>, or a similar consumer.</span>
 <span id="cb33-430"><a href="#cb33-430" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-431"><a href="#cb33-431" aria-hidden="true" tabindex="-1"></a>If your index has semantic meaning, especially for positional math, be careful with method</span>
-<span id="cb33-432"><a href="#cb33-432" aria-hidden="true" tabindex="-1"></a>order.</span>
-<span id="cb33-433"><a href="#cb33-433" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-434"><a href="#cb33-434" aria-hidden="true" tabindex="-1"></a>For right-based positional logic, <span class="in">`(0..v.len()).rev().zip(v.iter())`</span> is usually the</span>
-<span id="cb33-435"><a href="#cb33-435" aria-hidden="true" tabindex="-1"></a>clearest pattern.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
+<span id="cb33-431"><a href="#cb33-431" aria-hidden="true" tabindex="-1"></a>If you want the deeper follow-up on laziness, single-pass consumption, <span class="in">`fold()`</span>, <span class="in">`try_fold()`</span>,</span>
+<span id="cb33-432"><a href="#cb33-432" aria-hidden="true" tabindex="-1"></a><span class="in">`sum()`</span>, <span class="in">`collect()`</span>, and common exhausted-iterator bugs, see</span>
+<span id="cb33-433"><a href="#cb33-433" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">Rust Iterators: laziness, consumption, fold, and collect</span><span class="co">](./iterator-laziness-consumption-fold-collect.qmd)</span>.</span>
+<span id="cb33-434"><a href="#cb33-434" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-435"><a href="#cb33-435" aria-hidden="true" tabindex="-1"></a>If your index has semantic meaning, especially for positional math, be careful with method</span>
+<span id="cb33-436"><a href="#cb33-436" aria-hidden="true" tabindex="-1"></a>order.</span>
+<span id="cb33-437"><a href="#cb33-437" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-438"><a href="#cb33-438" aria-hidden="true" tabindex="-1"></a>For right-based positional logic, <span class="in">`(0..v.len()).rev().zip(v.iter())`</span> is usually the</span>
+<span id="cb33-439"><a href="#cb33-439" aria-hidden="true" tabindex="-1"></a>clearest pattern.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->
 

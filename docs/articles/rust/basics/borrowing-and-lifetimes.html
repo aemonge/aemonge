@@ -346,6 +346,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a><span class="pp">println!</span>(<span class="st">"{name}"</span>)<span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>The borrowed reference lives inside the inner block. The owner, <code>name</code>, lives outside the inner block. So the borrow never outlives the owner.</p>
+<p>That plain block also shows an important control-flow detail: a block can create scope and can produce a value, but it does <strong>not</strong> create a new <code>?</code> boundary. If you use <code>?</code> inside a plain block, it still returns from the surrounding function or closure. For that distinction, see <a href="../functional/option-result-question-mark-blocks-closures.qmd">Rust Option vs Result: ?, blocks, closures, and type flow</a>.</p>
 <p>But this shape is not valid:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb20"><pre class="sourceCode rust code-with-copy"><code class="sourceCode rust"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> borrowed<span class="op">;</span></span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -1357,275 +1358,280 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb34-341"><a href="#cb34-341" aria-hidden="true" tabindex="-1"></a><span class="st">The borrowed reference lives inside the inner block. The owner, `name`, lives outside the</span></span>
 <span id="cb34-342"><a href="#cb34-342" aria-hidden="true" tabindex="-1"></a><span class="st">inner block. So the borrow never outlives the owner.</span></span>
 <span id="cb34-343"><a href="#cb34-343" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-344"><a href="#cb34-344" aria-hidden="true" tabindex="-1"></a><span class="st">But this shape is not valid:</span></span>
-<span id="cb34-345"><a href="#cb34-345" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-346"><a href="#cb34-346" aria-hidden="true" tabindex="-1"></a><span class="st">```rust</span></span>
-<span id="cb34-347"><a href="#cb34-347" aria-hidden="true" tabindex="-1"></a><span class="st">let borrowed;</span></span>
+<span id="cb34-344"><a href="#cb34-344" aria-hidden="true" tabindex="-1"></a><span class="st">That plain block also shows an important control-flow detail: a block can create scope and</span></span>
+<span id="cb34-345"><a href="#cb34-345" aria-hidden="true" tabindex="-1"></a><span class="st">can produce a value, but it does **not** create a new `?` boundary. If you use `?` inside a</span></span>
+<span id="cb34-346"><a href="#cb34-346" aria-hidden="true" tabindex="-1"></a><span class="st">plain block, it still returns from the surrounding function or closure. For that distinction,</span></span>
+<span id="cb34-347"><a href="#cb34-347" aria-hidden="true" tabindex="-1"></a><span class="st">see [Rust Option vs Result: ?, blocks, closures, and type flow](../functional/option-result-question-mark-blocks-closures.qmd).</span></span>
 <span id="cb34-348"><a href="#cb34-348" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-349"><a href="#cb34-349" aria-hidden="true" tabindex="-1"></a><span class="st">{</span></span>
-<span id="cb34-350"><a href="#cb34-350" aria-hidden="true" tabindex="-1"></a><span class="st">    let name = String::from("Andres");</span></span>
-<span id="cb34-351"><a href="#cb34-351" aria-hidden="true" tabindex="-1"></a><span class="st">    borrowed = &amp;name;</span></span>
-<span id="cb34-352"><a href="#cb34-352" aria-hidden="true" tabindex="-1"></a><span class="st">}</span></span>
+<span id="cb34-349"><a href="#cb34-349" aria-hidden="true" tabindex="-1"></a><span class="st">But this shape is not valid:</span></span>
+<span id="cb34-350"><a href="#cb34-350" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-351"><a href="#cb34-351" aria-hidden="true" tabindex="-1"></a><span class="st">```rust</span></span>
+<span id="cb34-352"><a href="#cb34-352" aria-hidden="true" tabindex="-1"></a><span class="st">let borrowed;</span></span>
 <span id="cb34-353"><a href="#cb34-353" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-354"><a href="#cb34-354" aria-hidden="true" tabindex="-1"></a><span class="st">println!("{borrowed}");</span></span>
-<span id="cb34-355"><a href="#cb34-355" aria-hidden="true" tabindex="-1"></a><span class="st">```</span></span>
-<span id="cb34-356"><a href="#cb34-356" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-357"><a href="#cb34-357" aria-hidden="true" tabindex="-1"></a><span class="st">The problem is that `name` is created inside the block and destroyed at the end of the</span></span>
-<span id="cb34-358"><a href="#cb34-358" aria-hidden="true" tabindex="-1"></a><span class="st">block.</span></span>
-<span id="cb34-359"><a href="#cb34-359" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-360"><a href="#cb34-360" aria-hidden="true" tabindex="-1"></a><span class="st">After that, `borrowed` would point to a value that no longer exists.</span></span>
+<span id="cb34-354"><a href="#cb34-354" aria-hidden="true" tabindex="-1"></a><span class="st">{</span></span>
+<span id="cb34-355"><a href="#cb34-355" aria-hidden="true" tabindex="-1"></a><span class="st">    let name = String::from("Andres");</span></span>
+<span id="cb34-356"><a href="#cb34-356" aria-hidden="true" tabindex="-1"></a><span class="st">    borrowed = &amp;name;</span></span>
+<span id="cb34-357"><a href="#cb34-357" aria-hidden="true" tabindex="-1"></a><span class="st">}</span></span>
+<span id="cb34-358"><a href="#cb34-358" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-359"><a href="#cb34-359" aria-hidden="true" tabindex="-1"></a><span class="st">println!("{borrowed}");</span></span>
+<span id="cb34-360"><a href="#cb34-360" aria-hidden="true" tabindex="-1"></a><span class="st">```</span></span>
 <span id="cb34-361"><a href="#cb34-361" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-362"><a href="#cb34-362" aria-hidden="true" tabindex="-1"></a><span class="st">Rust rejects this before the program can run.</span></span>
-<span id="cb34-363"><a href="#cb34-363" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-364"><a href="#cb34-364" aria-hidden="true" tabindex="-1"></a><span class="st">The fix is to make the owner live long enough:</span></span>
-<span id="cb34-365"><a href="#cb34-365" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-366"><a href="#cb34-366" aria-hidden="true" tabindex="-1"></a><span class="st">```rust</span></span>
-<span id="cb34-367"><a href="#cb34-367" aria-hidden="true" tabindex="-1"></a><span class="st">let name = String::from("Andres");</span></span>
-<span id="cb34-368"><a href="#cb34-368" aria-hidden="true" tabindex="-1"></a><span class="st">let borrowed;</span></span>
-<span id="cb34-369"><a href="#cb34-369" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-370"><a href="#cb34-370" aria-hidden="true" tabindex="-1"></a><span class="st">{</span></span>
-<span id="cb34-371"><a href="#cb34-371" aria-hidden="true" tabindex="-1"></a><span class="st">    borrowed = &amp;name;</span></span>
-<span id="cb34-372"><a href="#cb34-372" aria-hidden="true" tabindex="-1"></a><span class="st">}</span></span>
-<span id="cb34-373"><a href="#cb34-373" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-374"><a href="#cb34-374" aria-hidden="true" tabindex="-1"></a><span class="st">println!("{borrowed}");</span></span>
-<span id="cb34-375"><a href="#cb34-375" aria-hidden="true" tabindex="-1"></a><span class="st">```</span></span>
-<span id="cb34-376"><a href="#cb34-376" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-377"><a href="#cb34-377" aria-hidden="true" tabindex="-1"></a><span class="st">Now `name` still exists when `borrowed` is printed.</span></span>
+<span id="cb34-362"><a href="#cb34-362" aria-hidden="true" tabindex="-1"></a><span class="st">The problem is that `name` is created inside the block and destroyed at the end of the</span></span>
+<span id="cb34-363"><a href="#cb34-363" aria-hidden="true" tabindex="-1"></a><span class="st">block.</span></span>
+<span id="cb34-364"><a href="#cb34-364" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-365"><a href="#cb34-365" aria-hidden="true" tabindex="-1"></a><span class="st">After that, `borrowed` would point to a value that no longer exists.</span></span>
+<span id="cb34-366"><a href="#cb34-366" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-367"><a href="#cb34-367" aria-hidden="true" tabindex="-1"></a><span class="st">Rust rejects this before the program can run.</span></span>
+<span id="cb34-368"><a href="#cb34-368" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-369"><a href="#cb34-369" aria-hidden="true" tabindex="-1"></a><span class="st">The fix is to make the owner live long enough:</span></span>
+<span id="cb34-370"><a href="#cb34-370" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-371"><a href="#cb34-371" aria-hidden="true" tabindex="-1"></a><span class="st">```rust</span></span>
+<span id="cb34-372"><a href="#cb34-372" aria-hidden="true" tabindex="-1"></a><span class="st">let name = String::from("Andres");</span></span>
+<span id="cb34-373"><a href="#cb34-373" aria-hidden="true" tabindex="-1"></a><span class="st">let borrowed;</span></span>
+<span id="cb34-374"><a href="#cb34-374" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-375"><a href="#cb34-375" aria-hidden="true" tabindex="-1"></a><span class="st">{</span></span>
+<span id="cb34-376"><a href="#cb34-376" aria-hidden="true" tabindex="-1"></a><span class="st">    borrowed = &amp;name;</span></span>
+<span id="cb34-377"><a href="#cb34-377" aria-hidden="true" tabindex="-1"></a><span class="st">}</span></span>
 <span id="cb34-378"><a href="#cb34-378" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-379"><a href="#cb34-379" aria-hidden="true" tabindex="-1"></a><span class="st">### Returning a Borrow from a Collection</span></span>
-<span id="cb34-380"><a href="#cb34-380" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-381"><a href="#cb34-381" aria-hidden="true" tabindex="-1"></a><span class="st">This is a common lifetime pattern: a function borrows a collection and returns a reference</span></span>
-<span id="cb34-382"><a href="#cb34-382" aria-hidden="true" tabindex="-1"></a><span class="st">to one item inside it.</span></span>
+<span id="cb34-379"><a href="#cb34-379" aria-hidden="true" tabindex="-1"></a><span class="st">println!("{borrowed}");</span></span>
+<span id="cb34-380"><a href="#cb34-380" aria-hidden="true" tabindex="-1"></a><span class="st">```</span></span>
+<span id="cb34-381"><a href="#cb34-381" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-382"><a href="#cb34-382" aria-hidden="true" tabindex="-1"></a><span class="st">Now `name` still exists when `borrowed` is printed.</span></span>
 <span id="cb34-383"><a href="#cb34-383" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-384"><a href="#cb34-384" aria-hidden="true" tabindex="-1"></a><span class="st">```rust</span></span>
-<span id="cb34-385"><a href="#cb34-385" aria-hidden="true" tabindex="-1"></a><span class="st">fn first_item&lt;'</span>a<span class="sc">&gt;</span>(items<span class="sc">:</span> <span class="er">&amp;</span><span class="st">'a [String]) -&gt; &amp;'</span>a String {</span>
-<span id="cb34-386"><a href="#cb34-386" aria-hidden="true" tabindex="-1"></a>    <span class="sc">&amp;</span>items[<span class="dv">0</span>]</span>
-<span id="cb34-387"><a href="#cb34-387" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb34-388"><a href="#cb34-388" aria-hidden="true" tabindex="-1"></a><span class="st">```</span></span>
-<span id="cb34-389"><a href="#cb34-389" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-390"><a href="#cb34-390" aria-hidden="true" tabindex="-1"></a><span class="at">The function does not create a new </span><span class="st">`</span>String<span class="st">`</span><span class="at">. It returns a reference to a </span><span class="st">`</span>String<span class="st">`</span><span class="at"> already</span></span>
-<span id="cb34-391"><a href="#cb34-391" aria-hidden="true" tabindex="-1"></a><span class="at">inside the slice.</span></span>
-<span id="cb34-392"><a href="#cb34-392" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-393"><a href="#cb34-393" aria-hidden="true" tabindex="-1"></a><span class="at">The lifetime annotation says:</span></span>
+<span id="cb34-384"><a href="#cb34-384" aria-hidden="true" tabindex="-1"></a><span class="st">### Returning a Borrow from a Collection</span></span>
+<span id="cb34-385"><a href="#cb34-385" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-386"><a href="#cb34-386" aria-hidden="true" tabindex="-1"></a><span class="st">This is a common lifetime pattern: a function borrows a collection and returns a reference</span></span>
+<span id="cb34-387"><a href="#cb34-387" aria-hidden="true" tabindex="-1"></a><span class="st">to one item inside it.</span></span>
+<span id="cb34-388"><a href="#cb34-388" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-389"><a href="#cb34-389" aria-hidden="true" tabindex="-1"></a><span class="st">```rust</span></span>
+<span id="cb34-390"><a href="#cb34-390" aria-hidden="true" tabindex="-1"></a><span class="st">fn first_item&lt;'</span>a<span class="sc">&gt;</span>(items<span class="sc">:</span> <span class="er">&amp;</span><span class="st">'a [String]) -&gt; &amp;'</span>a String {</span>
+<span id="cb34-391"><a href="#cb34-391" aria-hidden="true" tabindex="-1"></a>    <span class="sc">&amp;</span>items[<span class="dv">0</span>]</span>
+<span id="cb34-392"><a href="#cb34-392" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb34-393"><a href="#cb34-393" aria-hidden="true" tabindex="-1"></a><span class="st">```</span></span>
 <span id="cb34-394"><a href="#cb34-394" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-395"><a href="#cb34-395" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; The returned item reference is valid only while the borrowed slice is valid.</span></span>
-<span id="cb34-396"><a href="#cb34-396" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-397"><a href="#cb34-397" aria-hidden="true" tabindex="-1"></a><span class="at">Usage:</span></span>
-<span id="cb34-398"><a href="#cb34-398" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-399"><a href="#cb34-399" aria-hidden="true" tabindex="-1"></a><span class="st">```</span>rust</span>
-<span id="cb34-400"><a href="#cb34-400" aria-hidden="true" tabindex="-1"></a>let <span class="at">names =</span> vec<span class="sc">!</span>[String<span class="sc">::</span><span class="fu">from</span>(<span class="st">"Ana"</span>), String<span class="sc">::</span><span class="fu">from</span>(<span class="st">"Bob"</span>)];</span>
+<span id="cb34-395"><a href="#cb34-395" aria-hidden="true" tabindex="-1"></a><span class="at">The function does not create a new </span><span class="st">`</span>String<span class="st">`</span><span class="at">. It returns a reference to a </span><span class="st">`</span>String<span class="st">`</span><span class="at"> already</span></span>
+<span id="cb34-396"><a href="#cb34-396" aria-hidden="true" tabindex="-1"></a><span class="at">inside the slice.</span></span>
+<span id="cb34-397"><a href="#cb34-397" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-398"><a href="#cb34-398" aria-hidden="true" tabindex="-1"></a><span class="at">The lifetime annotation says:</span></span>
+<span id="cb34-399"><a href="#cb34-399" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-400"><a href="#cb34-400" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; The returned item reference is valid only while the borrowed slice is valid.</span></span>
 <span id="cb34-401"><a href="#cb34-401" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-402"><a href="#cb34-402" aria-hidden="true" tabindex="-1"></a>let <span class="at">first =</span> <span class="fu">first_item</span>(<span class="sc">&amp;</span>names);</span>
+<span id="cb34-402"><a href="#cb34-402" aria-hidden="true" tabindex="-1"></a><span class="at">Usage:</span></span>
 <span id="cb34-403"><a href="#cb34-403" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-404"><a href="#cb34-404" aria-hidden="true" tabindex="-1"></a>println<span class="sc">!</span>(<span class="st">"{first}"</span>);</span>
-<span id="cb34-405"><a href="#cb34-405" aria-hidden="true" tabindex="-1"></a><span class="st">```</span></span>
+<span id="cb34-404"><a href="#cb34-404" aria-hidden="true" tabindex="-1"></a><span class="st">```</span>rust</span>
+<span id="cb34-405"><a href="#cb34-405" aria-hidden="true" tabindex="-1"></a>let <span class="at">names =</span> vec<span class="sc">!</span>[String<span class="sc">::</span><span class="fu">from</span>(<span class="st">"Ana"</span>), String<span class="sc">::</span><span class="fu">from</span>(<span class="st">"Bob"</span>)];</span>
 <span id="cb34-406"><a href="#cb34-406" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-407"><a href="#cb34-407" aria-hidden="true" tabindex="-1"></a><span class="at">This is valid because </span><span class="st">`</span>names<span class="st">`</span><span class="at"> is still alive when </span><span class="st">`</span>first<span class="st">`</span><span class="at"> is used.</span></span>
+<span id="cb34-407"><a href="#cb34-407" aria-hidden="true" tabindex="-1"></a>let <span class="at">first =</span> <span class="fu">first_item</span>(<span class="sc">&amp;</span>names);</span>
 <span id="cb34-408"><a href="#cb34-408" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-409"><a href="#cb34-409" aria-hidden="true" tabindex="-1"></a><span class="at">The borrowed result depends on the borrowed input.</span></span>
-<span id="cb34-410"><a href="#cb34-410" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-411"><a href="#cb34-411" aria-hidden="true" tabindex="-1"></a><span class="at">That relationship is what </span><span class="st">`'a` describes.</span></span>
-<span id="cb34-412"><a href="#cb34-412" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-413"><a href="#cb34-413" aria-hidden="true" tabindex="-1"></a><span class="st">### Bridge from the Mutability Article</span></span>
-<span id="cb34-414"><a href="#cb34-414" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-415"><a href="#cb34-415" aria-hidden="true" tabindex="-1"></a><span class="st">In the mutability article, we used this example:</span></span>
-<span id="cb34-416"><a href="#cb34-416" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-417"><a href="#cb34-417" aria-hidden="true" tabindex="-1"></a><span class="st">```rust</span></span>
-<span id="cb34-418"><a href="#cb34-418" aria-hidden="true" tabindex="-1"></a><span class="st">fn longest_name&lt;'</span>a<span class="sc">&gt;</span>(names<span class="sc">:</span> <span class="er">&amp;</span><span class="st">'a [String]) -&gt; &amp;'</span>a String {</span>
-<span id="cb34-419"><a href="#cb34-419" aria-hidden="true" tabindex="-1"></a>    let mut longest<span class="sc">:</span> <span class="er">&amp;</span>String <span class="ot">=</span> <span class="er">&amp;</span>names[<span class="dv">0</span>];</span>
-<span id="cb34-420"><a href="#cb34-420" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-421"><a href="#cb34-421" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> name <span class="cf">in</span> <span class="sc">&amp;</span>names[<span class="dv">1</span>..] {</span>
-<span id="cb34-422"><a href="#cb34-422" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="fu">name.len</span>() <span class="sc">&gt;</span> <span class="fu">longest.len</span>() {</span>
-<span id="cb34-423"><a href="#cb34-423" aria-hidden="true" tabindex="-1"></a>            longest <span class="ot">=</span> name;</span>
-<span id="cb34-424"><a href="#cb34-424" aria-hidden="true" tabindex="-1"></a>        }</span>
-<span id="cb34-425"><a href="#cb34-425" aria-hidden="true" tabindex="-1"></a>    }</span>
-<span id="cb34-426"><a href="#cb34-426" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-427"><a href="#cb34-427" aria-hidden="true" tabindex="-1"></a>    longest</span>
-<span id="cb34-428"><a href="#cb34-428" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb34-429"><a href="#cb34-429" aria-hidden="true" tabindex="-1"></a><span class="st">```</span></span>
-<span id="cb34-430"><a href="#cb34-430" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-431"><a href="#cb34-431" aria-hidden="true" tabindex="-1"></a><span class="at">The important part is not that </span><span class="st">`</span>longest<span class="st">`</span><span class="at"> is mutable. That only means the local reference</span></span>
-<span id="cb34-432"><a href="#cb34-432" aria-hidden="true" tabindex="-1"></a><span class="at">can point to a different item while the loop runs.</span></span>
-<span id="cb34-433"><a href="#cb34-433" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-434"><a href="#cb34-434" aria-hidden="true" tabindex="-1"></a><span class="at">The lifetime part is this:</span></span>
+<span id="cb34-409"><a href="#cb34-409" aria-hidden="true" tabindex="-1"></a>println<span class="sc">!</span>(<span class="st">"{first}"</span>);</span>
+<span id="cb34-410"><a href="#cb34-410" aria-hidden="true" tabindex="-1"></a><span class="st">```</span></span>
+<span id="cb34-411"><a href="#cb34-411" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-412"><a href="#cb34-412" aria-hidden="true" tabindex="-1"></a><span class="at">This is valid because </span><span class="st">`</span>names<span class="st">`</span><span class="at"> is still alive when </span><span class="st">`</span>first<span class="st">`</span><span class="at"> is used.</span></span>
+<span id="cb34-413"><a href="#cb34-413" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-414"><a href="#cb34-414" aria-hidden="true" tabindex="-1"></a><span class="at">The borrowed result depends on the borrowed input.</span></span>
+<span id="cb34-415"><a href="#cb34-415" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-416"><a href="#cb34-416" aria-hidden="true" tabindex="-1"></a><span class="at">That relationship is what </span><span class="st">`'a` describes.</span></span>
+<span id="cb34-417"><a href="#cb34-417" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-418"><a href="#cb34-418" aria-hidden="true" tabindex="-1"></a><span class="st">### Bridge from the Mutability Article</span></span>
+<span id="cb34-419"><a href="#cb34-419" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-420"><a href="#cb34-420" aria-hidden="true" tabindex="-1"></a><span class="st">In the mutability article, we used this example:</span></span>
+<span id="cb34-421"><a href="#cb34-421" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-422"><a href="#cb34-422" aria-hidden="true" tabindex="-1"></a><span class="st">```rust</span></span>
+<span id="cb34-423"><a href="#cb34-423" aria-hidden="true" tabindex="-1"></a><span class="st">fn longest_name&lt;'</span>a<span class="sc">&gt;</span>(names<span class="sc">:</span> <span class="er">&amp;</span><span class="st">'a [String]) -&gt; &amp;'</span>a String {</span>
+<span id="cb34-424"><a href="#cb34-424" aria-hidden="true" tabindex="-1"></a>    let mut longest<span class="sc">:</span> <span class="er">&amp;</span>String <span class="ot">=</span> <span class="er">&amp;</span>names[<span class="dv">0</span>];</span>
+<span id="cb34-425"><a href="#cb34-425" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-426"><a href="#cb34-426" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> name <span class="cf">in</span> <span class="sc">&amp;</span>names[<span class="dv">1</span>..] {</span>
+<span id="cb34-427"><a href="#cb34-427" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="fu">name.len</span>() <span class="sc">&gt;</span> <span class="fu">longest.len</span>() {</span>
+<span id="cb34-428"><a href="#cb34-428" aria-hidden="true" tabindex="-1"></a>            longest <span class="ot">=</span> name;</span>
+<span id="cb34-429"><a href="#cb34-429" aria-hidden="true" tabindex="-1"></a>        }</span>
+<span id="cb34-430"><a href="#cb34-430" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb34-431"><a href="#cb34-431" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-432"><a href="#cb34-432" aria-hidden="true" tabindex="-1"></a>    longest</span>
+<span id="cb34-433"><a href="#cb34-433" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb34-434"><a href="#cb34-434" aria-hidden="true" tabindex="-1"></a><span class="st">```</span></span>
 <span id="cb34-435"><a href="#cb34-435" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-436"><a href="#cb34-436" aria-hidden="true" tabindex="-1"></a><span class="st">```</span>rust</span>
-<span id="cb34-437"><a href="#cb34-437" aria-hidden="true" tabindex="-1"></a>fn longest_name<span class="sc">&lt;</span><span class="st">'a&gt;(names: &amp;'</span>a [String]) <span class="ot">-&gt;</span> <span class="er">&amp;</span><span class="st">'a String</span></span>
-<span id="cb34-438"><a href="#cb34-438" aria-hidden="true" tabindex="-1"></a><span class="st">```</span></span>
-<span id="cb34-439"><a href="#cb34-439" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-440"><a href="#cb34-440" aria-hidden="true" tabindex="-1"></a><span class="st">It means:</span></span>
-<span id="cb34-441"><a href="#cb34-441" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-442"><a href="#cb34-442" aria-hidden="true" tabindex="-1"></a><span class="st">&gt; I borrow a slice of names, and I return a borrowed name from inside that slice.</span></span>
-<span id="cb34-443"><a href="#cb34-443" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-444"><a href="#cb34-444" aria-hidden="true" tabindex="-1"></a><span class="st">The function is not creating a new name. It is selecting one that already exists.</span></span>
-<span id="cb34-445"><a href="#cb34-445" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-446"><a href="#cb34-446" aria-hidden="true" tabindex="-1"></a><span class="st">So Rust needs to know that the returned reference is tied to the input slice.</span></span>
-<span id="cb34-447"><a href="#cb34-447" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-448"><a href="#cb34-448" aria-hidden="true" tabindex="-1"></a><span class="st">If the slice goes away, the selected name reference cannot be used anymore.</span></span>
-<span id="cb34-449"><a href="#cb34-449" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-450"><a href="#cb34-450" aria-hidden="true" tabindex="-1"></a><span class="st">### Structs That Store Borrowed Data</span></span>
-<span id="cb34-451"><a href="#cb34-451" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-452"><a href="#cb34-452" aria-hidden="true" tabindex="-1"></a><span class="st">Functions are not the only place where lifetimes appear.</span></span>
-<span id="cb34-453"><a href="#cb34-453" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-454"><a href="#cb34-454" aria-hidden="true" tabindex="-1"></a><span class="st">Structs need lifetime annotations when they store references.</span></span>
-<span id="cb34-455"><a href="#cb34-455" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-456"><a href="#cb34-456" aria-hidden="true" tabindex="-1"></a><span class="st">```rust</span></span>
-<span id="cb34-457"><a href="#cb34-457" aria-hidden="true" tabindex="-1"></a><span class="st">struct UserView&lt;'</span>a<span class="sc">&gt;</span> {</span>
-<span id="cb34-458"><a href="#cb34-458" aria-hidden="true" tabindex="-1"></a>    name<span class="sc">:</span> <span class="er">&amp;</span><span class="st">'a str,</span></span>
-<span id="cb34-459"><a href="#cb34-459" aria-hidden="true" tabindex="-1"></a><span class="st">}</span></span>
-<span id="cb34-460"><a href="#cb34-460" aria-hidden="true" tabindex="-1"></a><span class="st">```</span></span>
-<span id="cb34-461"><a href="#cb34-461" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-462"><a href="#cb34-462" aria-hidden="true" tabindex="-1"></a><span class="st">This means `UserView` does not own the name. It only stores a borrowed reference to it.</span></span>
-<span id="cb34-463"><a href="#cb34-463" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-464"><a href="#cb34-464" aria-hidden="true" tabindex="-1"></a><span class="st">Usage:</span></span>
-<span id="cb34-465"><a href="#cb34-465" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-466"><a href="#cb34-466" aria-hidden="true" tabindex="-1"></a><span class="st">```rust</span></span>
-<span id="cb34-467"><a href="#cb34-467" aria-hidden="true" tabindex="-1"></a><span class="st">let name = String::from("Andres");</span></span>
+<span id="cb34-436"><a href="#cb34-436" aria-hidden="true" tabindex="-1"></a><span class="at">The important part is not that </span><span class="st">`</span>longest<span class="st">`</span><span class="at"> is mutable. That only means the local reference</span></span>
+<span id="cb34-437"><a href="#cb34-437" aria-hidden="true" tabindex="-1"></a><span class="at">can point to a different item while the loop runs.</span></span>
+<span id="cb34-438"><a href="#cb34-438" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-439"><a href="#cb34-439" aria-hidden="true" tabindex="-1"></a><span class="at">The lifetime part is this:</span></span>
+<span id="cb34-440"><a href="#cb34-440" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-441"><a href="#cb34-441" aria-hidden="true" tabindex="-1"></a><span class="st">```</span>rust</span>
+<span id="cb34-442"><a href="#cb34-442" aria-hidden="true" tabindex="-1"></a>fn longest_name<span class="sc">&lt;</span><span class="st">'a&gt;(names: &amp;'</span>a [String]) <span class="ot">-&gt;</span> <span class="er">&amp;</span><span class="st">'a String</span></span>
+<span id="cb34-443"><a href="#cb34-443" aria-hidden="true" tabindex="-1"></a><span class="st">```</span></span>
+<span id="cb34-444"><a href="#cb34-444" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-445"><a href="#cb34-445" aria-hidden="true" tabindex="-1"></a><span class="st">It means:</span></span>
+<span id="cb34-446"><a href="#cb34-446" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-447"><a href="#cb34-447" aria-hidden="true" tabindex="-1"></a><span class="st">&gt; I borrow a slice of names, and I return a borrowed name from inside that slice.</span></span>
+<span id="cb34-448"><a href="#cb34-448" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-449"><a href="#cb34-449" aria-hidden="true" tabindex="-1"></a><span class="st">The function is not creating a new name. It is selecting one that already exists.</span></span>
+<span id="cb34-450"><a href="#cb34-450" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-451"><a href="#cb34-451" aria-hidden="true" tabindex="-1"></a><span class="st">So Rust needs to know that the returned reference is tied to the input slice.</span></span>
+<span id="cb34-452"><a href="#cb34-452" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-453"><a href="#cb34-453" aria-hidden="true" tabindex="-1"></a><span class="st">If the slice goes away, the selected name reference cannot be used anymore.</span></span>
+<span id="cb34-454"><a href="#cb34-454" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-455"><a href="#cb34-455" aria-hidden="true" tabindex="-1"></a><span class="st">### Structs That Store Borrowed Data</span></span>
+<span id="cb34-456"><a href="#cb34-456" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-457"><a href="#cb34-457" aria-hidden="true" tabindex="-1"></a><span class="st">Functions are not the only place where lifetimes appear.</span></span>
+<span id="cb34-458"><a href="#cb34-458" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-459"><a href="#cb34-459" aria-hidden="true" tabindex="-1"></a><span class="st">Structs need lifetime annotations when they store references.</span></span>
+<span id="cb34-460"><a href="#cb34-460" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-461"><a href="#cb34-461" aria-hidden="true" tabindex="-1"></a><span class="st">```rust</span></span>
+<span id="cb34-462"><a href="#cb34-462" aria-hidden="true" tabindex="-1"></a><span class="st">struct UserView&lt;'</span>a<span class="sc">&gt;</span> {</span>
+<span id="cb34-463"><a href="#cb34-463" aria-hidden="true" tabindex="-1"></a>    name<span class="sc">:</span> <span class="er">&amp;</span><span class="st">'a str,</span></span>
+<span id="cb34-464"><a href="#cb34-464" aria-hidden="true" tabindex="-1"></a><span class="st">}</span></span>
+<span id="cb34-465"><a href="#cb34-465" aria-hidden="true" tabindex="-1"></a><span class="st">```</span></span>
+<span id="cb34-466"><a href="#cb34-466" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-467"><a href="#cb34-467" aria-hidden="true" tabindex="-1"></a><span class="st">This means `UserView` does not own the name. It only stores a borrowed reference to it.</span></span>
 <span id="cb34-468"><a href="#cb34-468" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-469"><a href="#cb34-469" aria-hidden="true" tabindex="-1"></a><span class="st">let view = UserView {</span></span>
-<span id="cb34-470"><a href="#cb34-470" aria-hidden="true" tabindex="-1"></a><span class="st">    name: &amp;name,</span></span>
-<span id="cb34-471"><a href="#cb34-471" aria-hidden="true" tabindex="-1"></a><span class="st">};</span></span>
-<span id="cb34-472"><a href="#cb34-472" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-473"><a href="#cb34-473" aria-hidden="true" tabindex="-1"></a><span class="st">println!("{}", view.name);</span></span>
-<span id="cb34-474"><a href="#cb34-474" aria-hidden="true" tabindex="-1"></a><span class="st">```</span></span>
-<span id="cb34-475"><a href="#cb34-475" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-476"><a href="#cb34-476" aria-hidden="true" tabindex="-1"></a><span class="st">The struct cannot outlive the borrowed `name`.</span></span>
+<span id="cb34-469"><a href="#cb34-469" aria-hidden="true" tabindex="-1"></a><span class="st">Usage:</span></span>
+<span id="cb34-470"><a href="#cb34-470" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-471"><a href="#cb34-471" aria-hidden="true" tabindex="-1"></a><span class="st">```rust</span></span>
+<span id="cb34-472"><a href="#cb34-472" aria-hidden="true" tabindex="-1"></a><span class="st">let name = String::from("Andres");</span></span>
+<span id="cb34-473"><a href="#cb34-473" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-474"><a href="#cb34-474" aria-hidden="true" tabindex="-1"></a><span class="st">let view = UserView {</span></span>
+<span id="cb34-475"><a href="#cb34-475" aria-hidden="true" tabindex="-1"></a><span class="st">    name: &amp;name,</span></span>
+<span id="cb34-476"><a href="#cb34-476" aria-hidden="true" tabindex="-1"></a><span class="st">};</span></span>
 <span id="cb34-477"><a href="#cb34-477" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-478"><a href="#cb34-478" aria-hidden="true" tabindex="-1"></a><span class="st">Again, `'</span>a<span class="st">`</span><span class="at"> does not keep </span><span class="st">`</span>name<span class="st">`</span><span class="at"> alive. It only tells Rust that </span><span class="st">`</span>UserView<span class="st">`</span><span class="at"> is tied to the</span></span>
-<span id="cb34-479"><a href="#cb34-479" aria-hidden="true" tabindex="-1"></a><span class="at">borrowed data.</span></span>
+<span id="cb34-478"><a href="#cb34-478" aria-hidden="true" tabindex="-1"></a><span class="st">println!("{}", view.name);</span></span>
+<span id="cb34-479"><a href="#cb34-479" aria-hidden="true" tabindex="-1"></a><span class="st">```</span></span>
 <span id="cb34-480"><a href="#cb34-480" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-481"><a href="#cb34-481" aria-hidden="true" tabindex="-1"></a><span class="at">If you do not want this relationship, make the struct own the data instead:</span></span>
+<span id="cb34-481"><a href="#cb34-481" aria-hidden="true" tabindex="-1"></a><span class="st">The struct cannot outlive the borrowed `name`.</span></span>
 <span id="cb34-482"><a href="#cb34-482" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-483"><a href="#cb34-483" aria-hidden="true" tabindex="-1"></a><span class="st">```</span>rust</span>
-<span id="cb34-484"><a href="#cb34-484" aria-hidden="true" tabindex="-1"></a>struct OwnedUserView {</span>
-<span id="cb34-485"><a href="#cb34-485" aria-hidden="true" tabindex="-1"></a>    name<span class="sc">:</span> String,</span>
-<span id="cb34-486"><a href="#cb34-486" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb34-487"><a href="#cb34-487" aria-hidden="true" tabindex="-1"></a><span class="st">```</span></span>
-<span id="cb34-488"><a href="#cb34-488" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-489"><a href="#cb34-489" aria-hidden="true" tabindex="-1"></a><span class="at">Owned data is often simpler. Borrowed data is useful when you want to avoid copying or</span></span>
-<span id="cb34-490"><a href="#cb34-490" aria-hidden="true" tabindex="-1"></a><span class="at">when the struct is only a temporary view into data owned somewhere else.</span></span>
-<span id="cb34-491"><a href="#cb34-491" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-492"><a href="#cb34-492" aria-hidden="true" tabindex="-1"></a><span class="at">### Wrong Mental Models</span></span>
+<span id="cb34-483"><a href="#cb34-483" aria-hidden="true" tabindex="-1"></a><span class="st">Again, `'</span>a<span class="st">`</span><span class="at"> does not keep </span><span class="st">`</span>name<span class="st">`</span><span class="at"> alive. It only tells Rust that </span><span class="st">`</span>UserView<span class="st">`</span><span class="at"> is tied to the</span></span>
+<span id="cb34-484"><a href="#cb34-484" aria-hidden="true" tabindex="-1"></a><span class="at">borrowed data.</span></span>
+<span id="cb34-485"><a href="#cb34-485" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-486"><a href="#cb34-486" aria-hidden="true" tabindex="-1"></a><span class="at">If you do not want this relationship, make the struct own the data instead:</span></span>
+<span id="cb34-487"><a href="#cb34-487" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-488"><a href="#cb34-488" aria-hidden="true" tabindex="-1"></a><span class="st">```</span>rust</span>
+<span id="cb34-489"><a href="#cb34-489" aria-hidden="true" tabindex="-1"></a>struct OwnedUserView {</span>
+<span id="cb34-490"><a href="#cb34-490" aria-hidden="true" tabindex="-1"></a>    name<span class="sc">:</span> String,</span>
+<span id="cb34-491"><a href="#cb34-491" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb34-492"><a href="#cb34-492" aria-hidden="true" tabindex="-1"></a><span class="st">```</span></span>
 <span id="cb34-493"><a href="#cb34-493" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-494"><a href="#cb34-494" aria-hidden="true" tabindex="-1"></a><span class="at">It is easy to misunderstand lifetimes at first.</span></span>
-<span id="cb34-495"><a href="#cb34-495" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-496"><a href="#cb34-496" aria-hidden="true" tabindex="-1"></a><span class="at">Here are some mental models to avoid.</span></span>
-<span id="cb34-497"><a href="#cb34-497" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-498"><a href="#cb34-498" aria-hidden="true" tabindex="-1"></a><span class="at">#### Wrong: </span><span class="st">`'a` makes the value live longer</span></span>
-<span id="cb34-499"><a href="#cb34-499" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-500"><a href="#cb34-500" aria-hidden="true" tabindex="-1"></a><span class="st">It does not.</span></span>
-<span id="cb34-501"><a href="#cb34-501" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-502"><a href="#cb34-502" aria-hidden="true" tabindex="-1"></a><span class="st">The owner decides how long the value lives. A lifetime annotation only describes how long a</span></span>
-<span id="cb34-503"><a href="#cb34-503" aria-hidden="true" tabindex="-1"></a><span class="st">reference may be used safely.</span></span>
+<span id="cb34-494"><a href="#cb34-494" aria-hidden="true" tabindex="-1"></a><span class="at">Owned data is often simpler. Borrowed data is useful when you want to avoid copying or</span></span>
+<span id="cb34-495"><a href="#cb34-495" aria-hidden="true" tabindex="-1"></a><span class="at">when the struct is only a temporary view into data owned somewhere else.</span></span>
+<span id="cb34-496"><a href="#cb34-496" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-497"><a href="#cb34-497" aria-hidden="true" tabindex="-1"></a><span class="at">### Wrong Mental Models</span></span>
+<span id="cb34-498"><a href="#cb34-498" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-499"><a href="#cb34-499" aria-hidden="true" tabindex="-1"></a><span class="at">It is easy to misunderstand lifetimes at first.</span></span>
+<span id="cb34-500"><a href="#cb34-500" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-501"><a href="#cb34-501" aria-hidden="true" tabindex="-1"></a><span class="at">Here are some mental models to avoid.</span></span>
+<span id="cb34-502"><a href="#cb34-502" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-503"><a href="#cb34-503" aria-hidden="true" tabindex="-1"></a><span class="at">#### Wrong: </span><span class="st">`'a` makes the value live longer</span></span>
 <span id="cb34-504"><a href="#cb34-504" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-505"><a href="#cb34-505" aria-hidden="true" tabindex="-1"></a><span class="st">#### Wrong: lifetimes are runtime timers</span></span>
+<span id="cb34-505"><a href="#cb34-505" aria-hidden="true" tabindex="-1"></a><span class="st">It does not.</span></span>
 <span id="cb34-506"><a href="#cb34-506" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-507"><a href="#cb34-507" aria-hidden="true" tabindex="-1"></a><span class="st">They are not.</span></span>
-<span id="cb34-508"><a href="#cb34-508" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-509"><a href="#cb34-509" aria-hidden="true" tabindex="-1"></a><span class="st">Rust lifetimes are checked by the compiler. They are not counters, clocks, garbage</span></span>
-<span id="cb34-510"><a href="#cb34-510" aria-hidden="true" tabindex="-1"></a><span class="st">collection handles, or runtime metadata.</span></span>
+<span id="cb34-507"><a href="#cb34-507" aria-hidden="true" tabindex="-1"></a><span class="st">The owner decides how long the value lives. A lifetime annotation only describes how long a</span></span>
+<span id="cb34-508"><a href="#cb34-508" aria-hidden="true" tabindex="-1"></a><span class="st">reference may be used safely.</span></span>
+<span id="cb34-509"><a href="#cb34-509" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-510"><a href="#cb34-510" aria-hidden="true" tabindex="-1"></a><span class="st">#### Wrong: lifetimes are runtime timers</span></span>
 <span id="cb34-511"><a href="#cb34-511" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-512"><a href="#cb34-512" aria-hidden="true" tabindex="-1"></a><span class="st">#### Wrong: every reference needs explicit `'</span>a<span class="st">`</span></span>
+<span id="cb34-512"><a href="#cb34-512" aria-hidden="true" tabindex="-1"></a><span class="st">They are not.</span></span>
 <span id="cb34-513"><a href="#cb34-513" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-514"><a href="#cb34-514" aria-hidden="true" tabindex="-1"></a><span class="at">Most references do not need explicit lifetime annotations. Rust can infer many simple</span></span>
-<span id="cb34-515"><a href="#cb34-515" aria-hidden="true" tabindex="-1"></a><span class="at">relationships.</span></span>
+<span id="cb34-514"><a href="#cb34-514" aria-hidden="true" tabindex="-1"></a><span class="st">Rust lifetimes are checked by the compiler. They are not counters, clocks, garbage</span></span>
+<span id="cb34-515"><a href="#cb34-515" aria-hidden="true" tabindex="-1"></a><span class="st">collection handles, or runtime metadata.</span></span>
 <span id="cb34-516"><a href="#cb34-516" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-517"><a href="#cb34-517" aria-hidden="true" tabindex="-1"></a><span class="at">You usually write lifetimes when references are stored or when a function returns a</span></span>
-<span id="cb34-518"><a href="#cb34-518" aria-hidden="true" tabindex="-1"></a><span class="at">borrowed value related to one or more borrowed inputs.</span></span>
-<span id="cb34-519"><a href="#cb34-519" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-520"><a href="#cb34-520" aria-hidden="true" tabindex="-1"></a><span class="at">### TL;DR: Purpose-Driven Cases</span></span>
+<span id="cb34-517"><a href="#cb34-517" aria-hidden="true" tabindex="-1"></a><span class="st">#### Wrong: every reference needs explicit `'</span>a<span class="st">`</span></span>
+<span id="cb34-518"><a href="#cb34-518" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-519"><a href="#cb34-519" aria-hidden="true" tabindex="-1"></a><span class="at">Most references do not need explicit lifetime annotations. Rust can infer many simple</span></span>
+<span id="cb34-520"><a href="#cb34-520" aria-hidden="true" tabindex="-1"></a><span class="at">relationships.</span></span>
 <span id="cb34-521"><a href="#cb34-521" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-522"><a href="#cb34-522" aria-hidden="true" tabindex="-1"></a><span class="at">Use the type of return or storage to decide what you need.</span></span>
-<span id="cb34-523"><a href="#cb34-523" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-524"><a href="#cb34-524" aria-hidden="true" tabindex="-1"></a><span class="at">#### I only read borrowed data</span></span>
-<span id="cb34-525"><a href="#cb34-525" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-526"><a href="#cb34-526" aria-hidden="true" tabindex="-1"></a><span class="at">Use a normal reference.</span></span>
-<span id="cb34-527"><a href="#cb34-527" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-528"><a href="#cb34-528" aria-hidden="true" tabindex="-1"></a><span class="st">```</span>rust</span>
-<span id="cb34-529"><a href="#cb34-529" aria-hidden="true" tabindex="-1"></a>fn <span class="fu">print_title</span>(title<span class="sc">:</span> <span class="er">&amp;</span>str) {</span>
-<span id="cb34-530"><a href="#cb34-530" aria-hidden="true" tabindex="-1"></a>    println<span class="sc">!</span>(<span class="st">"{title}"</span>);</span>
-<span id="cb34-531"><a href="#cb34-531" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb34-532"><a href="#cb34-532" aria-hidden="true" tabindex="-1"></a><span class="st">```</span></span>
-<span id="cb34-533"><a href="#cb34-533" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-534"><a href="#cb34-534" aria-hidden="true" tabindex="-1"></a><span class="at">No explicit lifetime annotation is needed.</span></span>
-<span id="cb34-535"><a href="#cb34-535" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-536"><a href="#cb34-536" aria-hidden="true" tabindex="-1"></a><span class="at">#### I create and return new owned data</span></span>
-<span id="cb34-537"><a href="#cb34-537" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-538"><a href="#cb34-538" aria-hidden="true" tabindex="-1"></a><span class="at">Return an owned value.</span></span>
-<span id="cb34-539"><a href="#cb34-539" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-540"><a href="#cb34-540" aria-hidden="true" tabindex="-1"></a><span class="st">```</span>rust</span>
-<span id="cb34-541"><a href="#cb34-541" aria-hidden="true" tabindex="-1"></a>fn <span class="fu">make_title</span>() <span class="ot">-&gt;</span> String {</span>
-<span id="cb34-542"><a href="#cb34-542" aria-hidden="true" tabindex="-1"></a>    String<span class="sc">::</span><span class="fu">from</span>(<span class="st">"Rust Notes"</span>)</span>
-<span id="cb34-543"><a href="#cb34-543" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb34-544"><a href="#cb34-544" aria-hidden="true" tabindex="-1"></a><span class="st">```</span></span>
-<span id="cb34-545"><a href="#cb34-545" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-546"><a href="#cb34-546" aria-hidden="true" tabindex="-1"></a><span class="at">No lifetime annotation is needed because the caller receives ownership.</span></span>
-<span id="cb34-547"><a href="#cb34-547" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-548"><a href="#cb34-548" aria-hidden="true" tabindex="-1"></a><span class="at">#### I return a borrowed value from one borrowed input</span></span>
-<span id="cb34-549"><a href="#cb34-549" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-550"><a href="#cb34-550" aria-hidden="true" tabindex="-1"></a><span class="at">Rust can often infer the lifetime.</span></span>
-<span id="cb34-551"><a href="#cb34-551" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-552"><a href="#cb34-552" aria-hidden="true" tabindex="-1"></a><span class="st">```</span>rust</span>
-<span id="cb34-553"><a href="#cb34-553" aria-hidden="true" tabindex="-1"></a>fn <span class="fu">first_word</span>(text<span class="sc">:</span> <span class="er">&amp;</span>str) <span class="ot">-&gt;</span> <span class="er">&amp;</span>str {</span>
-<span id="cb34-554"><a href="#cb34-554" aria-hidden="true" tabindex="-1"></a>    <span class="fu">text.split_whitespace</span>()<span class="fu">.next</span>()<span class="fu">.unwrap_or</span>(<span class="st">""</span>)</span>
-<span id="cb34-555"><a href="#cb34-555" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb34-556"><a href="#cb34-556" aria-hidden="true" tabindex="-1"></a><span class="st">```</span></span>
-<span id="cb34-557"><a href="#cb34-557" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-558"><a href="#cb34-558" aria-hidden="true" tabindex="-1"></a><span class="at">#### I return a borrowed value from multiple borrowed inputs</span></span>
-<span id="cb34-559"><a href="#cb34-559" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-560"><a href="#cb34-560" aria-hidden="true" tabindex="-1"></a><span class="at">You may need to name the relationship.</span></span>
-<span id="cb34-561"><a href="#cb34-561" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-562"><a href="#cb34-562" aria-hidden="true" tabindex="-1"></a><span class="st">```</span>rust</span>
-<span id="cb34-563"><a href="#cb34-563" aria-hidden="true" tabindex="-1"></a>fn display_name<span class="sc">&lt;</span><span class="st">'a&gt;(username: &amp;'</span>a str, fallback<span class="sc">:</span> <span class="er">&amp;</span><span class="st">'a str) -&gt; &amp;'</span>a str {</span>
-<span id="cb34-564"><a href="#cb34-564" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="fu">username.is_empty</span>() {</span>
-<span id="cb34-565"><a href="#cb34-565" aria-hidden="true" tabindex="-1"></a>        fallback</span>
-<span id="cb34-566"><a href="#cb34-566" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
-<span id="cb34-567"><a href="#cb34-567" aria-hidden="true" tabindex="-1"></a>        username</span>
-<span id="cb34-568"><a href="#cb34-568" aria-hidden="true" tabindex="-1"></a>    }</span>
-<span id="cb34-569"><a href="#cb34-569" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb34-570"><a href="#cb34-570" aria-hidden="true" tabindex="-1"></a><span class="st">```</span></span>
-<span id="cb34-571"><a href="#cb34-571" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-572"><a href="#cb34-572" aria-hidden="true" tabindex="-1"></a><span class="at">#### I store references inside a struct</span></span>
-<span id="cb34-573"><a href="#cb34-573" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-574"><a href="#cb34-574" aria-hidden="true" tabindex="-1"></a><span class="at">The struct usually needs a lifetime annotation.</span></span>
-<span id="cb34-575"><a href="#cb34-575" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-576"><a href="#cb34-576" aria-hidden="true" tabindex="-1"></a><span class="st">```</span>rust</span>
-<span id="cb34-577"><a href="#cb34-577" aria-hidden="true" tabindex="-1"></a>struct UserView<span class="sc">&lt;</span><span class="st">'a&gt; {</span></span>
-<span id="cb34-578"><a href="#cb34-578" aria-hidden="true" tabindex="-1"></a><span class="st">    name: &amp;'</span>a str,</span>
-<span id="cb34-579"><a href="#cb34-579" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb34-580"><a href="#cb34-580" aria-hidden="true" tabindex="-1"></a><span class="st">```</span></span>
-<span id="cb34-581"><a href="#cb34-581" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-582"><a href="#cb34-582" aria-hidden="true" tabindex="-1"></a><span class="at">#### I am confused by a lifetime error</span></span>
-<span id="cb34-583"><a href="#cb34-583" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-584"><a href="#cb34-584" aria-hidden="true" tabindex="-1"></a><span class="at">Ask one question first:</span></span>
-<span id="cb34-585"><a href="#cb34-585" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-586"><a href="#cb34-586" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; Who owns this value?</span></span>
-<span id="cb34-587"><a href="#cb34-587" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-588"><a href="#cb34-588" aria-hidden="true" tabindex="-1"></a><span class="at">Then ask:</span></span>
-<span id="cb34-589"><a href="#cb34-589" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-590"><a href="#cb34-590" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; Is this reference being used after the owner is gone?</span></span>
-<span id="cb34-591"><a href="#cb34-591" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-592"><a href="#cb34-592" aria-hidden="true" tabindex="-1"></a><span class="at">That usually reveals the problem.</span></span>
-<span id="cb34-593"><a href="#cb34-593" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-594"><a href="#cb34-594" aria-hidden="true" tabindex="-1"></a><span class="at">### Conclusion</span></span>
-<span id="cb34-595"><a href="#cb34-595" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-596"><a href="#cb34-596" aria-hidden="true" tabindex="-1"></a><span class="at">Borrowing means lending access to a value without transferring ownership.</span></span>
-<span id="cb34-597"><a href="#cb34-597" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-598"><a href="#cb34-598" aria-hidden="true" tabindex="-1"></a><span class="at">Lifetimes are Rust's way of making sure borrowed access does not outlive the owned value.</span></span>
-<span id="cb34-599"><a href="#cb34-599" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-600"><a href="#cb34-600" aria-hidden="true" tabindex="-1"></a><span class="at">The key idea is:</span></span>
-<span id="cb34-601"><a href="#cb34-601" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-602"><a href="#cb34-602" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; </span><span class="st">`'a` does not extend a borrow. It names a relationship between borrowed values.</span></span>
-<span id="cb34-603"><a href="#cb34-603" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-604"><a href="#cb34-604" aria-hidden="true" tabindex="-1"></a><span class="st">Use owned values when data needs to live independently.</span></span>
-<span id="cb34-605"><a href="#cb34-605" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-606"><a href="#cb34-606" aria-hidden="true" tabindex="-1"></a><span class="st">Use references when data is owned somewhere else and you only need temporary access.</span></span>
-<span id="cb34-607"><a href="#cb34-607" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-608"><a href="#cb34-608" aria-hidden="true" tabindex="-1"></a><span class="st">Use lifetime annotations when Rust needs help understanding how borrowed inputs and</span></span>
-<span id="cb34-609"><a href="#cb34-609" aria-hidden="true" tabindex="-1"></a><span class="st">borrowed outputs are connected.</span></span>
+<span id="cb34-522"><a href="#cb34-522" aria-hidden="true" tabindex="-1"></a><span class="at">You usually write lifetimes when references are stored or when a function returns a</span></span>
+<span id="cb34-523"><a href="#cb34-523" aria-hidden="true" tabindex="-1"></a><span class="at">borrowed value related to one or more borrowed inputs.</span></span>
+<span id="cb34-524"><a href="#cb34-524" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-525"><a href="#cb34-525" aria-hidden="true" tabindex="-1"></a><span class="at">### TL;DR: Purpose-Driven Cases</span></span>
+<span id="cb34-526"><a href="#cb34-526" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-527"><a href="#cb34-527" aria-hidden="true" tabindex="-1"></a><span class="at">Use the type of return or storage to decide what you need.</span></span>
+<span id="cb34-528"><a href="#cb34-528" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-529"><a href="#cb34-529" aria-hidden="true" tabindex="-1"></a><span class="at">#### I only read borrowed data</span></span>
+<span id="cb34-530"><a href="#cb34-530" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-531"><a href="#cb34-531" aria-hidden="true" tabindex="-1"></a><span class="at">Use a normal reference.</span></span>
+<span id="cb34-532"><a href="#cb34-532" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-533"><a href="#cb34-533" aria-hidden="true" tabindex="-1"></a><span class="st">```</span>rust</span>
+<span id="cb34-534"><a href="#cb34-534" aria-hidden="true" tabindex="-1"></a>fn <span class="fu">print_title</span>(title<span class="sc">:</span> <span class="er">&amp;</span>str) {</span>
+<span id="cb34-535"><a href="#cb34-535" aria-hidden="true" tabindex="-1"></a>    println<span class="sc">!</span>(<span class="st">"{title}"</span>);</span>
+<span id="cb34-536"><a href="#cb34-536" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb34-537"><a href="#cb34-537" aria-hidden="true" tabindex="-1"></a><span class="st">```</span></span>
+<span id="cb34-538"><a href="#cb34-538" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-539"><a href="#cb34-539" aria-hidden="true" tabindex="-1"></a><span class="at">No explicit lifetime annotation is needed.</span></span>
+<span id="cb34-540"><a href="#cb34-540" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-541"><a href="#cb34-541" aria-hidden="true" tabindex="-1"></a><span class="at">#### I create and return new owned data</span></span>
+<span id="cb34-542"><a href="#cb34-542" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-543"><a href="#cb34-543" aria-hidden="true" tabindex="-1"></a><span class="at">Return an owned value.</span></span>
+<span id="cb34-544"><a href="#cb34-544" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-545"><a href="#cb34-545" aria-hidden="true" tabindex="-1"></a><span class="st">```</span>rust</span>
+<span id="cb34-546"><a href="#cb34-546" aria-hidden="true" tabindex="-1"></a>fn <span class="fu">make_title</span>() <span class="ot">-&gt;</span> String {</span>
+<span id="cb34-547"><a href="#cb34-547" aria-hidden="true" tabindex="-1"></a>    String<span class="sc">::</span><span class="fu">from</span>(<span class="st">"Rust Notes"</span>)</span>
+<span id="cb34-548"><a href="#cb34-548" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb34-549"><a href="#cb34-549" aria-hidden="true" tabindex="-1"></a><span class="st">```</span></span>
+<span id="cb34-550"><a href="#cb34-550" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-551"><a href="#cb34-551" aria-hidden="true" tabindex="-1"></a><span class="at">No lifetime annotation is needed because the caller receives ownership.</span></span>
+<span id="cb34-552"><a href="#cb34-552" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-553"><a href="#cb34-553" aria-hidden="true" tabindex="-1"></a><span class="at">#### I return a borrowed value from one borrowed input</span></span>
+<span id="cb34-554"><a href="#cb34-554" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-555"><a href="#cb34-555" aria-hidden="true" tabindex="-1"></a><span class="at">Rust can often infer the lifetime.</span></span>
+<span id="cb34-556"><a href="#cb34-556" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-557"><a href="#cb34-557" aria-hidden="true" tabindex="-1"></a><span class="st">```</span>rust</span>
+<span id="cb34-558"><a href="#cb34-558" aria-hidden="true" tabindex="-1"></a>fn <span class="fu">first_word</span>(text<span class="sc">:</span> <span class="er">&amp;</span>str) <span class="ot">-&gt;</span> <span class="er">&amp;</span>str {</span>
+<span id="cb34-559"><a href="#cb34-559" aria-hidden="true" tabindex="-1"></a>    <span class="fu">text.split_whitespace</span>()<span class="fu">.next</span>()<span class="fu">.unwrap_or</span>(<span class="st">""</span>)</span>
+<span id="cb34-560"><a href="#cb34-560" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb34-561"><a href="#cb34-561" aria-hidden="true" tabindex="-1"></a><span class="st">```</span></span>
+<span id="cb34-562"><a href="#cb34-562" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-563"><a href="#cb34-563" aria-hidden="true" tabindex="-1"></a><span class="at">#### I return a borrowed value from multiple borrowed inputs</span></span>
+<span id="cb34-564"><a href="#cb34-564" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-565"><a href="#cb34-565" aria-hidden="true" tabindex="-1"></a><span class="at">You may need to name the relationship.</span></span>
+<span id="cb34-566"><a href="#cb34-566" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-567"><a href="#cb34-567" aria-hidden="true" tabindex="-1"></a><span class="st">```</span>rust</span>
+<span id="cb34-568"><a href="#cb34-568" aria-hidden="true" tabindex="-1"></a>fn display_name<span class="sc">&lt;</span><span class="st">'a&gt;(username: &amp;'</span>a str, fallback<span class="sc">:</span> <span class="er">&amp;</span><span class="st">'a str) -&gt; &amp;'</span>a str {</span>
+<span id="cb34-569"><a href="#cb34-569" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="fu">username.is_empty</span>() {</span>
+<span id="cb34-570"><a href="#cb34-570" aria-hidden="true" tabindex="-1"></a>        fallback</span>
+<span id="cb34-571"><a href="#cb34-571" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
+<span id="cb34-572"><a href="#cb34-572" aria-hidden="true" tabindex="-1"></a>        username</span>
+<span id="cb34-573"><a href="#cb34-573" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb34-574"><a href="#cb34-574" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb34-575"><a href="#cb34-575" aria-hidden="true" tabindex="-1"></a><span class="st">```</span></span>
+<span id="cb34-576"><a href="#cb34-576" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-577"><a href="#cb34-577" aria-hidden="true" tabindex="-1"></a><span class="at">#### I store references inside a struct</span></span>
+<span id="cb34-578"><a href="#cb34-578" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-579"><a href="#cb34-579" aria-hidden="true" tabindex="-1"></a><span class="at">The struct usually needs a lifetime annotation.</span></span>
+<span id="cb34-580"><a href="#cb34-580" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-581"><a href="#cb34-581" aria-hidden="true" tabindex="-1"></a><span class="st">```</span>rust</span>
+<span id="cb34-582"><a href="#cb34-582" aria-hidden="true" tabindex="-1"></a>struct UserView<span class="sc">&lt;</span><span class="st">'a&gt; {</span></span>
+<span id="cb34-583"><a href="#cb34-583" aria-hidden="true" tabindex="-1"></a><span class="st">    name: &amp;'</span>a str,</span>
+<span id="cb34-584"><a href="#cb34-584" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb34-585"><a href="#cb34-585" aria-hidden="true" tabindex="-1"></a><span class="st">```</span></span>
+<span id="cb34-586"><a href="#cb34-586" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-587"><a href="#cb34-587" aria-hidden="true" tabindex="-1"></a><span class="at">#### I am confused by a lifetime error</span></span>
+<span id="cb34-588"><a href="#cb34-588" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-589"><a href="#cb34-589" aria-hidden="true" tabindex="-1"></a><span class="at">Ask one question first:</span></span>
+<span id="cb34-590"><a href="#cb34-590" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-591"><a href="#cb34-591" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; Who owns this value?</span></span>
+<span id="cb34-592"><a href="#cb34-592" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-593"><a href="#cb34-593" aria-hidden="true" tabindex="-1"></a><span class="at">Then ask:</span></span>
+<span id="cb34-594"><a href="#cb34-594" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-595"><a href="#cb34-595" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; Is this reference being used after the owner is gone?</span></span>
+<span id="cb34-596"><a href="#cb34-596" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-597"><a href="#cb34-597" aria-hidden="true" tabindex="-1"></a><span class="at">That usually reveals the problem.</span></span>
+<span id="cb34-598"><a href="#cb34-598" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-599"><a href="#cb34-599" aria-hidden="true" tabindex="-1"></a><span class="at">### Conclusion</span></span>
+<span id="cb34-600"><a href="#cb34-600" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-601"><a href="#cb34-601" aria-hidden="true" tabindex="-1"></a><span class="at">Borrowing means lending access to a value without transferring ownership.</span></span>
+<span id="cb34-602"><a href="#cb34-602" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-603"><a href="#cb34-603" aria-hidden="true" tabindex="-1"></a><span class="at">Lifetimes are Rust's way of making sure borrowed access does not outlive the owned value.</span></span>
+<span id="cb34-604"><a href="#cb34-604" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-605"><a href="#cb34-605" aria-hidden="true" tabindex="-1"></a><span class="at">The key idea is:</span></span>
+<span id="cb34-606"><a href="#cb34-606" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-607"><a href="#cb34-607" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; </span><span class="st">`'a` does not extend a borrow. It names a relationship between borrowed values.</span></span>
+<span id="cb34-608"><a href="#cb34-608" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-609"><a href="#cb34-609" aria-hidden="true" tabindex="-1"></a><span class="st">Use owned values when data needs to live independently.</span></span>
 <span id="cb34-610"><a href="#cb34-610" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-611"><a href="#cb34-611" aria-hidden="true" tabindex="-1"></a><span class="st">Rust is strict here because dangling references are dangerous. Instead of letting a program</span></span>
-<span id="cb34-612"><a href="#cb34-612" aria-hidden="true" tabindex="-1"></a><span class="st">keep a broken pointer, Rust rejects the code before it runs.</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
+<span id="cb34-611"><a href="#cb34-611" aria-hidden="true" tabindex="-1"></a><span class="st">Use references when data is owned somewhere else and you only need temporary access.</span></span>
+<span id="cb34-612"><a href="#cb34-612" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-613"><a href="#cb34-613" aria-hidden="true" tabindex="-1"></a><span class="st">Use lifetime annotations when Rust needs help understanding how borrowed inputs and</span></span>
+<span id="cb34-614"><a href="#cb34-614" aria-hidden="true" tabindex="-1"></a><span class="st">borrowed outputs are connected.</span></span>
+<span id="cb34-615"><a href="#cb34-615" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-616"><a href="#cb34-616" aria-hidden="true" tabindex="-1"></a><span class="st">Rust is strict here because dangling references are dangerous. Instead of letting a program</span></span>
+<span id="cb34-617"><a href="#cb34-617" aria-hidden="true" tabindex="-1"></a><span class="st">keep a broken pointer, Rust rejects the code before it runs.</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->
 

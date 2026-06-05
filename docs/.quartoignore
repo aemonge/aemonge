@@ -24,4 +24,6 @@
 **/unix/network/networkless_commands.qmd
 **/rust/basics/borrowing-and-lifetimes.qmd
 **/rust/basics/mutability-and-references.qmd
-**/rust/functional/iterator-order-enumerate-rev.qmd
+**/rust/functional/iterator-laiterator-laziness-consumption-fold-collect.qmd
+**/rust/functional/iterator-oriterator-order-enumerate-rev.qmd
+**/rust/functional/option-result-question-mark-blocks-closures.qmd
