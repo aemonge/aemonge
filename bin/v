@@ -369,20 +369,38 @@ function see() {
     nvr -c ":See $1"
 }
 
-function in_place() {
-    if [ -z "$NVIM" ]; then
-        echo "Please start a v session: 'v .'"
-        return 1
-    fi
+function lua_quote() {
+    local value="$1"
+    value=${value//\\/\\\\}
+    value=${value//\'/\\\'}
+    echo "'$value'"
+}
 
+function in_place() {
     if [ -z "$1" ]; then
         echo "No file specified."
         return 1
     fi
 
+    if ! command -v nvr >/dev/null || [ -z "$NVIM" ]; then
+        nvim "$@"
+        return $?
+    fi
+
+    local target_file
     for file in "$@"; do
-        nvr --remote-wait -c ":EditInPlace $file" # BUG: Check the nvim function
-        # It wont wait so not working with git commit
+      if [[ "$OSTYPE" == "darwin"* ]]; then
+        target_file=$(greadlink -f "$file")
+      else
+        target_file=$(readlink -f "$file" 2>/dev/null || realpath -m "$file")
+      fi
+
+      local token="edit_in_place_$$_${RANDOM}"
+      nvr -c "lua require('interface.edit-in-place').open_for_wait($(lua_quote "$target_file"), $(lua_quote "$token"))"
+
+      while [ "$(nvr --remote-expr "v:lua.require('interface.edit-in-place').is_done($(lua_quote "$token"))")" != "1" ]; do
+        sleep 0.1
+      done
     done
 }
 
