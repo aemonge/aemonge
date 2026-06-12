@@ -682,6 +682,26 @@ run_validation() {
         ((failed_tests++))
     fi
 
+    info "Test E.1: DNS lookup works inside sandbox"
+    local dns_lookup_test
+    dns_lookup_test=$(timeout 10s env OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'getent hosts api.openai.com >/dev/null && echo SUCCESS' 2>&1 || true)
+    if echo "${dns_lookup_test}" | grep -q "SUCCESS"; then
+        echo "✅ Test E.1 PASS: DNS lookup works inside sandbox"
+    else
+        echo "❌ Test E.1 FAIL: DNS lookup timed out or failed (${dns_lookup_test})"
+        ((failed_tests++))
+    fi
+
+    info "Test E.2: HTTPS connectivity works inside sandbox"
+    local https_test
+    https_test=$(timeout 10s env OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'curl --max-time 10 -I -sS https://api.openai.com 2>&1 | grep -m1 -E "^HTTP/"' 2>&1 || true)
+    if echo "${https_test}" | grep -qE "^HTTP/"; then
+        echo "✅ Test E.2 PASS: HTTPS connectivity works inside sandbox (${https_test})"
+    else
+        echo "❌ Test E.2 FAIL: HTTPS connectivity timed out or failed (${https_test})"
+        ((failed_tests++))
+    fi
+
     # Test F: OpenCode writable runtime state
     info "Test F: OpenCode writable runtime state"
     local oc_state_test
@@ -1273,6 +1293,17 @@ opt_bind_path() {
     fi
 }
 
+opt_ro_bind_path() {
+    local host_p="$1"
+    local sand_p="$2"
+    local resolved_host_p
+    if [[ -e "${host_p}" ]]; then
+        resolved_host_p="$(realpath "${host_p}")"
+        add_parent_dirs_once "$(dirname "${sand_p}")"
+        EXTRA_BINDS+=(--ro-bind "${resolved_host_p}" "${sand_p}")
+    fi
+}
+
 bind_runtime_dir() {
     local host_p="$1"
     local sand_p="$2"
@@ -1521,6 +1552,14 @@ if [[ -n "${RESOLV_CONF_TARGET}" && "${RESOLV_CONF_TARGET}" != "/etc/resolv.conf
     add_parent_dirs_once "$(dirname "${RESOLV_CONF_TARGET}")"
     EXTRA_BINDS+=(--ro-bind "${RESOLV_CONF_TARGET}" "${RESOLV_CONF_TARGET}")
 fi
+
+# Some hosts resolve names through NSS/systemd-resolved instead of plain DNS in
+# /etc/resolv.conf. Keep network shared, but expose resolver runtime sockets and
+# state read-only so getent/curl/opencode provider calls do not block in DNS.
+opt_ro_bind_path /run/systemd/resolve /run/systemd/resolve
+opt_ro_bind_path /run/dbus /run/dbus
+opt_ro_bind_path /run/NetworkManager /run/NetworkManager
+opt_ro_bind_path /var/run/nscd /var/run/nscd
 
 # Project-local Cargo binaries
 if [[ -d "${PROJECT_DIR}/.cargo/bin" ]]; then
