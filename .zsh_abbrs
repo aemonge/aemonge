@@ -1,0 +1,77 @@
+# Personal primitives
+abbr s='v see'
+abbr c='smart_cat'
+abbr cc='smart_cat_paged'
+abbr sg='smart_grep'
+
+# Core command abbreviations
+abbr g='git'
+abbr k='kubectl'
+
+# Git, community-style
+abbr gst='git status'
+abbr ga.='git add .'
+abbr gco='git checkout'
+abbr gcm='git commit -m "__CURSOR__"'
+abbr gp='git push'
+abbr gl='git pull'
+abbr lg='lazygit'
+
+# Kubernetes, community-style
+abbr kgp='kubectl get pods'
+abbr kgs='kubectl get svc'
+abbr kgn='kubectl get nodes'
+abbr kctx='kubectl config current-context'
+abbr kl='kubectl logs -f'
+
+# Containers
+abbr dc='docker compose'
+abbr pc='podman-compose'
+abbr pdc='podman compose'
+
+# Intentional guardrails
+abbr docker='docker-reminder'
+abbr docker-compose='docker-compose-reminder'
+
+# Personal scripts
+abbr mh='mesh-hop'
+abbr sgt='sync-galactica-term'
+abbr zgc='zsh-generate-completions'
+
+# OpenCode sandbox
+abbr sc='scoder'
+abbr scr='scoder --ro'
+abbr scw='scoder --web-developer'
+abbr scv='scoder --validate'
+abbr scg='scoder --allow-git'
+abbr sch='scoder --allow-host-tools'
+abbr scn='scoder --no-host-tools'
+
+# v / Neovim wrapper
+abbr ve='v edit'
+abbr vs='v split'
+abbr vh='v hover'
+abbr vi='v in-place'
+abbr vw='v waits'
+abbr vbg='v bg'
+abbr vcd='v cd'
+abbr vc='v clear'
+abbr vcl='v clean'
+abbr vvenv='v venv'
+abbr vrv='v reset_venv'
+
+# updater
+abbr up='updater'
+abbr upb='updater bins'
+abbr upn='updater neovim'
+abbr upm='updater mise'
+abbr upz='updater zinit'
+abbr upc='updater clean-dev'
+abbr upj='updater --json'
+abbr upbun='updater bun'
+abbr uppnpm='updater pnpm'
+abbr uppip='updater pip'
+abbr upcargo='updater cargo'
+
+# reminders
+abbr rmd='remind'
