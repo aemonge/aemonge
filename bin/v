@@ -81,6 +81,7 @@ function show_help() {
     echo "Usage: v [SUBCOMMAND] [ARGS]"
     echo ""
     echo "  Subcommands:"
+    echo "    edit            Open file(s) in Neovim (completion-friendly default)"
     echo "    split           Open file in split view"
     echo "    hover           Open file in hover view"
     echo "    isplit          Open file in split view (inverted)"
@@ -112,61 +113,44 @@ function completions() {
     local completions_file="$HOME/.zfunc/_v"
     mkdir -p "$HOME/.zfunc"
 
-    echo "#compdef v" > "$completions_file"
-    echo "" >> "$completions_file"
-    echo "_v() {" >> "$completions_file"
-    echo "  local -a commands" >> "$completions_file"
-    echo "  commands=(" >> "$completions_file"
-    echo "    'split'" >> "$completions_file"
-    echo "    'hover'" >> "$completions_file"
-    echo "    'isplit'" >> "$completions_file"
-    echo "    'waits'" >> "$completions_file"
-    echo "    'spliting'" >> "$completions_file"
-    echo "    'see'" >> "$completions_file"
-    echo "    'in-place'" >> "$completions_file"
-    echo "    'bg'" >> "$completions_file"
-    echo "    'save'" >> "$completions_file"
-    echo "    'restore'" >> "$completions_file"
-    echo "    'cd'" >> "$completions_file"
-    echo "    'clear'" >> "$completions_file"
-    echo "    'clean'" >> "$completions_file"
-    echo "    'venv'" >> "$completions_file"
-    echo "    'reset_venv'" >> "$completions_file"
-    echo "    'completions'" >> "$completions_file"
-    echo "  )" >> "$completions_file"
-    echo "" >> "$completions_file"
-    echo "  _arguments -C \\" >> "$completions_file"
-    echo "    '(-h --help)'{-h,--help}'[Show help message]' \\" >> "$completions_file"
-    echo "    '(-v --version)'{-v,--version}'[Show version information]' \\" >> "$completions_file"
-    echo "    '1: :->first_arg' \\" >> "$completions_file"
-    echo "    '*: :->args'" >> "$completions_file"
-    echo "" >> "$completions_file"
-    echo "  case \$state in" >> "$completions_file"
-    echo "    first_arg)" >> "$completions_file"
-    echo "      _alternative \\" >> "$completions_file"
-    echo "        'commands:command:(\${commands[@]})' \\" >> "$completions_file"
-    echo "        'files:file:_files'" >> "$completions_file"
-    echo "      ;;" >> "$completions_file"
-    echo "    args)" >> "$completions_file"
-    echo "      case \$words[1] in" >> "$completions_file"
-    echo "        cd)" >> "$completions_file"
-    echo "          _directories" >> "$completions_file"
-    echo "          ;;" >> "$completions_file"
-    echo "        isplit|split|hover|waits|spliting|see|in-place|bg)" >> "$completions_file"
-    echo "          _files" >> "$completions_file"
-    echo "          ;;" >> "$completions_file"
-    echo "        clear|clean|save|restore|venv|reset_venv)" >> "$completions_file"
-    echo "          # No further arguments for these commands" >> "$completions_file"
-    echo "          ;;" >> "$completions_file"
-    echo "        *)" >> "$completions_file"
-    echo "          _files" >> "$completions_file"
-    echo "          ;;" >> "$completions_file"
-    echo "      esac" >> "$completions_file"
-    echo "      ;;" >> "$completions_file"
-    echo "  esac" >> "$completions_file"
-    echo "}" >> "$completions_file"
-    echo "" >> "$completions_file"
-    echo "_v \"\$@\"" >> "$completions_file"
+    cat > "$completions_file" <<'EOF'
+#compdef v
+
+_v() {
+  local -a v_commands
+  v_commands=(
+    edit
+    split
+    hover
+    isplit
+    waits
+    spliting
+    see
+    in-place
+    bg
+    save
+    restore
+    cd
+    clear
+    clean
+    venv
+    reset_venv
+    load_project
+    get_root
+    completions
+  )
+
+  if (( CURRENT == 2 )); then
+    compadd -U -Q -S ' ' -- "${v_commands[@]}"
+    _compskip=all
+    return 0
+  fi
+
+  _files
+}
+
+_v "$@"
+EOF
 
     echo "Completions for 'v' script have been generated and stored in $completions_file"
     echo "Please add the following line to your .zshrc if it's not already there:"
@@ -491,6 +475,7 @@ function session() {
     fi
 
     load_project_env "${1:-.}"
+    export V_JOB_TOKEN="${V_JOB_TOKEN:-v-${USER:-$UID}-$$-${RANDOM}}"
 
     if [ $# -eq 0 ]; then
         cmd=(nvim +':TermMux')
@@ -499,7 +484,7 @@ function session() {
         cmd=(nvim +":cd $@" +':TermMux')
     fi
 
-    "${cmd[@]}"
+    exec "${cmd[@]}"
 }
 
 function termmux_clean() {
@@ -561,6 +546,10 @@ if ! command -v nvr >/dev/null; then
 fi
 
 case "$1" in
+    edit)
+        shift
+        vim_func "$@"
+        ;;
     load_project)
         shift
         cmd_load_project "$@"
