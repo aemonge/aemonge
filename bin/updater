@@ -1,5 +1,5 @@
 #!/bin/zsh
-# vim: ft=bash
+# vim: ft=zsh
 
 set -e
 set -o pipefail
@@ -30,7 +30,13 @@ show_help() {
     echo "  --only LIST         Run only stages in comma list (e.g. cargo,go,pip)"
     echo "  --skip LIST         Skip stages in comma list (e.g. neovim,zinit)"
     echo "  --json              Print machine-readable stage summary"
-    echo "  pamac               Update using Manjaro 'pamac'"
+    echo "  doctor              Check updater dependencies and local dev-tool paths"
+    echo "  all                 Run all update stages (previous default behavior)"
+    echo "  daily               Run low-risk daily update profile"
+    echo "  weekly              Run attended weekly update profile"
+    echo "  monthly             Run monthly maintenance profile"
+    echo "  arch-check          Check official repo updates without upgrading"
+    echo "  pamac               Update Arch/AUR packages using paru if available, else pamac"
     echo "  pacman-mirrors      Update Arch 'pacman-mirrors'"
     echo "  snap                Update using snap"
     echo "  flatpak             Update using flatpak"
@@ -38,7 +44,6 @@ show_help() {
     echo "  clam                Update ClamAV database"
     echo "  clam-scan           Use preconfigured ClamAV scan settings"
     echo "  cargo               Update cargo packages"
-    echo "  mise                Update dev run-time's with mise (rustup, nodenv, ...)"
     echo "  go                  Update go packages"
     echo "  gem                 Update ruby packages"
     echo "  pnpm                Update pnpm packages"
@@ -55,12 +60,14 @@ show_help() {
 QUIET=false
 JSON_SUMMARY=false
 LOCK_FD=9
+STAGE_SKIPPED_EXIT=77
 LOCK_FILE="${XDG_RUNTIME_DIR:-/tmp}/updater.lock"
 SCRIPT_NAME="$(basename "$0")"
 
 typeset -a ONLY_STAGES=()
 typeset -a SKIP_STAGES=()
 typeset -a ALL_STAGES=(
+    arch-check
     pamac
     pacman-mirrors
     snap
@@ -68,7 +75,6 @@ typeset -a ALL_STAGES=(
     hardware
     clam
     clam-scan
-    mise
     cargo
     go
     gem
@@ -81,10 +87,62 @@ typeset -a ALL_STAGES=(
     bins
 )
 
+typeset -A STAGE_FUNCS=(
+    arch-check check_arch_updates
+    pamac update_pamac
+    pacman-mirrors update_mirrors
+    snap update_snap
+    flatpak update_flatpak
+    hardware update_hardware
+    clam update_clam
+    clam-scan clam_scan_and_quarantine
+    cargo update_cargo
+    go update_go
+    gem update_gem
+    pnpm update_pnpm
+    bun update_bun
+    pip update_pip
+    zinit update_zinit
+    clean-dev clean_dev
+    neovim update_neovim
+    bins link_bins
+)
+
+typeset -A STAGE_DESCRIPTIONS=(
+    arch-check "Check official repo updates without upgrading"
+    pamac "Update Arch/AUR packages using paru if available, else pamac"
+    pacman-mirrors "Update pacman-mirrors"
+    snap "Update using snap"
+    flatpak "Update using flatpak"
+    hardware "Update hardware firmware"
+    clam "Update ClamAV database"
+    clam-scan "Scan with pre-settings"
+    cargo "Update cargo packages"
+    go "Update go packages"
+    gem "Update ruby packages"
+    pnpm "Update pnpm packages"
+    bun "Update bun runtime and global packages"
+    pip "Update pipx packages"
+    zinit "Update zinit plugins"
+    clean-dev "Clean dev packages"
+    neovim "Update Neovim plugins"
+    bins "Update linked bins and sbins"
+    completions "Generate Zsh completions"
+    doctor "Check updater dependencies and local dev-tool paths"
+    all "Run all update stages"
+    daily "Run low-risk daily update profile"
+    weekly "Run attended weekly update profile"
+    monthly "Run monthly maintenance profile"
+    and-shutdown "Run all updates and then shutdown"
+)
+
 typeset -a STAGES_SUCCESS=()
 typeset -a STAGES_FAILED=()
 typeset -a STAGES_SKIPPED=()
 typeset -a NORMALIZED_STAGE_LIST=()
+typeset -a DOCTOR_OK=()
+typeset -a DOCTOR_WARN=()
+typeset -a DOCTOR_ACTIONS=()
 
 trim_whitespace() {
     local value="$1"
@@ -151,18 +209,43 @@ record_stage_skipped() {
 run_stage() {
     local stage="$1"
     local func="$2"
+    local stage_status=0
 
     if ! stage_selected "$stage"; then
         record_stage_skipped "$stage"
         return 0
     fi
 
-    if "$func"; then
+    set +e
+    if $QUIET; then
+        "$func" >/dev/null
+    else
+        "$func"
+    fi
+    stage_status=$?
+    set -e
+
+    if [[ $stage_status -eq 0 ]]; then
         record_stage_success "$stage"
+    elif [[ $stage_status -eq $STAGE_SKIPPED_EXIT ]]; then
+        record_stage_skipped "$stage"
     else
         record_stage_failure "$stage"
         subtitle "Warning: stage '$stage' failed. Continuing..." >&2
     fi
+}
+
+run_named_stage() {
+    local stage="$1"
+    local func="${STAGE_FUNCS[$stage]}"
+
+    if [[ -z "$func" ]]; then
+        echo "Unknown update: $stage" >&2
+        show_help
+        exit 1
+    fi
+
+    run_stage "$stage" "$func"
 }
 
 print_stage_summary() {
@@ -213,7 +296,7 @@ acquire_lock() {
         return 0
     fi
 
-    eval "exec ${LOCK_FD}>\"$LOCK_FILE\""
+    exec 9>"$LOCK_FILE"
     if ! flock -n "$LOCK_FD"; then
         subtitle "Warning: another updater process is already running." >&2
         exit 1
@@ -226,6 +309,35 @@ check_command() {
         return 1
     fi
     return 0
+}
+
+skip_stage() {
+    subtitle "Skipping: $1" >&2
+    return $STAGE_SKIPPED_EXIT
+}
+
+require_command() {
+    local command_name="$1"
+    local description="$2"
+    local install_hint="${3:-}"
+
+    if command -v "$command_name" &>/dev/null; then
+        return 0
+    fi
+
+    subtitle "Warning: $command_name not found. Skipping $description." >&2
+    [[ -n "$install_hint" ]] && subtitle "Hint: $install_hint" >&2
+    return $STAGE_SKIPPED_EXIT
+}
+
+require_root() {
+    [[ $EUID -eq 0 ]] && return 0
+    skip_stage "$1 requires root privileges."
+}
+
+require_user() {
+    [[ $EUID -ne 0 ]] && return 0
+    skip_stage "$1 should run as a regular user."
 }
 
 check_last_clean() {
@@ -250,6 +362,33 @@ check_last_clean() {
     fi
 }
 
+check_arch_updates() {
+    require_command "checkupdates" "official repository update check" "sudo pacman -S pacman-contrib" || return $?
+
+    $QUIET || title "Checking official repository updates with 'checkupdates'"
+
+    local updates check_status
+    updates="$(checkupdates 2>/dev/null)"
+    check_status=$?
+
+    if [[ $check_status -eq 0 ]]; then
+        if [[ -n "$updates" ]]; then
+            echo "$updates"
+        else
+            $QUIET || echo "No official repository updates found."
+        fi
+        return 0
+    fi
+
+    if [[ $check_status -eq 2 ]]; then
+        $QUIET || echo "No official repository updates found."
+        return 0
+    fi
+
+    subtitle "Warning: checkupdates failed." >&2
+    return $check_status
+}
+
 save_clean_timestamp() {
     local cache_file="${XDG_CACHE_HOME:-$HOME/.cache}/updater_last_clean"
     mkdir -p "$(dirname "$cache_file")"
@@ -258,213 +397,216 @@ save_clean_timestamp() {
 }
 
 update_flatpak() {
-    if [[ $EUID -ne 0 ]]; then
-        if check_command "flatpak" "flatpak update"; then
-            $QUIET || title "Running: 'flatpak update -y'"
-            flatpak update -y || true
-        fi
-    fi
+    require_user "flatpak update" || return $?
+    require_command "flatpak" "flatpak update" || return $?
+
+    $QUIET || title "Running: 'flatpak update -y'"
+    flatpak update -y
 }
 
 update_pamac() {
     # Check if NOT running as root (sudo), and if so proceed
-    if [[ $EUID -ne 0 ]]; then
-        if check_command "pamac" "pamac update"; then
-            $QUIET || title "Running 'pamac update --no-confirm --aur'"
+    require_user "Arch/AUR package update" || return $?
 
-            # Clear AUR build cache if update fails
-            if ! pamac update --no-confirm --aur; then
-                subtitle "⚠️  AUR update failed. Cleaning build cache and retrying..." >&2
-                pamac clean --build-files --no-confirm
-                pamac update --no-confirm --aur || true
-            fi
-        fi
+    if command -v "paru" &>/dev/null; then
+        $QUIET || title "Running 'paru -Syu --noconfirm'"
+        paru -Syu --noconfirm
+        return $?
+    fi
+
+    require_command "pamac" "pamac update" || return $?
+    $QUIET || title "Running 'pamac update --no-confirm --aur'"
+
+    # Clear AUR build cache if update fails
+    if ! pamac update --no-confirm --aur; then
+        subtitle "⚠️  AUR update failed. Cleaning build cache and retrying..." >&2
+        pamac clean --build-files --no-confirm
+        pamac update --no-confirm --aur
     fi
 }
 
 update_mirrors() {
-    if [[ $EUID -eq 0 ]]; then
-        if check_command "pacman-mirrors" "mirror update"; then
-            $QUIET || title "Refreshing pacman mirrors"
-            pacman-mirrors --fasttrack 5 && pacman -Syy
-        fi
-    fi
+    require_root "mirror update" || return $?
+    require_command "pacman-mirrors" "mirror update" || return $?
+
+    $QUIET || title "Refreshing pacman mirrors"
+    pacman-mirrors --fasttrack 5 && pacman -Syy
 }
 
 update_snap() {
-    if [[ $EUID -eq 0 ]]; then
-        if check_command "snap" "snap update" && check_command "systemctl" "systemd operations" && check_command "pamac" "pamac snap update"; then
-            $QUIET || title "Running 'pamac upgrade --enable-snap --no-confirm'"
+    require_root "snap update" || return $?
+    require_command "snap" "snap update" || return $?
+    require_command "systemctl" "systemd operations" || return $?
+    require_command "pamac" "pamac snap update" || return $?
 
-            local update_status=0
-            local snap_services_started=false
-            if systemctl start snapd.apparmor.service snapd.service; then
-                snap_services_started=true
-            else
-                subtitle "Warning: failed to start snap services. Skipping snap updates." >&2
-                return 1
-            fi
+    $QUIET || title "Running 'pamac upgrade --enable-snap --no-confirm'"
 
-            if ! pamac update --enable-snap --no-confirm; then
-                subtitle "Warning: snap update failed." >&2
-                update_status=1
-            fi
-
-            if [[ "$snap_services_started" == true ]]; then
-                systemctl stop snapd.apparmor.service snapd.service snapd.socket || true
-            fi
-
-            return $update_status
-        else
-            $QUIET || subtitle "No 'systemctl status snapd.apparmor.service snapd.service'"
-            $QUIET || subtitle "pamac install snapd libpamac-snap-plugin"
-        fi
+    local update_status=0
+    local snap_services_started=false
+    if systemctl start snapd.apparmor.service snapd.service; then
+        snap_services_started=true
+    else
+        subtitle "Warning: failed to start snap services. Skipping snap updates." >&2
+        return 1
     fi
+
+    if ! pamac update --enable-snap --no-confirm; then
+        subtitle "Warning: snap update failed." >&2
+        update_status=1
+    fi
+
+    if [[ "$snap_services_started" == true ]]; then
+        systemctl stop snapd.apparmor.service snapd.service snapd.socket || true
+    fi
+
+    return $update_status
 }
 
 update_hardware() {
     # Check if running as root (sudo), and if so proceed
-    if [[ $EUID -eq 0 ]]; then
-        if check_command "fwupdmgr" "firmware update"; then
-            $QUIET || title "Running 'fwupdmgr refresh,get-updates,update'"
-            fwupdmgr refresh || true
-            fwupdmgr get-updates || true
-            fwupdmgr update
-        fi
-    fi
+    require_root "firmware update" || return $?
+    require_command "fwupdmgr" "firmware update" || return $?
+
+    $QUIET || title "Running 'fwupdmgr refresh,get-updates,update'"
+    fwupdmgr refresh || true
+    fwupdmgr get-updates || true
+    fwupdmgr update
 }
 
 update_clam() {
     # Check if running as root (sudo), and if so proceed
-    if [[ $EUID -eq 0 ]]; then
-        if check_command "freshclam" "ClamAV update"; then
-            $QUIET || title "Running 'freshclam'"
-            freshclam
-        fi
-    fi
+    require_root "ClamAV database update" || return $?
+    require_command "freshclam" "ClamAV update" || return $?
+
+    $QUIET || title "Running 'freshclam'"
+    freshclam
 }
 
 clam_scan_and_quarantine() {
     # Quarantine all infected files found by ClamAV
     local quarantine_dir="/var/quarantine"
-    if [[ $EUID -eq 0 ]]; then
-        if check_command "clamscan" "ClamAV scan"; then
-            $QUIET || title "Scanning entire system with ClamAV and quarantining infected files to $quarantine_dir"
-            mkdir -p "$quarantine_dir"
-            clamscan --recursive --infected --exclude-dir='^/sys|^/dev' --move="$quarantine_dir" /
-        fi
-    else
-        subtitle "Warning: ClamAV quarantine scan requires root privileges." >&2
-    fi
-}
+    require_root "ClamAV quarantine scan" || return $?
+    require_command "clamscan" "ClamAV scan" || return $?
 
-update_mise() {
-    if [[ $EUID -ne 0 ]]; then
-        if check_command "mise" "mise toolchain upgrade"; then
-            $QUIET || title "Running: 'mise upgrade' (tool versions)"
-            mise upgrade || true
-
-            $QUIET || title "Running: 'mise plugins update'"
-            mise plugins update || true
-        fi
-    fi
+    $QUIET || title "Scanning entire system with ClamAV and quarantining infected files to $quarantine_dir"
+    mkdir -p "$quarantine_dir"
+    clamscan --recursive --infected --exclude-dir='^/sys|^/dev' --move="$quarantine_dir" /
 }
 
 update_cargo() {
     # Check if running as user, and if so proceed
     # go install github.com/Gelio/go-global-update@latest
-    if [[ $EUID -ne 0 ]]; then
-        if check_command "cargo" "cargo packages update"; then
-            $QUIET || title "Running: 'rustup update && cargo install-update -a'"
-            local update_status=0
-            rustup update || true
-            if ! cargo install-update -a; then
-                subtitle "Warning: cargo install-update failed. Installing cargo-update..." >&2
-                cargo install cargo-update || true
-                if ! cargo install-update -a; then
-                    subtitle "Warning: cargo install-update failed again. Continuing with remaining updates." >&2
-                    update_status=1
-                fi
-            fi
+    require_user "cargo packages update" || return $?
+    require_command "cargo" "cargo packages update" || return $?
 
-            return $update_status
+    $QUIET || title "Running: 'rustup update && cargo install-update -a'"
+    local update_status=0
+    if command -v rustup &>/dev/null; then
+        rustup update || update_status=1
+    else
+        subtitle "Warning: rustup not found. Skipping rustup update." >&2
+    fi
+
+    if ! cargo install-update -a; then
+        subtitle "Warning: cargo install-update failed. Installing cargo-update..." >&2
+        cargo install cargo-update || update_status=1
+        if ! cargo install-update -a; then
+            subtitle "Warning: cargo install-update failed again. Continuing with remaining updates." >&2
+            update_status=1
         fi
     fi
+
+    return $update_status
 }
 
 update_go() {
     # Check if running as user, and if so proceed
-    if [[ $EUID -ne 0 ]]; then
-        if check_command "go" "go packages update"; then
-            $QUIET || title "Running: 'go-global-update'"
-            if ! go-global-update; then
-                subtitle "Warning: go install-update failed." >&2
-            fi
-        fi
-    fi
+    require_user "go packages update" || return $?
+    require_command "go" "go packages update" || return $?
+    require_command "go-global-update" "go global package update" "go install github.com/Gelio/go-global-update@latest" || return $?
+
+    $QUIET || title "Running: 'go-global-update'"
+    go-global-update
 }
 
 update_gem() {
     # Check if running as user, and if so proceed
-    if [[ $EUID -ne 0 ]]; then
-        if check_command "gem" "gem update"; then
-            $QUIET || title "Running: 'gem update'"
-            if ! gem update; then
-                subtitle "Warning: gem update failed." >&2
-            fi
-        fi
-    fi
+    require_user "gem update" || return $?
+    require_command "gem" "gem update" || return $?
+
+    $QUIET || title "Running: 'gem update'"
+    gem update
 }
 
 update_pip() {
     # Check if running as user, and if so proceed
-    if [[ $EUID -ne 0 ]]; then
-        if check_command "uv" "uv tool updates"; then
-            $QUIET || title "Running: 'uv tool upgrade --all'"
-            uv self update || true
-            uv tool upgrade --all || true
-        fi
+    require_user "uv tool updates" || return $?
+    require_command "uv" "uv tool updates" || return $?
+
+    local uv_path
+    uv_path="$(command -v uv)"
+    if [[ "$uv_path" == "$HOME"/* ]]; then
+        $QUIET || title "Running: 'uv self update'"
+        uv self update || subtitle "Warning: uv self update failed. Continuing with tool upgrades." >&2
+    else
+        $QUIET || subtitle "Skipping uv self update: uv is managed outside HOME at $uv_path." >&2
     fi
+
+    $QUIET || title "Running: 'uv tool upgrade --all'"
+    uv tool upgrade --all
 }
 
 update_pnpm() {
     # Check if running as user, and if so proceed
-    if [[ $EUID -ne 0 ]]; then
-        if check_command "pnpm" "pnpm packages update"; then
-            $QUIET || title "Running: 'pnpm update -g'"
-            pnpm update -g || true
-        fi
-    fi
+    require_user "pnpm packages update" || return $?
+    require_command "pnpm" "pnpm packages update" || return $?
+
+    $QUIET || title "Running: 'pnpm update -g'"
+    pnpm update -g
 }
 
 update_bun() {
-    if [[ $EUID -ne 0 ]]; then
-        if check_command "bun" "bun update"; then
-            $QUIET || title "Running: 'bun upgrade && bun update (global)'"
-            bun upgrade || true
-            # Update global packages in their install dir
-            (cd "$HOME/.bun/install/global" && bun update) || true
-        fi
+    require_user "bun update" || return $?
+    require_command "bun" "bun update" || return $?
+
+    local bun_path
+    bun_path="$(command -v bun)"
+    if [[ "$bun_path" == "$HOME"/* ]]; then
+        $QUIET || title "Running: 'bun upgrade'"
+        bun upgrade || subtitle "Warning: bun upgrade failed. Continuing with global package update." >&2
+    else
+        $QUIET || subtitle "Skipping bun upgrade: bun is managed outside HOME at $bun_path." >&2
+    fi
+
+    if [[ -d "$HOME/.bun/install/global" ]]; then
+        $QUIET || title "Running: 'bun update' in global package directory"
+        (cd "$HOME/.bun/install/global" && bun update)
+    else
+        skip_stage "bun global install directory not found."
     fi
 }
 
 update_zinit() {
     # Check if running as user, and if so proceed
-    if [[ $EUID -ne 0 ]]; then
-        if check_command "zsh" "zinit update"; then
-            $QUIET || title "Running: 'zsh -ic \"zinit self-update\",\"update -a\"'"
-            if $QUIET; then
-                zsh -f -ic "setopt no_monitor; source $HOME/.local/share/zinit/zinit.git/zinit.zsh && \
-                zinit self-update --quiet  >/dev/null 2>&1 && \
-                zinit update --all --parallel --quiet >/dev/null 2>&1 && \
-                wait" >/dev/null 2>&1
-            else
-                zsh -f -ic "source $HOME/.local/share/zinit/zinit.git/zinit.zsh && \
-                zinit self-update && \
-                zinit update --all --parallel && \
-                wait"
-            fi
-        fi
+    require_user "zinit update" || return $?
+    require_command "zsh" "zinit update" || return $?
+
+    local zinit_script="$HOME/.local/share/zinit/zinit.git/zinit.zsh"
+    if [[ ! -f "$zinit_script" ]]; then
+        skip_stage "zinit script not found at $zinit_script."
+    fi
+
+    $QUIET || title "Running: 'zsh -ic \"zinit self-update\",\"update -a\"'"
+    if $QUIET; then
+        zsh -f -ic "setopt no_monitor; source ${(q)zinit_script} && \
+        zinit self-update --quiet  >/dev/null 2>&1 && \
+        zinit update --all --parallel --quiet >/dev/null 2>&1 && \
+        wait" >/dev/null 2>&1
+    else
+        zsh -f -ic "source ${(q)zinit_script} && \
+        zinit self-update && \
+        zinit update --all --parallel && \
+        wait"
     fi
 }
 
@@ -487,22 +629,21 @@ clean_dev() {
         )
         rm -rf "${dirs_to_remove[@]}"
 
-        local commands=(
-            "pnpm:pnpm cache clean --force"
-            "bun:bun pm cache rm"
-            "go:GO111MODULE=off go clean -cache -modcache -i -r"
-        )
+        if check_command "pnpm" "pnpm cache clean --force"; then
+            $QUIET || echo "Cleaning pnpm cache"
+            pnpm cache clean --force
+        fi
 
-        for cmd in "${commands[@]}"; do
-            IFS=: read -r tool command <<<"$cmd"
-            if check_command "$tool" "$command"; then
-                $QUIET || echo "Cleaning $tool cache"
-                eval "$command"
-            fi
-        done
+        if check_command "bun" "bun pm cache rm"; then
+            $QUIET || echo "Cleaning bun cache"
+            bun pm cache rm
+        fi
 
-        $QUIET || title "Running: 'mise prune'"
-        mise prune || true
+        if check_command "go" "go clean cache"; then
+            $QUIET || echo "Cleaning go cache"
+            GO111MODULE=off go clean -cache -modcache -i -r
+        fi
+
     fi
     save_clean_timestamp
 }
@@ -539,23 +680,22 @@ link_bins() {
 
 update_neovim() {
     # Check if running as user, and if so proceed
-    if [[ $EUID -ne 0 ]]; then
-        if check_command "nvim" "Neovim plugins update"; then
-            $QUIET || title "Running: 'nvim Lazy update; TSUpdateSync' with 'timetout 20s'"
-            if $QUIET; then
-                nvim --headless \
-                    -c 'lua require("lazy").update():wait()' \
-                    -c 'Lazy load nvim-treesitter' \
-                    -c 'TSUpdateSync' \
-                    -c 'qa!' >/dev/null 2>&1
-            else
-                nvim --headless \
-                    -c 'lua require("lazy").update():wait()' \
-                    -c 'Lazy load nvim-treesitter' \
-                    -c 'TSUpdateSync' \
-                    -c 'qa!'
-            fi
-        fi
+    require_user "Neovim plugins update" || return $?
+    require_command "nvim" "Neovim plugins update" || return $?
+
+    $QUIET || title "Running: 'nvim Lazy update; TSUpdateSync' with 'timetout 20s'"
+    if $QUIET; then
+        nvim --headless \
+            -c 'lua require("lazy").update():wait()' \
+            -c 'Lazy load nvim-treesitter' \
+            -c 'TSUpdateSync' \
+            -c 'qa!' >/dev/null 2>&1
+    else
+        nvim --headless \
+            -c 'lua require("lazy").update():wait()' \
+            -c 'Lazy load nvim-treesitter' \
+            -c 'TSUpdateSync' \
+            -c 'qa!'
     fi
 }
 
@@ -566,43 +706,66 @@ shutdown_system() {
     fi
 }
 
+run_profile() {
+    local profile="$1"
+    shift
+
+    $QUIET || title "Running '$profile' update profile"
+
+    local stage
+    for stage in "$@"; do
+        run_named_stage "$stage"
+    done
+}
+
+run_daily_updates() {
+    run_profile daily \
+        arch-check \
+        flatpak \
+        pip \
+        pnpm \
+        bun \
+        bins
+}
+
+run_weekly_updates() {
+    run_profile weekly \
+        pamac \
+        cargo \
+        go \
+        gem \
+        zinit \
+        neovim \
+        bins
+}
+
+run_monthly_updates() {
+    run_profile monthly \
+        pacman-mirrors \
+        hardware \
+        clam \
+        bins
+}
+
 run_user_updates() {
-    if $QUIET; then
-        run_stage pamac update_pamac >/dev/null
-        run_stage flatpak update_flatpak >/dev/null
-        run_stage mise update_mise >/dev/null
-        run_stage cargo update_cargo >/dev/null
-        run_stage go update_go >/dev/null
-        run_stage gem update_gem >/dev/null
-        run_stage pnpm update_pnpm >/dev/null
-        run_stage bun update_bun >/dev/null
-        run_stage pip update_pip >/dev/null
-        run_stage zinit update_zinit >/dev/null
-        run_stage neovim update_neovim >/dev/null
-        run_stage bins link_bins >/dev/null
-    else
-        $QUIET || title "Updating System (pamac, flatpak)"
-        run_stage pamac update_pamac
-        run_stage flatpak update_flatpak
+    $QUIET || title "Updating System (pamac, flatpak)"
+    run_named_stage pamac
+    run_named_stage flatpak
 
-        $QUIET || title "Updating Runtimes (mise)"
-        run_stage mise update_mise
+    $QUIET || title "Updating Libraries (cargo, go, gem, pnpm, bun, pip)"
+    run_named_stage cargo
+    run_named_stage go
+    run_named_stage gem
+    run_named_stage pnpm
+    run_named_stage bun
+    run_named_stage pip
 
-        $QUIET || title "Updating Libraries (cargo, go, gem, pnpm, bun, pip)"
-        run_stage cargo update_cargo
-        run_stage go update_go
-        run_stage gem update_gem
-        run_stage pnpm update_pnpm
-        run_stage bun update_bun
-        run_stage pip update_pip
+    $QUIET || title "Updating terminal (zsh, nvim)"
+    run_named_stage zinit
+    run_named_stage neovim
 
-        $QUIET || title "Updating terminal (zsh, nvim)"
-        run_stage zinit update_zinit
-        run_stage neovim update_neovim
-
-        $QUIET || title "Re-linking local (s)binaries"
-        run_stage bins link_bins
-    fi
+    $QUIET || title "Re-linking local (s)binaries"
+    run_named_stage bins
 }
 
 run_all_updates() {
@@ -610,18 +773,11 @@ run_all_updates() {
 
     if [[ $EUID -eq 0 ]]; then
         # Root: hardware + clam + mirrors then regular updates
-        if $QUIET; then
-            run_stage pacman-mirrors update_mirrors >/dev/null
-            run_stage hardware update_hardware >/dev/null
-            run_stage clam update_clam >/dev/null
-            run_stage snap update_snap >/dev/null
-        else
-            $QUIET || title "Updating System (mirrors, hardware, clam, snap)"
-            run_stage pacman-mirrors update_mirrors
-            run_stage hardware update_hardware
-            run_stage clam update_clam
-            run_stage snap update_snap
-        fi
+        $QUIET || title "Updating System (mirrors, hardware, clam, snap)"
+        run_named_stage pacman-mirrors
+        run_named_stage hardware
+        run_named_stage clam
+        run_named_stage snap
 
         # Now run user updates
         run_user_updates
@@ -629,6 +785,193 @@ run_all_updates() {
         # User mode: skip root stuff
         run_user_updates
     fi
+}
+
+doctor_ok() {
+    DOCTOR_OK+=("$1")
+    $JSON_SUMMARY || echo "✓ $1"
+}
+
+doctor_warn() {
+    DOCTOR_WARN+=("$1")
+    $JSON_SUMMARY || echo "⚠ $1"
+}
+
+doctor_action() {
+    DOCTOR_ACTIONS+=("$1")
+    $JSON_SUMMARY || echo "  → $1"
+}
+
+path_contains() {
+    local wanted="$1"
+    local entry
+    for entry in ${(s.:.)PATH}; do
+        [[ "$entry" == "$wanted" ]] && return 0
+    done
+    return 1
+}
+
+doctor_command() {
+    local command_name="$1"
+    local hint="${2:-}"
+    local command_path
+
+    if command_path="$(command -v "$command_name" 2>/dev/null)"; then
+        doctor_ok "$command_name: $command_path"
+        return 0
+    else
+        doctor_warn "$command_name missing${hint:+ — $hint}"
+        return 0
+    fi
+}
+
+doctor_any_command() {
+    local label="$1"
+    local hint="$2"
+    shift 2
+
+    local command_name command_path
+    for command_name in "$@"; do
+        if command_path="$(command -v "$command_name" 2>/dev/null)"; then
+            doctor_ok "$label: using $command_name at $command_path"
+            return 0
+        fi
+    done
+
+    doctor_warn "$label missing${hint:+ — $hint}"
+}
+
+doctor_path() {
+    local path_entry="$1"
+    if path_contains "$path_entry"; then
+        doctor_ok "PATH contains $path_entry"
+        return 0
+    else
+        doctor_warn "PATH missing $path_entry"
+        return 1
+    fi
+}
+
+doctor_env_equals() {
+    local variable_name="$1"
+    local expected="$2"
+    local actual
+    actual="$(printenv "$variable_name" 2>/dev/null || true)"
+
+    if [[ "$actual" == "$expected" ]]; then
+        doctor_ok "$variable_name=$expected"
+        return 0
+    else
+        doctor_warn "$variable_name is '${actual:-unset}', expected '$expected'"
+        return 1
+    fi
+}
+
+doctor_path_absent() {
+    local path_entry="$1"
+    local reason="$2"
+    if path_contains "$path_entry"; then
+        doctor_warn "legacy PATH entry present: $path_entry"
+        doctor_action "$reason"
+    fi
+}
+
+doctor_file_or_dir_absent() {
+    local path_entry="$1"
+    local reason="$2"
+    if [[ -e "$path_entry" ]]; then
+        doctor_warn "legacy path exists: $path_entry"
+        doctor_action "$reason"
+    fi
+}
+
+doctor_policy_recommendations() {
+    if command -v mise &>/dev/null; then
+        doctor_warn "mise installed, but current policy uses native managers instead"
+        doctor_action "If you agree with the policy: run 'mise prune', then uninstall mise with your package manager."
+    else
+        doctor_ok "mise absent (policy: native managers instead)"
+    fi
+
+    if ! command -v pnpm &>/dev/null; then
+        doctor_action "Add pnpm if you want JS/TS global package updates: 'pamac install pnpm'."
+    fi
+
+    if command -v corepack &>/dev/null; then
+        doctor_warn "corepack installed, but current policy prefers distro-managed pnpm"
+        doctor_action "If pnpm is installed with pamac/pacman, remove corepack: 'pamac remove corepack'."
+    fi
+
+    if command -v bun &>/dev/null && command -v pnpm &>/dev/null; then
+        doctor_ok "JS/TS policy: pnpm owns package management; bun is runtime/toolkit only"
+    elif command -v bun &>/dev/null; then
+        doctor_action "Keep bun as runtime/toolkit; avoid using 'bun add -g' for shared JS CLIs if pnpm will own JS package management."
+    fi
+
+    doctor_path_absent "$HOME/.cargo/bin" "Remove stale ~/.cargo/bin from shell config; use ~/.local/share/cargo/bin."
+    doctor_path_absent "$HOME/.npm-global/bin" "Remove legacy npm-global PATH entry if pnpm will own JS globals."
+    doctor_file_or_dir_absent "$HOME/.cargo" "Move/remove old ~/.cargo after verifying ~/.local/share/cargo works."
+    doctor_file_or_dir_absent "$HOME/.rustup" "Move/remove old ~/.rustup after verifying ~/.local/share/rustup works."
+}
+
+print_doctor_summary() {
+    if $JSON_SUMMARY; then
+        local ok_json="$(array_to_json "${DOCTOR_OK[@]}")"
+        local warn_json="$(array_to_json "${DOCTOR_WARN[@]}")"
+        local action_json="$(array_to_json "${DOCTOR_ACTIONS[@]}")"
+        printf '{"ok":[%s],"warnings":[%s],"actions":[%s]}' "$ok_json" "$warn_json" "$action_json"
+        printf '\n'
+        return 0
+    fi
+
+    title "Doctor summary"
+    echo "  ok:       ${#DOCTOR_OK[@]}"
+    echo "  warnings: ${#DOCTOR_WARN[@]}"
+    echo "  actions:  ${#DOCTOR_ACTIONS[@]}"
+}
+
+run_doctor() {
+    DOCTOR_OK=()
+    DOCTOR_WARN=()
+    DOCTOR_ACTIONS=()
+
+    $JSON_SUMMARY || title "Updater doctor"
+
+    doctor_command "checkupdates" "install pacman-contrib: sudo pacman -S pacman-contrib"
+    doctor_any_command "Arch/AUR updater" "install paru or pamac" paru pamac
+    doctor_command "flatpak"
+    doctor_command "uv"
+    doctor_command "pnpm" "install pnpm if you want the pnpm daily stage: pamac install pnpm" || true
+    doctor_command "bun"
+    doctor_command "go-global-update" "go install github.com/Gelio/go-global-update@latest"
+    doctor_command "gem"
+    doctor_command "cargo-install-update" "cargo install cargo-update"
+    doctor_command "nvim"
+
+    if [[ -f "$HOME/.local/share/zinit/zinit.git/zinit.zsh" ]]; then
+        doctor_ok "zinit script found"
+    else
+        doctor_warn "zinit script missing at $HOME/.local/share/zinit/zinit.git/zinit.zsh"
+    fi
+
+    doctor_env_equals "GOBIN" "$HOME/.local/bin" || doctor_action "Set GOBIN in your env file: export GOBIN=\"\$HOME/.local/bin\""
+    doctor_env_equals "GOPATH" "$HOME/.local/share/go" || doctor_action "Set GOPATH in your env file: export GOPATH=\"\$HOME/.local/share/go\""
+    doctor_env_equals "CARGO_HOME" "$HOME/.local/share/cargo" || doctor_action "Set CARGO_HOME in your env file and migrate with rsync from ~/.cargo/."
+    doctor_env_equals "RUSTUP_HOME" "$HOME/.local/share/rustup" || doctor_action "Set RUSTUP_HOME in your env file and migrate with rsync from ~/.rustup/."
+    doctor_env_equals "GEM_HOME" "$HOME/.local/share/gem/ruby" || doctor_action "Set GEM_HOME/GEM_PATH to ~/.local/share/gem/ruby for user-local gems."
+    doctor_env_equals "PNPM_HOME" "$HOME/.local/share/pnpm" || doctor_action "Set PNPM_HOME to ~/.local/share/pnpm if pnpm is part of your JS policy."
+    doctor_env_equals "BUN_INSTALL" "$HOME/.bun" || doctor_action "Set BUN_INSTALL to ~/.bun so bun runtime tools stay user-local."
+
+    doctor_path "$HOME/.local/bin" || doctor_action "Add ~/.local/bin early in PATH."
+    doctor_path "$HOME/.local/share/cargo/bin" || doctor_action "Add ~/.local/share/cargo/bin to PATH."
+    doctor_path "$HOME/.local/share/gem/ruby/bin" || doctor_action "Add ~/.local/share/gem/ruby/bin to PATH."
+    doctor_path "$HOME/.bun/bin" || doctor_action "Add ~/.bun/bin to PATH."
+    doctor_path "$HOME/.local/share/pnpm" || doctor_action "Add ~/.local/share/pnpm to PATH if using pnpm globals."
+
+    doctor_policy_recommendations
+
+    print_doctor_summary
+    return 0
 }
 
 time_function() {
@@ -646,25 +989,10 @@ completions() {
     echo "_updater() {" >>~/.zfunc/_updater
     echo "  local -a commands" >>~/.zfunc/_updater
     echo "  commands=(" >>~/.zfunc/_updater
-    echo "    'pamac:Update using pamac'" >>~/.zfunc/_updater
-    echo "    'pacman-mirrors:Update pacman-mirrors'" >>~/.zfunc/_updater
-    echo "    'snap:Update using snap'" >>~/.zfunc/_updater
-    echo "    'flatpak:Update using flatpak'" >>~/.zfunc/_updater
-    echo "    'hardware:Update hardware firmware'" >>~/.zfunc/_updater
-    echo "    'clam:Update ClamAV database'" >>~/.zfunc/_updater
-    echo "    'clam-scan:Scan with pre-settings'" >>~/.zfunc/_updater
-    echo "    'mise:Update all dev packages'" >>~/.zfunc/_updater
-    echo "    'cargo:Update cargo packages'" >>~/.zfunc/_updater
-    echo "    'go:Update go packages'" >>~/.zfunc/_updater
-    echo "    'pnpm:Update pnpm packages'" >>~/.zfunc/_updater
-    echo "    'bun:Update bun runtime and global packages'" >>~/.zfunc/_updater
-    echo "    'pip:Update pipx packages'" >>~/.zfunc/_updater
-    echo "    'zinit:Update zinit plugins'" >>~/.zfunc/_updater
-    echo "    'clean-dev:Clean dev packages'" >>~/.zfunc/_updater
-    echo "    'neovim:Update Neovim plugins'" >>~/.zfunc/_updater
-    echo "    'bins:Update linked bins and sbins'" >>~/.zfunc/_updater
-    echo "    'completions:Generate Zsh completions'" >>~/.zfunc/_updater
-    echo "    'and-shutdown:Run all updates and then shutdown'" >>~/.zfunc/_updater
+    local stage
+    for stage in doctor all daily weekly monthly "${ALL_STAGES[@]}" completions and-shutdown; do
+        echo "    '$stage:${STAGE_DESCRIPTIONS[$stage]}'" >>~/.zfunc/_updater
+    done
     echo "  )" >>~/.zfunc/_updater
     echo "  _arguments -s \\" >>~/.zfunc/_updater
     echo "    '(-h --help help)'{-h,--help}'[Show help message]' \\" >>~/.zfunc/_updater
@@ -701,7 +1029,8 @@ main() {
             fi
             only_flag_used=true
             local -a parsed_only
-            parsed_only=(${(s:,:)"$1"})
+            local only_value="$1"
+            parsed_only=("${(@s:,:)only_value}")
             normalize_stage_list only "${parsed_only[@]}"
             ONLY_STAGES=("${NORMALIZED_STAGE_LIST[@]}")
             shift
@@ -713,7 +1042,8 @@ main() {
                 exit 1
             fi
             local -a parsed_skip
-            parsed_skip=(${(s:,:)"$1"})
+            local skip_value="$1"
+            parsed_skip=("${(@s:,:)skip_value}")
             normalize_stage_list skip "${parsed_skip[@]}"
             SKIP_STAGES=("${NORMALIZED_STAGE_LIST[@]}")
             shift
@@ -747,148 +1077,37 @@ main() {
         fi
         shutdown_system
     elif [ $# -eq 0 ]; then
-        if $QUIET; then
-            time_function run_all_updates >/dev/null
-        else
-            time_function run_all_updates
-        fi
+        run_doctor
+        exit 0
     else
         for arg in "$@"; do
             case $arg in
-            pamac)
+            doctor)
+                run_doctor
+                exit 0
+                ;;
+            all)
                 if $QUIET; then
-                    run_stage pamac update_pamac >/dev/null
+                    time_function run_all_updates >/dev/null
                 else
-                    run_stage pamac update_pamac
+                    time_function run_all_updates
                 fi
                 ;;
-            pacman-mirrors)
-                if $QUIET; then
-                    run_stage pacman-mirrors update_mirrors >/dev/null
-                else
-                    run_stage pacman-mirrors update_mirrors
-                fi
+            daily)
+                run_daily_updates
                 ;;
-            snap)
-                if $QUIET; then
-                    run_stage snap update_snap >/dev/null
-                else
-                    run_stage snap update_snap
-                fi
+            weekly)
+                run_weekly_updates
                 ;;
-            flatpak)
-                if $QUIET; then
-                    run_stage flatpak update_flatpak >/dev/null
-                else
-                    run_stage flatpak update_flatpak
-                fi
-                ;;
-            hardware)
-                if $QUIET; then
-                    run_stage hardware update_hardware >/dev/null
-                else
-                    run_stage hardware update_hardware
-                fi
-                ;;
-            clam)
-                if $QUIET; then
-                    run_stage clam update_clam >/dev/null
-                else
-                    run_stage clam update_clam
-                fi
-                ;;
-            clam-scan)
-                if $QUIET; then
-                    run_stage clam-scan clam_scan_and_quarantine >/dev/null
-                else
-                    run_stage clam-scan clam_scan_and_quarantine
-                fi
-                ;;
-            mise)
-                if $QUIET; then
-                    run_stage mise update_mise >/dev/null
-                else
-                    run_stage mise update_mise
-                fi
-                ;;
-            cargo)
-                if $QUIET; then
-                    run_stage cargo update_cargo >/dev/null
-                else
-                    run_stage cargo update_cargo
-                fi
-                ;;
-            go)
-                if $QUIET; then
-                    run_stage go update_go >/dev/null
-                else
-                    run_stage go update_go
-                fi
-                ;;
-            gem)
-                if $QUIET; then
-                    run_stage gem update_gem >/dev/null
-                else
-                    run_stage gem update_gem
-                fi
-                ;;
-            pip)
-                if $QUIET; then
-                    run_stage pip update_pip >/dev/null
-                else
-                    run_stage pip update_pip
-                fi
-                ;;
-            pnpm)
-                if $QUIET; then
-                    run_stage pnpm update_pnpm >/dev/null
-                else
-                    run_stage pnpm update_pnpm
-                fi
-                ;;
-            bun)
-                if $QUIET; then
-                    run_stage bun update_bun >/dev/null
-                else
-                    run_stage bun update_bun
-                fi
-                ;;
-            zinit)
-                if $QUIET; then
-                    run_stage zinit update_zinit >/dev/null
-                else
-                    run_stage zinit update_zinit
-                fi
-                ;;
-            clean-dev)
-                if $QUIET; then
-                    run_stage clean-dev clean_dev >/dev/null
-                else
-                    run_stage clean-dev clean_dev
-                fi
-                ;;
-            bins)
-                if $QUIET; then
-                    run_stage bins link_bins >/dev/null
-                else
-                    run_stage bins link_bins
-                fi
-                ;;
-            neovim)
-                if $QUIET; then
-                    run_stage neovim update_neovim >/dev/null
-                else
-                    run_stage neovim update_neovim
-                fi
+            monthly)
+                run_monthly_updates
                 ;;
             completions)
                 completions
                 exit 0
                 ;;
             *)
-                echo "Unknown update: $arg"
-                show_help
-                exit 1
+                run_named_stage "$arg"
                 ;;
             esac
         done
