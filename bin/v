@@ -117,6 +117,8 @@ function completions() {
 #compdef v
 
 _v() {
+  local context state line
+  typeset -A opt_args
   local -a v_commands
   v_commands=(
     edit
@@ -140,13 +142,24 @@ _v() {
     completions
   )
 
-  if (( CURRENT == 2 )); then
-    compadd -U -Q -S ' ' -- "${v_commands[@]}"
-    _compskip=all
-    return 0
-  fi
+  _arguments -C \
+    '1:subcommand or path:->target' \
+    '*::argument:->argument'
 
-  _files
+  case $state in
+    target)
+      if [[ $PREFIX == */* || $PREFIX == .* || $PREFIX == ~* ]]; then
+        _path_files
+      else
+        _alternative \
+          'subcommands:subcommand:compadd -U -Q -S " " -a v_commands' \
+          'files:file:_path_files'
+      fi
+      ;;
+    argument)
+      _path_files
+      ;;
+  esac
 }
 
 _v "$@"
