@@ -15,7 +15,7 @@ Usage: ./scoder-test.sh [quick|full|validate] [ROOT]
 Modes:
   quick     Compare key host vs scoder behavior (default)
   full      Include unified diff of full agent output
-  validate  Run ./scoder --validate only
+  validate  Run ./scoder -- --validate only
 
 ROOT defaults to current directory.
 EOF
@@ -43,7 +43,7 @@ show_env() {
 }
 
 run_validate_only() {
-    exec ./scoder --validate
+    exec ./scoder -- --validate
 }
 
 run_quick() {
@@ -53,19 +53,19 @@ run_quick() {
     opencode --version 2>/dev/null || true
 
     section "SCODER: opencode binary"
-    scoder "$ROOT" -- /bin/bash -lc 'command -v opencode; readlink -f "$(command -v opencode)" 2>/dev/null || command -v opencode; opencode --version 2>/dev/null || true'
+    scoder -- "$ROOT" -x /bin/bash -lc 'command -v opencode; readlink -f "$(command -v opencode)" 2>/dev/null || command -v opencode; opencode --version 2>/dev/null || true'
 
     section "HOST: git root"
     git rev-parse --show-toplevel 2>/dev/null || true
 
     section "SCODER: git root"
-    scoder "$ROOT" -- /bin/bash -lc 'git rev-parse --show-toplevel 2>/dev/null || true'
+    scoder -- "$ROOT" -x /bin/bash -lc 'git rev-parse --show-toplevel 2>/dev/null || true'
 
     show_agent_names "HOST agent names" opencode agent list
-    show_agent_names "SCODER agent names" scoder "$ROOT" -- opencode agent list
+    show_agent_names "SCODER agent names" scoder agent list -- "$ROOT"
 
     show_env "HOST relevant env vars" env
-    show_env "SCODER relevant env vars" scoder "$ROOT" -- /bin/bash -lc env
+    show_env "SCODER relevant env vars" scoder -- "$ROOT" -x /bin/bash -lc env
 }
 
 run_full() {
@@ -75,14 +75,14 @@ run_full() {
     /usr/bin/find -L "$HOME/.cache/opencode/packages" -maxdepth 2 -type d -print 2>/dev/null | sort
 
     section "SCODER: plugin package dirs"
-    scoder "$ROOT" -- /bin/bash -lc '/usr/bin/find -L "$HOME/.cache/opencode/packages" -maxdepth 2 -type d -print 2>/dev/null | sort'
+    scoder -- "$ROOT" -x /bin/bash -lc '/usr/bin/find -L "$HOME/.cache/opencode/packages" -maxdepth 2 -type d -print 2>/dev/null | sort'
 
     section "FULL agent list diff"
     local host_agents="$TMPDIR/host-agents.txt"
     local scoder_agents="$TMPDIR/scoder-agents.txt"
 
     opencode agent list > "$host_agents"
-    scoder "$ROOT" -- opencode agent list > "$scoder_agents"
+    scoder agent list -- "$ROOT" > "$scoder_agents"
 
     printf -- '--- host agents file: %s\n' "$host_agents"
     printf -- '--- scoder agents file: %s\n' "$scoder_agents"

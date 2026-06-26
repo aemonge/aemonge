@@ -24,8 +24,8 @@ scoder 0.9.0
 Safe OpenCode wrapper using bubblewrap.
 
 Usage:
-  scoder [options] [TARGET] [-- [OPENCODE_ARGS...]]
-  scoder [options] [TARGET] -- COMMAND [ARG...]
+  scoder [OPENCODE_ARGS...] [-- [TARGET] [SCODER_OPTIONS...]]
+  scoder [OPENCODE_ARGS...] -- [TARGET] -x COMMAND [ARG...]
 
 Options:
   -h, --help              Show this help and exit
@@ -34,6 +34,8 @@ Options:
   -A, --add-rw PATH       Add extra file/dir to sandbox read-write
   -b, --bin PATH          Path to opencode binary (default: "opencode")
   -q, --quiet             Suppress informational output
+  -x, --exec COMMAND...   Execute raw command inside sandbox instead of opencode
+      --doctor            Run user-facing diagnostics and exit
       --validate          Run comprehensive validation tests and exit
       --ro                Mount project directory read-only (safe)
       --rw                Mount project directory read-write (default)
@@ -50,9 +52,9 @@ USAGE_EOF
     cat <<'USAGE_END'
 
 Arguments:
-  TARGET                  Directory or regular file exposed at same absolute path (default: $PWD)
-  OPENCODE_ARGS           Arguments passed verbatim to opencode when first arg after "--" starts with "-"
-  COMMAND [ARG...]        Raw command executed inside the sandbox when first arg after "--" does not start with "-"
+  OPENCODE_ARGS           Arguments passed verbatim to opencode before "--"
+  TARGET                  Directory or regular file exposed at same absolute path after "--" (default: $PWD)
+  COMMAND [ARG...]        Raw command executed inside the sandbox with -x/--exec
 
 Environment:
   OPENCODE_BIN            Overrides default opencode binary
@@ -74,16 +76,17 @@ Writable Runtime State:
 
 Examples:
   scoder                    # rw sandbox of $PWD, infra protected
-  scoder --validate         # run comprehensive validation tests
-  scoder --ro               # read-only sandbox of $PWD
-  scoder --allow-git        # allow .git writes
-  scoder -a ../shared.env   # add extra file read-only
-  scoder -A ../scratch      # add extra directory read-write
-  scoder --web-developer    # start/attach Chromium DevTools on :9222
-  scoder --allow-host-tools # bind host dev tools (mise, cargo, etc)
-  scoder . -- /bin/bash -lc 'env | grep HOME' # run raw command in sandbox
-  scoder src/lib/target.txt -- /bin/bash -lc 'cat src/lib/target.txt'
-  scoder myproj -- --verbose # pass --verbose to opencode
+  scoder "hi"                         # pass prompt to opencode, sandbox $PWD
+  scoder "hi" -- ./myproj -w          # prompt opencode, sandbox ./myproj, browser-dev mode
+  scoder agent list -- ./myproj        # run opencode agent list in ./myproj sandbox
+  scoder -- ./myproj --doctor          # run user-facing diagnostics
+  scoder -- ./myproj --validate        # run comprehensive validation tests
+  scoder -- ./myproj --ro              # read-only sandbox
+  scoder -- ./myproj --allow-git       # allow .git writes
+  scoder -- ./myproj -a ../shared.env  # add extra file read-only
+  scoder -- ./myproj -A ../scratch     # add extra directory read-write
+  scoder -- ./myproj -x /bin/bash -lc 'env | grep HOME' # raw command in sandbox
+  scoder -- src/lib/target.txt -x /bin/bash -lc 'cat src/lib/target.txt'
 
 Security Note:
   HOME mirrors your host home path on tmpfs with explicit binds.
@@ -118,6 +121,101 @@ info_blue() {
     if [[ "${QUIET}" -eq 0 ]]; then
         echo -e "${BLUE}${PROGRAM_NAME}: $*${NC}" >&2
     fi
+}
+
+startup_trace_ms() {
+    date +%s%3N 2>/dev/null || printf '%s000' "$(date +%s)"
+}
+
+trace_startup() {
+    if [[ "${SCODER_TRACE_STARTUP:-0}" != "1" ]]; then
+        return 0
+    fi
+
+    local label="$1"
+    local now
+    local delta
+    local total
+
+    now="$(startup_trace_ms)"
+    if [[ "${SCODER_TRACE_STARTUP_STARTED:-0}" -eq 0 ]]; then
+        SCODER_TRACE_STARTUP_STARTED="${now}"
+        SCODER_TRACE_STARTUP_LAST="${now}"
+    fi
+
+    delta=$((now - SCODER_TRACE_STARTUP_LAST))
+    total=$((now - SCODER_TRACE_STARTUP_STARTED))
+    SCODER_TRACE_STARTUP_LAST="${now}"
+
+    printf 'scoder startup: +%sms total=%sms %s\n' "${delta}" "${total}" "${label}" >&2
+}
+
+file_mtime() {
+    stat -c %Y "$1" 2>/dev/null || printf '0'
+}
+
+resolve_bind_source_path() {
+    local source_path="$1"
+
+    if [[ -L "${source_path}" ]]; then
+        REPLY="$(realpath "${source_path}")"
+        return
+    fi
+
+    REPLY="${source_path}"
+}
+
+init_discovery_cache() {
+    SCODER_CACHE_DIR="${HOST_HOME}/.cache/scoder"
+    SCODER_DISCOVERY_CACHE="${SCODER_CACHE_DIR}/discovery-v1.env"
+    SCODER_DISCOVERY_CACHE_VALID=0
+
+    mkdir -p "${SCODER_CACHE_DIR}"
+
+    if [[ "${SCODER_FORCE_PROBE:-0}" == "1" || "${SCODER_FORCE_DISCOVERY:-0}" == "1" ]]; then
+        return 0
+    fi
+
+    if [[ -f "${SCODER_DISCOVERY_CACHE}" ]]; then
+        # shellcheck disable=SC1090
+        source "${SCODER_DISCOVERY_CACHE}" || true
+        SCODER_DISCOVERY_CACHE_VALID=1
+    fi
+}
+
+is_discovery_cache_current() {
+    local expected_bwrap_path="$1"
+    local expected_bwrap_version="$2"
+    local expected_script_mtime
+
+    if [[ "${SCODER_DISCOVERY_CACHE_VALID:-0}" -ne 1 ]]; then
+        return 1
+    fi
+
+    expected_script_mtime="$(file_mtime "$0")"
+    [[ "${SCODER_CACHE_SCRIPT_MTIME:-}" == "${expected_script_mtime}" ]] || return 1
+    [[ "${SCODER_CACHE_BWRAP_PATH:-}" == "${expected_bwrap_path}" ]] || return 1
+    [[ "${SCODER_CACHE_BWRAP_VERSION:-}" == "${expected_bwrap_version}" ]] || return 1
+}
+
+write_discovery_cache() {
+    if [[ -z "${SCODER_DISCOVERY_CACHE:-}" ]]; then
+        return 0
+    fi
+
+    umask 077
+    {
+        printf 'SCODER_CACHE_SCRIPT_MTIME=%q\n' "$(file_mtime "$0")"
+        printf 'SCODER_CACHE_BWRAP_PATH=%q\n' "${SCODER_CACHE_BWRAP_PATH:-}"
+        printf 'SCODER_CACHE_BWRAP_VERSION=%q\n' "${SCODER_CACHE_BWRAP_VERSION:-}"
+        printf 'SCODER_CACHE_BWRAP_DISABLE_USERNS_SUPPORTED=%q\n' "${SCODER_CACHE_BWRAP_DISABLE_USERNS_SUPPORTED:-}"
+        printf 'SCODER_CACHE_BWRAP_NAMESPACE_SUPPORT=%q\n' "${SCODER_CACHE_BWRAP_NAMESPACE_SUPPORT:-}"
+        printf 'SCODER_CACHE_REAL_GIT_HOST=%q\n' "${SCODER_CACHE_REAL_GIT_HOST:-}"
+        printf 'SCODER_CACHE_REAL_GIT_REALPATH=%q\n' "${SCODER_CACHE_REAL_GIT_REALPATH:-}"
+        printf 'SCODER_CACHE_SCODER_GIT_HOST=%q\n' "${SCODER_CACHE_SCODER_GIT_HOST:-}"
+        printf 'SCODER_CACHE_SCODER_GIT_REALPATH=%q\n' "${SCODER_CACHE_SCODER_GIT_REALPATH:-}"
+        printf 'SCODER_CACHE_OPENCODE_BIN=%q\n' "${SCODER_CACHE_OPENCODE_BIN:-}"
+    } >"${SCODER_DISCOVERY_CACHE}"
 }
 
 json_escape() {
@@ -469,7 +567,7 @@ run_validation() {
     echo ""
     info "Test A.1: HOME isolation"
     local home_result
-    home_result=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc "printf '%s' \"\$HOME\"" || true)
+    home_result=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc "printf '%s' \"\$HOME\"" || true)
     if [[ "${home_result}" == "${HOME}" ]]; then
         echo "✅ Test A.1 PASS: HOME mirrors host home path"
     else
@@ -480,7 +578,7 @@ run_validation() {
     # Test A.1b: EDITOR default
     info "Test A.1b: EDITOR default"
     local editor_result
-    editor_result=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc "printf '%s' \"\$EDITOR\"" || true)
+    editor_result=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc "printf '%s' \"\$EDITOR\"" || true)
     if [[ "${editor_result}" == "v_quickedit_hover" ]]; then
         echo "✅ Test A.1b PASS: EDITOR defaults to v_quickedit_hover"
     else
@@ -492,7 +590,7 @@ run_validation() {
     if [[ -n "${NVIM:-}" && -S "${NVIM}" ]]; then
         info "Test A.1c: active Neovim socket bridge"
         local nvim_result
-        nvim_result=$(OPENCODE_BIN=/bin/bash NVIM="${NVIM}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-}" "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc "printf '%s' \"\$NVIM\"" || true)
+        nvim_result=$(OPENCODE_BIN=/bin/bash NVIM="${NVIM}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-}" "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc "printf '%s' \"\$NVIM\"" || true)
         if [[ "${nvim_result}" == "${NVIM}" ]]; then
             echo "✅ Test A.1c PASS: NVIM propagated into sandbox"
         else
@@ -501,7 +599,7 @@ run_validation() {
         fi
 
         local nvim_socket_test
-        nvim_socket_test=$(OPENCODE_BIN=/bin/bash NVIM="${NVIM}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-}" "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'test -S "$NVIM" && printf SOCKET_OK' || true)
+        nvim_socket_test=$(OPENCODE_BIN=/bin/bash NVIM="${NVIM}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-}" "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'test -S "$NVIM" && printf SOCKET_OK' || true)
         if [[ "${nvim_socket_test}" == "SOCKET_OK" ]]; then
             echo "✅ Test A.1c PASS: active Neovim socket is visible"
         else
@@ -511,7 +609,7 @@ run_validation() {
 
         if [[ -n "${XDG_RUNTIME_DIR:-}" ]]; then
             local xdg_runtime_result
-            xdg_runtime_result=$(OPENCODE_BIN=/bin/bash NVIM="${NVIM}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc "printf '%s' \"\$XDG_RUNTIME_DIR\"" || true)
+            xdg_runtime_result=$(OPENCODE_BIN=/bin/bash NVIM="${NVIM}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc "printf '%s' \"\$XDG_RUNTIME_DIR\"" || true)
             if [[ "${xdg_runtime_result}" == "${XDG_RUNTIME_DIR}" ]]; then
                 echo "✅ Test A.1c PASS: XDG runtime dir propagated"
             else
@@ -526,7 +624,7 @@ run_validation() {
     # Test A.2: bashrc write isolation (no leak to host)
     info "Test A.2: ~/.bashrc write isolation"
     local host_bashrc="${HOME}/.bashrc"
-    OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'echo "SCODER_TEST" > ~/.bashrc' >/dev/null 2>&1 || true
+    OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'echo "SCODER_TEST" > ~/.bashrc' >/dev/null 2>&1 || true
     local leaked=0
     if [[ -f "${host_bashrc}" ]]; then
         if grep -q "SCODER_TEST" "${host_bashrc}" 2>/dev/null; then
@@ -543,7 +641,7 @@ run_validation() {
     # Test A.3: System file write protection
     info "Test A.3: System file write protection"
     local sys_write
-    sys_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'touch /usr/bin/scoder-test 2>&1' 2>&1 || true)
+    sys_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'touch /usr/bin/scoder-test 2>&1' 2>&1 || true)
     if echo "${sys_write}" | grep -qE "Read-only|Permission denied|cannot touch"; then
         echo "✅ Test A.3 PASS: System files are read-only"
     else
@@ -554,7 +652,7 @@ run_validation() {
     # Test B.1: Workspace is writable
     info "Test B.1: Workspace writability"
     local workspace_write
-    workspace_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'touch new_file.py && echo SUCCESS' 2>&1 || true)
+    workspace_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'touch new_file.py && echo SUCCESS' 2>&1 || true)
     if echo "${workspace_write}" | grep -q "SUCCESS"; then
         echo "✅ Test B.1 PASS: Workspace is writable"
     else
@@ -565,7 +663,7 @@ run_validation() {
     # Test B.2: .git writability for scoder-git managed commits
     info "Test B.2: .git directory writability"
     local git_write
-    git_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'touch .git/test && echo SUCCESS' 2>&1 || true)
+    git_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'touch .git/test && echo SUCCESS' 2>&1 || true)
     if echo "${git_write}" | grep -q "SUCCESS"; then
         echo "✅ Test B.2 PASS: .git is writable for managed git operations"
     else
@@ -576,7 +674,7 @@ run_validation() {
     # Test B.3: node_modules writability
     info "Test B.3: node_modules directory writability"
     local nm_write
-    nm_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'touch node_modules/test && echo SUCCESS' 2>&1 || true)
+    nm_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'touch node_modules/test && echo SUCCESS' 2>&1 || true)
     if echo "${nm_write}" | grep -q "SUCCESS"; then
         echo "✅ Test B.3 PASS: node_modules is writable"
     else
@@ -586,7 +684,7 @@ run_validation() {
 
     # Test B.4: --allow-git remains accepted for compatibility
     info "Test B.4: --allow-git compatibility"
-    if OPENCODE_BIN=/bin/bash "${script_path}" -q --allow-git "${test_project}" -- /bin/bash --noprofile --norc -lc 'true' >/dev/null 2>&1; then
+    if OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q --allow-git -x /bin/bash --noprofile --norc -lc 'true' >/dev/null 2>&1; then
         echo "✅ Test B.4 PASS: --allow-git is still accepted"
     else
         echo "❌ Test B.4 FAIL: --allow-git compatibility failed"
@@ -596,7 +694,7 @@ run_validation() {
     # Test B.5: project .env visibility
     info "Test B.5: project .env visibility"
     local env_visible
-    env_visible=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'test -e .env && echo SUCCESS' 2>&1 || true)
+    env_visible=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'test -e .env && echo SUCCESS' 2>&1 || true)
     if echo "${env_visible}" | grep -q "SUCCESS"; then
         echo "✅ Test B.5 PASS: project .env is visible"
     else
@@ -607,7 +705,7 @@ run_validation() {
     # Test B.6: --ro must not mutate project-local mise state
     info "Test B.6: --ro blocks project-local mise state writes"
     rm -rf "${test_project}/.local"
-    OPENCODE_BIN=/bin/bash "${script_path}" -q --ro "${test_project}" -- /bin/bash --noprofile --norc -lc 'test ! -w . && echo RO' >/dev/null 2>&1 || true
+    OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q --ro -x /bin/bash --noprofile --norc -lc 'test ! -w . && echo RO' >/dev/null 2>&1 || true
     if [[ ! -e "${test_project}/.local/state/mise" ]]; then
         echo "✅ Test B.6 PASS: --ro does not create project-local mise state"
     else
@@ -618,7 +716,7 @@ run_validation() {
     # Test B.7: raw command execution after --
     info "Test B.7: raw command execution after --"
     local raw_command_test
-    raw_command_test=$("${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'printf RAW_OK' || true)
+    raw_command_test=$("${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'printf RAW_OK' || true)
     if [[ "${raw_command_test}" == "RAW_OK" ]]; then
         echo "✅ Test B.7 PASS: raw commands execute inside sandbox"
     else
@@ -630,7 +728,7 @@ run_validation() {
     if [[ -f "${OPENCODE_DEFAULT_CONFIG}" ]]; then
         info "Test C: Config bind verification"
         local config_read
-        config_read=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'cat ~/.config/opencode/opencode.json' || true)
+        config_read=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'cat ~/.config/opencode/opencode.json' || true)
         local expected_content
         expected_content=$(cat "${OPENCODE_DEFAULT_CONFIG}" 2>/dev/null || echo "")
         if [[ "${config_read}" == "${expected_content}" ]]; then
@@ -652,7 +750,7 @@ run_validation() {
     printf '%s\n' "${symlink_expected}" >"${symlink_target_dir}/opencode.json"
     ln -s "${symlink_target_dir}/opencode.json" "${symlink_home}/.config/opencode/opencode.json"
     local symlink_config_read
-    symlink_config_read=$(HOME="${symlink_home}" OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'cat ~/.config/opencode/opencode.json' || true)
+    symlink_config_read=$(HOME="${symlink_home}" OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'cat ~/.config/opencode/opencode.json' || true)
     if [[ "${symlink_config_read}" == "${symlink_expected}" ]]; then
         echo "✅ Test C.1 PASS: Symlinked opencode.json target is visible"
     else
@@ -663,7 +761,7 @@ run_validation() {
     # Test D: Tooling PATH
     info "Test D: .venv in PATH"
     local venv_path
-    venv_path=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc "echo \"\$PATH\"" 2>&1 || true)
+    venv_path=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc "echo \"\$PATH\"" 2>&1 || true)
     if echo "${venv_path}" | grep -q ".venv/bin"; then
         echo "✅ Test D PASS: .venv/bin is in PATH"
     else
@@ -674,7 +772,7 @@ run_validation() {
     # Test E: DNS resolver configuration
     info "Test E: DNS resolver configuration"
     local dns_test
-    dns_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'grep -q "^nameserver " /etc/resolv.conf && echo SUCCESS' 2>&1 || true)
+    dns_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'grep -q "^nameserver " /etc/resolv.conf && echo SUCCESS' 2>&1 || true)
     if echo "${dns_test}" | grep -q "SUCCESS"; then
         echo "✅ Test E PASS: DNS resolver config is available"
     else
@@ -684,7 +782,7 @@ run_validation() {
 
     info "Test E.1: DNS lookup works inside sandbox"
     local dns_lookup_test
-    dns_lookup_test=$(timeout 10s env OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'getent hosts api.openai.com >/dev/null && echo SUCCESS' 2>&1 || true)
+    dns_lookup_test=$(timeout 10s env OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'getent hosts api.openai.com >/dev/null && echo SUCCESS' 2>&1 || true)
     if echo "${dns_lookup_test}" | grep -q "SUCCESS"; then
         echo "✅ Test E.1 PASS: DNS lookup works inside sandbox"
     else
@@ -694,7 +792,7 @@ run_validation() {
 
     info "Test E.2: HTTPS connectivity works inside sandbox"
     local https_test
-    https_test=$(timeout 10s env OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'curl --max-time 10 -I -sS https://api.openai.com 2>&1 | grep -m1 -E "^HTTP/"' 2>&1 || true)
+    https_test=$(timeout 10s env OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'curl --max-time 10 -I -sS https://api.openai.com 2>&1 | grep -m1 -E "^HTTP/"' 2>&1 || true)
     if echo "${https_test}" | grep -qE "^HTTP/"; then
         echo "✅ Test E.2 PASS: HTTPS connectivity works inside sandbox (${https_test})"
     else
@@ -705,7 +803,7 @@ run_validation() {
     # Test F: OpenCode writable runtime state
     info "Test F: OpenCode writable runtime state"
     local oc_state_test
-    oc_state_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'test -w "$HOME/.config/opencode" && test -w "$HOME/.cache/opencode" && test -w "$HOME/.local/share/opencode" && test -w "$HOME/.opencode" && test -w "$HOME/.agents" && echo SUCCESS' 2>&1 || true)
+    oc_state_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'test -w "$HOME/.config/opencode" && test -w "$HOME/.cache/opencode" && test -w "$HOME/.local/share/opencode" && test -w "$HOME/.opencode" && test -w "$HOME/.agents" && echo SUCCESS' 2>&1 || true)
     if echo "${oc_state_test}" | grep -q "SUCCESS"; then
         echo "✅ Test F PASS: OpenCode runtime paths are writable"
     else
@@ -716,7 +814,7 @@ run_validation() {
     # Test G: Bun writable runtime state
     info "Test G: Bun writable runtime state"
     local bun_state_test
-    bun_state_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'test -w "$HOME/.bun" && test -w "$HOME/.cache/bun" && echo SUCCESS' 2>&1 || true)
+    bun_state_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'test -w "$HOME/.bun" && test -w "$HOME/.cache/bun" && echo SUCCESS' 2>&1 || true)
     if echo "${bun_state_test}" | grep -q "SUCCESS"; then
         echo "✅ Test G PASS: Bun runtime paths are writable"
     else
@@ -727,7 +825,7 @@ run_validation() {
     # Test H: TUI environment essentials
     info "Test H: TUI environment essentials"
     local tui_env_test
-    tui_env_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc "test -n \"\$TERM\" && test -n \"\$LANG\" && test -n \"\$SHELL\" && test \"\$GIT_OPTIONAL_LOCKS\" = \"0\" && echo SUCCESS" 2>&1 || true)
+    tui_env_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc "test -n \"\$TERM\" && test -n \"\$LANG\" && test -n \"\$SHELL\" && test \"\$GIT_OPTIONAL_LOCKS\" = \"0\" && echo SUCCESS" 2>&1 || true)
     if echo "${tui_env_test}" | grep -q "SUCCESS"; then
         echo "✅ Test H PASS: TUI environment variables are present"
     else
@@ -738,7 +836,7 @@ run_validation() {
     # Test I: project path preserved inside sandbox
     info "Test I: project path preserved"
     local project_path_test
-    project_path_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'pwd' || true)
+    project_path_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'pwd' || true)
     if [[ "${project_path_test}" == "${test_project}" ]]; then
         echo "✅ Test I PASS: project path preserved"
     else
@@ -749,7 +847,7 @@ run_validation() {
     # Test L.1: single-file mode keeps sibling files visible
     info "Test L.1: single-file mode keeps workspace visible"
     local file_mode_read
-    file_mode_read=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${target_file_path}" -- /bin/bash --noprofile --norc -lc "cat '${sibling_file_path}'" 2>&1 || true)
+    file_mode_read=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${target_file_path}" -q -x /bin/bash --noprofile --norc -lc "cat '${sibling_file_path}'" 2>&1 || true)
     if [[ "${file_mode_read}" == "beta" ]]; then
         echo "✅ Test L.1 PASS: sibling files remain readable in file mode"
     else
@@ -760,7 +858,7 @@ run_validation() {
     # Test L.2: single-file mode allows target writes
     info "Test L.2: single-file mode allows target writes"
     local file_mode_target_write
-    file_mode_target_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${target_file_path}" -- /bin/bash --noprofile --norc -lc "printf updated > '${target_file_path}' && cat '${target_file_path}'" 2>&1 || true)
+    file_mode_target_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${target_file_path}" -q -x /bin/bash --noprofile --norc -lc "printf updated > '${target_file_path}' && cat '${target_file_path}'" 2>&1 || true)
     if [[ "${file_mode_target_write}" == "updated" ]]; then
         echo "✅ Test L.2 PASS: target file is writable"
     else
@@ -771,7 +869,7 @@ run_validation() {
     # Test L.3: single-file mode blocks sibling writes
     info "Test L.3: single-file mode blocks sibling writes"
     local file_mode_sibling_write
-    file_mode_sibling_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${target_file_path}" -- /bin/bash --noprofile --norc -lc "printf nope > '${sibling_file_path}'" 2>&1 || true)
+    file_mode_sibling_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${target_file_path}" -q -x /bin/bash --noprofile --norc -lc "printf nope > '${sibling_file_path}'" 2>&1 || true)
     if echo "${file_mode_sibling_write}" | grep -qE 'Read-only|Permission denied|cannot create|Operation not permitted'; then
         echo "✅ Test L.3 PASS: sibling files are protected"
     else
@@ -782,7 +880,7 @@ run_validation() {
     # Test L.4: single-file mode supports rename-over-target saves
     info "Test L.4: single-file mode supports atomic save"
     local file_mode_atomic_save
-    file_mode_atomic_save=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${target_file_path}" -- /bin/bash --noprofile --norc -lc "printf swapped > '${test_project}/src/lib/.target.txt.tmp' && mv '${test_project}/src/lib/.target.txt.tmp' '${target_file_path}' && cat '${target_file_path}'" 2>&1 || true)
+    file_mode_atomic_save=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${target_file_path}" -q -x /bin/bash --noprofile --norc -lc "printf swapped > '${test_project}/src/lib/.target.txt.tmp' && mv '${test_project}/src/lib/.target.txt.tmp' '${target_file_path}' && cat '${target_file_path}'" 2>&1 || true)
     if [[ "${file_mode_atomic_save}" == "swapped" ]]; then
         echo "✅ Test L.4 PASS: rename-over-target save works"
     else
@@ -793,7 +891,7 @@ run_validation() {
     # Test L.5: single-file mode blocks unrelated nested file creation
     info "Test L.5: single-file mode blocks unrelated nested file creation"
     local file_mode_nested_write
-    file_mode_nested_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${target_file_path}" -- /bin/bash --noprofile --norc -lc "mkdir -p '${test_project}/src/other' && printf bad > '${test_project}/src/other/new.txt'" 2>&1 || true)
+    file_mode_nested_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${target_file_path}" -q -x /bin/bash --noprofile --norc -lc "mkdir -p '${test_project}/src/other' && printf bad > '${test_project}/src/other/new.txt'" 2>&1 || true)
     if echo "${file_mode_nested_write}" | grep -qE 'Read-only|Permission denied|cannot create|Operation not permitted'; then
         echo "✅ Test L.5 PASS: unrelated nested writes are blocked"
     else
@@ -804,7 +902,7 @@ run_validation() {
     # Test L.6: --ro keeps the target file read-only in file mode
     info "Test L.6: --ro keeps target read-only in file mode"
     local file_mode_ro_write
-    file_mode_ro_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q --ro "${target_file_path}" -- /bin/bash --noprofile --norc -lc "printf blocked > '${target_file_path}'" 2>&1 || true)
+    file_mode_ro_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${target_file_path}" -q --ro -x /bin/bash --noprofile --norc -lc "printf blocked > '${target_file_path}'" 2>&1 || true)
     if echo "${file_mode_ro_write}" | grep -qE 'Read-only|Permission denied|cannot create|Operation not permitted'; then
         echo "✅ Test L.6 PASS: --ro blocks target writes in file mode"
     else
@@ -816,7 +914,7 @@ run_validation() {
     if [[ -d "${HOME}/.opencode-browser" ]]; then
         info "Test J: browser plugin state bind"
         local browser_state_test
-        browser_state_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'test -w "$HOME/.opencode-browser" && echo SUCCESS' 2>&1 || true)
+        browser_state_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'test -w "$HOME/.opencode-browser" && echo SUCCESS' 2>&1 || true)
         if echo "${browser_state_test}" | grep -q "SUCCESS"; then
             echo "✅ Test J PASS: browser plugin state is writable"
         else
@@ -854,7 +952,7 @@ run_validation() {
     # Test M: scoder-git shadowing and safety policy
     info "Test M.1: /usr/bin/git is shadowed by scoder-git"
     local sandbox_git_identity
-    sandbox_git_identity=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'readlink /usr/bin/git 2>/dev/null || /usr/bin/git --scoder-git-version 2>/dev/null' 2>&1 || true)
+    sandbox_git_identity=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'readlink /usr/bin/git 2>/dev/null || /usr/bin/git --scoder-git-version 2>/dev/null' 2>&1 || true)
     if echo "${sandbox_git_identity}" | grep -q "scoder-git"; then
         echo "✅ Test M.1 PASS: /usr/bin/git is shadowed by scoder-git"
     else
@@ -864,7 +962,7 @@ run_validation() {
 
     info "Test M.2: scoder-git blocks network/destructive commands"
     local git_push_result
-    git_push_result=$(OPENCODE_BIN=/bin/bash "${script_path}" -q "${test_project}" -- /bin/bash --noprofile --norc -lc 'git push 2>&1' 2>&1 || true)
+    git_push_result=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'git push 2>&1' 2>&1 || true)
     if echo "${git_push_result}" | grep -q "fatal: scoder blocked git push"; then
         echo "✅ Test M.2 PASS: git push is denied"
     else
@@ -877,7 +975,7 @@ run_validation() {
     git -C "${test_project}" config user.email scoder-validation@example.invalid
     git -C "${test_project}" config user.name 'scoder validation'
     local git_commit_result
-    git_commit_result=$(OPENCODE_BIN=/bin/bash "${script_path}" -q --allow-git "${test_project}" -- /bin/bash --noprofile --norc -lc 'printf commit-ok > committed.txt && git add committed.txt && git commit -m "validation commit" >/dev/null && git log --oneline -1' 2>&1 || true)
+    git_commit_result=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q --allow-git -x /bin/bash --noprofile --norc -lc 'printf commit-ok > committed.txt && git add committed.txt && git commit -m "validation commit" >/dev/null && git log --oneline -1' 2>&1 || true)
     if echo "${git_commit_result}" | grep -q "validation commit"; then
         echo "✅ Test M.3 PASS: git add/commit works with --allow-git"
     else
@@ -890,7 +988,7 @@ run_validation() {
     mkdir -p "${shared_ro_dir}"
     printf 'shared-ro\n' >"${shared_ro_dir}/note.txt"
     local add_ro_read
-    add_ro_read=$(OPENCODE_BIN=/bin/bash "${script_path}" -q -a "${shared_ro_dir}" "${test_project}" -- /bin/bash --noprofile --norc -lc "cat '${shared_ro_dir}/note.txt'" 2>&1 || true)
+    add_ro_read=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -a "${shared_ro_dir}" -x /bin/bash --noprofile --norc -lc "cat '${shared_ro_dir}/note.txt'" 2>&1 || true)
     if [[ "${add_ro_read}" == "shared-ro" ]]; then
         echo "✅ Test N.1 PASS: --add exposes extra path"
     else
@@ -900,7 +998,7 @@ run_validation() {
 
     info "Test N.2: --add keeps extra path read-only"
     local add_ro_write
-    add_ro_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q -a "${shared_ro_dir}" "${test_project}" -- /bin/bash --noprofile --norc -lc "printf blocked > '${shared_ro_dir}/note.txt'" 2>&1 || true)
+    add_ro_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -a "${shared_ro_dir}" -x /bin/bash --noprofile --norc -lc "printf blocked > '${shared_ro_dir}/note.txt'" 2>&1 || true)
     if echo "${add_ro_write}" | grep -qE 'Read-only|Permission denied|cannot create|Operation not permitted'; then
         echo "✅ Test N.2 PASS: --add blocks writes"
     else
@@ -913,7 +1011,7 @@ run_validation() {
     mkdir -p "${shared_rw_dir}"
     printf 'shared-rw\n' >"${shared_rw_dir}/note.txt"
     local add_rw_write
-    add_rw_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -q -A "${shared_rw_dir}" "${test_project}" -- /bin/bash --noprofile --norc -lc "printf updated > '${shared_rw_dir}/note.txt' && cat '${shared_rw_dir}/note.txt'" 2>&1 || true)
+    add_rw_write=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -A "${shared_rw_dir}" -x /bin/bash --noprofile --norc -lc "printf updated > '${shared_rw_dir}/note.txt' && cat '${shared_rw_dir}/note.txt'" 2>&1 || true)
     if [[ "${add_rw_write}" == "updated" ]]; then
         echo "✅ Test N.3 PASS: --add-rw allows writes"
     else
@@ -940,6 +1038,7 @@ OPENCODE_BIN="${OPENCODE_BIN:-${OPENCODE_BIN_DEFAULT}}"
 FS_MODE="${SCODER_FS_MODE:-rw}"
 QUIET=0
 VALIDATE_MODE=0
+DOCTOR_MODE=0
 ALLOW_HOST_TOOLS=1
 ALLOW_HOST_TOOLS_SET=0
 ALLOW_HOST_TOOLS_DISABLE_SET=0
@@ -949,6 +1048,15 @@ ALLOW_NVIM_REMOTE=1
 HOST_HOME="${HOME}"
 HOST_USER="${USER:-andres}"
 HOST_LOGNAME="${LOGNAME:-${HOST_USER}}"
+SCODER_TRACE_STARTUP_STARTED=0
+SCODER_TRACE_STARTUP_LAST=0
+SCODER_CACHE_DIR=""
+SCODER_DISCOVERY_CACHE=""
+SCODER_DISCOVERY_CACHE_VALID=0
+
+trace_startup "defaults initialized"
+init_discovery_cache
+trace_startup "discovery cache initialized"
 
 # Config path
 OPENCODE_DEFAULT_CONFIG="${HOME}/.config/opencode/opencode.json"
@@ -968,30 +1076,41 @@ FILE_MODE_RO_SOURCE_SANDBOX_PATH=""
 FILE_MODE_BINDS=()
 OPENCODE_ARGS=()
 RAW_COMMAND=()
+SCODER_ARGS=()
 ADD_RO_PATHS=()
 ADD_RW_PATHS=()
 
 trap cleanup_file_mode_tmp_dir EXIT
 
-# -------- option parsing --------
+# -------- argument splitting --------
 RO_SET=0
 RW_SET=0
 ALLOW_GIT=1
 ALLOW_INFRA=0
 RESTRICT_DEV=1
-PARSE_DONE=0
+SCODER_PARSE_MODE=0
 
 while [[ $# -gt 0 ]]; do
-    if [[ "${PARSE_DONE}" -eq 1 ]]; then
-        if [[ ${#OPENCODE_ARGS[@]} -eq 0 && ${#RAW_COMMAND[@]} -eq 0 && "$1" != -* ]]; then
-            RAW_COMMAND=("$@")
-            break
-        fi
-        OPENCODE_ARGS+=("$1")
+    if [[ "$1" == "--" && "${SCODER_PARSE_MODE}" -eq 0 ]]; then
+        SCODER_PARSE_MODE=1
         shift
         continue
     fi
 
+    if [[ "${SCODER_PARSE_MODE}" -eq 0 ]]; then
+        OPENCODE_ARGS+=("$1")
+    else
+        SCODER_ARGS+=("$1")
+    fi
+    shift
+done
+
+trace_startup "arguments split"
+
+# -------- scoder option parsing (arguments after "--") --------
+set -- "${SCODER_ARGS[@]}"
+
+while [[ $# -gt 0 ]]; do
     case "$1" in
     -h | --help)
         usage
@@ -1023,6 +1142,10 @@ while [[ $# -gt 0 ]]; do
         ;;
     --validate)
         VALIDATE_MODE=1
+        shift
+        ;;
+    --doctor | --docotr)
+        DOCTOR_MODE=1
         shift
         ;;
     -b | --bin)
@@ -1078,9 +1201,14 @@ while [[ $# -gt 0 ]]; do
         RESTRICT_DEV=0
         shift
         ;;
-    --)
-        PARSE_DONE=1
+    -x | --exec)
         shift
+        if [[ $# -eq 0 ]]; then
+            error "missing command for -x/--exec"
+            exit 1
+        fi
+        RAW_COMMAND=("$@")
+        break
         ;;
     -*)
         error "unknown option: $1"
@@ -1089,16 +1217,9 @@ while [[ $# -gt 0 ]]; do
         ;;
     *)
         if [[ -z "${PROJECT_TARGET}" ]]; then
-            if [[ -e "$1" ]]; then
-                PROJECT_TARGET="$1"
-            elif is_opencode_subcommand "$1"; then
-                OPENCODE_ARGS=("$@")
-                break
-            else
-                PROJECT_TARGET="$1"
-            fi
+            PROJECT_TARGET="$1"
         else
-            error "unexpected argument before '--': $1"
+            error "unexpected scoder argument after target: $1"
             echo "Try '${PROGRAM_NAME} --help' for more information." >&2
             exit 1
         fi
@@ -1107,8 +1228,10 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Handle validation mode
-if [[ "${VALIDATE_MODE}" -eq 1 ]]; then
+trace_startup "scoder options parsed"
+
+# Handle diagnostics/validation modes
+if [[ "${VALIDATE_MODE}" -eq 1 || "${DOCTOR_MODE}" -eq 1 ]]; then
     run_validation
     exit $?
 fi
@@ -1138,19 +1261,39 @@ if ! command -v bwrap >/dev/null 2>&1; then
     exit 1
 fi
 
-BWRAP_DISABLE_USERNS_SUPPORTED=0
-if bwrap --help 2>/dev/null | grep -q -- "--disable-userns"; then
-    BWRAP_DISABLE_USERNS_SUPPORTED=1
+SCODER_CACHE_BWRAP_PATH="$(command -v bwrap)"
+SCODER_CACHE_BWRAP_VERSION="$(bwrap --version 2>/dev/null || printf 'unknown')"
+
+if is_discovery_cache_current "${SCODER_CACHE_BWRAP_PATH}" "${SCODER_CACHE_BWRAP_VERSION}" && [[ -n "${SCODER_CACHE_BWRAP_DISABLE_USERNS_SUPPORTED:-}" ]]; then
+    BWRAP_DISABLE_USERNS_SUPPORTED="${SCODER_CACHE_BWRAP_DISABLE_USERNS_SUPPORTED}"
+else
+    BWRAP_DISABLE_USERNS_SUPPORTED=0
+    if bwrap --help 2>/dev/null | grep -q -- "--disable-userns"; then
+        BWRAP_DISABLE_USERNS_SUPPORTED=1
+    fi
+    SCODER_CACHE_BWRAP_DISABLE_USERNS_SUPPORTED="${BWRAP_DISABLE_USERNS_SUPPORTED}"
+    write_discovery_cache
 fi
 
-if ! check_bwrap_namespace_support; then
-    exit 1
+trace_startup "bwrap capabilities discovered"
+
+if is_discovery_cache_current "${SCODER_CACHE_BWRAP_PATH}" "${SCODER_CACHE_BWRAP_VERSION}" && [[ "${SCODER_CACHE_BWRAP_NAMESPACE_SUPPORT:-}" == "ok" ]]; then
+    trace_startup "bwrap namespace probe cache hit"
+else
+    if ! check_bwrap_namespace_support; then
+        exit 1
+    fi
+    SCODER_CACHE_BWRAP_NAMESPACE_SUPPORT="ok"
+    write_discovery_cache
+    trace_startup "bwrap namespace probe completed"
 fi
 
-if ! command -v "${OPENCODE_BIN}" >/dev/null 2>&1; then
+OPENCODE_BIN_HOST="$(command -v "${OPENCODE_BIN}" 2>/dev/null || true)"
+if [[ -z "${OPENCODE_BIN_HOST}" ]]; then
     error "opencode binary not found: ${OPENCODE_BIN}"
     exit 1
 fi
+SCODER_CACHE_OPENCODE_BIN="${OPENCODE_BIN_HOST}"
 
 SCODER_SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 SCODER_GIT_HOST="${SCODER_GIT:-${SCODER_SCRIPT_DIR}/scoder-git}"
@@ -1164,8 +1307,23 @@ if [[ -z "${REAL_GIT_HOST}" || ! -x "${REAL_GIT_HOST}" ]]; then
     error "real git binary not found in host PATH"
     exit 1
 fi
-REAL_GIT_HOST="$(realpath "${REAL_GIT_HOST}")"
-SCODER_GIT_HOST="$(realpath "${SCODER_GIT_HOST}")"
+if is_discovery_cache_current "${SCODER_CACHE_BWRAP_PATH}" "${SCODER_CACHE_BWRAP_VERSION}" && [[ "${SCODER_CACHE_REAL_GIT_HOST:-}" == "${REAL_GIT_HOST}" && -x "${SCODER_CACHE_REAL_GIT_REALPATH:-}" ]]; then
+    REAL_GIT_HOST="${SCODER_CACHE_REAL_GIT_REALPATH}"
+else
+    SCODER_CACHE_REAL_GIT_HOST="${REAL_GIT_HOST}"
+    SCODER_CACHE_REAL_GIT_REALPATH="$(realpath "${REAL_GIT_HOST}")"
+    REAL_GIT_HOST="${SCODER_CACHE_REAL_GIT_REALPATH}"
+fi
+
+if is_discovery_cache_current "${SCODER_CACHE_BWRAP_PATH}" "${SCODER_CACHE_BWRAP_VERSION}" && [[ "${SCODER_CACHE_SCODER_GIT_HOST:-}" == "${SCODER_GIT_HOST}" && -x "${SCODER_CACHE_SCODER_GIT_REALPATH:-}" ]]; then
+    SCODER_GIT_HOST="${SCODER_CACHE_SCODER_GIT_REALPATH}"
+else
+    SCODER_CACHE_SCODER_GIT_HOST="${SCODER_GIT_HOST}"
+    SCODER_CACHE_SCODER_GIT_REALPATH="$(realpath "${SCODER_GIT_HOST}")"
+    SCODER_GIT_HOST="${SCODER_CACHE_SCODER_GIT_REALPATH}"
+fi
+write_discovery_cache
+trace_startup "tool discovery completed"
 
 if [[ "${FS_MODE}" != "ro" && "${FS_MODE}" != "rw" ]]; then
     error "invalid FS mode '${FS_MODE}' (expected 'ro' or 'rw')"
@@ -1270,6 +1428,8 @@ SANDBOX_PATH="${SANDBOX_BUN_HOME}/bin:${SANDBOX_PATH}"
 
 EXTRA_BINDS=()
 EXTRA_DIRS=()
+declare -A EXTRA_DIR_SET=()
+declare -A PARENT_DIR_EXPANSION_SET=()
 SANDBOX_SYMLINKS=()
 
 # Helper: opt_bind (used for optional host-path binds)
@@ -1278,7 +1438,8 @@ opt_bind() {
     local sand_p="$2"
     local resolved_host_p
     if [[ -d "${host_p}" ]]; then
-        resolved_host_p="$(realpath "${host_p}")"
+        resolve_bind_source_path "${host_p}"
+        resolved_host_p="${REPLY}"
         EXTRA_BINDS+=(--ro-bind "${resolved_host_p}" "${sand_p}")
     fi
 }
@@ -1288,7 +1449,8 @@ opt_bind_path() {
     local sand_p="$2"
     local resolved_host_p
     if [[ -e "${host_p}" ]]; then
-        resolved_host_p="$(realpath "${host_p}")"
+        resolve_bind_source_path "${host_p}"
+        resolved_host_p="${REPLY}"
         EXTRA_BINDS+=(--bind "${resolved_host_p}" "${sand_p}")
     fi
 }
@@ -1298,7 +1460,8 @@ opt_ro_bind_path() {
     local sand_p="$2"
     local resolved_host_p
     if [[ -e "${host_p}" ]]; then
-        resolved_host_p="$(realpath "${host_p}")"
+        resolve_bind_source_path "${host_p}"
+        resolved_host_p="${REPLY}"
         add_parent_dirs_once "$(dirname "${sand_p}")"
         EXTRA_BINDS+=(--ro-bind "${resolved_host_p}" "${sand_p}")
     fi
@@ -1310,23 +1473,28 @@ bind_runtime_dir() {
     local resolved_host_p
 
     mkdir -p "${host_p}"
-    resolved_host_p="$(realpath "${host_p}")"
+    bind_runtime_dir_precreated "${host_p}" "${sand_p}"
+}
+
+bind_runtime_dir_precreated() {
+    local host_p="$1"
+    local sand_p="$2"
+    local resolved_host_p
+
+    resolve_bind_source_path "${host_p}"
+    resolved_host_p="${REPLY}"
     add_parent_dirs_once "$(dirname "${sand_p}")"
     EXTRA_BINDS+=(--bind "${resolved_host_p}" "${sand_p}")
 }
 
 add_extra_dir_once() {
     local dir_path="$1"
-    local existing
-    local index
 
-    for ((index = 0; index < ${#EXTRA_DIRS[@]}; index += 2)); do
-        existing="${EXTRA_DIRS[index + 1]}"
-        if [[ "${existing}" == "${dir_path}" ]]; then
-            return
-        fi
-    done
+    if [[ -n "${EXTRA_DIR_SET[${dir_path}]:-}" ]]; then
+        return
+    fi
 
+    EXTRA_DIR_SET["${dir_path}"]=1
     EXTRA_DIRS+=(--dir "${dir_path}")
 }
 
@@ -1334,6 +1502,12 @@ add_parent_dirs_once() {
     local dir_path="$1"
     local parent=""
     local segment
+
+    if [[ -n "${PARENT_DIR_EXPANSION_SET[${dir_path}]:-}" ]]; then
+        return
+    fi
+
+    PARENT_DIR_EXPANSION_SET["${dir_path}"]=1
 
     IFS='/' read -r -a segments <<<"${dir_path}"
     for segment in "${segments[@]}"; do
@@ -1445,7 +1619,8 @@ if [[ "${ALLOW_HOST_TOOLS}" -eq 1 ]]; then
 
     # User binaries
     if [[ -d "${HOME}/.local/bin" ]]; then
-        EXTRA_BINDS+=(--ro-bind "$(realpath "${HOME}/.local/bin")" "${SANDBOX_HOME}/.local/bin")
+        resolve_bind_source_path "${HOME}/.local/bin"
+        EXTRA_BINDS+=(--ro-bind "${REPLY}" "${SANDBOX_HOME}/.local/bin")
         SANDBOX_PATH="${SANDBOX_HOME}/.local/bin:${SANDBOX_PATH}"
     fi
 
@@ -1455,58 +1630,78 @@ if [[ "${ALLOW_HOST_TOOLS}" -eq 1 ]]; then
     if [[ -d "${HOME}/.local/share/mise/shims" ]]; then
         SANDBOX_PATH="${SANDBOX_HOME}/.local/share/mise/shims:${SANDBOX_PATH}"
     fi
+    trace_startup "host user binaries and mise binds prepared"
 
     # MCP/runtime package-manager state and caches.
     # These are writable so common language/package launchers can install and
     # cache dependencies without exposing the entire host home.
-    bind_runtime_dir "${HOME}/.local/share/uv" "${SANDBOX_HOME}/.local/share/uv"
-    bind_runtime_dir "${HOME}/.cache/uv" "${SANDBOX_HOME}/.cache/uv"
-    bind_runtime_dir "${HOME}/.npm" "${SANDBOX_HOME}/.npm"
-    bind_runtime_dir "${HOME}/.cache/npm" "${SANDBOX_HOME}/.cache/npm"
-    bind_runtime_dir "${HOME}/.cache/node" "${SANDBOX_HOME}/.cache/node"
-    bind_runtime_dir "${HOME}/.local/share/pnpm" "${SANDBOX_HOME}/.local/share/pnpm"
-    bind_runtime_dir "${HOME}/.cache/pnpm" "${SANDBOX_HOME}/.cache/pnpm"
-    bind_runtime_dir "${HOME}/.cache/yarn" "${SANDBOX_HOME}/.cache/yarn"
-    bind_runtime_dir "${HOME}/.cache/pip" "${SANDBOX_HOME}/.cache/pip"
-    bind_runtime_dir "${HOME}/.cache/pipx" "${SANDBOX_HOME}/.cache/pipx"
-    bind_runtime_dir "${HOME}/.local/pipx" "${SANDBOX_HOME}/.local/pipx"
-    bind_runtime_dir "${HOME}/.cargo/registry" "${SANDBOX_HOME}/.cargo/registry"
-    bind_runtime_dir "${HOME}/.cargo/git" "${SANDBOX_HOME}/.cargo/git"
-    bind_runtime_dir "${HOME}/.cache/sccache" "${SANDBOX_HOME}/.cache/sccache"
-    bind_runtime_dir "${HOME}/go/pkg/mod" "${SANDBOX_HOME}/go/pkg/mod"
-    bind_runtime_dir "${HOME}/.cache/go-build" "${SANDBOX_HOME}/.cache/go-build"
-    bind_runtime_dir "${HOME}/.hex" "${SANDBOX_HOME}/.hex"
-    bind_runtime_dir "${HOME}/.mix" "${SANDBOX_HOME}/.mix"
-    bind_runtime_dir "${HOME}/.cache/rebar3" "${SANDBOX_HOME}/.cache/rebar3"
-    bind_runtime_dir "${HOME}/.cache/gleam" "${SANDBOX_HOME}/.cache/gleam"
-    bind_runtime_dir "${HOME}/.local/share/gleam" "${SANDBOX_HOME}/.local/share/gleam"
-    bind_runtime_dir "${HOME}/.deno" "${SANDBOX_HOME}/.deno"
-    bind_runtime_dir "${HOME}/.gradle" "${SANDBOX_HOME}/.gradle"
-    bind_runtime_dir "${HOME}/.m2/repository" "${SANDBOX_HOME}/.m2/repository"
-    bind_runtime_dir "${HOME}/.nuget/packages" "${SANDBOX_HOME}/.nuget/packages"
-    bind_runtime_dir "${HOME}/.gem" "${SANDBOX_HOME}/.gem"
-    bind_runtime_dir "${HOME}/.bundle" "${SANDBOX_HOME}/.bundle"
-    bind_runtime_dir "${HOME}/.cache/bundle" "${SANDBOX_HOME}/.cache/bundle"
-    bind_runtime_dir "${HOME}/.composer" "${SANDBOX_HOME}/.composer"
-    bind_runtime_dir "${HOME}/.cache/composer" "${SANDBOX_HOME}/.cache/composer"
+    HOST_RUNTIME_BIND_SUBPATHS=(
+        ".local/share/uv"
+        ".cache/uv"
+        ".npm"
+        ".cache/npm"
+        ".cache/node"
+        ".local/share/pnpm"
+        ".cache/pnpm"
+        ".cache/yarn"
+        ".cache/pip"
+        ".cache/pipx"
+        ".local/pipx"
+        ".cargo/registry"
+        ".cargo/git"
+        ".cache/sccache"
+        "go/pkg/mod"
+        ".cache/go-build"
+        ".hex"
+        ".mix"
+        ".cache/rebar3"
+        ".cache/gleam"
+        ".local/share/gleam"
+        ".deno"
+        ".gradle"
+        ".m2/repository"
+        ".nuget/packages"
+        ".gem"
+        ".bundle"
+        ".cache/bundle"
+        ".composer"
+        ".cache/composer"
+    )
+
+    HOST_RUNTIME_BIND_DIRS=()
+    for runtime_subpath in "${HOST_RUNTIME_BIND_SUBPATHS[@]}"; do
+        HOST_RUNTIME_BIND_DIRS+=("${HOME}/${runtime_subpath}")
+    done
+
+    mkdir -p "${HOST_RUNTIME_BIND_DIRS[@]}"
+
+    for runtime_subpath in "${HOST_RUNTIME_BIND_SUBPATHS[@]}"; do
+        bind_runtime_dir_precreated "${HOME}/${runtime_subpath}" "${SANDBOX_HOME}/${runtime_subpath}"
+    done
+    trace_startup "host runtime cache binds prepared"
 
     # Pyenv
     if [[ -d "${HOME}/.pyenv" ]]; then
-        EXTRA_BINDS+=(--ro-bind "$(realpath "${HOME}/.pyenv")" "${SANDBOX_HOME}/.pyenv")
+        resolve_bind_source_path "${HOME}/.pyenv"
+        EXTRA_BINDS+=(--ro-bind "${REPLY}" "${SANDBOX_HOME}/.pyenv")
         SANDBOX_PATH="${SANDBOX_HOME}/.pyenv/shims:${SANDBOX_HOME}/.pyenv/bin:${SANDBOX_PATH}"
         PYENV_ROOT_SANDBOX="${SANDBOX_HOME}/.pyenv"
     fi
 
     # Rust
     if [[ -d "${HOME}/.rustup" ]]; then
-        EXTRA_BINDS+=(--ro-bind "$(realpath "${HOME}/.rustup")" "${SANDBOX_HOME}/.rustup")
+        resolve_bind_source_path "${HOME}/.rustup"
+        EXTRA_BINDS+=(--ro-bind "${REPLY}" "${SANDBOX_HOME}/.rustup")
         RUSTUP_HOME_SANDBOX="${SANDBOX_HOME}/.rustup"
     fi
     if [[ -d "${HOME}/.cargo/bin" ]]; then
-        EXTRA_BINDS+=(--ro-bind "$(realpath "${HOME}/.cargo/bin")" "${SANDBOX_HOME}/.cargo/bin")
+        resolve_bind_source_path "${HOME}/.cargo/bin"
+        EXTRA_BINDS+=(--ro-bind "${REPLY}" "${SANDBOX_HOME}/.cargo/bin")
         SANDBOX_PATH="${SANDBOX_HOME}/.cargo/bin:${SANDBOX_PATH}"
     fi
+    trace_startup "host pyenv rust binds prepared"
 fi
+trace_startup "host tool binds prepared"
 
 # Project-local state for mise
 if [[ -n "${PROJECT_DIR}" ]]; then
@@ -1525,6 +1720,7 @@ if [[ "${ALLOW_NVIM_REMOTE}" -eq 1 && -n "${NVIM:-}" && -S "${NVIM}" ]]; then
     add_parent_dirs_once "$(dirname "${NVIM_SOCKET_SANDBOX}")"
     opt_bind_path "${NVIM_SOCKET_HOST}" "${NVIM_SOCKET_SANDBOX}"
 fi
+trace_startup "nvim bridge binds prepared"
 
 if [[ "${ALLOW_GUI}" -eq 1 ]]; then
     info "Allowing GUI/session access"
@@ -1546,6 +1742,7 @@ if [[ "${ALLOW_GUI}" -eq 1 ]]; then
         bind_runtime_dir "${XDG_RUNTIME_DIR}" "${XDG_RUNTIME_DIR}"
     fi
 fi
+trace_startup "gui binds prepared"
 
 RESOLV_CONF_TARGET="$(readlink -f /etc/resolv.conf 2>/dev/null || true)"
 if [[ -n "${RESOLV_CONF_TARGET}" && "${RESOLV_CONF_TARGET}" != "/etc/resolv.conf" && -f "${RESOLV_CONF_TARGET}" ]]; then
@@ -1560,6 +1757,7 @@ opt_ro_bind_path /run/systemd/resolve /run/systemd/resolve
 opt_ro_bind_path /run/dbus /run/dbus
 opt_ro_bind_path /run/NetworkManager /run/NetworkManager
 opt_ro_bind_path /var/run/nscd /var/run/nscd
+trace_startup "resolver runtime binds prepared"
 
 # Project-local Cargo binaries
 if [[ -d "${PROJECT_DIR}/.cargo/bin" ]]; then
@@ -1578,6 +1776,7 @@ if [[ -d "${PROJECT_DIR}/node_modules/.bin" ]]; then
     EXTRA_BINDS+=("${PROJECT_TOOL_BIND_FLAG}" "${PROJECT_DIR}/node_modules/.bin" "${SANDBOX_PROJECT_ROOT}/node_modules/.bin")
     SANDBOX_PATH="${SANDBOX_PROJECT_ROOT}/node_modules/.bin:${SANDBOX_PATH}"
 fi
+trace_startup "project tool binds prepared"
 
 # Go project-local binaries
 if [[ -d "${PROJECT_DIR}/bin" && -f "${PROJECT_DIR}/go.mod" ]]; then
@@ -1802,6 +2001,8 @@ if [[ ${#RAW_COMMAND[@]} -gt 0 ]]; then
 else
     BWRAP_CMD+=("${OPENCODE_BIN}" "${OPENCODE_ARGS[@]}")
 fi
+
+trace_startup "bwrap command built"
 
 info "Launching scoder sandbox..."
 if [[ "${TARGET_KIND}" == "file" && "${FS_MODE}" != "ro" ]]; then
