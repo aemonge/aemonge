@@ -1380,32 +1380,44 @@ AGENTS_DIR="${HOME}/.agents"
 BUN_HOME="${HOME}/.bun"
 BUN_CACHE="${HOME}/.cache/bun"
 PLAYWRIGHT_BROWSERS_CACHE="${HOME}/.cache/ms-playwright"
-mkdir -p "${OPENCODE_DATA}/sessions"
-mkdir -p "${OPENCODE_DATA}/permissions"
-mkdir -p "${OPENCODE_CACHE}"
-mkdir -p "${OPENCODE_CONFIG_DIR}"
-mkdir -p "${OPENCODE_ALT_DIR}"
-mkdir -p "${AGENTS_DIR}"
-mkdir -p "${BUN_HOME}"
-mkdir -p "${BUN_CACHE}"
-mkdir -p "${PLAYWRIGHT_BROWSERS_CACHE}"
+mkdir -p \
+    "${OPENCODE_DATA}/sessions" \
+    "${OPENCODE_DATA}/permissions" \
+    "${OPENCODE_CACHE}" \
+    "${OPENCODE_CONFIG_DIR}" \
+    "${OPENCODE_ALT_DIR}" \
+    "${AGENTS_DIR}" \
+    "${BUN_HOME}" \
+    "${BUN_CACHE}" \
+    "${PLAYWRIGHT_BROWSERS_CACHE}"
 
-OPENCODE_DATA="$(realpath "${OPENCODE_DATA}")"
-OPENCODE_CACHE="$(realpath "${OPENCODE_CACHE}")"
-OPENCODE_CONFIG_DIR="$(realpath "${OPENCODE_CONFIG_DIR}")"
-OPENCODE_ALT_DIR="$(realpath "${OPENCODE_ALT_DIR}")"
-AGENTS_DIR="$(realpath "${AGENTS_DIR}")"
-BUN_HOME="$(realpath "${BUN_HOME}")"
-BUN_CACHE="$(realpath "${BUN_CACHE}")"
-PLAYWRIGHT_BROWSERS_CACHE="$(realpath "${PLAYWRIGHT_BROWSERS_CACHE}")"
+resolve_bind_source_path "${OPENCODE_DATA}"
+OPENCODE_DATA="${REPLY}"
+resolve_bind_source_path "${OPENCODE_CACHE}"
+OPENCODE_CACHE="${REPLY}"
+resolve_bind_source_path "${OPENCODE_CONFIG_DIR}"
+OPENCODE_CONFIG_DIR="${REPLY}"
+resolve_bind_source_path "${OPENCODE_ALT_DIR}"
+OPENCODE_ALT_DIR="${REPLY}"
+resolve_bind_source_path "${AGENTS_DIR}"
+AGENTS_DIR="${REPLY}"
+resolve_bind_source_path "${BUN_HOME}"
+BUN_HOME="${REPLY}"
+resolve_bind_source_path "${BUN_CACHE}"
+BUN_CACHE="${REPLY}"
+resolve_bind_source_path "${PLAYWRIGHT_BROWSERS_CACHE}"
+PLAYWRIGHT_BROWSERS_CACHE="${REPLY}"
 
 if [[ -d "${HOME}/.claude" ]]; then
-    CLAUDE_DIR="$(realpath "${HOME}/.claude")"
+    resolve_bind_source_path "${HOME}/.claude"
+    CLAUDE_DIR="${REPLY}"
 fi
 
 if [[ -d "${HOME}/.opencode-browser" ]]; then
-    OPENCODE_BROWSER_DIR="$(realpath "${HOME}/.opencode-browser")"
+    resolve_bind_source_path "${HOME}/.opencode-browser"
+    OPENCODE_BROWSER_DIR="${REPLY}"
 fi
+trace_startup "persistent runtime dirs prepared"
 
 # FS bind mode
 if [[ "${TARGET_KIND}" == "file" || "${FS_MODE}" = "ro" ]]; then
@@ -1605,13 +1617,16 @@ bind_symlink_targets_in_dir "${OPENCODE_CONFIG_DIR}"
 # Git identity/config is visible read-only so commits can use the user's normal
 # identity without allowing agents to persist global git config changes.
 if [[ -f "${HOST_HOME}/.gitconfig" ]]; then
-    EXTRA_BINDS+=(--ro-bind "$(realpath "${HOST_HOME}/.gitconfig")" "${SANDBOX_HOME}/.gitconfig")
+    resolve_bind_source_path "${HOST_HOME}/.gitconfig"
+    EXTRA_BINDS+=(--ro-bind "${REPLY}" "${SANDBOX_HOME}/.gitconfig")
 fi
 
 if [[ -f "${HOST_HOME}/.config/git/config" ]]; then
     add_parent_dirs_once "${SANDBOX_HOME}/.config/git"
-    EXTRA_BINDS+=(--ro-bind "$(realpath "${HOST_HOME}/.config/git/config")" "${SANDBOX_HOME}/.config/git/config")
+    resolve_bind_source_path "${HOST_HOME}/.config/git/config"
+    EXTRA_BINDS+=(--ro-bind "${REPLY}" "${SANDBOX_HOME}/.config/git/config")
 fi
+trace_startup "persistent symlink and git config binds prepared"
 
 # Bind host tools unless explicitly disabled
 if [[ "${ALLOW_HOST_TOOLS}" -eq 1 ]]; then
@@ -1624,13 +1639,7 @@ if [[ "${ALLOW_HOST_TOOLS}" -eq 1 ]]; then
         SANDBOX_PATH="${SANDBOX_HOME}/.local/bin:${SANDBOX_PATH}"
     fi
 
-    # Mise
-    opt_bind "${HOME}/.local/share/mise" "${SANDBOX_HOME}/.local/share/mise"
-    opt_bind "${HOME}/.config/mise" "${SANDBOX_HOME}/.config/mise"
-    if [[ -d "${HOME}/.local/share/mise/shims" ]]; then
-        SANDBOX_PATH="${SANDBOX_HOME}/.local/share/mise/shims:${SANDBOX_PATH}"
-    fi
-    trace_startup "host user binaries and mise binds prepared"
+    trace_startup "host user binary binds prepared"
 
     # MCP/runtime package-manager state and caches.
     # These are writable so common language/package launchers can install and
@@ -1702,17 +1711,6 @@ if [[ "${ALLOW_HOST_TOOLS}" -eq 1 ]]; then
     trace_startup "host pyenv rust binds prepared"
 fi
 trace_startup "host tool binds prepared"
-
-# Project-local state for mise
-if [[ -n "${PROJECT_DIR}" ]]; then
-    if [[ "${FS_MODE}" = "ro" || "${TARGET_KIND}" == "file" ]]; then
-        MISE_STATE_DIR="${HOST_HOME}/.local/state/scoder/mise$(printf '%s' "${PROJECT_DIR}" | tr '/' '_')"
-    else
-        MISE_STATE_DIR="${PROJECT_DIR}/.local/state/mise"
-    fi
-    mkdir -p "${MISE_STATE_DIR}"
-    EXTRA_BINDS+=(--bind "${MISE_STATE_DIR}" "${SANDBOX_HOME}/.local/state/mise")
-fi
 
 if [[ "${ALLOW_NVIM_REMOTE}" -eq 1 && -n "${NVIM:-}" && -S "${NVIM}" ]]; then
     NVIM_SOCKET_HOST="${NVIM}"
