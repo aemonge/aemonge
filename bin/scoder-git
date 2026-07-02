@@ -74,6 +74,24 @@ split_global_options() {
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
+        -C)
+            if [[ $# -lt 2 ]]; then
+                deny "git -C without path"
+            fi
+            GLOBAL_GIT_ARGS+=("$1" "$2")
+            shift 2
+            ;;
+        --git-dir | --work-tree | --namespace | --super-prefix)
+            if [[ $# -lt 2 ]]; then
+                deny "git global option ${1} without value"
+            fi
+            GLOBAL_GIT_ARGS+=("$1" "$2")
+            shift 2
+            ;;
+        --git-dir=* | --work-tree=* | --namespace=* | --super-prefix=*)
+            GLOBAL_GIT_ARGS+=("$1")
+            shift
+            ;;
         -c)
             if [[ $# -lt 2 ]]; then
                 deny "git -c without key=value"
@@ -201,6 +219,46 @@ validate_commit_file_paths() {
     done
 }
 
+is_identity_config_key() {
+    case "$1" in
+    user.name | user.email | author.name | author.email | committer.name | committer.email)
+        return 0
+        ;;
+    *)
+        return 1
+        ;;
+    esac
+}
+
+validate_config_args() {
+    if [[ $# -eq 0 ]]; then
+        deny "git config without key"
+    fi
+
+    case "$1" in
+    --global | --system | --file | --blob | --includes | --edit | -e)
+        deny "git config option blocked: $1"
+        ;;
+    --file=* | --blob=*)
+        deny "git config option blocked: ${1%%=*}"
+        ;;
+    --local)
+        shift
+        ;;
+    --get)
+        shift
+        if [[ $# -ne 1 ]] || ! is_identity_config_key "$1"; then
+            deny "git config --get only allows identity keys"
+        fi
+        return 0
+        ;;
+    esac
+
+    if [[ $# -lt 1 ]] || ! is_identity_config_key "$1"; then
+        deny "git config only allows local identity keys"
+    fi
+}
+
 main() {
     if [[ "${1:-}" == "--scoder-git-version" ]]; then
         printf '%s %s\n' "${PROGRAM_NAME}" "${PROGRAM_VERSION}"
@@ -221,6 +279,13 @@ main() {
     fi
 
     case "${subcommand}" in
+    init)
+        exec "${real_git}" "${GLOBAL_GIT_ARGS[@]}" "$@"
+        ;;
+    config)
+        validate_config_args "${@:2}"
+        exec "${real_git}" "${GLOBAL_GIT_ARGS[@]}" "$@"
+        ;;
     status | diff | log | show | branch | rev-parse | ls-files)
         exec "${real_git}" "${GLOBAL_GIT_ARGS[@]}" "$@"
         ;;

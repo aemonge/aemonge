@@ -1356,6 +1356,7 @@ SANDBOX_OPENCODE_ALT_DIR="${SANDBOX_HOME}/.opencode"
 SANDBOX_AGENTS_DIR="${SANDBOX_HOME}/.agents"
 SANDBOX_CLAUDE_DIR="${SANDBOX_HOME}/.claude"
 SANDBOX_BUN_HOME="${SANDBOX_HOME}/.bun"
+SANDBOX_PNPM_HOME="${SANDBOX_HOME}/.local/share/pnpm"
 SANDBOX_BROWSER_DIR="${SANDBOX_HOME}/.opencode-browser"
 SANDBOX_PLAYWRIGHT_BROWSERS_CACHE="${SANDBOX_HOME}/.cache/ms-playwright"
 SANDBOX_LOCAL_SHARE_DIR="${SANDBOX_LOCAL_DIR}/share"
@@ -1437,6 +1438,7 @@ SANDBOX_PATH="/usr/local/bin:""\
 /sbin:""\
 /usr/bin/site_perl"
 SANDBOX_PATH="${SANDBOX_BUN_HOME}/bin:${SANDBOX_PATH}"
+SANDBOX_PATH="${SANDBOX_PNPM_HOME}:${SANDBOX_PNPM_HOME}/bin:${SANDBOX_PATH}"
 
 EXTRA_BINDS=()
 EXTRA_DIRS=()
@@ -1652,6 +1654,7 @@ if [[ "${ALLOW_HOST_TOOLS}" -eq 1 ]]; then
         ".cache/node"
         ".local/share/pnpm"
         ".cache/pnpm"
+        ".krimto"
         ".cache/yarn"
         ".cache/pip"
         ".cache/pipx"
@@ -1966,6 +1969,7 @@ BWRAP_CMD+=(
     --setenv GIT_OPTIONAL_LOCKS 0
     --setenv SCODER_REAL_GIT /scoder/real-git
     --setenv PLAYWRIGHT_BROWSERS_PATH "${SANDBOX_PLAYWRIGHT_BROWSERS_CACHE}"
+    --setenv PNPM_HOME "${SANDBOX_PNPM_HOME}"
     --setenv MISE_SKIP_ACTIVATE 1
     --setenv UV_LINK_MODE copy
 )
