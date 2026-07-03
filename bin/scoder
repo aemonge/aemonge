@@ -986,7 +986,7 @@ run_validation() {
     info "Test M.4: scoder-git allows safe local branch switching"
     git -C "${test_project}" branch validation-switch-target >/dev/null 2>&1 || true
     local git_switch_result
-    git_switch_result=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'git switch validation-switch-target >/dev/null && git branch --show-current' 2>&1 || true)
+    git_switch_result=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'git switch --quiet validation-switch-target >/dev/null && git branch --show-current' 2>&1 || true)
     if [[ "${git_switch_result}" == "validation-switch-target" ]]; then
         echo "✅ Test M.4 PASS: git switch existing branch works"
     else
@@ -996,7 +996,7 @@ run_validation() {
 
     info "Test M.5: scoder-git allows safe local branch creation"
     local git_switch_create_result
-    git_switch_create_result=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'git switch -c validation-switch-created >/dev/null && git branch --show-current' 2>&1 || true)
+    git_switch_create_result=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'git switch --quiet -c validation-switch-created >/dev/null && git branch --show-current' 2>&1 || true)
     if [[ "${git_switch_create_result}" == "validation-switch-created" ]]; then
         echo "✅ Test M.5 PASS: git switch -c creates and switches branches"
     else

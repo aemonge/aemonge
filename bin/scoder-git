@@ -220,6 +220,9 @@ validate_switch_args() {
             branch_count=$((branch_count + 1))
             shift
             ;;
+        --quiet)
+            shift
+            ;;
         --discard-changes | --force | -f | --detach | --merge | -m | --orphan | --guess | --no-guess | --ignore-other-worktrees | --recurse-submodules | --no-recurse-submodules)
             deny "git switch unsafe option: ${arg}"
             ;;

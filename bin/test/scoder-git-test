@@ -185,7 +185,9 @@ FAKE_GIT
     assert_allowed "${tmpdir}" "allows git worktree unlock" worktree unlock ../x
     assert_allowed "${tmpdir}" "allows git maintenance run" maintenance run --auto
     assert_allowed "${tmpdir}" "allows git switch to branch" switch safe-target
+    assert_allowed "${tmpdir}" "allows git switch --quiet to branch" switch --quiet safe-target
     assert_allowed "${tmpdir}" "allows git switch -c" switch -c safe-created
+    assert_allowed "${tmpdir}" "allows git switch --quiet -c" switch --quiet -c safe-created-quiet
     assert_allowed "${tmpdir}" "allows git switch --create" switch --create safe-created-long
     assert_allowed "${tmpdir}" "allows git switch - to previous branch" switch -
     assert_allowed "${tmpdir}" "allows git add inside repo" add .
