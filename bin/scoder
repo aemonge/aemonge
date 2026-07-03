@@ -983,6 +983,47 @@ run_validation() {
         ((failed_tests++))
     fi
 
+    info "Test M.4: scoder-git allows safe local branch switching"
+    git -C "${test_project}" branch validation-switch-target >/dev/null 2>&1 || true
+    local git_switch_result
+    git_switch_result=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'git switch validation-switch-target >/dev/null && git branch --show-current' 2>&1 || true)
+    if [[ "${git_switch_result}" == "validation-switch-target" ]]; then
+        echo "✅ Test M.4 PASS: git switch existing branch works"
+    else
+        echo "❌ Test M.4 FAIL: git switch existing branch failed (${git_switch_result})"
+        ((failed_tests++))
+    fi
+
+    info "Test M.5: scoder-git allows safe local branch creation"
+    local git_switch_create_result
+    git_switch_create_result=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'git switch -c validation-switch-created >/dev/null && git branch --show-current' 2>&1 || true)
+    if [[ "${git_switch_create_result}" == "validation-switch-created" ]]; then
+        echo "✅ Test M.5 PASS: git switch -c creates and switches branches"
+    else
+        echo "❌ Test M.5 FAIL: git switch -c failed (${git_switch_create_result})"
+        ((failed_tests++))
+    fi
+
+    info "Test M.6: scoder-git blocks unsafe git switch flags"
+    local git_switch_force_result
+    git_switch_force_result=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'git switch --force validation-switch-target 2>&1' 2>&1 || true)
+    if echo "${git_switch_force_result}" | grep -q "git switch unsafe option: --force"; then
+        echo "✅ Test M.6 PASS: git switch --force is denied"
+    else
+        echo "❌ Test M.6 FAIL: git switch --force was not denied (${git_switch_force_result})"
+        ((failed_tests++))
+    fi
+
+    info "Test M.7: scoder-git keeps destructive reset blocked"
+    local git_reset_hard_result
+    git_reset_hard_result=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'git reset --hard HEAD 2>&1' 2>&1 || true)
+    if echo "${git_reset_hard_result}" | grep -q "fatal: scoder blocked git reset"; then
+        echo "✅ Test M.7 PASS: git reset --hard remains denied"
+    else
+        echo "❌ Test M.7 FAIL: git reset --hard was not denied (${git_reset_hard_result})"
+        ((failed_tests++))
+    fi
+
     info "Test N.1: --add exposes extra path read-only"
     local shared_ro_dir="/tmp/scoder-shared-ro-$$"
     mkdir -p "${shared_ro_dir}"

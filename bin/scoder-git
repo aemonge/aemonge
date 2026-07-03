@@ -136,88 +136,11 @@ split_global_options() {
     done
 }
 
-validate_add_paths() {
-    local real_git="$1"
-    shift
+ 
+ 
+ 
 
-    local repo_root
-    if ! repo_root="$("${real_git}" rev-parse --show-toplevel 2>/dev/null)"; then
-        deny "git add outside a repository"
-    fi
 
-    local arg
-    local resolved_path
-    for arg in "$@"; do
-        case "${arg}" in
-        -A | --all | -u | --update | . | :/*)
-            continue
-            ;;
-        --)
-            continue
-            ;;
-        -*)
-            continue
-            ;;
-        esac
-
-        if [[ "${arg}" = /* ]]; then
-            resolved_path="$(realpath -m -- "${arg}")"
-        else
-            resolved_path="$(realpath -m -- "${PWD}/${arg}")"
-        fi
-
-        if [[ "${resolved_path}" != "${repo_root}" && "${resolved_path}" != "${repo_root}"/* ]]; then
-            deny "git add path outside repo: ${arg}"
-        fi
-    done
-}
-
-validate_commit_file_paths() {
-    local real_git="$1"
-    shift
-
-    local repo_root
-    if ! repo_root="$("${real_git}" rev-parse --show-toplevel 2>/dev/null)"; then
-        deny "git commit -F outside a repository"
-    fi
-
-    local index=1
-    local arg
-    local message_file
-    local resolved_path
-    while [[ ${index} -le $# ]]; do
-        arg="${!index}"
-        case "${arg}" in
-        -F | --file)
-            index=$((index + 1))
-            if [[ ${index} -gt $# ]]; then
-                deny "git commit ${arg} without a message file"
-            fi
-            message_file="${!index}"
-            if [[ "${message_file}" = /* ]]; then
-                resolved_path="$(realpath -m -- "${message_file}")"
-            else
-                resolved_path="$(realpath -m -- "${PWD}/${message_file}")"
-            fi
-            if [[ "${resolved_path}" != "${repo_root}" && "${resolved_path}" != "${repo_root}"/* ]]; then
-                deny "git commit message file outside repo: ${message_file}"
-            fi
-            ;;
-        --file=*)
-            message_file="${arg#--file=}"
-            if [[ "${message_file}" = /* ]]; then
-                resolved_path="$(realpath -m -- "${message_file}")"
-            else
-                resolved_path="$(realpath -m -- "${PWD}/${message_file}")"
-            fi
-            if [[ "${resolved_path}" != "${repo_root}" && "${resolved_path}" != "${repo_root}"/* ]]; then
-                deny "git commit message file outside repo: ${message_file}"
-            fi
-            ;;
-        esac
-        index=$((index + 1))
-    done
-}
 
 is_identity_config_key() {
     case "$1" in
@@ -257,6 +180,214 @@ validate_config_args() {
     if [[ $# -lt 1 ]] || ! is_identity_config_key "$1"; then
         deny "git config only allows local identity keys"
     fi
+}
+
+validate_switch_args() {
+    local create_mode=0
+    local branch_count=0
+    local arg
+
+    if [[ $# -eq 0 ]]; then
+        deny "git switch without branch"
+    fi
+
+    while [[ $# -gt 0 ]]; do
+        arg="$1"
+        case "${arg}" in
+        -)
+            branch_count=$((branch_count + 1))
+            shift
+            ;;
+        -c | --create)
+            if [[ "${create_mode}" -eq 1 ]]; then
+                deny "git switch duplicate create option"
+            fi
+            if [[ $# -lt 2 ]]; then
+                deny "git switch ${arg} without branch"
+            fi
+            create_mode=1
+            branch_count=$((branch_count + 1))
+            shift 2
+            ;;
+        --create=*)
+            if [[ "${create_mode}" -eq 1 ]]; then
+                deny "git switch duplicate create option"
+            fi
+            if [[ -z "${arg#--create=}" ]]; then
+                deny "git switch --create without branch"
+            fi
+            create_mode=1
+            branch_count=$((branch_count + 1))
+            shift
+            ;;
+        --discard-changes | --force | -f | --detach | --merge | -m | --orphan | --guess | --no-guess | --ignore-other-worktrees | --recurse-submodules | --no-recurse-submodules)
+            deny "git switch unsafe option: ${arg}"
+            ;;
+        --*)
+            deny "git switch option not allowlisted: ${arg}"
+            ;;
+        -*)
+            deny "git switch option not allowlisted: ${arg}"
+            ;;
+        *)
+            branch_count=$((branch_count + 1))
+            shift
+            ;;
+        esac
+    done
+
+    if [[ "${branch_count}" -ne 1 ]]; then
+        deny "git switch expects exactly one branch"
+    fi
+}
+
+validate_add_paths() {
+    local real_git="$1"
+    shift
+
+    local -a scoped_git_args=()
+    local -a scoped_cwd=("${PWD}")
+    while [[ $# -gt 0 ]]; do
+        if [[ "$1" == "--" ]]; then
+            shift
+            break
+        fi
+
+        scoped_git_args+=("$1")
+        shift
+    done
+
+    local cwd_arg="${scoped_cwd[@]}"
+    local i=0
+    local scoped_arg
+    while [[ ${i} -lt ${#scoped_git_args[@]} ]]; do
+        scoped_arg="${scoped_git_args[${i}]}"
+        if [[ "${scoped_arg}" == "-C" ]]; then
+            i=$((i + 1))
+            if [[ ${i} -lt ${#scoped_git_args[@]} ]]; then
+                cwd_arg="${scoped_git_args[${i}]}"
+            fi
+        fi
+        i=$((i + 1))
+    done
+
+    local check_base="${cwd_arg}"
+    if [[ "${cwd_arg}" = /* ]]; then
+        check_base="$(realpath -m -- "${cwd_arg}")"
+    else
+        check_base="$(realpath -m -- "${PWD}/${cwd_arg}")"
+    fi
+
+    local repo_root
+    if ! repo_root="$(${real_git} "${scoped_git_args[@]}" rev-parse --show-toplevel 2>/dev/null)"; then
+        deny "git add outside a repository"
+    fi
+
+    local arg
+    local resolved_path
+    for arg in "$@"; do
+        case "${arg}" in
+        -A | --all | -u | --update | . | :/*)
+            continue
+            ;;
+        --)
+            continue
+            ;;
+        -*)
+            continue
+            ;;
+        esac
+
+        if [[ "${arg}" = /* ]]; then
+            resolved_path="$(realpath -m -- "${arg}")"
+        else
+            resolved_path="$(realpath -m -- "${check_base}/${arg}")"
+        fi
+
+        if [[ "${resolved_path}" != "${repo_root}" && "${resolved_path}" != "${repo_root}"/* ]]; then
+            deny "git add path outside repo: ${arg}"
+        fi
+    done
+}
+
+validate_commit_file_paths() {
+    local real_git="$1"
+    shift
+
+    local -a scoped_git_args=()
+    local -a scoped_cwd=("${PWD}")
+    while [[ $# -gt 0 ]]; do
+        if [[ "$1" == "--" ]]; then
+            shift
+            break
+        fi
+
+        scoped_git_args+=("$1")
+        shift
+    done
+
+    local cwd_arg="${scoped_cwd[@]}"
+    local i=0
+    local scoped_arg
+    while [[ ${i} -lt ${#scoped_git_args[@]} ]]; do
+        scoped_arg="${scoped_git_args[${i}]}"
+        if [[ "${scoped_arg}" == "-C" ]]; then
+            i=$((i + 1))
+            if [[ ${i} -lt ${#scoped_git_args[@]} ]]; then
+                cwd_arg="${scoped_git_args[${i}]}"
+            fi
+        fi
+        i=$((i + 1))
+    done
+
+    local check_base="${cwd_arg}"
+    if [[ "${cwd_arg}" = /* ]]; then
+        check_base="$(realpath -m -- "${cwd_arg}")"
+    else
+        check_base="$(realpath -m -- "${PWD}/${cwd_arg}")"
+    fi
+
+    local repo_root
+    if ! repo_root="$(${real_git} "${scoped_git_args[@]}" rev-parse --show-toplevel 2>/dev/null)"; then
+        deny "git commit -F outside a repository"
+    fi
+
+    local index=1
+    local arg
+    local message_file
+    local resolved_path
+    while [[ ${index} -le $# ]]; do
+        arg="${!index}"
+        case "${arg}" in
+        -F | --file)
+            index=$((index + 1))
+            if [[ ${index} -gt $# ]]; then
+                deny "git commit ${arg} without a message file"
+            fi
+            message_file="${!index}"
+            if [[ "${message_file}" = /* ]]; then
+                resolved_path="$(realpath -m -- "${message_file}")"
+            else
+                resolved_path="$(realpath -m -- "${check_base}/${message_file}")"
+            fi
+            if [[ "${resolved_path}" != "${repo_root}" && "${resolved_path}" != "${repo_root}"/* ]]; then
+                deny "git commit message file outside repo: ${message_file}"
+            fi
+            ;;
+        --file=*)
+            message_file="${arg#--file=}"
+            if [[ "${message_file}" = /* ]]; then
+                resolved_path="$(realpath -m -- "${message_file}")"
+            else
+                resolved_path="$(realpath -m -- "${check_base}/${message_file}")"
+            fi
+            if [[ "${resolved_path}" != "${repo_root}" && "${resolved_path}" != "${repo_root}"/* ]]; then
+                deny "git commit message file outside repo: ${message_file}"
+            fi
+            ;;
+        esac
+        index=$((index + 1))
+    done
 }
 
 main() {
@@ -320,7 +451,7 @@ main() {
         esac
         ;;
     add)
-        validate_add_paths "${real_git}" "${@:2}"
+        validate_add_paths "${real_git}" "${GLOBAL_GIT_ARGS[@]}" -- "${@:2}"
         exec "${real_git}" "${GLOBAL_GIT_ARGS[@]}" "$@"
         ;;
     commit)
@@ -332,7 +463,7 @@ main() {
             deny "git commit without explicit -m or -F"
         fi
 
-        validate_commit_file_paths "${real_git}" "${@:2}"
+        validate_commit_file_paths "${real_git}" "${GLOBAL_GIT_ARGS[@]}" -- "${@:2}"
 
         exec "${real_git}" \
             "${GLOBAL_GIT_ARGS[@]}" \
@@ -341,7 +472,11 @@ main() {
             -c core.editor=true \
             "$@"
         ;;
-    push | pull | fetch | rebase | reset | clean | merge | cherry-pick | revert | tag | checkout | switch)
+    switch)
+        validate_switch_args "${@:2}"
+        exec "${real_git}" "${GLOBAL_GIT_ARGS[@]}" "$@"
+        ;;
+    push | pull | fetch | rebase | reset | clean | merge | cherry-pick | revert | tag | checkout)
         deny_run_outside_scoder "git ${subcommand}"
         ;;
     *)

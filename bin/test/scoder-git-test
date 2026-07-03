@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-readonly SCODER_GIT="${SCRIPT_DIR}/scoder-git"
+readonly SCODER_GIT="$(cd -- "${SCRIPT_DIR}/.." && pwd -P)/scoder-git"
 
 FAILED=0
 
@@ -139,14 +139,35 @@ set -Eeuo pipefail
 printf 'REAL_GIT %q' "$0" >>"${SCODER_GIT_TEST_LOG}"
 printf ' %q' "$@" >>"${SCODER_GIT_TEST_LOG}"
 printf '\n' >>"${SCODER_GIT_TEST_LOG}"
-case "${1:-}" in
+    scope_dir=""
+    first_arg="${1:-}"
+    second_arg="${2:-}"
+
+    if [[ "${first_arg}" == "-C" ]]; then
+        scope_dir="${second_arg}"
+        shift 2
+        first_arg="${1:-}"
+    fi
+
+    case "${first_arg}" in
     rev-parse)
         if [[ "${2:-}" == "--show-toplevel" ]]; then
-            pwd
+            if [[ -n "${scope_dir}" ]]; then
+                if [[ "${scope_dir}" = /* ]]; then
+                    realpath -m -- "${scope_dir}"
+                else
+                    realpath -m -- "${PWD}/${scope_dir}"
+                fi
+            else
+                pwd
+            fi
             exit 0
         fi
         ;;
-esac
+    esac
+
+    # Keep fake git permissive for all other invocations.
+    :
 exit 0
 FAKE_GIT
     chmod +x "${tmpdir}/fake-git"
@@ -163,9 +184,15 @@ FAKE_GIT
     assert_allowed "${tmpdir}" "allows git worktree lock" worktree lock ../x
     assert_allowed "${tmpdir}" "allows git worktree unlock" worktree unlock ../x
     assert_allowed "${tmpdir}" "allows git maintenance run" maintenance run --auto
+    assert_allowed "${tmpdir}" "allows git switch to branch" switch safe-target
+    assert_allowed "${tmpdir}" "allows git switch -c" switch -c safe-created
+    assert_allowed "${tmpdir}" "allows git switch --create" switch --create safe-created-long
+    assert_allowed "${tmpdir}" "allows git switch - to previous branch" switch -
     assert_allowed "${tmpdir}" "allows git add inside repo" add .
+    assert_allowed "${tmpdir}" "allows git add with global -C" -C "${tmpdir}" add .
     assert_commit_hardened "${tmpdir}" "allows normal git commit" commit -m 'safe commit'
     assert_commit_hardened "${tmpdir}" "allows git global -c before commit" -c user.name=OpenAgent -c user.email=openagent@example.com commit -m 'safe commit'
+    assert_allowed "${tmpdir}" "allows git commit -F with global -C" -C "${tmpdir}" commit -F commit-message.txt
 
     assert_denied "${tmpdir}" "denies git push" push
     assert_denied_stdout_visible "${tmpdir}" "denial is visible on stdout and stderr" push
@@ -175,6 +202,10 @@ FAKE_GIT
     assert_denied "${tmpdir}" "denies git reset" reset --hard
     assert_denied "${tmpdir}" "denies git clean" clean -fd
     assert_denied "${tmpdir}" "denies git commit --amend" commit --amend
+    assert_denied "${tmpdir}" "denies git switch --force" switch --force safe-target
+    assert_denied "${tmpdir}" "denies git switch --detach" switch --detach HEAD
+    assert_denied "${tmpdir}" "denies git switch extra arg" switch safe-target extra
+    assert_denied "${tmpdir}" "denies git switch without branch" switch
     assert_denied "${tmpdir}" "denies git commit -F outside repo" commit -F /tmp/scoder-outside-message
     assert_denied "${tmpdir}" "denies git global unsafe -c" -c core.hooksPath=.githooks commit -m unsafe
     assert_denied "${tmpdir}" "denies git maintenance register" maintenance register
