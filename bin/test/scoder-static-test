@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-readonly SCODER="${SCRIPT_DIR}/scoder"
+readonly SCODER="${SCRIPT_DIR}/../scoder"
 
 if grep -q '^ALLOW_GIT=1$' "${SCODER}"; then
     printf '✅ scoder defaults .git writable for scoder-git managed commands\n'
@@ -15,5 +15,29 @@ if grep -q 'HOST_HOME}/\.gitconfig' "${SCODER}" && grep -q 'HOST_HOME}/\.config/
     printf '✅ scoder binds host git identity config read-only\n'
 else
     printf '❌ scoder does not bind host git identity config\n' >&2
+    exit 1
+fi
+
+if grep -q 'RUSTUP_HOME | CARGO_HOME | GOPATH | GOBIN' "${SCODER}" && \
+    grep -q 'select_host_tool_home.*\.local/share/rustup.*\.rustup' "${SCODER}" && \
+    grep -q 'select_host_tool_home.*\.local/share/cargo.*\.cargo' "${SCODER}" && \
+    grep -q -- '--setenv CARGO_HOME' "${SCODER}"; then
+    printf '✅ scoder auto-detects XDG Rust/Cargo/Go tool homes\n'
+else
+    printf '❌ scoder does not auto-detect XDG Rust/Cargo/Go tool homes\n' >&2
+    exit 1
+fi
+
+if grep -q 'cargo locate-project --workspace --manifest-path' "${SCODER}" && \
+    grep -q 'find_cargo_path_dependency_root' "${SCODER}" && \
+    grep -q 'common_ancestor_path' "${SCODER}" && \
+    grep -q 'workspace_root=""' "${SCODER}" && \
+    grep -q 'workspace_root="${TARGET_PARENT_DIR}"' "${SCODER}" && \
+    grep -q 'Detected Cargo workspace root' "${SCODER}" && \
+    grep -q 'SANDBOX_WORKDIR="${TARGET_PATH}"' "${SCODER}" && \
+    grep -q 'SANDBOX_PROJECT_ROOT}/${file}' "${SCODER}"; then
+    printf '✅ scoder expands Cargo subcrate targets to workspace root\n'
+else
+    printf '❌ scoder does not expand Cargo subcrate targets to workspace root\n' >&2
     exit 1
 fi

@@ -257,7 +257,7 @@ should_inherit_env() {
     case "${env_name}" in
     HOME | PATH | PWD | OLDPWD | SHELL | SHLVL | _ | USER | LOGNAME | TERM | COLORTERM | LANG | LC_ALL | \
         EDITOR | VISUAL | GIT_OPTIONAL_LOCKS | SCODER_* | PLAYWRIGHT_BROWSERS_PATH | MISE_SKIP_ACTIVATE | \
-        UV_LINK_MODE | PYENV_ROOT | RUSTUP_HOME | PYO3_PYTHON)
+        UV_LINK_MODE | PYENV_ROOT | RUSTUP_HOME | CARGO_HOME | GOPATH | GOBIN | PYO3_PYTHON)
         return 1
         ;;
     SSH_AUTH_SOCK | GPG_AGENT_INFO | DBUS_SESSION_BUS_ADDRESS | SESSION_MANAGER | XAUTHORITY | DISPLAY | WAYLAND_DISPLAY)
@@ -447,6 +447,140 @@ resolve_target_mode() {
 
     error "target must be a directory or regular file: ${requested_target}"
     exit 1
+}
+
+find_cargo_workspace_root() {
+    local start_dir="$1"
+    local manifest_path="${start_dir}/Cargo.toml"
+    local workspace_manifest=""
+    local current_dir
+
+    if [[ ! -f "${manifest_path}" ]]; then
+        return 1
+    fi
+
+    if command -v cargo >/dev/null 2>&1; then
+        workspace_manifest="$(cargo locate-project --workspace --manifest-path "${manifest_path}" --message-format plain 2>/dev/null || true)"
+        if [[ -n "${workspace_manifest}" && -f "${workspace_manifest}" ]]; then
+            dirname "$(realpath "${workspace_manifest}")"
+            return 0
+        fi
+    fi
+
+    current_dir="${start_dir}"
+    while [[ "${current_dir}" != "/" ]]; do
+        if [[ -f "${current_dir}/Cargo.toml" ]] && grep -Eq '^[[:space:]]*\[workspace\]' "${current_dir}/Cargo.toml"; then
+            realpath "${current_dir}"
+            return 0
+        fi
+        current_dir="$(dirname "${current_dir}")"
+    done
+
+    return 1
+}
+
+common_ancestor_path() {
+    local left="$1"
+    local right="$2"
+
+    left="$(realpath -m "${left}")"
+    right="$(realpath -m "${right}")"
+
+    while [[ "${right}" != "${left}" && "${right}" != "${left}"/* ]]; do
+        if [[ "${left}" == "/" ]]; then
+            printf '/\n'
+            return 0
+        fi
+        left="$(dirname "${left}")"
+    done
+
+    printf '%s\n' "${left}"
+}
+
+find_cargo_path_dependency_root() {
+    local start_dir="$1"
+    local manifest_path="${start_dir}/Cargo.toml"
+    local dependency_root="${start_dir}"
+    local line
+    local dependency_path
+    local dependency_dir
+
+    if [[ ! -f "${manifest_path}" ]]; then
+        return 1
+    fi
+
+    while IFS= read -r line; do
+        if [[ "${line}" =~ path[[:space:]]*=[[:space:]]*\"([^\"]+)\" ]]; then
+            dependency_path="${BASH_REMATCH[1]}"
+        elif [[ "${line}" =~ path[[:space:]]*=[[:space:]]*\'([^\']+)\' ]]; then
+            dependency_path="${BASH_REMATCH[1]}"
+        else
+            continue
+        fi
+
+        case "${dependency_path}" in
+        /*)
+            dependency_dir="$(realpath -m "${dependency_path}")"
+            ;;
+        *)
+            dependency_dir="$(realpath -m "${start_dir}/${dependency_path}")"
+            ;;
+        esac
+
+        dependency_root="$(common_ancestor_path "${dependency_root}" "${dependency_dir}")"
+    done <"${manifest_path}"
+
+    if [[ "${dependency_root}" != "${start_dir}" ]]; then
+        printf '%s\n' "${dependency_root}"
+        return 0
+    fi
+
+    return 1
+}
+
+cargo_workspace_expand_target() {
+    local workspace_root=""
+    local located_workspace_root=""
+
+    if [[ "${TARGET_KIND}" != "dir" || ! -f "${TARGET_PATH}/Cargo.toml" ]]; then
+        return 0
+    fi
+
+    located_workspace_root="$(find_cargo_workspace_root "${TARGET_PATH}" || true)"
+    workspace_root="${located_workspace_root}"
+
+    # `cargo locate-project --workspace` returns the package itself for
+    # standalone packages and for some package-in-larger-tree layouts. Treat a
+    # self-root as "no broader root found" so local path/workspace dependency
+    # fallbacks still get a chance to expose sibling crates.
+    if [[ "${workspace_root}" == "${TARGET_PATH}" ]]; then
+        workspace_root=""
+    fi
+
+    if [[ -z "${workspace_root}" ]]; then
+        workspace_root="$(find_cargo_path_dependency_root "${TARGET_PATH}" || true)"
+    fi
+
+    # Last-resort Cargo package heuristic for workspace dependency tables (for
+    # example `foo = { workspace = true }`) where the target manifest may not
+    # contain a literal sibling `path = "..."`, but Cargo still resolves to a
+    # sibling package from surrounding workspace metadata.
+    if [[ -z "${workspace_root}" ]] && grep -Eq 'workspace[[:space:]]*=[[:space:]]*true' "${TARGET_PATH}/Cargo.toml"; then
+        workspace_root="${TARGET_PARENT_DIR}"
+    fi
+
+    if [[ -z "${workspace_root}" || "${workspace_root}" == "${TARGET_PATH}" ]]; then
+        return 0
+    fi
+
+    if ! is_path_within "${workspace_root}" "${TARGET_PATH}"; then
+        return 0
+    fi
+
+    PROJECT_DIR="${workspace_root}"
+    SANDBOX_PROJECT_ROOT="${workspace_root}"
+    SANDBOX_WORKDIR="${TARGET_PATH}"
+    info "Detected Cargo workspace root: ${workspace_root}"
 }
 
 cleanup_file_mode_tmp_dir() {
@@ -1382,6 +1516,7 @@ if [[ "${TARGET_KIND}" == "dir" ]]; then
     PROJECT_DIR="${TARGET_PATH}"
     SANDBOX_WORKDIR="${TARGET_PATH}"
     SANDBOX_PROJECT_ROOT="${PROJECT_DIR}"
+    cargo_workspace_expand_target
 else
     PROJECT_DIR="${TARGET_PARENT_DIR}"
     SANDBOX_WORKDIR="${INVOCATION_CWD}"
@@ -1636,6 +1771,24 @@ bind_symlink_targets_in_dir() {
     done
 }
 
+select_host_tool_home() {
+    local env_value="$1"
+    local preferred_path="$2"
+    local legacy_path="$3"
+
+    if [[ -n "${env_value}" ]]; then
+        REPLY="${env_value}"
+        return
+    fi
+
+    if [[ -d "${preferred_path}" || ! -d "${legacy_path}" ]]; then
+        REPLY="${preferred_path}"
+        return
+    fi
+
+    REPLY="${legacy_path}"
+}
+
 mirror_persistent_subpath_symlink "${HOST_HOME}/.config/opencode" "${SANDBOX_OPENCODE_CONFIG_DIR}"
 SANDBOX_OPENCODE_CONFIG_DIR="${REPLY}"
 mirror_persistent_subpath_symlink "${HOST_HOME}/.local/share/opencode" "${SANDBOX_OPENCODE_DATA_DIR}"
@@ -1700,10 +1853,7 @@ if [[ "${ALLOW_HOST_TOOLS}" -eq 1 ]]; then
         ".cache/pip"
         ".cache/pipx"
         ".local/pipx"
-        ".cargo/registry"
-        ".cargo/git"
         ".cache/sccache"
-        "go/pkg/mod"
         ".cache/go-build"
         ".hex"
         ".mix"
@@ -1741,18 +1891,52 @@ if [[ "${ALLOW_HOST_TOOLS}" -eq 1 ]]; then
         PYENV_ROOT_SANDBOX="${SANDBOX_HOME}/.pyenv"
     fi
 
-    # Rust
-    if [[ -d "${HOME}/.rustup" ]]; then
-        resolve_bind_source_path "${HOME}/.rustup"
-        EXTRA_BINDS+=(--ro-bind "${REPLY}" "${SANDBOX_HOME}/.rustup")
-        RUSTUP_HOME_SANDBOX="${SANDBOX_HOME}/.rustup"
+    # Rust/Cargo. Prefer explicit env from the host shell, then the XDG-style
+    # homes from ~/.config/env/development.sh, then rustup/cargo legacy homes.
+    select_host_tool_home "${RUSTUP_HOME:-}" "${HOME}/.local/share/rustup" "${HOME}/.rustup"
+    HOST_RUSTUP_HOME="${REPLY}"
+    if [[ -d "${HOST_RUSTUP_HOME}" ]]; then
+        resolve_bind_source_path "${HOST_RUSTUP_HOME}"
+        resolved_host_tool_home="${REPLY}"
+        map_host_path_to_sandbox "${HOST_RUSTUP_HOME}"
+        sandbox_tool_home="${REPLY}"
+        add_parent_dirs_once "$(dirname "${sandbox_tool_home}")"
+        EXTRA_BINDS+=(--ro-bind "${resolved_host_tool_home}" "${sandbox_tool_home}")
+        RUSTUP_HOME_SANDBOX="${sandbox_tool_home}"
     fi
-    if [[ -d "${HOME}/.cargo/bin" ]]; then
-        resolve_bind_source_path "${HOME}/.cargo/bin"
-        EXTRA_BINDS+=(--ro-bind "${REPLY}" "${SANDBOX_HOME}/.cargo/bin")
-        SANDBOX_PATH="${SANDBOX_HOME}/.cargo/bin:${SANDBOX_PATH}"
+
+    select_host_tool_home "${CARGO_HOME:-}" "${HOME}/.local/share/cargo" "${HOME}/.cargo"
+    HOST_CARGO_HOME="${REPLY}"
+    mkdir -p "${HOST_CARGO_HOME}"
+    resolve_bind_source_path "${HOST_CARGO_HOME}"
+    resolved_host_tool_home="${REPLY}"
+    map_host_path_to_sandbox "${HOST_CARGO_HOME}"
+    sandbox_tool_home="${REPLY}"
+    add_parent_dirs_once "$(dirname "${sandbox_tool_home}")"
+    EXTRA_BINDS+=(--bind "${resolved_host_tool_home}" "${sandbox_tool_home}")
+    CARGO_HOME_SANDBOX="${sandbox_tool_home}"
+    SANDBOX_PATH="${CARGO_HOME_SANDBOX}/bin:${SANDBOX_PATH}"
+
+    # Go. Prefer explicit GOPATH from the host shell, then ~/.local/share/go,
+    # then the legacy ~/go path. Keep GOBIN explicit when configured.
+    select_host_tool_home "${GOPATH:-}" "${HOME}/.local/share/go" "${HOME}/go"
+    HOST_GOPATH="${REPLY}"
+    mkdir -p "${HOST_GOPATH}"
+    resolve_bind_source_path "${HOST_GOPATH}"
+    resolved_host_tool_home="${REPLY}"
+    map_host_path_to_sandbox "${HOST_GOPATH}"
+    sandbox_tool_home="${REPLY}"
+    add_parent_dirs_once "$(dirname "${sandbox_tool_home}")"
+    EXTRA_BINDS+=(--bind "${resolved_host_tool_home}" "${sandbox_tool_home}")
+    GOPATH_SANDBOX="${sandbox_tool_home}"
+    SANDBOX_PATH="${GOPATH_SANDBOX}/bin:${SANDBOX_PATH}"
+    if [[ -n "${GOBIN:-}" ]]; then
+        map_host_path_to_sandbox "${GOBIN}"
+        GOBIN_SANDBOX="${REPLY}"
+        SANDBOX_PATH="${GOBIN_SANDBOX}:${SANDBOX_PATH}"
     fi
-    trace_startup "host pyenv rust binds prepared"
+
+    trace_startup "host pyenv rust cargo go binds prepared"
 fi
 trace_startup "host tool binds prepared"
 
@@ -1855,15 +2039,20 @@ if [[ "${ALLOW_INFRA}" -eq 0 ]]; then
         fi
 
         if [[ -d "${PROJECT_DIR}/${dir}" ]]; then
-            SAFE_BINDS+=(--ro-bind "${PROJECT_DIR}/${dir}" "${SANDBOX_WORKDIR}/${dir}")
+            SAFE_BINDS+=(--ro-bind "${PROJECT_DIR}/${dir}" "${SANDBOX_PROJECT_ROOT}/${dir}")
             info "Protecting ${dir}/ (read-only)"
         fi
     done
 
     for file in "${PROTECTED_INFRA_FILES[@]}"; do
         if [[ -f "${PROJECT_DIR}/${file}" ]]; then
-            SAFE_BINDS+=(--ro-bind "${PROJECT_DIR}/${file}" "${SANDBOX_WORKDIR}/${file}")
+            SAFE_BINDS+=(--ro-bind "${PROJECT_DIR}/${file}" "${SANDBOX_PROJECT_ROOT}/${file}")
             info "Protecting ${file} (read-only)"
+        fi
+
+        if [[ "${TARGET_KIND}" == "dir" && "${TARGET_PATH}" != "${PROJECT_DIR}" && -f "${TARGET_PATH}/${file}" ]]; then
+            SAFE_BINDS+=(--ro-bind "${TARGET_PATH}/${file}" "${TARGET_PATH}/${file}")
+            info "Protecting ${TARGET_PATH#"${PROJECT_DIR}/"}/${file} (read-only)"
         fi
     done
 fi
@@ -2021,6 +2210,18 @@ fi
 
 if [[ -n "${RUSTUP_HOME_SANDBOX:-}" ]]; then
     BWRAP_CMD+=(--setenv RUSTUP_HOME "${RUSTUP_HOME_SANDBOX}")
+fi
+
+if [[ -n "${CARGO_HOME_SANDBOX:-}" ]]; then
+    BWRAP_CMD+=(--setenv CARGO_HOME "${CARGO_HOME_SANDBOX}")
+fi
+
+if [[ -n "${GOPATH_SANDBOX:-}" ]]; then
+    BWRAP_CMD+=(--setenv GOPATH "${GOPATH_SANDBOX}")
+fi
+
+if [[ -n "${GOBIN_SANDBOX:-}" ]]; then
+    BWRAP_CMD+=(--setenv GOBIN "${GOBIN_SANDBOX}")
 fi
 
 if [[ "${ALLOW_NVIM_REMOTE}" -eq 1 && -n "${NVIM_SOCKET_SANDBOX:-}" ]]; then

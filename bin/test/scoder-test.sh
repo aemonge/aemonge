@@ -22,7 +22,7 @@ EOF
 }
 
 agent_names_jq='split("\n") | map(select(test(" \\(")))'
-env_filter='^(OPENCODE|SCODER|CLAUDE|NODE|BUN|DEBUG|EXPERIMENT|ANTHROPIC|OPENAI|GOOGLE|GITHUB|HTTP_|HTTPS_|NO_PROXY|ALL_PROXY)'
+env_filter='^(OPENCODE|SCODER|CLAUDE|NODE|BUN|PNPM|RUSTUP|CARGO|GOPATH|GOBIN|DEBUG|EXPERIMENT|ANTHROPIC|OPENAI|GOOGLE|GITHUB|HTTP_|HTTPS_|NO_PROXY|ALL_PROXY)'
 
 section() {
     printf '\n=== %s ===\n' "$1"
@@ -54,6 +54,12 @@ run_quick() {
 
     section "SCODER: opencode binary"
     scoder -- "$ROOT" -x /bin/bash -lc 'command -v opencode; readlink -f "$(command -v opencode)" 2>/dev/null || command -v opencode; opencode --version 2>/dev/null || true'
+
+    section "HOST: rust/cargo homes"
+    /bin/bash -lc 'printf "RUSTUP_HOME=%s\nCARGO_HOME=%s\n" "${RUSTUP_HOME:-}" "${CARGO_HOME:-}"; command -v cargo || true; cargo --version 2>/dev/null || true'
+
+    section "SCODER: rust/cargo homes"
+    scoder -- "$ROOT" -x /bin/bash -lc 'printf "RUSTUP_HOME=%s\nCARGO_HOME=%s\n" "${RUSTUP_HOME:-}" "${CARGO_HOME:-}"; command -v cargo || true; cargo --version 2>/dev/null || true'
 
     section "HOST: git root"
     git rev-parse --show-toplevel 2>/dev/null || true
