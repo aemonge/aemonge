@@ -13,21 +13,103 @@ error() {
     printf '%s: %s\n' "${PROGRAM_NAME}" "$*" >&2
 }
 
-deny() {
-    local message="${PROGRAM_NAME}: Denied $*"
-    printf '%s\n' "${message}" >&2
-    printf '%s\n' "${message}"
+emit_denial_lines() {
+    local -a lines=("$@")
+    printf '%s\n' "${lines[@]}" >&2
+    printf '%s\n' "${lines[@]}"
+}
+
+deny_with_hints() {
+    local message="$1"
+    shift
+
+    local -a lines=("${PROGRAM_NAME}: Denied ${message}")
+    local hint
+    for hint in "$@"; do
+        lines+=("hint: ${hint}")
+    done
+
+    emit_denial_lines "${lines[@]}"
     exit 126
+}
+
+deny() {
+    deny_with_hints "$*" \
+        "Assistant: stop and explain the blocked scoder-git policy to the user." \
+        "Assistant: do not invent a bypass; ask whether the workflow or allowlist should change."
+}
+
+deny_destructive() {
+    deny_with_hints "$1" \
+        "Assistant: do not delete untracked files or discard work from scoder." \
+        "Assistant: inspect status/diff and ask the user before any destructive cleanup."
+}
+
+deny_reset_destructive() {
+    deny_with_hints "$1" \
+        "Assistant: do not discard tracked work from scoder." \
+        "Assistant: inspect status/diff and ask the user before any hard reset or cleanup."
+}
+
+deny_branch_movement() {
+    deny_with_hints "$1" \
+        "Assistant: use allowed branch-only switch forms instead of unsafe branch movement." \
+        "Assistant: ask the user before discarding changes, detaching HEAD, or using checkout."
+}
+
+deny_config_escape() {
+    deny_with_hints "$1" \
+        "Assistant: do not bypass scoder protections with config, hooks, signing, or editor overrides." \
+        "Assistant: use only allowed identity config or ask the user to adjust scoder policy with tests."
+}
+
+deny_path_escape() {
+    deny_with_hints "$1" \
+        "Assistant: keep paths inside the repository mounted for this scoder session." \
+        "Assistant: ask the user before staging or reading commit-message files outside the repo."
+}
+
+deny_unknown_command() {
+    deny_with_hints "$1" \
+        "Assistant: scoder-git uses an allowlist; do not invent shell workarounds." \
+        "Assistant: ask the user whether this command should be added with tests."
 }
 
 deny_run_outside_scoder() {
     local command_text="$1"
+    local category="${2:-generic}"
     local -a lines=(
         "fatal: scoder blocked ${command_text}; no ${command_text#git } was performed"
-        "fatal: run ${command_text} outside scoder if you really want to ${command_text#git }"
     )
-    printf '%s\n' "${lines[@]}" >&2
-    printf '%s\n' "${lines[@]}"
+
+    case "${category}" in
+    network)
+        lines+=(
+            "hint: Assistant: never push from scoder or perform network Git operations from this sandbox."
+            "hint: Assistant: summarize the intended remote operation and ask the user to run it outside scoder."
+        )
+        ;;
+    history)
+        lines+=(
+            "hint: Assistant: do not rewrite or integrate history inside scoder."
+            "hint: Assistant: explain the need and ask the user to run the history operation outside scoder."
+        )
+        ;;
+    destructive)
+        lines+=(
+            "hint: Assistant: do not delete untracked files or discard work from scoder."
+            "hint: Assistant: inspect status/diff and ask the user before any destructive cleanup."
+        )
+        ;;
+    *)
+        lines+=(
+            "hint: Assistant: stop and explain the blocked scoder-git policy to the user."
+            "hint: Assistant: do not invent a bypass; ask whether the workflow or allowlist should change."
+        )
+        ;;
+    esac
+
+    emit_denial_lines "${lines[@]}"
     exit 128
 }
 
@@ -102,10 +184,10 @@ split_global_options() {
                 shift 2
                 ;;
             core.hooksPath=* | commit.gpgsign=* | core.editor=*)
-                deny "git global config override blocked: $2"
+                deny_config_escape "git global config override blocked: $2"
                 ;;
             *)
-                deny "git global config not allowlisted: $2"
+                deny_config_escape "git global config not allowlisted: $2"
                 ;;
             esac
             ;;
@@ -116,10 +198,10 @@ split_global_options() {
                 shift
                 ;;
             core.hooksPath=* | commit.gpgsign=* | core.editor=*)
-                deny "git global config override blocked: ${1#--config=}"
+                deny_config_escape "git global config override blocked: ${1#--config=}"
                 ;;
             *)
-                deny "git global config not allowlisted: ${1#--config=}"
+                deny_config_escape "git global config not allowlisted: ${1#--config=}"
                 ;;
             esac
             ;;
@@ -224,13 +306,13 @@ validate_switch_args() {
             shift
             ;;
         --discard-changes | --force | -f | --detach | --merge | -m | --orphan | --guess | --no-guess | --ignore-other-worktrees | --recurse-submodules | --no-recurse-submodules)
-            deny "git switch unsafe option: ${arg}"
+            deny_branch_movement "git switch unsafe option: ${arg}"
             ;;
         --*)
-            deny "git switch option not allowlisted: ${arg}"
+            deny_branch_movement "git switch option not allowlisted: ${arg}"
             ;;
         -*)
-            deny "git switch option not allowlisted: ${arg}"
+            deny_branch_movement "git switch option not allowlisted: ${arg}"
             ;;
         *)
             branch_count=$((branch_count + 1))
@@ -254,10 +336,10 @@ validate_reset_args() {
         if [[ $# -eq 2 && "${2}" == "--no-recurse-submodules" ]]; then
             return 0
         fi
-        deny "git reset --hard blocked except worktree internal shape"
+        deny_reset_destructive "git reset --hard blocked except worktree internal shape"
         ;;
     --merge | --keep | --recurse-submodules | --no-recurse-submodules)
-        deny "git reset unsafe option: $1"
+        deny_reset_destructive "git reset unsafe option: $1"
         ;;
     --soft | --mixed)
         if [[ $# -ne 2 ]]; then
@@ -292,7 +374,7 @@ validate_reset_args() {
         return 0
     fi
 
-    deny "git reset arguments not allowlisted"
+        deny_reset_destructive "git reset arguments not allowlisted"
 }
 
 validate_add_paths() {
@@ -359,7 +441,7 @@ validate_add_paths() {
         fi
 
         if [[ "${resolved_path}" != "${repo_root}" && "${resolved_path}" != "${repo_root}"/* ]]; then
-            deny "git add path outside repo: ${arg}"
+            deny_path_escape "git add path outside repo: ${arg}"
         fi
     done
 }
@@ -425,7 +507,7 @@ validate_commit_file_paths() {
                 resolved_path="$(realpath -m -- "${check_base}/${message_file}")"
             fi
             if [[ "${resolved_path}" != "${repo_root}" && "${resolved_path}" != "${repo_root}"/* ]]; then
-                deny "git commit message file outside repo: ${message_file}"
+                deny_path_escape "git commit message file outside repo: ${message_file}"
             fi
             ;;
         --file=*)
@@ -436,7 +518,7 @@ validate_commit_file_paths() {
                 resolved_path="$(realpath -m -- "${check_base}/${message_file}")"
             fi
             if [[ "${resolved_path}" != "${repo_root}" && "${resolved_path}" != "${repo_root}"/* ]]; then
-                deny "git commit message file outside repo: ${message_file}"
+                deny_path_escape "git commit message file outside repo: ${message_file}"
             fi
             ;;
         esac
@@ -534,11 +616,17 @@ main() {
         validate_reset_args "${@:2}"
         exec "${real_git}" "${GLOBAL_GIT_ARGS[@]}" "$@"
         ;;
-    push | pull | fetch | rebase | clean | merge | cherry-pick | revert | tag | checkout)
-        deny_run_outside_scoder "git ${subcommand}"
+    push | pull | fetch)
+        deny_run_outside_scoder "git ${subcommand}" "network"
+        ;;
+    rebase | merge | cherry-pick | revert | tag | checkout)
+        deny_run_outside_scoder "git ${subcommand}" "history"
+        ;;
+    clean)
+        deny_run_outside_scoder "git ${subcommand}" "destructive"
         ;;
     *)
-        deny "unknown git command: git ${subcommand}"
+        deny_unknown_command "unknown git command: git ${subcommand}"
         ;;
     esac
 }

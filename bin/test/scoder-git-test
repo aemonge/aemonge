@@ -65,6 +65,25 @@ assert_denied_stdout_visible() {
     fi
 }
 
+assert_denied_with_hint() {
+    local tmpdir="$1"
+    local name="$2"
+    local expected_hint="$3"
+    shift 3
+
+    local output=""
+    if output="$(run_scoder_git "${tmpdir}" "$@" 2>&1)"; then
+        fail "${name}: command unexpectedly succeeded"
+        return
+    fi
+
+    if [[ "${output}" == *"hint: Assistant:"* && "${output}" == *"${expected_hint}"* ]]; then
+        pass "${name}"
+    else
+        fail "${name}: missing assistant hint '${expected_hint}', got: ${output}"
+    fi
+}
+
 assert_push_denied_as_fatal() {
     local tmpdir="$1"
     local name="$2"
@@ -212,9 +231,12 @@ FAKE_GIT
     assert_denied "${tmpdir}" "denies git push" push
     assert_denied_stdout_visible "${tmpdir}" "denial is visible on stdout and stderr" push
     assert_push_denied_as_fatal "${tmpdir}" "git push is reported as fatal blocked failure"
+    assert_denied_with_hint "${tmpdir}" "push denial has assistant hint" "never push from scoder" push
     assert_denied "${tmpdir}" "denies git pull" pull
     assert_denied "${tmpdir}" "denies git rebase" rebase main
+    assert_denied_with_hint "${tmpdir}" "rebase denial has assistant hint" "do not rewrite or integrate history inside scoder" rebase main
     assert_denied "${tmpdir}" "denies git reset --hard" reset --hard
+    assert_denied_with_hint "${tmpdir}" "hard reset denial has assistant hint" "do not discard tracked work" reset --hard
     assert_denied "${tmpdir}" "denies git reset --hard commit" reset --hard HEAD
     assert_denied "${tmpdir}" "denies git reset --hard path" reset --hard -- README.md
     assert_denied "${tmpdir}" "denies git reset internal hard shape with commit" reset --hard --no-recurse-submodules HEAD
@@ -223,16 +245,21 @@ FAKE_GIT
     assert_denied "${tmpdir}" "denies git reset --recurse-submodules" reset --recurse-submodules HEAD
     assert_denied "${tmpdir}" "denies git reset --soft with extra arg" reset --soft HEAD~1 extra
     assert_denied "${tmpdir}" "denies git clean" clean -fd
+    assert_denied_with_hint "${tmpdir}" "clean denial has assistant hint" "do not delete untracked files" clean -fd
     assert_denied "${tmpdir}" "denies git commit --amend" commit --amend
     assert_denied "${tmpdir}" "denies git switch --force" switch --force safe-target
+    assert_denied_with_hint "${tmpdir}" "unsafe switch denial has assistant hint" "use allowed branch-only switch forms" switch --force safe-target
     assert_denied "${tmpdir}" "denies git switch --detach" switch --detach HEAD
     assert_denied "${tmpdir}" "denies git switch extra arg" switch safe-target extra
     assert_denied "${tmpdir}" "denies git switch without branch" switch
     assert_denied "${tmpdir}" "denies git commit -F outside repo" commit -F /tmp/scoder-outside-message
+    assert_denied_with_hint "${tmpdir}" "path escape denial has assistant hint" "keep paths inside the repository" commit -F /tmp/scoder-outside-message
     assert_denied "${tmpdir}" "denies git global unsafe -c" -c core.hooksPath=.githooks commit -m unsafe
+    assert_denied_with_hint "${tmpdir}" "unsafe config denial has assistant hint" "do not bypass scoder protections" -c core.hooksPath=.githooks commit -m unsafe
     assert_denied "${tmpdir}" "denies git maintenance register" maintenance register
     assert_denied "${tmpdir}" "denies unknown git worktree subcommand" worktree bogus
     assert_denied "${tmpdir}" "denies unknown git subcommand" daemon
+    assert_denied_with_hint "${tmpdir}" "unknown command denial has assistant hint" "ask the user whether this command should be added with tests" daemon
 
     if [[ "${FAILED}" -eq 0 ]]; then
         printf '🎉 scoder-git focused tests passed\n'
