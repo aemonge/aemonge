@@ -420,7 +420,7 @@ main() {
         validate_config_args "${@:2}"
         exec "${real_git}" "${GLOBAL_GIT_ARGS[@]}" "$@"
         ;;
-    status | diff | log | show | branch | rev-parse | ls-files)
+    status | diff | log | show | branch | rev-parse | merge-base | for-each-ref | symbolic-ref | cat-file | name-rev | ls-files)
         exec "${real_git}" "${GLOBAL_GIT_ARGS[@]}" "$@"
         ;;
     remote)

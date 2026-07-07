@@ -175,6 +175,12 @@ FAKE_GIT
 
     assert_allowed "${tmpdir}" "allows git status" status
     assert_allowed "${tmpdir}" "allows git diff" diff -- README.md
+    assert_allowed "${tmpdir}" "allows git merge-base" merge-base main feature/test
+    assert_allowed "${tmpdir}" "allows git merge-base --is-ancestor" merge-base --is-ancestor main feature/test
+    assert_allowed "${tmpdir}" "allows git for-each-ref" for-each-ref refs/heads
+    assert_allowed "${tmpdir}" "allows git symbolic-ref" symbolic-ref --short HEAD
+    assert_allowed "${tmpdir}" "allows git cat-file" cat-file -e 'HEAD^{commit}'
+    assert_allowed "${tmpdir}" "allows git name-rev" name-rev --name-only HEAD
     assert_allowed "${tmpdir}" "allows git worktree list" worktree list
     assert_allowed "${tmpdir}" "allows git worktree add" worktree add ../x
     assert_allowed "${tmpdir}" "allows git worktree remove" worktree remove ../x
