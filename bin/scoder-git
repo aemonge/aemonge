@@ -244,6 +244,57 @@ validate_switch_args() {
     fi
 }
 
+validate_reset_args() {
+    if [[ $# -eq 0 ]]; then
+        return 0
+    fi
+
+    case "$1" in
+    --hard)
+        if [[ $# -eq 2 && "${2}" == "--no-recurse-submodules" ]]; then
+            return 0
+        fi
+        deny "git reset --hard blocked except worktree internal shape"
+        ;;
+    --merge | --keep | --recurse-submodules | --no-recurse-submodules)
+        deny "git reset unsafe option: $1"
+        ;;
+    --soft | --mixed)
+        if [[ $# -ne 2 ]]; then
+            deny "git reset $1 expects exactly one commit"
+        fi
+        case "$2" in
+        -*)
+            deny "git reset $1 invalid commit: $2"
+            ;;
+        esac
+        return 0
+        ;;
+    --)
+        if [[ $# -lt 2 ]]; then
+            deny "git reset -- without paths"
+        fi
+        return 0
+        ;;
+    --*)
+        deny "git reset option not allowlisted: $1"
+        ;;
+    -*)
+        deny "git reset option not allowlisted: $1"
+        ;;
+    esac
+
+    if [[ $# -eq 1 ]]; then
+        return 0
+    fi
+
+    if [[ $# -ge 3 && "$2" == "--" ]]; then
+        return 0
+    fi
+
+    deny "git reset arguments not allowlisted"
+}
+
 validate_add_paths() {
     local real_git="$1"
     shift
@@ -479,7 +530,11 @@ main() {
         validate_switch_args "${@:2}"
         exec "${real_git}" "${GLOBAL_GIT_ARGS[@]}" "$@"
         ;;
-    push | pull | fetch | rebase | reset | clean | merge | cherry-pick | revert | tag | checkout)
+    reset)
+        validate_reset_args "${@:2}"
+        exec "${real_git}" "${GLOBAL_GIT_ARGS[@]}" "$@"
+        ;;
+    push | pull | fetch | rebase | clean | merge | cherry-pick | revert | tag | checkout)
         deny_run_outside_scoder "git ${subcommand}"
         ;;
     *)

@@ -196,6 +196,13 @@ FAKE_GIT
     assert_allowed "${tmpdir}" "allows git switch --quiet -c" switch --quiet -c safe-created-quiet
     assert_allowed "${tmpdir}" "allows git switch --create" switch --create safe-created-long
     assert_allowed "${tmpdir}" "allows git switch - to previous branch" switch -
+    assert_allowed "${tmpdir}" "allows git reset with no args" reset
+    assert_allowed "${tmpdir}" "allows git reset --soft" reset --soft HEAD~1
+    assert_allowed "${tmpdir}" "allows git reset --mixed" reset --mixed HEAD~1
+    assert_allowed "${tmpdir}" "allows git reset to commit" reset HEAD~1
+    assert_allowed "${tmpdir}" "allows git reset path from HEAD" reset HEAD -- README.md
+    assert_allowed "${tmpdir}" "allows git reset path without commit" reset -- README.md
+    assert_allowed "${tmpdir}" "allows git worktree internal hard reset shape" reset --hard --no-recurse-submodules
     assert_allowed "${tmpdir}" "allows git add inside repo" add .
     assert_allowed "${tmpdir}" "allows git add with global -C" -C "${tmpdir}" add .
     assert_commit_hardened "${tmpdir}" "allows normal git commit" commit -m 'safe commit'
@@ -207,7 +214,14 @@ FAKE_GIT
     assert_push_denied_as_fatal "${tmpdir}" "git push is reported as fatal blocked failure"
     assert_denied "${tmpdir}" "denies git pull" pull
     assert_denied "${tmpdir}" "denies git rebase" rebase main
-    assert_denied "${tmpdir}" "denies git reset" reset --hard
+    assert_denied "${tmpdir}" "denies git reset --hard" reset --hard
+    assert_denied "${tmpdir}" "denies git reset --hard commit" reset --hard HEAD
+    assert_denied "${tmpdir}" "denies git reset --hard path" reset --hard -- README.md
+    assert_denied "${tmpdir}" "denies git reset internal hard shape with commit" reset --hard --no-recurse-submodules HEAD
+    assert_denied "${tmpdir}" "denies git reset --merge" reset --merge HEAD
+    assert_denied "${tmpdir}" "denies git reset --keep" reset --keep HEAD
+    assert_denied "${tmpdir}" "denies git reset --recurse-submodules" reset --recurse-submodules HEAD
+    assert_denied "${tmpdir}" "denies git reset --soft with extra arg" reset --soft HEAD~1 extra
     assert_denied "${tmpdir}" "denies git clean" clean -fd
     assert_denied "${tmpdir}" "denies git commit --amend" commit --amend
     assert_denied "${tmpdir}" "denies git switch --force" switch --force safe-target
