@@ -66,6 +66,7 @@ Protected Directories (read-only by default):
 
 Writable Runtime State:
   - ~/.config/opencode
+  - ~/.config/openspec
   - ~/.cache/opencode
   - ~/.local/share/opencode
   - ~/.opencode
@@ -920,7 +921,7 @@ ensure_chromium_devtools() {
         --user-data-dir="${chromium_profile}" \
         --no-first-run \
         --no-default-browser-check \
-        about:blank >"${chromium_log}" 2>&1 < /dev/null &
+        about:blank >"${chromium_log}" 2>&1 </dev/null &
 
     local attempt
     for attempt in {1..20}; do
@@ -1488,7 +1489,7 @@ run_validation() {
     # Test F: OpenCode writable runtime state
     info "Test F: OpenCode writable runtime state"
     local oc_state_test
-    oc_state_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'test -w "$HOME/.config/opencode" && test -w "$HOME/.cache/opencode" && test -w "$HOME/.local/share/opencode" && test -w "$HOME/.opencode" && test -w "$HOME/.agents" && echo SUCCESS' 2>&1 || true)
+    oc_state_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'test -w "$HOME/.config/opencode" && test -w "$HOME/.config/openspec" && test -w "$HOME/.cache/opencode" && test -w "$HOME/.local/share/opencode" && test -w "$HOME/.opencode" && test -w "$HOME/.agents" && echo SUCCESS' 2>&1 || true)
     if echo "${oc_state_test}" | grep -q "SUCCESS"; then
         echo "✅ Test F PASS: OpenCode runtime paths are writable"
     else
@@ -2776,6 +2777,7 @@ SANDBOX_PLAYWRIGHT_BROWSERS_CACHE="${SANDBOX_HOME}/.cache/ms-playwright"
 SANDBOX_LOCAL_SHARE_DIR="${SANDBOX_LOCAL_DIR}/share"
 SANDBOX_LOCAL_STATE_DIR="${SANDBOX_LOCAL_DIR}/state"
 SANDBOX_OPENCODE_CONFIG_DIR="${SANDBOX_CONFIG_DIR}/opencode"
+SANDBOX_OPENSPEC_CONFIG_DIR="${SANDBOX_CONFIG_DIR}/openspec"
 SANDBOX_OPENCODE_CACHE_DIR="${SANDBOX_CACHE_DIR}/opencode"
 SANDBOX_BUN_CACHE_DIR="${SANDBOX_CACHE_DIR}/bun"
 SANDBOX_OPENCODE_DATA_DIR="${SANDBOX_LOCAL_SHARE_DIR}/opencode"
@@ -2790,6 +2792,7 @@ fi
 OPENCODE_DATA="${HOME}/.local/share/opencode"
 OPENCODE_CACHE="${HOME}/.cache/opencode"
 OPENCODE_CONFIG_DIR="${HOME}/.config/opencode"
+OPENSPEC_CONFIG_DIR="${HOME}/.config/openspec"
 OPENCODE_ALT_DIR="${HOME}/.opencode"
 AGENTS_DIR="${HOME}/.agents"
 BUN_HOME="${HOME}/.bun"
@@ -2800,6 +2803,7 @@ mkdir -p \
     "${OPENCODE_DATA}/permissions" \
     "${OPENCODE_CACHE}" \
     "${OPENCODE_CONFIG_DIR}" \
+    "${OPENSPEC_CONFIG_DIR}" \
     "${OPENCODE_ALT_DIR}" \
     "${AGENTS_DIR}" \
     "${BUN_HOME}" \
@@ -2812,6 +2816,8 @@ resolve_bind_source_path "${OPENCODE_CACHE}"
 OPENCODE_CACHE="${REPLY}"
 resolve_bind_source_path "${OPENCODE_CONFIG_DIR}"
 OPENCODE_CONFIG_DIR="${REPLY}"
+resolve_bind_source_path "${OPENSPEC_CONFIG_DIR}"
+OPENSPEC_CONFIG_DIR="${REPLY}"
 resolve_bind_source_path "${OPENCODE_ALT_DIR}"
 OPENCODE_ALT_DIR="${REPLY}"
 resolve_bind_source_path "${AGENTS_DIR}"
@@ -3029,6 +3035,8 @@ select_host_tool_home() {
 
 mirror_persistent_subpath_symlink "${HOST_HOME}/.config/opencode" "${SANDBOX_OPENCODE_CONFIG_DIR}"
 SANDBOX_OPENCODE_CONFIG_DIR="${REPLY}"
+mirror_persistent_subpath_symlink "${HOST_HOME}/.config/openspec" "${SANDBOX_OPENSPEC_CONFIG_DIR}"
+SANDBOX_OPENSPEC_CONFIG_DIR="${REPLY}"
 mirror_persistent_subpath_symlink "${HOST_HOME}/.local/share/opencode" "${SANDBOX_OPENCODE_DATA_DIR}"
 SANDBOX_OPENCODE_DATA_DIR="${REPLY}"
 mirror_persistent_subpath_symlink "${HOST_HOME}/.cache/opencode" "${SANDBOX_OPENCODE_CACHE_DIR}"
@@ -3047,6 +3055,7 @@ mirror_persistent_subpath_symlink "${HOST_HOME}/.opencode-browser" "${SANDBOX_BR
 SANDBOX_BROWSER_DIR="${REPLY}"
 
 bind_symlink_targets_in_dir "${OPENCODE_CONFIG_DIR}"
+bind_symlink_targets_in_dir "${OPENSPEC_CONFIG_DIR}"
 
 # Git identity/config is visible read-only so commits can use the user's normal
 # identity without allowing agents to persist global git config changes.
@@ -3360,6 +3369,7 @@ BWRAP_CMD+=(
     --dir "${SANDBOX_LOCAL_STATE_DIR}"
     --dir "${SANDBOX_CONFIG_DIR}"
     --dir "${SANDBOX_OPENCODE_CONFIG_DIR}"
+    --dir "${SANDBOX_OPENSPEC_CONFIG_DIR}"
     --dir "${SANDBOX_CACHE_DIR}"
     --dir "${SANDBOX_BUN_CACHE_DIR}"
 )
@@ -3391,6 +3401,7 @@ fi
 # Data/cache binding (always for persistence)
 BWRAP_CMD+=(
     --bind "${OPENCODE_CONFIG_DIR}" "${SANDBOX_OPENCODE_CONFIG_DIR}"
+    --bind "${OPENSPEC_CONFIG_DIR}" "${SANDBOX_OPENSPEC_CONFIG_DIR}"
     --bind "${OPENCODE_DATA}" "${SANDBOX_OPENCODE_DATA_DIR}"
     --bind "${OPENCODE_CACHE}" "${SANDBOX_OPENCODE_CACHE_DIR}"
     --bind "${OPENCODE_ALT_DIR}" "${SANDBOX_OPENCODE_ALT_DIR}"

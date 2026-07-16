@@ -18,6 +18,16 @@ else
     exit 1
 fi
 
+if grep -q 'OPENSPEC_CONFIG_DIR="${HOME}/\.config/openspec"' "${SCODER}" && \
+    grep -q 'SANDBOX_OPENSPEC_CONFIG_DIR="${SANDBOX_CONFIG_DIR}/openspec"' "${SCODER}" && \
+    grep -q -- '--bind "${OPENSPEC_CONFIG_DIR}" "${SANDBOX_OPENSPEC_CONFIG_DIR}"' "${SCODER}" && \
+    grep -q 'test -w "$HOME/\.config/openspec"' "${SCODER}"; then
+    printf '✅ scoder binds OpenSpec config as writable runtime state\n'
+else
+    printf '❌ scoder does not bind OpenSpec config as writable runtime state\n' >&2
+    exit 1
+fi
+
 if grep -q 'RUSTUP_HOME | CARGO_HOME | GOPATH | GOBIN' "${SCODER}" && \
     grep -q 'select_host_tool_home.*\.local/share/rustup.*\.rustup' "${SCODER}" && \
     grep -q 'select_host_tool_home.*\.local/share/cargo.*\.cargo' "${SCODER}" && \
