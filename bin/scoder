@@ -168,6 +168,7 @@ resolve_bind_source_path() {
 init_discovery_cache() {
     SCODER_CACHE_DIR="${HOST_HOME}/.cache/scoder"
     SCODER_DISCOVERY_CACHE="${SCODER_CACHE_DIR}/discovery-v1.env"
+    SCODER_PLUGIN_INTEGRITY_CACHE="${SCODER_CACHE_DIR}/plugin-integrity-v1"
     SCODER_DISCOVERY_CACHE_VALID=0
 
     mkdir -p "${SCODER_CACHE_DIR}"
@@ -226,6 +227,548 @@ json_escape() {
     printf '%s' "${value}"
 }
 
+watch_plugin_integrity_path() {
+    SCODER_PLUGIN_WATCH_PATHS+=("$1")
+}
+
+is_local_plugin_spec() {
+    case "$1" in
+    /* | ./* | ../* | \~ | \~/* | file:*) return 0 ;;
+    esac
+    return 1
+}
+
+resolve_local_plugin_path() {
+    local spec="$1"
+    local config_dir="$2"
+    local path="${spec#file:}"
+
+    case "${path}" in
+    \~) path="${HOST_HOME}" ;;
+    \~/*) path="${HOST_HOME}/${path#\~/}" ;;
+    /*) ;;
+    *) path="${config_dir}/${path}" ;;
+    esac
+
+    realpath -ms -- "${path}"
+}
+
+opencode_plugin_cache_key() {
+    local spec="$1"
+    local scoped_tail
+
+    case "${spec}" in
+    git+* | github:* | http://* | https://* | *@git+* | *@github:*)
+        printf '%s\n' "${spec}"
+        return
+        ;;
+    @*/*)
+        scoped_tail="${spec#*/}"
+        if [[ "${scoped_tail}" == *@* ]]; then
+            printf '%s\n' "${spec}"
+        else
+            printf '%s@latest\n' "${spec}"
+        fi
+        ;;
+    *@*) printf '%s\n' "${spec}" ;;
+    *) printf '%s@latest\n' "${spec}" ;;
+    esac
+}
+
+is_valid_package_manifest() {
+    local package_dir="$1"
+    local manifest="${package_dir}/package.json"
+    local jq_bin="${SCODER_JQ_BIN:-jq}"
+
+    [[ -f "${manifest}" ]] && "${jq_bin}" -e 'type == "object"' "${manifest}" >/dev/null 2>&1
+}
+
+resolve_contained_path() {
+    local root
+    local candidate
+    local relative
+
+    root="$(realpath -m -- "$1")" || return 1
+    candidate="$(realpath -m -- "$2")" || return 1
+    relative="$(realpath -m --relative-to="${root}" -- "${candidate}")" || return 1
+
+    case "${relative}" in
+    .. | ../* | /*) return 1 ;;
+    esac
+
+    printf '%s\n' "${candidate}"
+}
+
+resolve_plugin_entry() {
+    local package_dir="$1"
+    local manifest="${package_dir}/package.json"
+    local jq_bin="${SCODER_JQ_BIN:-jq}"
+    local entry
+    local entry_candidate
+
+    if [[ -f "${manifest}" ]]; then
+        is_valid_package_manifest "${package_dir}" || return 1
+        entry="$("${jq_bin}" -er '
+            [
+                if (.exports? | type) == "string" then .exports else null end,
+                if (.exports?["."]? | type) == "string" then .exports["."] else null end,
+                if ((.exports?["."]? | type) == "object") and
+                    ((.exports["."].import? | type) == "string")
+                then .exports["."].import else null end,
+                if ((.exports?["."]? | type) == "object") and
+                    ((.exports["."].default? | type) == "string")
+                then .exports["."].default else null end,
+                if ((.exports?["."]? | type) == "object") and
+                    ((.exports["."].require? | type) == "string")
+                then .exports["."].require else null end,
+                if ((.exports? | type) == "object") and
+                    ((.exports.import? | type) == "string")
+                then .exports.import else null end,
+                if ((.exports? | type) == "object") and
+                    ((.exports.default? | type) == "string")
+                then .exports.default else null end,
+                if ((.exports? | type) == "object") and
+                    ((.exports.require? | type) == "string")
+                then .exports.require else null end,
+                if (.module? | type) == "string" then .module else null end,
+                if (.main? | type) == "string" then .main else null end
+            ] | map(select(type == "string" and length > 0)) | .[0] // empty
+        ' "${manifest}" 2>/dev/null || true)"
+
+        if [[ -n "${entry}" ]]; then
+            case "${entry}" in
+            /*) entry_candidate="${entry}" ;;
+            *) entry_candidate="${package_dir}/${entry#./}" ;;
+            esac
+            if ! resolve_contained_path "${package_dir}" "${entry_candidate}" >/dev/null; then
+                return 2
+            fi
+            printf '%s\n' "${entry_candidate}"
+            return 0
+        fi
+    fi
+
+    for entry in index.js index.mjs index.ts; do
+        entry_candidate="${package_dir}/${entry}"
+        if ! resolve_contained_path "${package_dir}" "${entry_candidate}" >/dev/null; then
+            return 2
+        fi
+        if [[ -f "${entry_candidate}" ]]; then
+            printf '%s\n' "${entry_candidate}"
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+report_external_plugin_failure() {
+    local spec="$1"
+    local reason="$2"
+    local path="$3"
+
+    error "plugin '${spec}': ${reason}: ${path}"
+    printf '  repair: opencode plugin --global --force %q\n' "${spec}" >&2
+}
+
+report_local_plugin_failure() {
+    local spec="$1"
+    local reason="$2"
+    local path="$3"
+
+    error "plugin '${spec}': ${reason}: ${path}"
+    printf '  repair: restore the local plugin or correct its configured path: %q\n' "${spec}" >&2
+}
+
+check_local_plugin() {
+    local spec="$1"
+    local config_dir="$2"
+    local path
+    local entry
+    local entry_status
+
+    path="$(resolve_local_plugin_path "${spec}" "${config_dir}")"
+    if [[ -f "${path}" ]]; then
+        watch_plugin_integrity_path "${path}"
+        return 0
+    fi
+    if [[ ! -d "${path}" ]]; then
+        report_local_plugin_failure "${spec}" "local path is missing" "${path}"
+        return 1
+    fi
+    watch_plugin_integrity_path "${path}"
+    if [[ -f "${path}/package.json" ]] && ! is_valid_package_manifest "${path}"; then
+        report_local_plugin_failure "${spec}" "local package manifest is invalid" "${path}/package.json"
+        return 1
+    fi
+    if [[ -f "${path}/package.json" ]]; then
+        watch_plugin_integrity_path "${path}/package.json"
+    fi
+
+    if entry="$(resolve_plugin_entry "${path}")"; then
+        if [[ -f "${entry}" ]]; then
+            watch_plugin_integrity_path "${entry}"
+            return 0
+        fi
+    else
+        entry_status=$?
+        if [[ ${entry_status} -eq 2 ]]; then
+            report_local_plugin_failure "${spec}" "entry point escapes package directory" "${path}/package.json"
+            return 1
+        fi
+    fi
+    if [[ -z "${entry:-}" || ! -f "${entry}" ]]; then
+        report_local_plugin_failure "${spec}" "local package entry point is missing" "${entry:-${path}}"
+        return 1
+    fi
+}
+
+check_external_plugin() {
+    local spec="$1"
+    local cache_root="$2"
+    local jq_bin="${SCODER_JQ_BIN:-jq}"
+    local cache_key
+    local wrapper
+    local dependency
+    local dependency_count
+    local cache_root_path
+    local wrapper_candidate
+    local package_dir
+    local package_candidate
+    local node_modules_root
+    local entry
+    local entry_status
+
+    cache_key="$(opencode_plugin_cache_key "${spec}")"
+    cache_root_path="$(realpath -m -- "${cache_root}")"
+    wrapper_candidate="${cache_root_path}/${cache_key}"
+    if ! wrapper="$(resolve_contained_path "${cache_root_path}" "${wrapper_candidate}")"; then
+        report_external_plugin_failure "${spec}" "cache wrapper escapes cache root" "${wrapper_candidate}"
+        return 1
+    fi
+    if [[ ! -f "${wrapper}/package.json" ]]; then
+        report_external_plugin_failure "${spec}" "cache wrapper is missing" "${wrapper}"
+        return 1
+    fi
+    watch_plugin_integrity_path "${wrapper_candidate}"
+    watch_plugin_integrity_path "${wrapper_candidate}/package.json"
+    if ! is_valid_package_manifest "${wrapper}"; then
+        report_external_plugin_failure "${spec}" "cache wrapper manifest is invalid" "${wrapper}/package.json"
+        return 1
+    fi
+    if ! "${jq_bin}" -e '(.dependencies? | type) == "object"' "${wrapper}/package.json" >/dev/null 2>&1; then
+        report_external_plugin_failure "${spec}" "cache wrapper dependencies must be a JSON object" "${wrapper}/package.json"
+        return 1
+    fi
+
+    if ! dependency_count="$("${jq_bin}" -er '.dependencies | keys | length' "${wrapper}/package.json" 2>/dev/null)"; then
+        report_external_plugin_failure "${spec}" "cache wrapper manifest is invalid" "${wrapper}/package.json"
+        return 1
+    fi
+    if [[ "${dependency_count}" -ne 1 ]]; then
+        report_external_plugin_failure "${spec}" "cache wrapper must contain exactly one dependency" "${wrapper}/package.json"
+        return 1
+    fi
+
+    if ! dependency="$("${jq_bin}" -er '.dependencies // {} | keys[0]' "${wrapper}/package.json" 2>/dev/null)"; then
+        report_external_plugin_failure "${spec}" "cache wrapper dependency is invalid" "${wrapper}/package.json"
+        return 1
+    fi
+    if ! node_modules_root="$(resolve_contained_path "${wrapper}" "${wrapper}/node_modules")"; then
+        report_external_plugin_failure "${spec}" "installed package escapes node_modules" "${wrapper}/node_modules"
+        return 1
+    fi
+    case "${dependency}" in
+    /*) package_candidate="${dependency}" ;;
+    *) package_candidate="${node_modules_root}/${dependency}" ;;
+    esac
+    if ! package_dir="$(resolve_contained_path "${node_modules_root}" "${package_candidate}")"; then
+        report_external_plugin_failure "${spec}" "installed package escapes node_modules" "${package_candidate}"
+        return 1
+    fi
+    if [[ ! -f "${package_dir}/package.json" ]]; then
+        report_external_plugin_failure "${spec}" "installed package is missing" "${package_dir}"
+        return 1
+    fi
+    watch_plugin_integrity_path "${package_candidate}"
+    watch_plugin_integrity_path "${package_candidate}/package.json"
+    if ! is_valid_package_manifest "${package_dir}"; then
+        report_external_plugin_failure "${spec}" "installed package manifest is invalid" "${package_dir}/package.json"
+        return 1
+    fi
+
+    if entry="$(resolve_plugin_entry "${package_dir}")"; then
+        if [[ -f "${entry}" ]]; then
+            watch_plugin_integrity_path "${entry}"
+            return 0
+        fi
+    else
+        entry_status=$?
+        if [[ ${entry_status} -eq 2 ]]; then
+            report_external_plugin_failure "${spec}" "entry point escapes package directory" "${package_dir}/package.json"
+            return 1
+        fi
+    fi
+    if [[ -z "${entry:-}" || ! -f "${entry}" ]]; then
+        report_external_plugin_failure "${spec}" "entry point is missing" "${entry:-${package_dir}}"
+        return 1
+    fi
+}
+
+check_opencode_plugins() {
+    local config_path="$1"
+    local cache_root="$2"
+    local jq_bin="${SCODER_JQ_BIN:-jq}"
+    local config_dir
+    local index
+    local plugin_count
+    local spec
+    local failures=0
+
+    SCODER_PLUGIN_WATCH_PATHS=()
+    [[ -f "${config_path}" ]] || return 0
+    watch_plugin_integrity_path "${config_path}"
+    if ! command -v "${jq_bin}" >/dev/null 2>&1 && [[ ! -x "${jq_bin}" ]]; then
+        error "OpenCode plugin preflight requires jq: ${jq_bin}"
+        return 1
+    fi
+    if ! "${jq_bin}" -e '
+        if has("plugin") then
+            if (.plugin | type) != "array" then false
+            else all(.plugin[];
+                (type == "string") or
+                ((type == "array") and (length == 2) and
+                    ((.[0] | type) == "string") and ((.[1] | type) == "object"))
+            )
+            end
+        else true
+        end
+    ' "${config_path}" >/dev/null 2>&1; then
+        error "invalid OpenCode plugin configuration: ${config_path}"
+        return 1
+    fi
+
+    config_dir="$(dirname "${config_path}")"
+    if ! plugin_count="$("${jq_bin}" -er 'if has("plugin") then (.plugin | length) else 0 end' "${config_path}")"; then
+        error "invalid OpenCode plugin configuration: ${config_path}"
+        return 1
+    fi
+    for ((index = 0; index < plugin_count; index++)); do
+        # shellcheck disable=SC2016 # $index is a jq variable.
+        if ! spec="$("${jq_bin}" -er --argjson index "${index}" '
+            .plugin[$index] | if type == "array" then .[0] else . end
+        ' "${config_path}")"; then
+            error "invalid OpenCode plugin entry at index ${index}: ${config_path}"
+            failures=$((failures + 1))
+            continue
+        fi
+        if is_local_plugin_spec "${spec}"; then
+            check_local_plugin "${spec}" "${config_dir}" || failures=$((failures + 1))
+        else
+            check_external_plugin "${spec}" "${cache_root}" || failures=$((failures + 1))
+        fi
+    done
+
+    [[ ${failures} -eq 0 ]]
+}
+
+plugin_integrity_path_fingerprint() {
+    local fingerprint
+    local path
+    local -a file_paths=()
+    local -a directory_paths=()
+    local -a directory_entries=()
+    local snapshot_file
+
+    for path in "$@"; do
+        if [[ -f "${path}" ]]; then
+            file_paths+=("${path}")
+        elif [[ -d "${path}" ]]; then
+            directory_paths+=("${path}")
+        else
+            return 1
+        fi
+    done
+
+    if [[ ${#directory_paths[@]} -gt 0 ]]; then
+        snapshot_file="$(mktemp "${TMPDIR:-/tmp}/scoder-plugin-paths.XXXXXX")" || return 1
+        if ! find -H "${directory_paths[@]}" -mindepth 1 -maxdepth 1 -print0 | sort -z >"${snapshot_file}"; then
+            rm -f -- "${snapshot_file}"
+            return 1
+        fi
+        if ! mapfile -d '' -t directory_entries <"${snapshot_file}"; then
+            rm -f -- "${snapshot_file}"
+            return 1
+        fi
+        rm -f -- "${snapshot_file}"
+    fi
+
+    fingerprint="$({
+        printf 'paths\0'
+        printf '%s\0' "$@"
+        realpath -ez -- "$@" || return 1
+        stat --printf='path\0%n\0identity\0%F:%s:%Y:%i\0link\0%N\0' -- "$@" || return 1
+        if [[ ${#file_paths[@]} -gt 0 ]]; then
+            sha256sum -z -- "${file_paths[@]}" || return 1
+        fi
+        if [[ ${#directory_entries[@]} -gt 0 ]]; then
+            stat --printf='entry\0%n\0identity\0%F:%s:%Y:%i\0link\0%N\0' \
+                -- "${directory_entries[@]}" || return 1
+        fi
+    } | sha256sum)" || return 1
+    REPLY="${fingerprint%% *}"
+}
+
+is_plugin_integrity_cache_current() {
+    local cache_file="$1"
+    local current_script="$2"
+    local current_config="$3"
+    local cache_fd
+    local header
+    local expected_fingerprint
+    local path=""
+    local -a cached_paths=()
+    local owner
+    local mode
+
+    [[ -f "${cache_file}" && ! -L "${cache_file}" ]] || return 1
+    owner="$(stat -c %u -- "${cache_file}")" || return 1
+    mode="$(stat -c %a -- "${cache_file}")" || return 1
+    [[ "${owner}" == "$(id -u)" && "${mode}" == "600" ]] || return 1
+
+    exec {cache_fd}<"${cache_file}" || return 1
+    if ! IFS= read -r -d '' header <&"${cache_fd}" || [[ "${header}" != "scoder-plugin-integrity-v1" ]]; then
+        exec {cache_fd}<&-
+        return 1
+    fi
+    if ! IFS= read -r -d '' expected_fingerprint <&"${cache_fd}"; then
+        exec {cache_fd}<&-
+        return 1
+    fi
+
+    while IFS= read -r -d '' path <&"${cache_fd}"; do
+        cached_paths+=("${path}")
+        path=""
+    done
+    exec {cache_fd}<&-
+
+    [[ -z "${path}" && ${#cached_paths[@]} -ge 2 ]] || return 1
+    [[ "${cached_paths[0]}" == "${current_script}" && "${cached_paths[1]}" == "${current_config}" ]] || return 1
+    plugin_integrity_path_fingerprint "${cached_paths[@]}" && [[ "${REPLY}" == "${expected_fingerprint}" ]]
+}
+
+collect_plugin_integrity_paths() {
+    local path
+    local -A watched_paths=()
+
+    SCODER_PLUGIN_UNIQUE_PATHS=()
+    for path in "${SCODER_PLUGIN_WATCH_PATHS[@]}"; do
+        if [[ -n "${watched_paths[${path}]+set}" ]]; then
+            continue
+        fi
+        watched_paths[${path}]=1
+        SCODER_PLUGIN_UNIQUE_PATHS+=("${path}")
+    done
+}
+
+write_plugin_integrity_cache() {
+    local cache_file="$1"
+    local fingerprint="$2"
+    shift 2
+    local cache_dir
+    local temporary_file
+
+    cache_dir="$(dirname -- "${cache_file}")"
+    mkdir -p "${cache_dir}" || return 1
+    umask 077
+    temporary_file="$(mktemp "${cache_file}.tmp.XXXXXX")" || return 1
+
+    if ! {
+        printf 'scoder-plugin-integrity-v1\0'
+        printf '%s\0' "${fingerprint}"
+        printf '%s\0' "$@"
+    } >"${temporary_file}"; then
+        rm -f -- "${temporary_file}"
+        return 1
+    fi
+
+    if ! chmod 600 "${temporary_file}" || ! mv -f -- "${temporary_file}" "${cache_file}"; then
+        rm -f -- "${temporary_file}"
+        return 1
+    fi
+}
+
+plugin_integrity_cache_validation_hook() { :; }
+
+check_opencode_plugins_cached() {
+    local script_path="$1"
+    local config_path="$2"
+    local cache_root="$3"
+    local integrity_cache="$4"
+    local first_fingerprint
+    local second_fingerprint
+    local index
+    local -a first_paths=()
+    local -a second_paths=()
+
+    SCODER_PLUGIN_INTEGRITY_CACHE_HIT=0
+    if command -v sha256sum >/dev/null 2>&1 &&
+        is_plugin_integrity_cache_current "${integrity_cache}" "${script_path}" "${config_path}"; then
+        SCODER_PLUGIN_INTEGRITY_CACHE_HIT=1
+        trace_startup "OpenCode plugin integrity cache hit"
+        return 0
+    fi
+
+    trace_startup "OpenCode plugin integrity cache miss"
+    rm -f -- "${integrity_cache}"
+    if ! check_opencode_plugins "${config_path}" "${cache_root}"; then
+        return 1
+    fi
+    [[ -f "${config_path}" ]] || return 0
+    if ! command -v sha256sum >/dev/null 2>&1; then
+        return 0
+    fi
+
+    SCODER_PLUGIN_WATCH_PATHS=("${script_path}" "${SCODER_PLUGIN_WATCH_PATHS[@]}")
+    collect_plugin_integrity_paths
+    first_paths=("${SCODER_PLUGIN_UNIQUE_PATHS[@]}")
+    if ! plugin_integrity_path_fingerprint "${first_paths[@]}"; then
+        error "OpenCode plugin integrity changed after successful validation"
+        return 1
+    fi
+    first_fingerprint="${REPLY}"
+
+    plugin_integrity_cache_validation_hook
+    if ! check_opencode_plugins "${config_path}" "${cache_root}"; then
+        return 1
+    fi
+    SCODER_PLUGIN_WATCH_PATHS=("${script_path}" "${SCODER_PLUGIN_WATCH_PATHS[@]}")
+    collect_plugin_integrity_paths
+    second_paths=("${SCODER_PLUGIN_UNIQUE_PATHS[@]}")
+    if ! plugin_integrity_path_fingerprint "${second_paths[@]}"; then
+        error "OpenCode plugin integrity changed after repeated validation"
+        return 1
+    fi
+    second_fingerprint="${REPLY}"
+
+    if [[ ${#first_paths[@]} -ne ${#second_paths[@]} || "${first_fingerprint}" != "${second_fingerprint}" ]]; then
+        error "OpenCode plugin integrity changed between validation passes"
+        return 1
+    fi
+    for ((index = 0; index < ${#first_paths[@]}; index++)); do
+        if [[ "${first_paths[index]}" != "${second_paths[index]}" ]]; then
+            error "OpenCode plugin watched paths changed between validation passes"
+            return 1
+        fi
+    done
+
+    if ! write_plugin_integrity_cache "${integrity_cache}" "${second_fingerprint}" "${second_paths[@]}"; then
+        error "OpenCode plugin integrity changed while caching successful validation"
+        rm -f -- "${integrity_cache}"
+        return 1
+    fi
+}
+
 is_opencode_subcommand() {
     case "$1" in
     completion | acp | mcp | attach | run | debug | providers | auth | agent | upgrade | uninstall | serve | web | models | stats | export | import | github | pr | session | plugin | plug | db)
@@ -233,6 +776,14 @@ is_opencode_subcommand() {
         ;;
     esac
 
+    return 1
+}
+
+is_plugin_repair_command() {
+    [[ ${#OPENCODE_ARGS[@]} -gt 0 ]] || return 1
+    case "${OPENCODE_ARGS[0]}" in
+    plugin | plug) return 0 ;;
+    esac
     return 1
 }
 
@@ -1194,6 +1745,650 @@ run_validation() {
         ((failed_tests++))
     fi
 
+    info "Test O: OpenCode plugin preflight"
+    local plugin_home="${test_project}/plugin home"
+    local plugin_config_dir="${plugin_home}/.config/opencode"
+    local plugin_cache_root="${plugin_home}/.cache/opencode/packages"
+    local plugin_config="${plugin_config_dir}/opencode.json"
+    local valid_wrapper="${plugin_cache_root}/valid-plugin@latest"
+    local valid_package="${valid_wrapper}/node_modules/valid-plugin"
+    local plugin_result
+    local plugin_status
+
+    capture_plugin_check() {
+        local config_path="$1"
+        local cache_root="$2"
+        local jq_override="${3:-}"
+
+        if [[ -n "${jq_override}" ]]; then
+            if plugin_result="$(SCODER_JQ_BIN="${jq_override}" check_opencode_plugins "${config_path}" "${cache_root}" 2>&1)"; then
+                plugin_status=0
+            else
+                plugin_status=$?
+            fi
+        elif plugin_result="$(check_opencode_plugins "${config_path}" "${cache_root}" 2>&1)"; then
+            plugin_status=0
+        else
+            plugin_status=$?
+        fi
+    }
+
+    mkdir -p "${plugin_config_dir}" "${valid_package}/dist"
+    printf '%s\n' '{"plugin":[["valid-plugin",{"enabled":true}]]}' >"${plugin_config}"
+    printf '%s\n' '{"dependencies":{"valid-plugin":"1.0.0"}}' >"${valid_wrapper}/package.json"
+    printf '%s\n' '{"name":"valid-plugin","main":"dist/index.js"}' >"${valid_package}/package.json"
+    printf '%s\n' 'export default {};' >"${valid_package}/dist/index.js"
+
+    if check_opencode_plugins "${plugin_config}" "${plugin_cache_root}" >/dev/null 2>&1; then
+        echo "PASS Test O.1: valid external plugin tuple accepted"
+    else
+        echo "FAIL Test O.1: valid external plugin tuple rejected"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    printf '%s\n' '{"plugin":["missing-plugin"]}' >"${plugin_config}"
+    capture_plugin_check "${plugin_config}" "${plugin_cache_root}"
+    if [[ ${plugin_status} -ne 0 ]] &&
+        grep -q "missing-plugin.*cache wrapper is missing" <<<"${plugin_result}" &&
+        grep -q "opencode plugin --global --force missing-plugin" <<<"${plugin_result}"; then
+        echo "PASS Test O.2: missing wrapper reports repair"
+    else
+        echo "FAIL Test O.2: missing wrapper diagnostic was '${plugin_result}'"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    mkdir -p "${plugin_cache_root}/orphan-plugin@latest"
+    printf '%s\n' '{"dependencies":{"orphan-plugin":"1.0.0"}}' >"${plugin_cache_root}/orphan-plugin@latest/package.json"
+    printf '%s\n' '{"plugin":["orphan-plugin"]}' >"${plugin_config}"
+    capture_plugin_check "${plugin_config}" "${plugin_cache_root}"
+    if [[ ${plugin_status} -ne 0 ]] && grep -q "orphan-plugin.*installed package is missing" <<<"${plugin_result}"; then
+        echo "PASS Test O.3: missing dependency rejected"
+    else
+        echo "FAIL Test O.3: missing dependency diagnostic was '${plugin_result}'"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    mkdir -p "${plugin_cache_root}/broken-plugin@latest/node_modules/broken-plugin"
+    printf '%s\n' '{"dependencies":{"broken-plugin":"1.0.0"}}' >"${plugin_cache_root}/broken-plugin@latest/package.json"
+    printf '%s\n' '{"name":"broken-plugin","main":"dist/missing.js"}' >"${plugin_cache_root}/broken-plugin@latest/node_modules/broken-plugin/package.json"
+    printf '%s\n' '{"plugin":["broken-plugin"]}' >"${plugin_config}"
+    capture_plugin_check "${plugin_config}" "${plugin_cache_root}"
+    if [[ ${plugin_status} -ne 0 ]] && grep -q "broken-plugin.*entry point is missing" <<<"${plugin_result}"; then
+        echo "PASS Test O.4: missing entry point rejected"
+    else
+        echo "FAIL Test O.4: missing entry diagnostic was '${plugin_result}'"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    mkdir -p "${plugin_home}/plugins"
+    printf '%s\n' 'export default {};' >"${plugin_home}/plugins/local.js"
+    printf '{"plugin":[%s]}\n' "$(printf '%s' "${plugin_home}/plugins/local.js" | jq -Rsa .)" >"${plugin_config}"
+    if check_opencode_plugins "${plugin_config}" "${plugin_cache_root}" >/dev/null 2>&1; then
+        echo "PASS Test O.5: valid local file accepted"
+    else
+        echo "FAIL Test O.5: valid local file rejected"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    mkdir -p "${plugin_config_dir}/plugins/local-package/dist"
+    printf '%s\n' '{"main":"dist/index.js"}' >"${plugin_config_dir}/plugins/local-package/package.json"
+    printf '%s\n' 'export default {};' >"${plugin_config_dir}/plugins/local-package/dist/index.js"
+    printf '%s\n' '{"plugin":["./plugins/local-package"]}' >"${plugin_config}"
+    if check_opencode_plugins "${plugin_config}" "${plugin_cache_root}" >/dev/null 2>&1; then
+        echo "PASS Test O.5b: valid local package accepted"
+    else
+        echo "FAIL Test O.5b: valid local package rejected"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    printf '%s\n' '{"plugin":["./plugins/absent.js"]}' >"${plugin_config}"
+    capture_plugin_check "${plugin_config}" "${plugin_cache_root}"
+    if [[ ${plugin_status} -ne 0 ]] &&
+        grep -q "local path is missing" <<<"${plugin_result}" &&
+        grep -q "restore the local plugin or correct its configured path" <<<"${plugin_result}"; then
+        echo "PASS Test O.6: missing local path rejected with repair guidance"
+    else
+        echo "FAIL Test O.6: local path diagnostic was '${plugin_result}'"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    printf '%s\n' '{"plugin":["first-missing","second-missing"]}' >"${plugin_config}"
+    capture_plugin_check "${plugin_config}" "${plugin_cache_root}"
+    if [[ ${plugin_status} -ne 0 ]] &&
+        grep -q "first-missing" <<<"${plugin_result}" && grep -q "second-missing" <<<"${plugin_result}"; then
+        echo "PASS Test O.7: multiple failures aggregated"
+    else
+        echo "FAIL Test O.7: failures were not aggregated: '${plugin_result}'"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    rm -f "${plugin_config}"
+    if check_opencode_plugins "${plugin_config}" "${plugin_cache_root}" >/dev/null 2>&1; then
+        echo "PASS Test O.8a: missing config skipped"
+    else
+        echo "FAIL Test O.8a: missing config rejected"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    printf '%s\n' '{not-json' >"${plugin_config}"
+    capture_plugin_check "${plugin_config}" "${plugin_cache_root}"
+    if [[ ${plugin_status} -ne 0 ]] && grep -q "invalid OpenCode plugin configuration" <<<"${plugin_result}"; then
+        echo "PASS Test O.8b: malformed config rejected"
+    else
+        echo "FAIL Test O.8b: malformed config status=${plugin_status}, diagnostic was '${plugin_result}'"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    printf '%s\n' '{"plugin":[]}' >"${plugin_config}"
+    capture_plugin_check "${plugin_config}" "${plugin_cache_root}" /missing/jq
+    if [[ ${plugin_status} -ne 0 ]] && grep -q "requires jq" <<<"${plugin_result}"; then
+        echo "PASS Test O.9: missing jq rejected"
+    else
+        echo "FAIL Test O.9: missing jq status=${plugin_status}, diagnostic was '${plugin_result}'"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    mkdir -p "${plugin_config_dir}/plugins/invalid-local-package"
+    printf '%s\n' '{not-json' >"${plugin_config_dir}/plugins/invalid-local-package/package.json"
+    printf '%s\n' 'export default {};' >"${plugin_config_dir}/plugins/invalid-local-package/index.js"
+    printf '%s\n' '{"plugin":["./plugins/invalid-local-package"]}' >"${plugin_config}"
+    capture_plugin_check "${plugin_config}" "${plugin_cache_root}"
+    if [[ ${plugin_status} -ne 0 ]] &&
+        grep -q "local package manifest is invalid" <<<"${plugin_result}" &&
+        grep -q "restore the local plugin or correct its configured path" <<<"${plugin_result}"; then
+        echo "PASS Test O.10: invalid local manifest fails closed despite index.js"
+    else
+        echo "FAIL Test O.10: invalid local manifest diagnostic was '${plugin_result}'"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    mkdir -p "${plugin_cache_root}/invalid-installed@latest/node_modules/invalid-installed"
+    printf '%s\n' '{"dependencies":{"invalid-installed":"1.0.0"}}' >"${plugin_cache_root}/invalid-installed@latest/package.json"
+    printf '%s\n' '{not-json' >"${plugin_cache_root}/invalid-installed@latest/node_modules/invalid-installed/package.json"
+    printf '%s\n' 'export default {};' >"${plugin_cache_root}/invalid-installed@latest/node_modules/invalid-installed/index.js"
+    printf '%s\n' '{"plugin":["invalid-installed"]}' >"${plugin_config}"
+    capture_plugin_check "${plugin_config}" "${plugin_cache_root}"
+    if [[ ${plugin_status} -ne 0 ]] && grep -q "installed package manifest is invalid" <<<"${plugin_result}"; then
+        echo "PASS Test O.11: invalid installed manifest fails closed despite index.js"
+    else
+        echo "FAIL Test O.11: invalid installed manifest diagnostic was '${plugin_result}'"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    mkdir -p "${plugin_config_dir}/plugins/module-fallback/dist"
+    printf '%s\n' '{"exports":{".":{"types":"./dist/index.d.ts"}},"module":"dist/plugin.mjs"}' >"${plugin_config_dir}/plugins/module-fallback/package.json"
+    printf '%s\n' 'export default {};' >"${plugin_config_dir}/plugins/module-fallback/dist/plugin.mjs"
+    printf '%s\n' '{"plugin":["./plugins/module-fallback"]}' >"${plugin_config}"
+    if check_opencode_plugins "${plugin_config}" "${plugin_cache_root}" >/dev/null 2>&1; then
+        echo "PASS Test O.12a: unsupported exports condition falls back to module"
+    else
+        echo "FAIL Test O.12a: module fallback rejected"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    mkdir -p "${plugin_config_dir}/plugins/main-fallback/dist"
+    printf '%s\n' '{"exports":{".":{"types":"./dist/index.d.ts"}},"main":"dist/plugin.js"}' >"${plugin_config_dir}/plugins/main-fallback/package.json"
+    printf '%s\n' 'export default {};' >"${plugin_config_dir}/plugins/main-fallback/dist/plugin.js"
+    printf '%s\n' '{"plugin":["./plugins/main-fallback"]}' >"${plugin_config}"
+    if check_opencode_plugins "${plugin_config}" "${plugin_cache_root}" >/dev/null 2>&1; then
+        echo "PASS Test O.12b: unsupported exports condition falls back to main"
+    else
+        echo "FAIL Test O.12b: main fallback rejected"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    mkdir -p "${plugin_config_dir}/plugins/index-fallback"
+    printf '%s\n' '{"exports":{".":{"types":"./index.d.ts"}}}' >"${plugin_config_dir}/plugins/index-fallback/package.json"
+    printf '%s\n' 'export default {};' >"${plugin_config_dir}/plugins/index-fallback/index.mjs"
+    printf '%s\n' '{"plugin":["./plugins/index-fallback"]}' >"${plugin_config}"
+    if check_opencode_plugins "${plugin_config}" "${plugin_cache_root}" >/dev/null 2>&1; then
+        echo "PASS Test O.12c: unsupported exports condition falls back to conventional index"
+    else
+        echo "FAIL Test O.12c: conventional index fallback rejected"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    printf '%s\n' '{"plugin":[["valid-plugin"],["valid-plugin",true],["valid-plugin",{},"extra"]]}' >"${plugin_config}"
+    capture_plugin_check "${plugin_config}" "${plugin_cache_root}"
+    if [[ ${plugin_status} -ne 0 ]] && grep -q "invalid OpenCode plugin configuration" <<<"${plugin_result}"; then
+        echo "PASS Test O.13: malformed plugin tuples rejected"
+    else
+        echo "FAIL Test O.13: malformed plugin tuples were accepted or misdiagnosed: '${plugin_result}'"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    local index_extension
+    for index_extension in js mjs ts; do
+        mkdir -p "${plugin_config_dir}/plugins/no-manifest-${index_extension}"
+        printf '%s\n' 'export default {};' >"${plugin_config_dir}/plugins/no-manifest-${index_extension}/index.${index_extension}"
+        printf '{"plugin":["./plugins/no-manifest-%s"]}\n' "${index_extension}" >"${plugin_config}"
+        if check_opencode_plugins "${plugin_config}" "${plugin_cache_root}" >/dev/null 2>&1; then
+            echo "PASS Test O.14.${index_extension}: manifest-less local index.${index_extension} accepted"
+        else
+            echo "FAIL Test O.14.${index_extension}: manifest-less local index.${index_extension} rejected"
+            failed_tests=$((failed_tests + 1))
+        fi
+    done
+
+    mkdir -p "${plugin_cache_root}/array-dependencies@latest/node_modules/0"
+    printf '%s\n' '{"dependencies":["1.0.0"]}' >"${plugin_cache_root}/array-dependencies@latest/package.json"
+    printf '%s\n' '{"main":"index.js"}' >"${plugin_cache_root}/array-dependencies@latest/node_modules/0/package.json"
+    printf '%s\n' 'export default {};' >"${plugin_cache_root}/array-dependencies@latest/node_modules/0/index.js"
+    printf '%s\n' '{"plugin":["array-dependencies"]}' >"${plugin_config}"
+    capture_plugin_check "${plugin_config}" "${plugin_cache_root}"
+    if [[ ${plugin_status} -ne 0 ]] && grep -q "dependencies must be a JSON object" <<<"${plugin_result}"; then
+        echo "PASS Test O.15a: array wrapper dependencies rejected"
+    else
+        echo "FAIL Test O.15a: array wrapper dependencies were accepted or misdiagnosed: '${plugin_result}'"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    mkdir -p "${plugin_cache_root}/scalar-dependencies@latest"
+    printf '%s\n' '{"dependencies":"scalar"}' >"${plugin_cache_root}/scalar-dependencies@latest/package.json"
+    printf '%s\n' '{"plugin":["scalar-dependencies"]}' >"${plugin_config}"
+    capture_plugin_check "${plugin_config}" "${plugin_cache_root}"
+    if [[ ${plugin_status} -ne 0 ]] && grep -q "dependencies must be a JSON object" <<<"${plugin_result}"; then
+        echo "PASS Test O.15b: scalar wrapper dependencies rejected"
+    else
+        echo "FAIL Test O.15b: scalar wrapper dependencies were accepted or misdiagnosed: '${plugin_result}'"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    mkdir -p "${plugin_config_dir}/plugins/non-string-import/dist"
+    printf '%s\n' '{"exports":{".":{"import":{"types":"./dist/plugin.d.ts"},"default":"dist/default.js","require":"dist/require.cjs"}}}' >"${plugin_config_dir}/plugins/non-string-import/package.json"
+    printf '%s\n' 'export default {};' >"${plugin_config_dir}/plugins/non-string-import/dist/default.js"
+    printf '%s\n' '{"plugin":["./plugins/non-string-import"]}' >"${plugin_config}"
+    if check_opencode_plugins "${plugin_config}" "${plugin_cache_root}" >/dev/null 2>&1; then
+        echo "PASS Test O.16a: non-string import falls through to string default"
+    else
+        echo "FAIL Test O.16a: string default after non-string import rejected"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    mkdir -p "${plugin_config_dir}/plugins/non-string-default/dist"
+    printf '%s\n' '{"exports":{".":{"import":42,"default":false,"require":"dist/require.cjs"}}}' >"${plugin_config_dir}/plugins/non-string-default/package.json"
+    printf '%s\n' 'module.exports = {};' >"${plugin_config_dir}/plugins/non-string-default/dist/require.cjs"
+    printf '%s\n' '{"plugin":["./plugins/non-string-default"]}' >"${plugin_config}"
+    if check_opencode_plugins "${plugin_config}" "${plugin_cache_root}" >/dev/null 2>&1; then
+        echo "PASS Test O.16b: non-string import/default fall through to string require"
+    else
+        echo "FAIL Test O.16b: string require after non-string conditions rejected"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    local escaped_wrapper="${plugin_home}/escaped-wrapper"
+    mkdir -p "${escaped_wrapper}/node_modules/escaped-wrapper/dist"
+    printf '%s\n' '{"dependencies":{"escaped-wrapper":"1.0.0"}}' >"${escaped_wrapper}/package.json"
+    printf '%s\n' '{"main":"dist/index.js"}' >"${escaped_wrapper}/node_modules/escaped-wrapper/package.json"
+    printf '%s\n' 'export default {};' >"${escaped_wrapper}/node_modules/escaped-wrapper/dist/index.js"
+    ln -s "${escaped_wrapper}" "${plugin_cache_root}/escaped-wrapper@latest"
+    printf '%s\n' '{"plugin":["escaped-wrapper"]}' >"${plugin_config}"
+    capture_plugin_check "${plugin_config}" "${plugin_cache_root}"
+    if [[ ${plugin_status} -ne 0 ]] && grep -q "cache wrapper escapes cache root" <<<"${plugin_result}"; then
+        echo "PASS Test O.17a: cache wrapper traversal rejected"
+    else
+        echo "FAIL Test O.17a: cache wrapper traversal status=${plugin_status}, diagnostic was '${plugin_result}'"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    mkdir -p "${plugin_cache_root}/dependency-traversal@latest/node_modules" "${plugin_cache_root}/escaped-package/dist"
+    printf '%s\n' '{"dependencies":{"../../escaped-package":"1.0.0"}}' >"${plugin_cache_root}/dependency-traversal@latest/package.json"
+    printf '%s\n' '{"main":"dist/index.js"}' >"${plugin_cache_root}/escaped-package/package.json"
+    printf '%s\n' 'export default {};' >"${plugin_cache_root}/escaped-package/dist/index.js"
+    printf '%s\n' '{"plugin":["dependency-traversal"]}' >"${plugin_config}"
+    capture_plugin_check "${plugin_config}" "${plugin_cache_root}"
+    if [[ ${plugin_status} -ne 0 ]] && grep -q "installed package escapes node_modules" <<<"${plugin_result}"; then
+        echo "PASS Test O.17b: dependency package traversal rejected"
+    else
+        echo "FAIL Test O.17b: dependency traversal status=${plugin_status}, diagnostic was '${plugin_result}'"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    mkdir -p "${plugin_config_dir}/plugins/entry-traversal"
+    printf '%s\n' '{"main":"../outside-entry.js"}' >"${plugin_config_dir}/plugins/entry-traversal/package.json"
+    printf '%s\n' 'export default {};' >"${plugin_config_dir}/plugins/outside-entry.js"
+    printf '%s\n' '{"plugin":["./plugins/entry-traversal"]}' >"${plugin_config}"
+    capture_plugin_check "${plugin_config}" "${plugin_cache_root}"
+    if [[ ${plugin_status} -ne 0 ]] && grep -q "entry point escapes package directory" <<<"${plugin_result}"; then
+        echo "PASS Test O.17c: declared entry traversal rejected"
+    else
+        echo "FAIL Test O.17c: entry traversal status=${plugin_status}, diagnostic was '${plugin_result}'"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    mkdir -p "${plugin_config_dir}/plugins/string-exports/dist"
+    printf '%s\n' '{"exports":"./dist/index.js"}' >"${plugin_config_dir}/plugins/string-exports/package.json"
+    printf '%s\n' 'export default {};' >"${plugin_config_dir}/plugins/string-exports/dist/index.js"
+    printf '%s\n' '{"plugin":["./plugins/string-exports"]}' >"${plugin_config}"
+    if check_opencode_plugins "${plugin_config}" "${plugin_cache_root}" >/dev/null 2>&1; then
+        echo "PASS Test O.18a: string exports accepted"
+    else
+        echo "FAIL Test O.18a: string exports rejected"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    mkdir -p "${plugin_config_dir}/plugins/conditional-exports/dist"
+    printf '%s\n' '{"exports":{"import":{"types":"./dist/index.d.ts"},"default":"./dist/index.js"}}' >"${plugin_config_dir}/plugins/conditional-exports/package.json"
+    printf '%s\n' 'export default {};' >"${plugin_config_dir}/plugins/conditional-exports/dist/index.js"
+    printf '%s\n' '{"plugin":["./plugins/conditional-exports"]}' >"${plugin_config}"
+    if check_opencode_plugins "${plugin_config}" "${plugin_cache_root}" >/dev/null 2>&1; then
+        echo "PASS Test O.18b: top-level conditional exports accepted"
+    else
+        echo "FAIL Test O.18b: top-level conditional exports rejected"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    local plugin_field_value
+    for plugin_field_value in false null; do
+        printf '{"plugin":%s}\n' "${plugin_field_value}" >"${plugin_config}"
+        capture_plugin_check "${plugin_config}" "${plugin_cache_root}"
+        if [[ ${plugin_status} -ne 0 ]] && grep -q "invalid OpenCode plugin configuration" <<<"${plugin_result}"; then
+            echo "PASS Test O.19.${plugin_field_value}: present ${plugin_field_value} plugin field rejected"
+        else
+            echo "FAIL Test O.19.${plugin_field_value}: status=${plugin_status}, diagnostic was '${plugin_result}'"
+            failed_tests=$((failed_tests + 1))
+        fi
+    done
+
+    OPENCODE_ARGS=(plugin --global --force missing-plugin)
+    if is_plugin_repair_command; then
+        echo "PASS Test O.20: plugin command bypass recognized"
+    else
+        echo "FAIL Test O.20: plugin command bypass not recognized"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    OPENCODE_ARGS=(plug --global --force missing-plugin)
+    if is_plugin_repair_command; then
+        echo "PASS Test O.21: plug alias bypass recognized"
+    else
+        echo "FAIL Test O.21: plug alias bypass not recognized"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    OPENCODE_ARGS=(run hello)
+    if is_plugin_repair_command; then
+        echo "FAIL Test O.22: normal OpenCode command bypassed preflight"
+        failed_tests=$((failed_tests + 1))
+    else
+        echo "PASS Test O.22: normal command requires preflight"
+    fi
+
+    local startup_home="${test_project}/startup-home"
+    local startup_bin="${test_project}/startup-bin"
+    local startup_marker="${test_project}/bwrap-invoked"
+    local startup_result
+    local startup_status
+
+    mkdir -p "${startup_home}/.config/opencode" "${startup_bin}"
+    printf '%s\n' '{"plugin":["startup-missing-plugin"]}' >"${startup_home}/.config/opencode/opencode.json"
+    printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"${startup_bin}/opencode"
+    printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"${startup_bin}/scoder-git"
+    # shellcheck disable=SC2016 # Variables expand when the generated fixture runs.
+    printf '%s\n' \
+        '#!/usr/bin/env bash' \
+        ': >"${SCODER_TEST_BWRAP_MARKER}"' \
+        'if [[ "${1:-}" == "--version" ]]; then printf "bubblewrap 1.0.0\n"; exit 0; fi' \
+        'if [[ "${1:-}" == "--help" ]]; then printf "%s\n" "--disable-userns"; exit 0; fi' \
+        'exit 0' >"${startup_bin}/bwrap"
+    chmod +x "${startup_bin}/opencode" "${startup_bin}/scoder-git" "${startup_bin}/bwrap"
+
+    rm -f "${startup_marker}"
+    if startup_result="$(
+        HOME="${startup_home}" \
+            PATH="${startup_bin}:${PATH}" \
+            OPENCODE_BIN="${startup_bin}/opencode" \
+            SCODER_GIT="${startup_bin}/scoder-git" \
+            SCODER_TEST_BWRAP_MARKER="${startup_marker}" \
+            "${script_path}" run -- "${test_project}" -q 2>&1
+    )"; then
+        startup_status=0
+    else
+        startup_status=$?
+    fi
+    if [[ ${startup_status} -ne 0 && ! -e "${startup_marker}" ]] &&
+        grep -q "startup-missing-plugin.*cache wrapper is missing" <<<"${startup_result}" &&
+        grep -q "OpenCode plugin preflight failed" <<<"${startup_result}"; then
+        echo "PASS Test O.23: normal startup fails closed before Bubblewrap invocation"
+    else
+        echo "FAIL Test O.23: normal startup status=${startup_status}, bwrap_invoked=$([[ -e "${startup_marker}" ]] && printf yes || printf no), output was '${startup_result}'"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    rm -f "${startup_marker}"
+    if HOME="${startup_home}" PATH="${startup_bin}:${PATH}" OPENCODE_BIN="${startup_bin}/opencode" \
+        SCODER_GIT="${startup_bin}/scoder-git" \
+        SCODER_TEST_BWRAP_MARKER="${startup_marker}" \
+        "${script_path}" -- "${test_project}" -q -x /bin/true >/dev/null 2>&1 && [[ -e "${startup_marker}" ]]; then
+        echo "PASS Test O.24: raw -x command bypasses startup preflight"
+    else
+        echo "FAIL Test O.24: raw -x command did not bypass startup preflight"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    rm -f "${startup_marker}"
+    if HOME="${startup_home}" PATH="${startup_bin}:${PATH}" OPENCODE_BIN="${startup_bin}/opencode" \
+        SCODER_GIT="${startup_bin}/scoder-git" \
+        SCODER_TEST_BWRAP_MARKER="${startup_marker}" \
+        "${script_path}" plugin -- "${test_project}" -q >/dev/null 2>&1 && [[ -e "${startup_marker}" ]]; then
+        echo "PASS Test O.25: plugin command bypasses startup preflight"
+    else
+        echo "FAIL Test O.25: plugin command did not bypass startup preflight"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    rm -f "${startup_marker}"
+    if HOME="${startup_home}" PATH="${startup_bin}:${PATH}" OPENCODE_BIN="${startup_bin}/opencode" \
+        SCODER_GIT="${startup_bin}/scoder-git" \
+        SCODER_TEST_BWRAP_MARKER="${startup_marker}" \
+        "${script_path}" plug -- "${test_project}" -q >/dev/null 2>&1 && [[ -e "${startup_marker}" ]]; then
+        echo "PASS Test O.26: plug command bypasses startup preflight"
+    else
+        echo "FAIL Test O.26: plug command did not bypass startup preflight"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    local startup_cache_root="${startup_home}/.cache/opencode/packages"
+    local startup_wrapper="${startup_cache_root}/startup-valid-plugin@latest"
+    local startup_package="${startup_wrapper}/node_modules/startup-valid-plugin"
+
+    mkdir -p "${startup_package}/dist"
+    printf '%s\n' '{"plugin":["startup-valid-plugin"]}' >"${startup_home}/.config/opencode/opencode.json"
+    printf '%s\n' '{"dependencies":{"startup-valid-plugin":"1.0.0"}}' >"${startup_wrapper}/package.json"
+    printf '%s\n' '{"main":"dist/index.js"}' >"${startup_package}/package.json"
+    printf '%s\n' 'export default {};' >"${startup_package}/dist/index.js"
+
+    rm -f "${startup_marker}"
+    if HOME="${startup_home}" PATH="${startup_bin}:${PATH}" OPENCODE_BIN="${startup_bin}/opencode" \
+        SCODER_GIT="${startup_bin}/scoder-git" \
+        SCODER_TEST_BWRAP_MARKER="${startup_marker}" \
+        "${script_path}" run -- "${test_project}" -q >/dev/null 2>&1 && [[ -e "${startup_marker}" ]]; then
+        echo "PASS Test O.27: valid normal startup reaches Bubblewrap"
+    else
+        echo "FAIL Test O.27: valid normal startup did not reach Bubblewrap"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    local integrity_cache="${plugin_home}/scoder-cache/plugin-integrity-v1"
+    local integrity_script="${plugin_home}/scoder script"
+    local integrity_entry="${valid_package}/dist/index.js"
+
+    printf '%s\n' 'test scoder script' >"${integrity_script}"
+    printf '%s\n' '{"plugin":["valid-plugin"]}' >"${plugin_config}"
+    rm -f "${integrity_cache}"
+    if check_opencode_plugins_cached "${integrity_script}" "${plugin_config}" "${plugin_cache_root}" "${integrity_cache}" &&
+        [[ -f "${integrity_cache}" && "$(stat -c %a "${integrity_cache}")" == "600" ]] &&
+        [[ "${SCODER_PLUGIN_INTEGRITY_CACHE_HIT:-}" == "0" ]]; then
+        echo "PASS Test O.28a: successful cold check writes private integrity cache"
+    else
+        echo "FAIL Test O.28a: successful cold check did not write a private cache"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    if check_opencode_plugins_cached "${integrity_script}" "${plugin_config}" "${plugin_cache_root}" "${integrity_cache}" &&
+        [[ "${SCODER_PLUGIN_INTEGRITY_CACHE_HIT:-}" == "1" ]]; then
+        echo "PASS Test O.28b: unchanged watched paths hit integrity cache"
+    else
+        echo "FAIL Test O.28b: unchanged watched paths missed integrity cache"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    local newline_plugin="${plugin_config_dir}/plugins/plugin"$'\n'"file.js"
+    local newline_cache="${plugin_home}/scoder-cache/newline-integrity-v1"
+    printf '%s\n' 'export default {};' >"${newline_plugin}"
+    printf '{"plugin":[%s]}\n' "$(printf '%s' "${newline_plugin}" | jq -Rsa .)" >"${plugin_config}"
+    if check_opencode_plugins_cached "${integrity_script}" "${plugin_config}" "${plugin_cache_root}" "${newline_cache}" &&
+        check_opencode_plugins_cached "${integrity_script}" "${plugin_config}" "${plugin_cache_root}" "${newline_cache}" &&
+        [[ "${SCODER_PLUGIN_INTEGRITY_CACHE_HIT:-}" == "1" ]]; then
+        echo "PASS Test O.28c: newline-bearing watched paths round-trip through cache"
+    else
+        echo "FAIL Test O.28c: newline-bearing watched path cache failed"
+        failed_tests=$((failed_tests + 1))
+    fi
+    printf '%s\n' '{"plugin":["valid-plugin"]}' >"${plugin_config}"
+
+    printf '%s\n' 'export default { changed: true };' >"${integrity_entry}"
+    if check_opencode_plugins_cached "${integrity_script}" "${plugin_config}" "${plugin_cache_root}" "${integrity_cache}" &&
+        [[ "${SCODER_PLUGIN_INTEGRITY_CACHE_HIT:-}" == "0" ]]; then
+        echo "PASS Test O.29a: watched entry mutation invalidates cache"
+    else
+        echo "FAIL Test O.29a: watched entry mutation did not invalidate cache"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    printf '%s\n' 'changed test scoder script' >"${integrity_script}"
+    if check_opencode_plugins_cached "${integrity_script}" "${plugin_config}" "${plugin_cache_root}" "${integrity_cache}" &&
+        [[ "${SCODER_PLUGIN_INTEGRITY_CACHE_HIT:-}" == "0" ]]; then
+        echo "PASS Test O.29a-script: watched scoder mutation invalidates cache"
+    else
+        echo "FAIL Test O.29a-script: watched scoder mutation did not invalidate cache"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    rm -f "${integrity_entry}"
+    if ! check_opencode_plugins_cached "${integrity_script}" "${plugin_config}" "${plugin_cache_root}" "${integrity_cache}" >/dev/null 2>&1 &&
+        [[ ! -e "${integrity_cache}" ]]; then
+        echo "PASS Test O.29b: watched entry deletion invalidates without replacement cache"
+    else
+        echo "FAIL Test O.29b: watched entry deletion was cached or accepted"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    local symlink_plugin_dir="${plugin_config_dir}/plugins/symlink-package"
+    local symlink_cache="${plugin_home}/scoder-cache/symlink-integrity-v1"
+    mkdir -p "${symlink_plugin_dir}"
+    printf '%s\n' '{"main":"entry.js"}' >"${symlink_plugin_dir}/package.json"
+    printf '%s\n' 'export default { target: "one" };' >"${symlink_plugin_dir}/one.js"
+    printf '%s\n' 'export default { target: "two" };' >"${symlink_plugin_dir}/two.js"
+    ln -s one.js "${symlink_plugin_dir}/entry.js"
+    printf '%s\n' '{"plugin":["./plugins/symlink-package"]}' >"${plugin_config}"
+    if check_opencode_plugins_cached "${integrity_script}" "${plugin_config}" "${plugin_cache_root}" "${symlink_cache}"; then
+        ln -sfn two.js "${symlink_plugin_dir}/entry.js"
+        if check_opencode_plugins_cached "${integrity_script}" "${plugin_config}" "${plugin_cache_root}" "${symlink_cache}" &&
+            [[ "${SCODER_PLUGIN_INTEGRITY_CACHE_HIT:-}" == "0" ]]; then
+            echo "PASS Test O.29c: watched symlink retarget invalidates cache"
+        else
+            echo "FAIL Test O.29c: watched symlink retarget did not invalidate cache"
+            failed_tests=$((failed_tests + 1))
+        fi
+    else
+        echo "FAIL Test O.29c: symlink fixture could not populate cache"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    printf '%s\n' '{"plugin":["never-installed-plugin"]}' >"${plugin_config}"
+    rm -f "${integrity_cache}"
+    if ! check_opencode_plugins_cached "${integrity_script}" "${plugin_config}" "${plugin_cache_root}" "${integrity_cache}" >/dev/null 2>&1 &&
+        [[ ! -e "${integrity_cache}" ]]; then
+        echo "PASS Test O.30: failed full checks are never cached"
+    else
+        echo "FAIL Test O.30: failed full check produced a cache"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    local manifestless_dir="${plugin_config_dir}/plugins/manifestless-structural"
+    local manifestless_cache="${plugin_home}/scoder-cache/manifestless-integrity-v1"
+    mkdir -p "${manifestless_dir}"
+    printf '%s\n' 'export default {};' >"${manifestless_dir}/index.mjs"
+    printf '%s\n' '{"plugin":["./plugins/manifestless-structural"]}' >"${plugin_config}"
+    if check_opencode_plugins_cached "${integrity_script}" "${plugin_config}" "${plugin_cache_root}" "${manifestless_cache}"; then
+        printf '%s\n' '{not-json' >"${manifestless_dir}/package.json"
+        if ! check_opencode_plugins_cached "${integrity_script}" "${plugin_config}" "${plugin_cache_root}" "${manifestless_cache}" >/dev/null 2>&1 &&
+            [[ ! -e "${manifestless_cache}" ]]; then
+            echo "PASS Test O.31a: added malformed manifest invalidates cached manifest-less package"
+        else
+            echo "FAIL Test O.31a: added malformed manifest was hidden by cache"
+            failed_tests=$((failed_tests + 1))
+        fi
+    else
+        echo "FAIL Test O.31a: manifest-less fixture could not populate cache"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    local precedence_dir="${plugin_config_dir}/plugins/conventional-precedence"
+    local precedence_cache="${plugin_home}/scoder-cache/precedence-integrity-v1"
+    mkdir -p "${precedence_dir}"
+    printf '%s\n' 'export default { selected: "mjs" };' >"${precedence_dir}/index.mjs"
+    printf '%s\n' '{"plugin":["./plugins/conventional-precedence"]}' >"${plugin_config}"
+    if check_opencode_plugins_cached "${integrity_script}" "${plugin_config}" "${plugin_cache_root}" "${precedence_cache}"; then
+        printf '%s\n' 'export default { selected: "js" };' >"${precedence_dir}/index.js"
+        if check_opencode_plugins_cached "${integrity_script}" "${plugin_config}" "${plugin_cache_root}" "${precedence_cache}" &&
+            [[ "${SCODER_PLUGIN_INTEGRITY_CACHE_HIT:-}" == "0" ]]; then
+            echo "PASS Test O.31b: higher-precedence conventional entry invalidates cache"
+        else
+            echo "FAIL Test O.31b: higher-precedence conventional entry did not invalidate cache"
+            failed_tests=$((failed_tests + 1))
+        fi
+    else
+        echo "FAIL Test O.31b: conventional precedence fixture could not populate cache"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    local newline_directory_entry="${precedence_dir}/additional"$'\n'"entry.js"
+    printf '%s\n' 'export default {};' >"${newline_directory_entry}"
+    if check_opencode_plugins_cached "${integrity_script}" "${plugin_config}" "${plugin_cache_root}" "${precedence_cache}" &&
+        [[ "${SCODER_PLUGIN_INTEGRITY_CACHE_HIT:-}" == "0" ]]; then
+        echo "PASS Test O.31c: newline-bearing directory entry invalidates cache"
+    else
+        echo "FAIL Test O.31c: newline-bearing directory entry did not invalidate cache"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    local validation_race_cache="${plugin_home}/scoder-cache/validation-race-v1"
+    printf '%s\n' '{"plugin":["valid-plugin"]}' >"${plugin_config}"
+    printf '%s\n' '{"name":"valid-plugin","main":"dist/index.js"}' >"${valid_package}/package.json"
+    printf '%s\n' 'export default {};' >"${integrity_entry}"
+    plugin_integrity_cache_validation_hook() {
+        printf '%s\n' '{not-json' >"${valid_package}/package.json"
+    }
+    if ! check_opencode_plugins_cached "${integrity_script}" "${plugin_config}" "${plugin_cache_root}" "${validation_race_cache}" >/dev/null 2>&1 &&
+        [[ ! -e "${validation_race_cache}" ]]; then
+        echo "PASS Test O.31d: validation-window manifest mutation is not cached"
+    else
+        echo "FAIL Test O.31d: validation-window manifest mutation produced a cache"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    local watchset_dir="${plugin_config_dir}/plugins/watchset-race"
+    local watchset_cache="${plugin_home}/scoder-cache/watchset-race-v1"
+    mkdir -p "${watchset_dir}"
+    printf '%s\n' 'export default {};' >"${watchset_dir}/index.mjs"
+    printf '%s\n' '{"plugin":["./plugins/watchset-race"]}' >"${plugin_config}"
+    plugin_integrity_cache_validation_hook() {
+        printf '%s\n' '{"main":"index.mjs"}' >"${watchset_dir}/package.json"
+    }
+    if ! check_opencode_plugins_cached "${integrity_script}" "${plugin_config}" "${plugin_cache_root}" "${watchset_cache}" >/dev/null 2>&1 &&
+        [[ ! -e "${watchset_cache}" ]]; then
+        echo "PASS Test O.31e: changed validation-window watched set is not cached"
+    else
+        echo "FAIL Test O.31e: changed validation-window watched set produced a cache"
+        failed_tests=$((failed_tests + 1))
+    fi
+    # shellcheck disable=SC2329 # Restore the no-op test hook after mutation fixtures.
+    plugin_integrity_cache_validation_hook() { :; }
+
+    OPENCODE_ARGS=()
+
     # Cleanup
     rm -rf "${test_project}"
     rm -rf "${shared_ro_dir}" "${shared_rw_dir}"
@@ -1206,6 +2401,26 @@ run_validation() {
         echo "⚠️  ${failed_tests} test(s) failed"
         return 1
     fi
+}
+
+run_doctor() {
+    local validation_status=0
+
+    if run_validation; then
+        :
+    else
+        validation_status=$?
+    fi
+
+    info "Doctor: current OpenCode plugin integrity"
+    if check_opencode_plugins "${OPENCODE_DEFAULT_CONFIG}" "${HOME}/.cache/opencode/packages"; then
+        echo "PASS Doctor: configured OpenCode plugins are structurally loadable"
+    else
+        echo "FAIL Doctor: configured OpenCode plugin integrity failed"
+        validation_status=1
+    fi
+
+    return "${validation_status}"
 }
 
 # -------- defaults (SECURE BY DEFAULT, BUT WRITABLE) --------
@@ -1227,7 +2442,10 @@ SCODER_TRACE_STARTUP_STARTED=0
 SCODER_TRACE_STARTUP_LAST=0
 SCODER_CACHE_DIR=""
 SCODER_DISCOVERY_CACHE=""
+SCODER_PLUGIN_INTEGRITY_CACHE=""
 SCODER_DISCOVERY_CACHE_VALID=0
+SCODER_PLUGIN_WATCH_PATHS=()
+SCODER_PLUGIN_INTEGRITY_CACHE_HIT=0
 
 trace_startup "defaults initialized"
 init_discovery_cache
@@ -1406,9 +2624,19 @@ done
 trace_startup "scoder options parsed"
 
 # Handle diagnostics/validation modes
-if [[ "${VALIDATE_MODE}" -eq 1 || "${DOCTOR_MODE}" -eq 1 ]]; then
-    run_validation
-    exit $?
+if [[ "${VALIDATE_MODE}" -eq 1 ]]; then
+    if run_validation; then
+        exit 0
+    else
+        exit $?
+    fi
+fi
+if [[ "${DOCTOR_MODE}" -eq 1 ]]; then
+    if run_doctor; then
+        exit 0
+    else
+        exit $?
+    fi
 fi
 
 # Check for conflicting flags
@@ -1428,6 +2656,23 @@ if [[ -z "${PROJECT_TARGET}" ]]; then
 fi
 
 # -------- validation --------
+OPENCODE_BIN_HOST="$(command -v "${OPENCODE_BIN}" 2>/dev/null || true)"
+if [[ -z "${OPENCODE_BIN_HOST}" ]]; then
+    error "opencode binary not found: ${OPENCODE_BIN}"
+    exit 1
+fi
+SCODER_CACHE_OPENCODE_BIN="${OPENCODE_BIN_HOST}"
+
+if [[ ${#RAW_COMMAND[@]} -eq 0 ]] && ! is_plugin_repair_command; then
+    trace_startup "OpenCode plugin preflight started"
+    if ! check_opencode_plugins_cached "$0" "${OPENCODE_DEFAULT_CONFIG}" \
+        "${HOME}/.cache/opencode/packages" "${SCODER_PLUGIN_INTEGRITY_CACHE}"; then
+        error "OpenCode plugin preflight failed; repair the listed plugins before launch"
+        exit 1
+    fi
+    trace_startup "OpenCode plugin preflight completed"
+fi
+
 if ! command -v bwrap >/dev/null 2>&1; then
     error "bubblewrap (bwrap) not found in PATH"
     error "install: pacman -S bubblewrap  # Arch/Manjaro"
@@ -1462,13 +2707,6 @@ else
     write_discovery_cache
     trace_startup "bwrap namespace probe completed"
 fi
-
-OPENCODE_BIN_HOST="$(command -v "${OPENCODE_BIN}" 2>/dev/null || true)"
-if [[ -z "${OPENCODE_BIN_HOST}" ]]; then
-    error "opencode binary not found: ${OPENCODE_BIN}"
-    exit 1
-fi
-SCODER_CACHE_OPENCODE_BIN="${OPENCODE_BIN_HOST}"
 
 SCODER_SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 SCODER_GIT_HOST="${SCODER_GIT:-${SCODER_SCRIPT_DIR}/scoder-git}"
