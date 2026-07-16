@@ -54,6 +54,7 @@ show_help() {
     echo "  neovim              Update Neovim plugins"
     echo "  bins                Update linked bins and sbins"
     echo "  completions         Generate Zsh completions and save to ~/.zfunc"
+    echo "  opencode-refresh    Refresh OpenCode local deps and plugin package cache"
     echo "  and-shutdown        Run all updates and then shutdown the system"
 }
 
@@ -84,6 +85,7 @@ typeset -a ALL_STAGES=(
     zinit
     clean-dev
     neovim
+    opencode-refresh
     bins
 )
 
@@ -105,6 +107,7 @@ typeset -A STAGE_FUNCS=(
     zinit update_zinit
     clean-dev clean_dev
     neovim update_neovim
+    opencode-refresh refresh_opencode
     bins link_bins
 )
 
@@ -126,6 +129,7 @@ typeset -A STAGE_DESCRIPTIONS=(
     zinit "Update zinit plugins"
     clean-dev "Clean dev packages"
     neovim "Update Neovim plugins"
+    opencode-refresh "Refresh OpenCode local deps and plugin package cache"
     bins "Update linked bins and sbins"
     completions "Generate Zsh completions"
     doctor "Check updater dependencies and local dev-tool paths"
@@ -699,6 +703,42 @@ update_neovim() {
     fi
 }
 
+refresh_opencode() {
+    require_user "OpenCode refresh" || return $?
+    require_command "npm" "OpenCode local dependency refresh" || return $?
+
+    local opencode_dir="$HOME/.config/opencode"
+    local opencode_cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/opencode"
+    local package_cache_dir="$opencode_cache_dir/packages"
+
+    if [[ ! -d "$opencode_dir" ]]; then
+        skip_stage "OpenCode config directory not found at $opencode_dir."
+        return $?
+    fi
+
+    if [[ ! -f "$opencode_dir/package.json" ]]; then
+        skip_stage "OpenCode package.json not found at $opencode_dir/package.json."
+        return $?
+    fi
+
+    $QUIET || title "Refreshing OpenCode local dependencies"
+    if [[ -f "$opencode_dir/package-lock.json" ]]; then
+        (cd "$opencode_dir" && npm ci --no-fund --no-audit)
+    else
+        (cd "$opencode_dir" && npm install --no-fund --no-audit)
+    fi
+
+    if [[ -d "$package_cache_dir" ]]; then
+        $QUIET || title "Clearing OpenCode external package cache"
+        rm -rf "$package_cache_dir"
+    else
+        $QUIET || subtitle "OpenCode package cache not present at $package_cache_dir; nothing to clear."
+    fi
+
+    mkdir -p "$package_cache_dir"
+    $QUIET || echo "✓ OpenCode refresh complete — restart OpenCode to reload plugins and refetch clean package copies."
+}
+
 shutdown_system() {
     if check_command "shutdown" "system shutdown"; then
         $QUIET || title "All updates completed. Shutting down the system..."
@@ -725,6 +765,7 @@ run_daily_updates() {
         pip \
         pnpm \
         bun \
+        opencode-refresh \
         bins
 }
 
