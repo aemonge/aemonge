@@ -431,10 +431,11 @@ update_pamac() {
 
 update_mirrors() {
     require_root "mirror update" || return $?
-    require_command "pacman-mirrors" "mirror update" || return $?
+    require_command "cachyos-rate-mirrors" "CachyOS mirror update" || return $?
 
-    $QUIET || title "Refreshing pacman mirrors"
-    pacman-mirrors --fasttrack 5 && pacman -Syy
+    $QUIET || title "Reranking CachyOS mirrors and performing full upgrade"
+    cachyos-rate-mirrors
+    pacman -Syyu
 }
 
 update_snap() {
