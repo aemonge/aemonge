@@ -28,6 +28,14 @@ else
     exit 1
 fi
 
+if grep -q 'bind_symlink_targets_in_dir "${OPENCODE_CONFIG_DIR}/agent"' "${SCODER}" && \
+    grep -q 'bind_symlink_targets_in_dir "${OPENCODE_CONFIG_DIR}/agents"' "${SCODER}"; then
+    printf '✅ scoder binds symlink targets in global OpenCode agent directories\n'
+else
+    printf '❌ scoder does not bind symlink targets in global OpenCode agent directories\n' >&2
+    exit 1
+fi
+
 if grep -q 'RUSTUP_HOME | CARGO_HOME | GOPATH | GOBIN' "${SCODER}" && \
     grep -q 'select_host_tool_home.*\.local/share/rustup.*\.rustup' "${SCODER}" && \
     grep -q 'select_host_tool_home.*\.local/share/cargo.*\.cargo' "${SCODER}" && \

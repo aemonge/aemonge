@@ -1444,6 +1444,23 @@ run_validation() {
         ((failed_tests++))
     fi
 
+    # Test C.2: Symlinked global agent file target visibility
+    info "Test C.2: Symlinked global agent file target visibility"
+    local agent_target_dir="/tmp/scoder-agent-target-$$"
+    local agent_expected='# scoder symlink agent'
+    mkdir -p "${symlink_home}/.config/opencode/agents" "${agent_target_dir}"
+    printf '%s\n' "${agent_expected}" >"${agent_target_dir}/Engineer.md"
+    ln -s "${agent_target_dir}/Engineer.md" "${symlink_home}/.config/opencode/agents/Engineer.md"
+    local symlink_agent_read
+    symlink_agent_read=$(HOME="${symlink_home}" OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'cat ~/.config/opencode/agents/Engineer.md' || true)
+    rm -rf "${agent_target_dir}"
+    if [[ "${symlink_agent_read}" == "${agent_expected}" ]]; then
+        echo "✅ Test C.2 PASS: Symlinked global agent target is visible"
+    else
+        echo "❌ Test C.2 FAIL: Symlinked global agent target is not visible"
+        ((failed_tests++))
+    fi
+
     # Test D: Tooling PATH
     info "Test D: .venv in PATH"
     local venv_path
@@ -1703,7 +1720,7 @@ run_validation() {
     info "Test M.7: scoder-git keeps destructive reset blocked"
     local git_reset_hard_result
     git_reset_hard_result=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'git reset --hard HEAD 2>&1' 2>&1 || true)
-    if echo "${git_reset_hard_result}" | grep -q "fatal: scoder blocked git reset"; then
+    if echo "${git_reset_hard_result}" | grep -q "scoder-git: Denied git reset --hard blocked"; then
         echo "✅ Test M.7 PASS: git reset --hard remains denied"
     else
         echo "❌ Test M.7 FAIL: git reset --hard was not denied (${git_reset_hard_result})"
@@ -3055,6 +3072,8 @@ mirror_persistent_subpath_symlink "${HOST_HOME}/.opencode-browser" "${SANDBOX_BR
 SANDBOX_BROWSER_DIR="${REPLY}"
 
 bind_symlink_targets_in_dir "${OPENCODE_CONFIG_DIR}"
+bind_symlink_targets_in_dir "${OPENCODE_CONFIG_DIR}/agent"
+bind_symlink_targets_in_dir "${OPENCODE_CONFIG_DIR}/agents"
 bind_symlink_targets_in_dir "${OPENSPEC_CONFIG_DIR}"
 
 # Git identity/config is visible read-only so commits can use the user's normal
