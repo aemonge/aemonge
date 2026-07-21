@@ -58,6 +58,7 @@ Arguments:
 
 Environment:
   OPENCODE_BIN            Overrides default opencode binary
+  NVIM_OPENCODE_PORT      Default OpenCode --port when none is passed explicitly
   SCODER_FS_MODE          "ro" (secure) or "rw" (default, allow writes)
 
 Protected Directories (read-only by default):
@@ -786,6 +787,26 @@ is_plugin_repair_command() {
     plugin | plug) return 0 ;;
     esac
     return 1
+}
+
+has_explicit_opencode_port() {
+    local argument
+
+    for argument in "${OPENCODE_ARGS[@]}"; do
+        case "${argument}" in
+        --port | --port=*) return 0 ;;
+        esac
+    done
+
+    return 1
+}
+
+apply_nvim_opencode_port_default() {
+    [[ ${#RAW_COMMAND[@]} -eq 0 ]] || return 0
+    [[ -n "${NVIM_OPENCODE_PORT:-}" ]] || return 0
+    has_explicit_opencode_port && return 0
+
+    OPENCODE_ARGS=(--port "${NVIM_OPENCODE_PORT}" "${OPENCODE_ARGS[@]}")
 }
 
 pass_env_if_set() {
@@ -2690,6 +2711,8 @@ if [[ ${#RAW_COMMAND[@]} -eq 0 ]] && ! is_plugin_repair_command; then
     fi
     trace_startup "OpenCode plugin preflight completed"
 fi
+
+apply_nvim_opencode_port_default
 
 if ! command -v bwrap >/dev/null 2>&1; then
     error "bubblewrap (bwrap) not found in PATH"

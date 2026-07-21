@@ -1,0 +1,119 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly SCODER="${SCRIPT_DIR}/../scoder"
+
+TEST_ROOT="$(mktemp -d)"
+trap 'rm -rf -- "${TEST_ROOT}"' EXIT
+
+readonly TEST_HOME="${TEST_ROOT}/home"
+readonly TEST_BIN="${TEST_ROOT}/bin"
+readonly TEST_PROJECT="${TEST_ROOT}/project"
+readonly BWRAP_CAPTURE="${TEST_ROOT}/bwrap-args"
+readonly FAKE_OPENCODE="${TEST_BIN}/opencode"
+readonly FAKE_SCODER_GIT="${TEST_BIN}/scoder-git"
+
+mkdir -p "${TEST_HOME}/.config/opencode" "${TEST_BIN}" "${TEST_PROJECT}"
+printf '{}\n' >"${TEST_HOME}/.config/opencode/opencode.json"
+
+printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"${FAKE_OPENCODE}"
+printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"${FAKE_SCODER_GIT}"
+cat >"${TEST_BIN}/bwrap" <<'BWRAP_EOF'
+#!/usr/bin/env bash
+if [[ "${1:-}" == "--version" ]]; then
+    printf 'bubblewrap 1.0.0\n'
+    exit 0
+fi
+if [[ "${1:-}" == "--help" ]]; then
+    printf '%s\n' '--disable-userns'
+    exit 0
+fi
+printf '%s\0' "$@" >"${SCODER_TEST_BWRAP_CAPTURE}"
+BWRAP_EOF
+chmod +x "${FAKE_OPENCODE}" "${FAKE_SCODER_GIT}" "${TEST_BIN}/bwrap"
+
+run_scoder() {
+    local port_value="$1"
+    shift
+
+    rm -f -- "${BWRAP_CAPTURE}"
+    if [[ "${port_value}" == "__UNSET__" ]]; then
+        env -i \
+            HOME="${TEST_HOME}" PATH="${TEST_BIN}:${PATH}" \
+            USER="${USER:-aemonge}" LOGNAME="${LOGNAME:-${USER:-aemonge}}" \
+            TERM="${TERM:-xterm-256color}" LANG="${LANG:-C.UTF-8}" \
+            OPENCODE_BIN="${FAKE_OPENCODE}" SCODER_GIT="${FAKE_SCODER_GIT}" \
+            SCODER_FORCE_PROBE=1 SCODER_TEST_BWRAP_CAPTURE="${BWRAP_CAPTURE}" \
+            "${SCODER}" "$@" -- "${TEST_PROJECT}" -q >/dev/null
+    else
+        env -i HOME="${TEST_HOME}" PATH="${TEST_BIN}:${PATH}" \
+            USER="${USER:-aemonge}" LOGNAME="${LOGNAME:-${USER:-aemonge}}" \
+            TERM="${TERM:-xterm-256color}" LANG="${LANG:-C.UTF-8}" \
+            OPENCODE_BIN="${FAKE_OPENCODE}" SCODER_GIT="${FAKE_SCODER_GIT}" \
+            SCODER_FORCE_PROBE=1 SCODER_TEST_BWRAP_CAPTURE="${BWRAP_CAPTURE}" \
+            NVIM_OPENCODE_PORT="${port_value}" \
+            "${SCODER}" "$@" -- "${TEST_PROJECT}" -q >/dev/null
+    fi
+
+    mapfile -d '' -t BWRAP_ARGS <"${BWRAP_CAPTURE}"
+    OPENCODE_COMMAND=()
+    local found_opencode=0
+    local argument
+    for argument in "${BWRAP_ARGS[@]}"; do
+        if [[ "${argument}" == "${FAKE_OPENCODE}" ]]; then
+            found_opencode=1
+            OPENCODE_COMMAND=()
+        elif [[ "${found_opencode}" -eq 1 ]]; then
+            OPENCODE_COMMAND+=("${argument}")
+        fi
+    done
+}
+
+assert_command_equals() {
+    local description="$1"
+    shift
+    local expected=("$@")
+
+    if [[ "${OPENCODE_COMMAND[*]}" != "${expected[*]}" ]]; then
+        printf 'FAIL: %s\n  expected: %q\n  actual:   %q\n' \
+            "${description}" "${expected[*]}" "${OPENCODE_COMMAND[*]}" >&2
+        exit 1
+    fi
+    printf 'PASS: %s\n' "${description}"
+}
+
+run_scoder 4321 run
+assert_command_equals 'set NVIM_OPENCODE_PORT supplies the default OpenCode port' \
+    --port 4321 run
+
+run_scoder '' run
+assert_command_equals 'empty NVIM_OPENCODE_PORT adds no OpenCode argument' run
+
+run_scoder __UNSET__ run
+assert_command_equals 'unset NVIM_OPENCODE_PORT adds no OpenCode argument' run
+
+run_scoder 4321 --port 7777 run
+assert_command_equals 'explicit split --port wins over NVIM_OPENCODE_PORT' \
+    --port 7777 run
+
+run_scoder 4321 run --port=8888
+assert_command_equals 'explicit --port=value wins over NVIM_OPENCODE_PORT' \
+    run --port=8888
+
+rm -f -- "${BWRAP_CAPTURE}"
+env -i HOME="${TEST_HOME}" PATH="${TEST_BIN}:${PATH}" \
+    USER="${USER:-aemonge}" LOGNAME="${LOGNAME:-${USER:-aemonge}}" \
+    TERM="${TERM:-xterm-256color}" LANG="${LANG:-C.UTF-8}" \
+    OPENCODE_BIN="${FAKE_OPENCODE}" SCODER_GIT="${FAKE_SCODER_GIT}" \
+    SCODER_FORCE_PROBE=1 SCODER_TEST_BWRAP_CAPTURE="${BWRAP_CAPTURE}" \
+    NVIM_OPENCODE_PORT=4321 \
+    "${SCODER}" -- "${TEST_PROJECT}" -q -x /bin/true >/dev/null
+mapfile -d '' -t BWRAP_ARGS <"${BWRAP_CAPTURE}"
+if printf '%s\n' "${BWRAP_ARGS[@]}" | grep -qx -- '--port'; then
+    printf 'FAIL: raw command unexpectedly received --port\n' >&2
+    exit 1
+fi
+printf 'PASS: raw command receives no automatic OpenCode port\n'
+
+printf 'scoder automatic port tests passed\n'
