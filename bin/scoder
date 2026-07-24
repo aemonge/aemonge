@@ -60,6 +60,7 @@ Environment:
   OPENCODE_BIN            Overrides default opencode binary
   NVIM_OPENCODE_PORT      Default OpenCode --port when none is passed explicitly
   SCODER_FS_MODE          "ro" (secure) or "rw" (default, allow writes)
+  TMPDIR                  Set inside sandbox to a private /tmp/scoder-* directory
 
 Protected Directories (read-only by default):
   .git, .github, .turbo, .cargo
@@ -830,7 +831,7 @@ should_inherit_env() {
     case "${env_name}" in
     HOME | PATH | PWD | OLDPWD | SHELL | SHLVL | _ | USER | LOGNAME | TERM | COLORTERM | LANG | LC_ALL | \
         EDITOR | VISUAL | GIT_OPTIONAL_LOCKS | SCODER_* | PLAYWRIGHT_BROWSERS_PATH | MISE_SKIP_ACTIVATE | \
-        UV_LINK_MODE | PYENV_ROOT | RUSTUP_HOME | CARGO_HOME | GOPATH | GOBIN | PYO3_PYTHON)
+        UV_LINK_MODE | TMPDIR | PYENV_ROOT | RUSTUP_HOME | CARGO_HOME | GOPATH | GOBIN | PYO3_PYTHON)
         return 1
         ;;
     SSH_AUTH_SOCK | GPG_AGENT_INFO | DBUS_SESSION_BUS_ADDRESS | SESSION_MANAGER | XAUTHORITY | DISPLAY | WAYLAND_DISPLAY)
@@ -1428,6 +1429,17 @@ run_validation() {
         echo "✅ Test B.7 PASS: raw commands execute inside sandbox"
     else
         echo "❌ Test B.7 FAIL: raw command output was '${raw_command_test}'"
+        ((failed_tests++))
+    fi
+
+    # Test B.8: private per-run sandbox TMPDIR
+    info "Test B.8: private per-run sandbox TMPDIR"
+    local tmpdir_test
+    tmpdir_test=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'case "${TMPDIR}" in /tmp/scoder-*) ;; *) printf "bad-path:%s" "${TMPDIR}"; exit 1 ;; esac; test -d "${TMPDIR}" && test -w "${TMPDIR}" && test "$(stat -c %a "${TMPDIR}")" = 700 && printf TMPDIR_OK' 2>&1 || true)
+    if [[ "${tmpdir_test}" == "TMPDIR_OK" ]]; then
+        echo "✅ Test B.8 PASS: TMPDIR points to a private writable /tmp/scoder-* directory"
+    else
+        echo "❌ Test B.8 FAIL: private TMPDIR check failed (${tmpdir_test})"
         ((failed_tests++))
     fi
 
@@ -2821,6 +2833,7 @@ SANDBOX_OPENSPEC_CONFIG_DIR="${SANDBOX_CONFIG_DIR}/openspec"
 SANDBOX_OPENCODE_CACHE_DIR="${SANDBOX_CACHE_DIR}/opencode"
 SANDBOX_BUN_CACHE_DIR="${SANDBOX_CACHE_DIR}/bun"
 SANDBOX_OPENCODE_DATA_DIR="${SANDBOX_LOCAL_SHARE_DIR}/opencode"
+SCODER_TMPDIR="/tmp/scoder-$$"
 
 if [[ ${#RAW_COMMAND[@]} -eq 0 ]]; then
     :
@@ -3404,6 +3417,8 @@ fi
 BWRAP_CMD+=(
     --proc /proc
     --tmpfs /tmp
+    --dir "${SCODER_TMPDIR}"
+    --chmod 0700 "${SCODER_TMPDIR}"
     --tmpfs /home
     --dir "${SANDBOX_HOME}"
     --dir "${SANDBOX_LOCAL_DIR}"
@@ -3489,6 +3504,7 @@ BWRAP_CMD+=(
     --setenv SHELL "${SHELL:-/bin/bash}"
     --setenv GIT_OPTIONAL_LOCKS 0
     --setenv SCODER_REAL_GIT /scoder/real-git
+    --setenv TMPDIR "${SCODER_TMPDIR}"
     --setenv PLAYWRIGHT_BROWSERS_PATH "${SANDBOX_PLAYWRIGHT_BROWSERS_CACHE}"
     --setenv PNPM_HOME "${SANDBOX_PNPM_HOME}"
     --setenv MISE_SKIP_ACTIVATE 1
