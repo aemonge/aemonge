@@ -69,3 +69,18 @@ else
     printf '❌ scoder does not set a private per-run sandbox TMPDIR\n' >&2
     exit 1
 fi
+
+if grep -q 'OPENCODE_EDITOR_SCRIPT="${HOST_HOME}/\.config/nvim/scripts/opencode-editor"' "${SCODER}" && \
+    grep -q 'SANDBOX_OPENCODE_EDITOR="${SANDBOX_HOME}/\.config/nvim/scripts/opencode-editor"' "${SCODER}" && \
+    grep -q 'SANDBOX_EDITOR="v_quickedit_hover"' "${SCODER}" && \
+    grep -q 'if \[\[ -f "${OPENCODE_EDITOR_SCRIPT}" \]\]; then' "${SCODER}" && \
+    grep -q 'add_parent_dirs_once "$(dirname "${SANDBOX_OPENCODE_EDITOR}")"' "${SCODER}" && \
+    grep -q -- '--ro-bind "${REPLY}" "${SANDBOX_OPENCODE_EDITOR}"' "${SCODER}" && \
+    grep -q 'SANDBOX_EDITOR="${SANDBOX_OPENCODE_EDITOR}"' "${SCODER}" && \
+    grep -q -- '--setenv EDITOR "${SANDBOX_EDITOR}"' "${SCODER}" && \
+    grep -q -- '--setenv VISUAL "${SANDBOX_EDITOR}"' "${SCODER}"; then
+    printf '✅ scoder uses opencode-editor script when present\n'
+else
+    printf '❌ scoder does not conditionally use opencode-editor for EDITOR/VISUAL\n' >&2
+    exit 1
+fi

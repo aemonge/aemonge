@@ -60,6 +60,7 @@ Environment:
   OPENCODE_BIN            Overrides default opencode binary
   NVIM_OPENCODE_PORT      Default OpenCode --port when none is passed explicitly
   SCODER_FS_MODE          "ro" (secure) or "rw" (default, allow writes)
+  EDITOR/VISUAL           Use ~/.config/nvim/scripts/opencode-editor when present
   TMPDIR                  Set inside sandbox to a private /tmp/scoder-* directory
 
 Protected Directories (read-only by default):
@@ -1283,14 +1284,26 @@ run_validation() {
         ((failed_tests++))
     fi
 
-    # Test A.1b: EDITOR default
-    info "Test A.1b: EDITOR default"
+    # Test A.1b: EDITOR/VISUAL default or opencode-editor bridge
+    info "Test A.1b: EDITOR/VISUAL default or opencode-editor bridge"
+    local expected_editor="v_quickedit_hover"
+    if [[ -f "${HOME}/.config/nvim/scripts/opencode-editor" ]]; then
+        expected_editor="${HOME}/.config/nvim/scripts/opencode-editor"
+    fi
     local editor_result
     editor_result=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc "printf '%s' \"\$EDITOR\"" || true)
-    if [[ "${editor_result}" == "v_quickedit_hover" ]]; then
-        echo "✅ Test A.1b PASS: EDITOR defaults to v_quickedit_hover"
+    if [[ "${editor_result}" == "${expected_editor}" ]]; then
+        echo "✅ Test A.1b PASS: EDITOR is ${expected_editor}"
     else
-        echo "❌ Test A.1b FAIL: EDITOR is ${editor_result} (expected v_quickedit_hover)"
+        echo "❌ Test A.1b FAIL: EDITOR is ${editor_result} (expected ${expected_editor})"
+        ((failed_tests++))
+    fi
+    local visual_result
+    visual_result=$(OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc "printf '%s' \"\$VISUAL\"" || true)
+    if [[ "${visual_result}" == "${expected_editor}" ]]; then
+        echo "✅ Test A.1b PASS: VISUAL is ${expected_editor}"
+    else
+        echo "❌ Test A.1b FAIL: VISUAL is ${visual_result} (expected ${expected_editor})"
         ((failed_tests++))
     fi
 
@@ -2816,6 +2829,8 @@ fi
 
 SANDBOX_HOME="${HOST_HOME}"
 SANDBOX_EDITOR="v_quickedit_hover"
+OPENCODE_EDITOR_SCRIPT="${HOST_HOME}/.config/nvim/scripts/opencode-editor"
+SANDBOX_OPENCODE_EDITOR="${SANDBOX_HOME}/.config/nvim/scripts/opencode-editor"
 SANDBOX_LOCAL_DIR="${SANDBOX_HOME}/.local"
 SANDBOX_CONFIG_DIR="${SANDBOX_HOME}/.config"
 SANDBOX_CACHE_DIR="${SANDBOX_HOME}/.cache"
@@ -3124,7 +3139,14 @@ if [[ -f "${HOST_HOME}/.config/git/config" ]]; then
     resolve_bind_source_path "${HOST_HOME}/.config/git/config"
     EXTRA_BINDS+=(--ro-bind "${REPLY}" "${SANDBOX_HOME}/.config/git/config")
 fi
-trace_startup "persistent symlink and git config binds prepared"
+
+if [[ -f "${OPENCODE_EDITOR_SCRIPT}" ]]; then
+    add_parent_dirs_once "$(dirname "${SANDBOX_OPENCODE_EDITOR}")"
+    resolve_bind_source_path "${OPENCODE_EDITOR_SCRIPT}"
+    EXTRA_BINDS+=(--ro-bind "${REPLY}" "${SANDBOX_OPENCODE_EDITOR}")
+    SANDBOX_EDITOR="${SANDBOX_OPENCODE_EDITOR}"
+fi
+trace_startup "persistent symlink, git config, and editor binds prepared"
 
 # Bind host tools unless explicitly disabled
 if [[ "${ALLOW_HOST_TOOLS}" -eq 1 ]]; then
