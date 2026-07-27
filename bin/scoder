@@ -44,6 +44,7 @@ Options:
       --full-dev          Allow full /dev access inside sandbox
       --no-nvim-remote    Disable active Neovim socket bridge
   -g, --allow-gui         Allow GUI/session access for desktop apps like Chromium
+  -s, --no-ssh-agent      Do not forward host SSH_AUTH_SOCK into the sandbox
   -w, --web-developer     Enable browser-dev mode and auto-start Chromium DevTools
   --allow-host-tools      Bind host user tools (~/.local/bin, mise, pyenv, uv, rustup/cargo, etc) (default)
   --no-host-tools         Disable binding host user tools
@@ -87,6 +88,7 @@ Examples:
   scoder -- ./myproj --validate        # run comprehensive validation tests
   scoder -- ./myproj --ro              # read-only sandbox
   scoder -- ./myproj --allow-git       # allow .git writes
+  scoder -- ./myproj --no-ssh-agent    # disable forwarding the current SSH agent socket
   scoder -- ./myproj -a ../shared.env  # add extra file read-only
   scoder -- ./myproj -A ../scratch     # add extra directory read-write
   scoder -- ./myproj -x /bin/bash -lc 'env | grep HOME' # raw command in sandbox
@@ -95,6 +97,9 @@ Examples:
 Security Note:
   HOME mirrors your host home path on tmpfs with explicit binds.
   The active Neovim socket is exposed by default when NVIM points to a socket.
+  SSH agent forwarding is enabled by default when SSH_AUTH_SOCK points to a
+  live Unix socket. Use --no-ssh-agent to disable forwarding. scoder exposes
+  the current SSH_AUTH_SOCK socket without modifying loaded identities.
   OpenCode and Bun runtime state is persisted via explicit writable binds.
   Host tools are bound by default (use --no-host-tools to disable them).
   The project is writable by default, but critical infrastructure directories
@@ -1582,6 +1587,69 @@ run_validation() {
         ((failed_tests++))
     fi
 
+    info "Test H.1: SSH agent socket is forwarded by default"
+    local ssh_agent_dir="${test_project}/ssh-agent"
+    local ssh_agent_sock="${ssh_agent_dir}/agent.sock"
+    local ssh_agent_server_pid=""
+    local ssh_agent_default_test=""
+    local ssh_agent_disabled_test=""
+    mkdir -p "${ssh_agent_dir}"
+    if command -v python3 >/dev/null 2>&1; then
+        python3 - "${ssh_agent_sock}" <<'PY' &
+import os
+import signal
+import socket
+import sys
+import time
+
+sock_path = sys.argv[1]
+try:
+    os.unlink(sock_path)
+except FileNotFoundError:
+    pass
+
+server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+server.bind(sock_path)
+server.listen(1)
+signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
+while True:
+    time.sleep(1)
+PY
+        ssh_agent_server_pid=$!
+        for _ in {1..50}; do
+            [[ -S "${ssh_agent_sock}" ]] && break
+            sleep 0.05
+        done
+        ssh_agent_default_test=$(env "$(printf '%s=%s' SSH_AUTH_SOCK "${ssh_agent_sock}")" OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'test -S "${SSH_AUTH_SOCK}" && printf "%s" "${SSH_AUTH_SOCK}"' 2>&1 || true)
+        ssh_agent_disabled_test=$(env "$(printf '%s=%s' SSH_AUTH_SOCK "${ssh_agent_sock}")" OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q --no-ssh-agent -x /bin/bash --noprofile --norc -lc 'test -z "${SSH_AUTH_SOCK:-}" && echo SUCCESS' 2>&1 || true)
+        kill "${ssh_agent_server_pid}" >/dev/null 2>&1 || true
+        wait "${ssh_agent_server_pid}" >/dev/null 2>&1 || true
+        if [[ "${ssh_agent_default_test}" == "${ssh_agent_sock}" ]]; then
+            echo "✅ Test H.1 PASS: SSH_AUTH_SOCK is forwarded by default"
+        else
+            echo "❌ Test H.1 FAIL: SSH_AUTH_SOCK was not forwarded by default (${ssh_agent_default_test})"
+            ((failed_tests++))
+        fi
+        if echo "${ssh_agent_disabled_test}" | grep -q "SUCCESS"; then
+            echo "✅ Test H.2 PASS: --no-ssh-agent disables SSH_AUTH_SOCK forwarding"
+        else
+            echo "❌ Test H.2 FAIL: --no-ssh-agent did not disable forwarding (${ssh_agent_disabled_test})"
+            ((failed_tests++))
+        fi
+    else
+        echo "ℹ️  Test H.1/H.2 SKIP: python3 unavailable for Unix socket fixture"
+    fi
+
+    info "Test H.3: default SSH agent forwarding rejects missing SSH_AUTH_SOCK sockets"
+    local ssh_agent_missing_test
+    ssh_agent_missing_test=$(env "$(printf '%s=%s' SSH_AUTH_SOCK /tmp/scoder-missing-agent.sock)" OPENCODE_BIN=/bin/bash "${script_path}" -- "${test_project}" -q -x /bin/bash --noprofile --norc -lc 'true' 2>&1 || true)
+    if echo "${ssh_agent_missing_test}" | grep -q "SSH_AUTH_SOCK is not a socket"; then
+        echo "✅ Test H.3 PASS: default forwarding rejects missing socket"
+    else
+        echo "❌ Test H.3 FAIL: missing socket was not rejected (${ssh_agent_missing_test})"
+        ((failed_tests++))
+    fi
+
     # Test I: project path preserved inside sandbox
     info "Test I: project path preserved"
     local project_path_test
@@ -2499,6 +2567,7 @@ ALLOW_HOST_TOOLS_DISABLE_SET=0
 ALLOW_GUI=0
 WEB_DEVELOPER_MODE=0
 ALLOW_NVIM_REMOTE=1
+FORWARD_SSH_AGENT=1
 HOST_HOME="${HOME}"
 HOST_USER="${USER:-andres}"
 HOST_LOGNAME="${LOGNAME:-${HOST_USER}}"
@@ -2638,6 +2707,10 @@ while [[ $# -gt 0 ]]; do
         ;;
     -g | --allow-gui)
         ALLOW_GUI=1
+        shift
+        ;;
+    -s | --no-ssh-agent)
+        FORWARD_SSH_AGENT=0
         shift
         ;;
     -w | --web-developer)
@@ -2811,6 +2884,13 @@ fi
 
 if [[ "${WEB_DEVELOPER_MODE}" -eq 1 ]]; then
     ensure_chromium_devtools || exit 1
+fi
+
+if [[ "${FORWARD_SSH_AGENT}" -eq 1 && -n "${SSH_AUTH_SOCK:-}" ]]; then
+    if [[ ! -S "${SSH_AUTH_SOCK}" ]]; then
+        error "SSH_AUTH_SOCK is not a socket: ${SSH_AUTH_SOCK}"
+        exit 1
+    fi
 fi
 
 resolve_target_mode "${PROJECT_TARGET}"
@@ -3294,6 +3374,13 @@ if [[ "${ALLOW_GUI}" -eq 1 ]]; then
 fi
 trace_startup "gui binds prepared"
 
+if [[ "${FORWARD_SSH_AGENT}" -eq 1 && -n "${SSH_AUTH_SOCK:-}" ]]; then
+    add_parent_dirs_once "$(dirname "${SSH_AUTH_SOCK}")"
+    EXTRA_BINDS+=(--bind "${SSH_AUTH_SOCK}" "${SSH_AUTH_SOCK}")
+    info "Forwarding SSH agent socket: ${SSH_AUTH_SOCK}"
+fi
+trace_startup "ssh agent bind prepared"
+
 RESOLV_CONF_TARGET="$(readlink -f /etc/resolv.conf 2>/dev/null || true)"
 if [[ -n "${RESOLV_CONF_TARGET}" && "${RESOLV_CONF_TARGET}" != "/etc/resolv.conf" && -f "${RESOLV_CONF_TARGET}" ]]; then
     add_parent_dirs_once "$(dirname "${RESOLV_CONF_TARGET}")"
@@ -3563,6 +3650,10 @@ fi
 
 if [[ "${ALLOW_NVIM_REMOTE}" -eq 1 && -n "${XDG_RUNTIME_DIR:-}" ]]; then
     BWRAP_CMD+=(--setenv XDG_RUNTIME_DIR "${XDG_RUNTIME_DIR}")
+fi
+
+if [[ "${FORWARD_SSH_AGENT}" -eq 1 && -n "${SSH_AUTH_SOCK:-}" ]]; then
+    BWRAP_CMD+=(--setenv SSH_AUTH_SOCK "${SSH_AUTH_SOCK}")
 fi
 
 if [[ -n "${PYO3_PYTHON:-}" ]]; then

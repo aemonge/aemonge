@@ -83,6 +83,57 @@ assert_command_equals() {
     printf 'PASS: %s\n' "${description}"
 }
 
+assert_bwrap_sequence_contains() {
+    local description="$1"
+    shift
+    local expected=("$@")
+    local index
+    local offset
+    local matched
+
+    for ((index = 0; index <= ${#BWRAP_ARGS[@]} - ${#expected[@]}; index++)); do
+        matched=1
+        for ((offset = 0; offset < ${#expected[@]}; offset++)); do
+            if [[ "${BWRAP_ARGS[index + offset]}" != "${expected[offset]}" ]]; then
+                matched=0
+                break
+            fi
+        done
+        if [[ "${matched}" -eq 1 ]]; then
+            printf 'PASS: %s\n' "${description}"
+            return 0
+        fi
+    done
+
+    printf 'FAIL: %s\n  expected sequence: %q\n' "${description}" "${expected[*]}" >&2
+    exit 1
+}
+
+assert_bwrap_sequence_absent() {
+    local description="$1"
+    shift
+    local expected=("$@")
+    local index
+    local offset
+    local matched
+
+    for ((index = 0; index <= ${#BWRAP_ARGS[@]} - ${#expected[@]}; index++)); do
+        matched=1
+        for ((offset = 0; offset < ${#expected[@]}; offset++)); do
+            if [[ "${BWRAP_ARGS[index + offset]}" != "${expected[offset]}" ]]; then
+                matched=0
+                break
+            fi
+        done
+        if [[ "${matched}" -eq 1 ]]; then
+            printf 'FAIL: %s\n  unexpected sequence: %q\n' "${description}" "${expected[*]}" >&2
+            exit 1
+        fi
+    done
+
+    printf 'PASS: %s\n' "${description}"
+}
+
 run_scoder 4321 run
 assert_command_equals 'set NVIM_OPENCODE_PORT supplies the default OpenCode port' \
     --port 4321 run
@@ -115,5 +166,58 @@ if printf '%s\n' "${BWRAP_ARGS[@]}" | grep -qx -- '--port'; then
     exit 1
 fi
 printf 'PASS: raw command receives no automatic OpenCode port\n'
+
+if command -v python3 >/dev/null 2>&1; then
+    FAKE_SSH_AGENT="${TEST_ROOT}/agent.sock"
+    python3 - "${FAKE_SSH_AGENT}" <<'PY' &
+import signal
+import socket
+import sys
+import time
+
+server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+server.bind(sys.argv[1])
+server.listen(1)
+signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
+while True:
+    time.sleep(1)
+PY
+    FAKE_SSH_AGENT_PID=$!
+    trap 'kill "${FAKE_SSH_AGENT_PID}" >/dev/null 2>&1 || true; rm -rf -- "${TEST_ROOT}"' EXIT
+    for _ in {1..50}; do
+        [[ -S "${FAKE_SSH_AGENT}" ]] && break
+        sleep 0.05
+    done
+
+    rm -f -- "${BWRAP_CAPTURE}"
+    env -i HOME="${TEST_HOME}" PATH="${TEST_BIN}:${PATH}" \
+        USER="${USER:-aemonge}" LOGNAME="${LOGNAME:-${USER:-aemonge}}" \
+        TERM="${TERM:-xterm-256color}" LANG="${LANG:-C.UTF-8}" \
+        OPENCODE_BIN="${FAKE_OPENCODE}" SCODER_GIT="${FAKE_SCODER_GIT}" \
+        SCODER_FORCE_PROBE=1 SCODER_TEST_BWRAP_CAPTURE="${BWRAP_CAPTURE}" \
+        "$(printf '%s=%s' SSH_AUTH_SOCK "${FAKE_SSH_AGENT}")" \
+        "${SCODER}" -- "${TEST_PROJECT}" -q -x /bin/true >/dev/null
+    mapfile -d '' -t BWRAP_ARGS <"${BWRAP_CAPTURE}"
+    assert_bwrap_sequence_contains 'default forwarding binds the host SSH_AUTH_SOCK socket' \
+        --bind "${FAKE_SSH_AGENT}" "${FAKE_SSH_AGENT}"
+    assert_bwrap_sequence_contains 'default forwarding sets SSH_AUTH_SOCK inside sandbox' \
+        --setenv SSH_AUTH_SOCK "${FAKE_SSH_AGENT}"
+
+    rm -f -- "${BWRAP_CAPTURE}"
+    env -i HOME="${TEST_HOME}" PATH="${TEST_BIN}:${PATH}" \
+        USER="${USER:-aemonge}" LOGNAME="${LOGNAME:-${USER:-aemonge}}" \
+        TERM="${TERM:-xterm-256color}" LANG="${LANG:-C.UTF-8}" \
+        OPENCODE_BIN="${FAKE_OPENCODE}" SCODER_GIT="${FAKE_SCODER_GIT}" \
+        SCODER_FORCE_PROBE=1 SCODER_TEST_BWRAP_CAPTURE="${BWRAP_CAPTURE}" \
+        "$(printf '%s=%s' SSH_AUTH_SOCK "${FAKE_SSH_AGENT}")" \
+        "${SCODER}" -- "${TEST_PROJECT}" -q --no-ssh-agent -x /bin/true >/dev/null
+    mapfile -d '' -t BWRAP_ARGS <"${BWRAP_CAPTURE}"
+    assert_bwrap_sequence_absent '--no-ssh-agent skips binding the host SSH_AUTH_SOCK socket' \
+        --bind "${FAKE_SSH_AGENT}" "${FAKE_SSH_AGENT}"
+    assert_bwrap_sequence_absent '--no-ssh-agent skips setting SSH_AUTH_SOCK inside sandbox' \
+        --setenv SSH_AUTH_SOCK "${FAKE_SSH_AGENT}"
+else
+    printf 'SKIP: python3 unavailable for SSH agent socket test\n'
+fi
 
 printf 'scoder automatic port tests passed\n'
