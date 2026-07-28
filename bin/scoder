@@ -808,10 +808,57 @@ has_explicit_opencode_port() {
     return 1
 }
 
+log_startup_event() {
+    local message="$1"
+    local state_root="${XDG_STATE_HOME:-${HOST_HOME}/.local/state}"
+    local log_dir="${state_root}/scoder"
+    local log_file="${log_dir}/startup.log"
+    local timestamp
+
+    message="${message//$'\n'/ }"
+    message="${message//$'\r'/ }"
+    timestamp="$(date -Is 2>/dev/null || date '+%Y-%m-%dT%H:%M:%S%z' 2>/dev/null || printf 'unknown-time')"
+    mkdir -p -- "${log_dir}" >/dev/null 2>&1 || return 0
+    chmod 700 "${log_dir}" >/dev/null 2>&1 || true
+    touch "${log_file}" >/dev/null 2>&1 || return 0
+    chmod 600 "${log_file}" >/dev/null 2>&1 || true
+    printf '%s %s\n' "${timestamp}" "${message}" >>"${log_file}" 2>/dev/null || true
+}
+
+is_opencode_port_live() {
+    local port="$1"
+    local timeout_seconds="${SCODER_PORT_PROBE_TIMEOUT:-0.3}"
+    local bash_bin="${BASH:-bash}"
+
+    case "${port}" in
+    '' | *[!0-9]*)
+        log_startup_event "skipped automatic --port ${port}: invalid NVIM_OPENCODE_PORT"
+        return 1
+        ;;
+    esac
+    if ((port < 1 || port > 65535)); then
+        log_startup_event "skipped automatic --port ${port}: invalid NVIM_OPENCODE_PORT"
+        return 1
+    fi
+
+    if ! command -v timeout >/dev/null 2>&1; then
+        log_startup_event "skipped automatic --port ${port}: timeout command unavailable for liveness probe"
+        return 1
+    fi
+
+    if timeout "${timeout_seconds}" "${bash_bin}" -c ':</dev/tcp/127.0.0.1/$1' _ "${port}" >/dev/null 2>&1; then
+        return 0
+    fi
+
+    log_startup_event "skipped automatic --port ${port}: liveness probe failed or timed out"
+    return 1
+}
+
 apply_nvim_opencode_port_default() {
     [[ ${#RAW_COMMAND[@]} -eq 0 ]] || return 0
     [[ -n "${NVIM_OPENCODE_PORT:-}" ]] || return 0
     has_explicit_opencode_port && return 0
+    is_opencode_port_live "${NVIM_OPENCODE_PORT}" || return 0
 
     OPENCODE_ARGS=(--port "${NVIM_OPENCODE_PORT}" "${OPENCODE_ARGS[@]}")
 }

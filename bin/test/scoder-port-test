@@ -10,11 +10,12 @@ trap 'rm -rf -- "${TEST_ROOT}"' EXIT
 readonly TEST_HOME="${TEST_ROOT}/home"
 readonly TEST_BIN="${TEST_ROOT}/bin"
 readonly TEST_PROJECT="${TEST_ROOT}/project"
+readonly TEST_STATE="${TEST_ROOT}/state"
 readonly BWRAP_CAPTURE="${TEST_ROOT}/bwrap-args"
 readonly FAKE_OPENCODE="${TEST_BIN}/opencode"
 readonly FAKE_SCODER_GIT="${TEST_BIN}/scoder-git"
 
-mkdir -p "${TEST_HOME}/.config/opencode" "${TEST_BIN}" "${TEST_PROJECT}"
+mkdir -p "${TEST_HOME}/.config/opencode" "${TEST_BIN}" "${TEST_PROJECT}" "${TEST_STATE}"
 printf '{}\n' >"${TEST_HOME}/.config/opencode/opencode.json"
 
 printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"${FAKE_OPENCODE}"
@@ -38,22 +39,25 @@ run_scoder() {
     shift
 
     rm -f -- "${BWRAP_CAPTURE}"
+    RUN_OUTPUT=""
     if [[ "${port_value}" == "__UNSET__" ]]; then
-        env -i \
+        RUN_OUTPUT="$(env -i \
             HOME="${TEST_HOME}" PATH="${TEST_BIN}:${PATH}" \
+            XDG_STATE_HOME="${TEST_STATE}" \
             USER="${USER:-aemonge}" LOGNAME="${LOGNAME:-${USER:-aemonge}}" \
             TERM="${TERM:-xterm-256color}" LANG="${LANG:-C.UTF-8}" \
             OPENCODE_BIN="${FAKE_OPENCODE}" SCODER_GIT="${FAKE_SCODER_GIT}" \
             SCODER_FORCE_PROBE=1 SCODER_TEST_BWRAP_CAPTURE="${BWRAP_CAPTURE}" \
-            "${SCODER}" "$@" -- "${TEST_PROJECT}" -q >/dev/null
+            "${SCODER}" "$@" -- "${TEST_PROJECT}" -q 2>&1 >/dev/null)"
     else
-        env -i HOME="${TEST_HOME}" PATH="${TEST_BIN}:${PATH}" \
+        RUN_OUTPUT="$(env -i HOME="${TEST_HOME}" PATH="${TEST_BIN}:${PATH}" \
+            XDG_STATE_HOME="${TEST_STATE}" \
             USER="${USER:-aemonge}" LOGNAME="${LOGNAME:-${USER:-aemonge}}" \
             TERM="${TERM:-xterm-256color}" LANG="${LANG:-C.UTF-8}" \
             OPENCODE_BIN="${FAKE_OPENCODE}" SCODER_GIT="${FAKE_SCODER_GIT}" \
             SCODER_FORCE_PROBE=1 SCODER_TEST_BWRAP_CAPTURE="${BWRAP_CAPTURE}" \
             NVIM_OPENCODE_PORT="${port_value}" \
-            "${SCODER}" "$@" -- "${TEST_PROJECT}" -q >/dev/null
+            "${SCODER}" "$@" -- "${TEST_PROJECT}" -q 2>&1 >/dev/null)"
     fi
 
     mapfile -d '' -t BWRAP_ARGS <"${BWRAP_CAPTURE}"
@@ -134,9 +138,79 @@ assert_bwrap_sequence_absent() {
     printf 'PASS: %s\n' "${description}"
 }
 
-run_scoder 4321 run
-assert_command_equals 'set NVIM_OPENCODE_PORT supplies the default OpenCode port' \
-    --port 4321 run
+assert_startup_log_contains() {
+    local description="$1"
+    local expected="$2"
+    local log_file="${TEST_STATE}/scoder/startup.log"
+
+    if [[ -f "${log_file}" ]] && grep -Fq -- "${expected}" "${log_file}"; then
+        printf 'PASS: %s\n' "${description}"
+        return 0
+    fi
+
+    printf 'FAIL: %s\n  expected log containing: %s\n' "${description}" "${expected}" >&2
+    [[ -f "${log_file}" ]] && sed 's/^/  log: /' "${log_file}" >&2
+    exit 1
+}
+
+assert_startup_log_private() {
+    local log_dir="${TEST_STATE}/scoder"
+    local log_file="${log_dir}/startup.log"
+
+    if [[ "$(stat -c %a "${log_dir}")" == "700" && "$(stat -c %a "${log_file}")" == "600" ]]; then
+        printf 'PASS: startup log path uses private permissions\n'
+        return 0
+    fi
+
+    printf 'FAIL: startup log permissions were dir=%s file=%s\n' \
+        "$(stat -c %a "${log_dir}" 2>/dev/null || printf missing)" \
+        "$(stat -c %a "${log_file}" 2>/dev/null || printf missing)" >&2
+    exit 1
+}
+
+run_scoder 65534 run
+assert_command_equals 'stale NVIM_OPENCODE_PORT adds no OpenCode argument' run
+assert_startup_log_contains 'stale NVIM_OPENCODE_PORT skip is logged durably' \
+    'skipped automatic --port 65534'
+assert_startup_log_private
+if [[ "${RUN_OUTPUT}" == *'65534'* || "${RUN_OUTPUT}" == *'--port'* ]]; then
+    printf 'FAIL: stale NVIM_OPENCODE_PORT skip wrote terminal output: %s\n' "${RUN_OUTPUT}" >&2
+    exit 1
+fi
+printf 'PASS: stale NVIM_OPENCODE_PORT skip is quiet on stderr\n'
+
+if command -v python3 >/dev/null 2>&1; then
+    LIVE_PORT_FILE="${TEST_ROOT}/live-port"
+    python3 - "${LIVE_PORT_FILE}" <<'PY' &
+import signal
+import socket
+import sys
+
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+server.bind(("127.0.0.1", 0))
+server.listen(5)
+with open(sys.argv[1], "w", encoding="utf-8") as handle:
+    handle.write(str(server.getsockname()[1]))
+signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
+while True:
+    conn, _ = server.accept()
+    conn.close()
+PY
+    LIVE_SERVER_PID=$!
+    trap 'kill "${LIVE_SERVER_PID:-}" >/dev/null 2>&1 || true; kill "${FAKE_SSH_AGENT_PID:-}" >/dev/null 2>&1 || true; rm -rf -- "${TEST_ROOT}"' EXIT
+    for _ in {1..50}; do
+        [[ -s "${LIVE_PORT_FILE}" ]] && break
+        sleep 0.05
+    done
+    LIVE_PORT="$(<"${LIVE_PORT_FILE}")"
+
+    run_scoder "${LIVE_PORT}" run
+    assert_command_equals 'live NVIM_OPENCODE_PORT supplies the default OpenCode port' \
+        --port "${LIVE_PORT}" run
+else
+    printf 'SKIP: python3 unavailable for live OpenCode port test\n'
+fi
 
 run_scoder '' run
 assert_command_equals 'empty NVIM_OPENCODE_PORT adds no OpenCode argument' run
@@ -183,7 +257,7 @@ while True:
     time.sleep(1)
 PY
     FAKE_SSH_AGENT_PID=$!
-    trap 'kill "${FAKE_SSH_AGENT_PID}" >/dev/null 2>&1 || true; rm -rf -- "${TEST_ROOT}"' EXIT
+    trap 'kill "${LIVE_SERVER_PID:-}" >/dev/null 2>&1 || true; kill "${FAKE_SSH_AGENT_PID}" >/dev/null 2>&1 || true; rm -rf -- "${TEST_ROOT}"' EXIT
     for _ in {1..50}; do
         [[ -S "${FAKE_SSH_AGENT}" ]] && break
         sleep 0.05
