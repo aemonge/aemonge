@@ -18,15 +18,8 @@ function load_project_env() {
     local target_path="${1:-$PWD}"
     local project_root=$(get_project_root "$target_path")
 
-    if [[ -n "$project_root" ]]; then
-        export HOOKIE_PROJECT_ROOT="$project_root"
-        export HOOKIE_CURRENT_PROJECT="${project_root:t}"
-        if command -v mise &>/dev/null; then
-            eval "$(mise hook-env -s zsh)"
-        fi
-    else
-        unset HOOKIE_PROJECT_ROOT
-        unset HOOKIE_CURRENT_PROJECT
+    if [[ -n "$project_root" ]] && command -v mise &>/dev/null; then
+        eval "$(mise hook-env -s zsh)"
     fi
 }
 
@@ -34,39 +27,10 @@ function cmd_load_project() {
     local target_path="${1:-$PWD}"
     local project_root=$(get_project_root "$target_path")
 
-    # Optimization: Only output or update if project changed or forced
-    if [[ -n "$project_root" ]]; then
-        local project_name="${project_root:t}"
-
-        # Inside Neovim: Just update host Neovim context silently
-        if [ -n "$NVIM" ]; then
-            nvr -c "let \$HOOKIE_PROJECT_ROOT = '$project_root'" \
-                -c "let \$HOOKIE_CURRENT_PROJECT = '$project_name'" \
-                -c "lua if package.loaded.lualine then require('lualine').refresh() end" > /dev/null 2>&1
-            return
-        fi
-
-        # Outside Neovim: Output exports
-        # We always output if we are in a project to ensure mise stays in sync
-        # unless you really want to skip it for speed.
-        # But 'cd project_path ain't working' might be due to over-optimization.
-        echo "export HOOKIE_PROJECT_ROOT=\"$project_root\""
-        echo "export HOOKIE_CURRENT_PROJECT=\"$project_name\""
-
-        if command -v mise &>/dev/null; then
-             mise hook-env -s zsh
-        fi
-    else
-        # No project found: Clean up
-        if [[ -n "$HOOKIE_PROJECT_ROOT" ]]; then
-            echo "unset HOOKIE_PROJECT_ROOT"
-            echo "unset HOOKIE_CURRENT_PROJECT"
-            # Optional: deactivate venv etc?
-            # mise hook-env usually handles unsetting its own vars
-            if command -v mise &>/dev/null; then
-                 mise hook-env -s zsh
-            fi
-        fi
+    # Hookie project state was retired; this command now only synchronizes the
+    # selected mise environment for callers that still use `v load_project`.
+    if [[ -n "$project_root" ]] && command -v mise &>/dev/null; then
+        mise hook-env -s zsh
     fi
 }
 
@@ -481,23 +445,41 @@ function restore() {
     fi
 }
 
+function tmux_workspace() {
+    local target_path workspace_name
+    target_path=$(readlink -f "${1:-.}" 2>/dev/null || realpath -m "${1:-.}")
+
+    if [[ -z "${TMUX:-}" || ! -d "$target_path" ]]; then
+        return 1
+    fi
+
+    workspace_name="${target_path:t}"
+    [[ "$target_path" == "$HOME" ]] && workspace_name=""
+
+    tmux new-window \
+        -c "$target_path" \
+        -n "$workspace_name" \
+        -e "TMUX_WORKSPACE_ROOT=$target_path" \
+        -e "AUTO_VIM_TARGET=$target_path"
+}
+
 function session() {
     if [ -n "$NVIM" ]; then
         echo "Error: Cannot start a new Neovim session from within an existing Neovim instance."
         exit 1
     fi
 
-    load_project_env "${1:-.}"
-    export V_JOB_TOKEN="${V_JOB_TOKEN:-v-${USER:-$UID}-$$-${RANDOM}}"
-
-    if [ $# -eq 0 ]; then
-        cmd=(nvim +':TermMux')
-    else
-        # No laststatus=0 since it creates a buggy behavior
-        cmd=(nvim +":cd $@" +':TermMux')
+    local target_path
+    target_path=$(readlink -f "${1:-.}" 2>/dev/null || realpath -m "${1:-.}")
+    if [[ ! -d "$target_path" ]]; then
+        echo "Error: Not a directory: $target_path" >&2
+        exit 2
     fi
 
-    exec "${cmd[@]}"
+    builtin cd -- "$target_path" || exit
+    load_project_env "$target_path"
+    export V_JOB_TOKEN="${V_JOB_TOKEN:-v-${USER:-$UID}-$$-${RANDOM}}"
+    exec nvim +':TermMux'
 }
 
 function termmux_clean() {
@@ -540,7 +522,6 @@ function venv() {
 function vcd() {
     if [ -n "$NVIM" ]; then
         nvr -c "cd $(pwd)"
-        nvr -c "lua vim.env.HOOKIE_CURRENT_PROJECT = '$(echo -n $HOOKIE_CURRENT_PROJECT)'"
     else
         echo "Please start a v session: 'v .' "
         exit 1
@@ -551,11 +532,6 @@ if [ $# -eq 0 ]; then
     # show_help
     # exit 0
     session "."
-fi
-
-if ! command -v nvr >/dev/null; then
-    echo "Install neovim-remote"
-    exit 1
 fi
 
 case "$1" in
@@ -641,7 +617,9 @@ case "$1" in
         show_version
         ;;
     *)
-        if [ -z "$NVIM" ] && [ -d "$@" ]; then
+        if [[ -n "$NVIM" && -n "$TMUX" && $# -eq 1 && -d "$1" ]]; then
+            tmux_workspace "$1"
+        elif [[ -z "$NVIM" && -d "$@" ]]; then
             session "$@"
         else
             vim_func "$@"
