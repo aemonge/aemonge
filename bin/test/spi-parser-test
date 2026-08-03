@@ -1,0 +1,507 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly SCRIPT_DIR
+readonly SPI="${SCRIPT_DIR}/../spi"
+
+if [[ ! -x "${SPI}" ]]; then
+    printf 'FAIL: spi executable is missing: %s\n' "${SPI}" >&2
+    exit 1
+fi
+
+TEST_ROOT="$(mktemp -d)"
+trap 'rm -rf -- "${TEST_ROOT}"' EXIT
+
+readonly TEST_HOME="${TEST_ROOT}/home"
+readonly TEST_BIN="${TEST_ROOT}/bin"
+readonly TEST_PROJECT="${TEST_ROOT}/project"
+readonly TEST_STATE="${TEST_ROOT}/state"
+readonly TEST_XDG_CONFIG_HOME="${TEST_HOME}/xdg-config"
+readonly TEST_XDG_DATA_HOME="${TEST_HOME}/xdg-data"
+readonly TEST_XDG_CACHE_HOME="${TEST_HOME}/xdg-cache"
+readonly TEST_ZDOTDIR="${TEST_HOME}/.config/zsh"
+readonly TEST_SOCKET_ROOT="${TEST_ROOT}/runtime"
+readonly TEST_NVIM_SOCKET="${TEST_SOCKET_ROOT}/nvim.sock"
+readonly TEST_NVIM_LISTEN_SOCKET="${TEST_SOCKET_ROOT}/nvim-listen.sock"
+readonly TEST_TMUX_SOCKET="${TEST_SOCKET_ROOT}/tmux/default"
+readonly TEST_PI_STATUS_SOCKET="${TEST_SOCKET_ROOT}/pi/status.sock"
+readonly TEST_PI_DENIED_SOCKET="${TEST_SOCKET_ROOT}/pi/login.sock"
+readonly BWRAP_CAPTURE="${TEST_ROOT}/bwrap-args"
+readonly BWRAP_PROBE_CAPTURE="${TEST_ROOT}/bwrap-probe-args"
+readonly FAKE_PI="${TEST_BIN}/pi"
+readonly FAKE_SCODER_GIT="${TEST_BIN}/scoder-git"
+
+mkdir -p \
+    "${TEST_HOME}/.pi/agent" \
+    "${TEST_HOME}/.pi/agent/tasks" \
+    "${TEST_HOME}/.pi/agent/status" \
+    "${TEST_HOME}/.pi/agent/todos" \
+    "${TEST_HOME}/.pi/agent/plans" \
+    "${TEST_HOME}/.pi/agent/jobs" \
+    "${TEST_HOME}/.pi/agent/runs" \
+    "${TEST_HOME}/.pi/agent/ui" \
+    "${TEST_HOME}/.pi/agent/statusline" \
+    "${TEST_HOME}/.pi/agent/sessions" \
+    "${TEST_HOME}/.pi/agent/auth" \
+    "${TEST_HOME}/.pi/agent/trust" \
+    "${TEST_HOME}/.pi/agent/models" \
+    "${TEST_HOME}/.pi/agent/metadata" \
+    "${TEST_HOME}/.pi/agent/cache" \
+    "${TEST_HOME}/.pi/agent/projects" \
+    "${TEST_HOME}/.pi/agent/workspaces" \
+    "${TEST_HOME}/.pi/agent/providers" \
+    "${TEST_HOME}/.pi/agent/state" \
+    "${TEST_HOME}/.pi/providers" \
+    "${TEST_HOME}/.pi/models" \
+    "${TEST_HOME}/.pi/prompts" \
+    "${TEST_HOME}/.pi/themes" \
+    "${TEST_HOME}/.agents/skills/example" \
+    "${TEST_HOME}/.config" \
+    "${TEST_XDG_CONFIG_HOME}" \
+    "${TEST_XDG_CONFIG_HOME}/pi" \
+    "${TEST_XDG_DATA_HOME}/pi" \
+    "${TEST_STATE}/pi" \
+    "${TEST_XDG_CACHE_HOME}/pi" \
+    "${TEST_ZDOTDIR}" \
+    "$(dirname -- "${TEST_TMUX_SOCKET}")" \
+    "$(dirname -- "${TEST_PI_STATUS_SOCKET}")" \
+    "${TEST_BIN}" \
+    "${TEST_PROJECT}/.git" \
+    "${TEST_PROJECT}/.agents/skills/example" \
+    "${TEST_PROJECT}/.pi" \
+    "${TEST_PROJECT}/node_modules" \
+    "${TEST_STATE}"
+touch "${TEST_PROJECT}/.gitignore" "${TEST_PROJECT}/.env"
+printf 'pi-config\n' >"${TEST_HOME}/.pi/config"
+printf '{"theme":"original"}\n' >"${TEST_HOME}/.pi/agent/settings.json"
+printf '{"trusted":false}\n' >"${TEST_HOME}/.pi/agent/trust.json"
+printf 'provider-catalog\n' >"${TEST_HOME}/.pi/providers/catalog.txt"
+printf 'model-catalog\n' >"${TEST_HOME}/.pi/models/catalog.txt"
+printf 'prompt-resource\n' >"${TEST_HOME}/.pi/prompts/default.txt"
+printf 'theme-resource\n' >"${TEST_HOME}/.pi/themes/default.txt"
+printf 'skill-resource\n' >"${TEST_HOME}/.agents/skills/example/SKILL.md"
+printf 'project-skill-resource\n' >"${TEST_PROJECT}/.agents/skills/example/SKILL.md"
+printf 'pi-xdg-config\n' >"${TEST_XDG_CONFIG_HOME}/pi/config.toml"
+printf 'pi-xdg-data\n' >"${TEST_XDG_DATA_HOME}/pi/resource.txt"
+printf "format = \"\$directory\"\n" >"${TEST_HOME}/.config/starship.toml"
+printf "format = \"\$character\"\n" >"${TEST_XDG_CONFIG_HOME}/starship.toml"
+printf 'zshenv\n' >"${TEST_HOME}/.zshenv"
+printf 'zshrc\n' >"${TEST_HOME}/.zshrc"
+printf 'zdotdir-zshrc\n' >"${TEST_ZDOTDIR}/.zshrc"
+printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"${FAKE_PI}"
+printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"${FAKE_SCODER_GIT}"
+if command -v python3 >/dev/null 2>&1; then
+    python3 - "${TEST_NVIM_SOCKET}" "${TEST_NVIM_LISTEN_SOCKET}" "${TEST_TMUX_SOCKET}" "${TEST_PI_STATUS_SOCKET}" "${TEST_PI_DENIED_SOCKET}" <<'PY'
+import os
+import socket
+import sys
+
+for path in sys.argv[1:]:
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    try:
+        os.unlink(path)
+    except FileNotFoundError:
+        pass
+    sock = socket.socket(socket.AF_UNIX)
+    sock.bind(path)
+    sock.close()
+PY
+else
+    printf 'SKIP: python3 unavailable; terminal socket parser fixtures not created\n'
+fi
+cat >"${TEST_BIN}/bwrap" <<'BWRAP_EOF'
+#!/usr/bin/env bash
+if [[ "${1:-}" == "--version" ]]; then
+    printf 'bubblewrap 1.0.0\n'
+    exit 0
+fi
+if [[ "${1:-}" == "--help" ]]; then
+    printf '%s\n' '--disable-userns'
+    exit 0
+fi
+args=("$@")
+is_probe=0
+has_usr_mount=0
+has_bin_mount=0
+for ((i = 0; i < ${#args[@]}; i++)); do
+    if [[ "${args[i]}" == "--" && "${args[i + 1]:-}" == "/bin/sh" ]]; then
+        is_probe=1
+    fi
+    if [[ "${args[i]}" == "--ro-bind" && "${args[i + 1]:-}" == "/usr" && "${args[i + 2]:-}" == "/usr" ]]; then
+        has_usr_mount=1
+    fi
+    if [[ "${args[i]}" == "--ro-bind" && "${args[i + 1]:-}" == "/bin" && "${args[i + 2]:-}" == "/bin" ]]; then
+        has_bin_mount=1
+    fi
+done
+if [[ "${is_probe}" -eq 1 ]]; then
+    if [[ "${has_usr_mount}" -ne 1 || "${has_bin_mount}" -ne 1 ]]; then
+        printf 'probe missing executable filesystem mounts for /bin/sh\n' >&2
+        exit 97
+    fi
+    printf '%s\0' "$@" >"${SPI_TEST_BWRAP_PROBE_CAPTURE}"
+    exit 0
+fi
+printf '%s\0' "$@" >"${SPI_TEST_BWRAP_CAPTURE}"
+BWRAP_EOF
+chmod +x "${FAKE_PI}" "${FAKE_SCODER_GIT}" "${TEST_BIN}/bwrap"
+
+run_spi_with_stderr() {
+    local stderr_file="$1"
+    local home_root="${SPI_TEST_HOME_ROOT:-${TEST_HOME}}"
+    local -a optional_env=()
+    shift
+
+    if [[ -n "${SPI_TEST_PI_CODING_AGENT_DIR:-}" ]]; then
+        optional_env+=(PI_CODING_AGENT_DIR="${SPI_TEST_PI_CODING_AGENT_DIR}")
+    fi
+    if [[ -n "${SPI_TEST_PI_PROVIDER:-}" ]]; then
+        optional_env+=(PI_PROVIDER="${SPI_TEST_PI_PROVIDER}")
+    fi
+    if [[ -n "${SPI_TEST_PI_MODEL:-}" ]]; then
+        optional_env+=(PI_MODEL="${SPI_TEST_PI_MODEL}")
+    fi
+    if [[ -n "${SPI_TEST_PI_REASONING_LEVEL:-}" ]]; then
+        optional_env+=(PI_REASONING_LEVEL="${SPI_TEST_PI_REASONING_LEVEL}")
+    fi
+    if [[ -n "${SPI_TEST_PI_SESSION_ID:-}" ]]; then
+        optional_env+=(PI_SESSION_ID="${SPI_TEST_PI_SESSION_ID}")
+    fi
+    if [[ -n "${SPI_TEST_PI_STATUS_SOCKET:-}" ]]; then
+        optional_env+=(PI_STATUS_SOCKET="${SPI_TEST_PI_STATUS_SOCKET}")
+    fi
+    if [[ -n "${SPI_TEST_PI_DENIED_SOCKET:-}" ]]; then
+        optional_env+=(PI_LOGIN_SOCKET="${SPI_TEST_PI_DENIED_SOCKET}")
+    fi
+
+    rm -f -- "${BWRAP_CAPTURE}"
+    if ! env -i \
+        HOME="${home_root}" PATH="${TEST_BIN}:${PATH}" \
+        XDG_STATE_HOME="${TEST_STATE}" XDG_DATA_HOME="${TEST_XDG_DATA_HOME}" XDG_CACHE_HOME="${TEST_XDG_CACHE_HOME}" \
+        XDG_CONFIG_HOME="${TEST_XDG_CONFIG_HOME}" ZDOTDIR="${TEST_ZDOTDIR}" \
+        NVIM="${TEST_NVIM_SOCKET}" NVIM_LISTEN_ADDRESS="${TEST_NVIM_LISTEN_SOCKET}" \
+        TMUX="${TEST_TMUX_SOCKET},123,0" TMUX_PANE="%42" \
+        USER="${USER:-aemonge}" LOGNAME="${LOGNAME:-${USER:-aemonge}}" \
+        TERM="${TERM:-xterm-256color}" LANG="${LANG:-C.UTF-8}" \
+        "${optional_env[@]}" \
+        PI_BIN="${FAKE_PI}" SCODER_GIT="${FAKE_SCODER_GIT}" \
+        SPI_FORCE_PROBE=1 SPI_TEST_BWRAP_CAPTURE="${BWRAP_CAPTURE}" \
+        SPI_TEST_BWRAP_PROBE_CAPTURE="${BWRAP_PROBE_CAPTURE}" \
+        "${SPI}" "$@" >/dev/null 2>"${stderr_file}"; then
+        printf 'FAIL: spi invocation failed\n' >&2
+        sed 's/^/  /' "${stderr_file}" >&2
+        exit 1
+    fi
+    mapfile -d '' -t BWRAP_ARGS <"${BWRAP_CAPTURE}"
+}
+
+run_spi() {
+    run_spi_with_stderr "${TEST_ROOT}/spi.err" "$@"
+}
+
+assert_sequence_contains() {
+    local description="$1"
+    shift
+    local expected=("$@")
+    local index offset matched
+
+    for ((index = 0; index <= ${#BWRAP_ARGS[@]} - ${#expected[@]}; index++)); do
+        matched=1
+        for ((offset = 0; offset < ${#expected[@]}; offset++)); do
+            if [[ "${BWRAP_ARGS[index + offset]}" != "${expected[offset]}" ]]; then
+                matched=0
+                break
+            fi
+        done
+        if [[ "${matched}" -eq 1 ]]; then
+            printf 'PASS: %s\n' "${description}"
+            return 0
+        fi
+    done
+
+    printf 'FAIL: %s\n  expected sequence: %q\n' "${description}" "${expected[*]}" >&2
+    exit 1
+}
+
+assert_sequence_absent() {
+    local description="$1"
+    shift
+    local expected=("$@")
+    local index offset matched
+
+    for ((index = 0; index <= ${#BWRAP_ARGS[@]} - ${#expected[@]}; index++)); do
+        matched=1
+        for ((offset = 0; offset < ${#expected[@]}; offset++)); do
+            if [[ "${BWRAP_ARGS[index + offset]}" != "${expected[offset]}" ]]; then
+                matched=0
+                break
+            fi
+        done
+        if [[ "${matched}" -eq 1 ]]; then
+            printf 'FAIL: %s\n  unexpected sequence: %q\n' "${description}" "${expected[*]}" >&2
+            exit 1
+        fi
+    done
+
+    printf 'PASS: %s\n' "${description}"
+}
+
+assert_sequence_value_prefix() {
+    local description="$1"
+    local flag="$2"
+    local prefix="$3"
+    local index
+
+    for ((index = 0; index < ${#BWRAP_ARGS[@]} - 1; index++)); do
+        if [[ "${BWRAP_ARGS[index]}" == "${flag}" && "${BWRAP_ARGS[index + 1]}" == "${prefix}"* ]]; then
+            printf 'PASS: %s\n' "${description}"
+            return 0
+        fi
+    done
+
+    printf 'FAIL: %s\n  expected %s value prefix: %s\n' "${description}" "${flag}" "${prefix}" >&2
+    exit 1
+}
+
+assert_sequence_tail_prefix() {
+    local description="$1"
+    local prefix="$2"
+    shift 2
+    local expected=("$@")
+    local index offset matched
+
+    for ((index = 0; index <= ${#BWRAP_ARGS[@]} - ${#expected[@]} - 1; index++)); do
+        matched=1
+        for ((offset = 0; offset < ${#expected[@]}; offset++)); do
+            if [[ "${BWRAP_ARGS[index + offset]}" != "${expected[offset]}" ]]; then
+                matched=0
+                break
+            fi
+        done
+        if [[ "${matched}" -eq 1 && "${BWRAP_ARGS[index + ${#expected[@]}]}" == "${prefix}"* ]]; then
+            printf 'PASS: %s\n' "${description}"
+            return 0
+        fi
+    done
+
+    printf 'FAIL: %s\n  expected sequence ending with prefix: %q -> %s\n' "${description}" "${expected[*]}" "${prefix}" >&2
+    exit 1
+}
+
+assert_file_contains() {
+    local description="$1"
+    local file_path="$2"
+    local expected_text="$3"
+
+    if grep -F -q -- "${expected_text}" "${file_path}"; then
+        printf 'PASS: %s\n' "${description}"
+        return 0
+    fi
+
+    printf 'FAIL: %s\n  missing text: %s\n' "${description}" "${expected_text}" >&2
+    exit 1
+}
+
+assert_file_absent() {
+    local description="$1"
+    local file_path="$2"
+    local unexpected_text="$3"
+
+    if grep -F -q -- "${unexpected_text}" "${file_path}"; then
+        printf 'FAIL: %s\n  unexpected text: %s\n' "${description}" "${unexpected_text}" >&2
+        exit 1
+    fi
+
+    printf 'PASS: %s\n' "${description}"
+}
+
+run_spi prompt -- "${TEST_PROJECT}" -q --backend bwrap
+assert_sequence_contains 'pi args before -- are forwarded unchanged' "${FAKE_PI}" prompt
+assert_sequence_contains 'target defaults to canonical sandbox workdir after parsing' --chdir "${TEST_PROJECT}"
+assert_sequence_contains 'project directory is read-write by default' --bind "${TEST_PROJECT}" "${TEST_PROJECT}"
+assert_sequence_contains '.git is read-only by default' --ro-bind "${TEST_PROJECT}/.git" "${TEST_PROJECT}/.git"
+assert_sequence_contains '.env remains visible as part of the project bind' --bind "${TEST_PROJECT}" "${TEST_PROJECT}"
+assert_sequence_contains 'Pi agent sessions are writable without whole-home exposure' --bind "${TEST_HOME}/.pi/agent/sessions" "${TEST_HOME}/.pi/agent/sessions"
+assert_sequence_contains 'existing Pi tree is read-only by default' --ro-bind "${TEST_HOME}/.pi" "${TEST_HOME}/.pi"
+assert_sequence_contains 'Pi agent root supports startup locks without whole ~/.pi writes' --bind "${TEST_HOME}/.pi/agent" "${TEST_HOME}/.pi/agent"
+assert_sequence_contains 'Pi project state is writable without whole ~/.pi writes' --bind "${TEST_HOME}/.pi/agent/projects" "${TEST_HOME}/.pi/agent/projects"
+assert_sequence_contains 'Pi workspace state is writable without whole ~/.pi writes' --bind "${TEST_HOME}/.pi/agent/workspaces" "${TEST_HOME}/.pi/agent/workspaces"
+assert_sequence_contains 'Pi provider runtime state is writable under agent state' --bind "${TEST_HOME}/.pi/agent/providers" "${TEST_HOME}/.pi/agent/providers"
+assert_sequence_contains 'Pi generic state dir is writable under agent state' --bind "${TEST_HOME}/.pi/agent/state" "${TEST_HOME}/.pi/agent/state"
+assert_sequence_contains 'Pi task state is writable under agent state' --bind "${TEST_HOME}/.pi/agent/tasks" "${TEST_HOME}/.pi/agent/tasks"
+assert_sequence_contains 'Pi status state is writable under agent state' --bind "${TEST_HOME}/.pi/agent/status" "${TEST_HOME}/.pi/agent/status"
+assert_sequence_contains 'Pi todo state is writable under agent state' --bind "${TEST_HOME}/.pi/agent/todos" "${TEST_HOME}/.pi/agent/todos"
+assert_sequence_contains 'Pi plan state is writable under agent state' --bind "${TEST_HOME}/.pi/agent/plans" "${TEST_HOME}/.pi/agent/plans"
+assert_sequence_contains 'Pi job state is writable under agent state' --bind "${TEST_HOME}/.pi/agent/jobs" "${TEST_HOME}/.pi/agent/jobs"
+assert_sequence_contains 'Pi run state is writable under agent state' --bind "${TEST_HOME}/.pi/agent/runs" "${TEST_HOME}/.pi/agent/runs"
+assert_sequence_contains 'Pi UI state is writable under agent state' --bind "${TEST_HOME}/.pi/agent/ui" "${TEST_HOME}/.pi/agent/ui"
+assert_sequence_contains 'Pi statusline state is writable under agent state' --bind "${TEST_HOME}/.pi/agent/statusline" "${TEST_HOME}/.pi/agent/statusline"
+assert_sequence_contains 'Pi XDG config is visible read-only' --ro-bind "${TEST_XDG_CONFIG_HOME}/pi" "${TEST_XDG_CONFIG_HOME}/pi"
+assert_sequence_contains 'Pi XDG data is visible read-only' --ro-bind "${TEST_XDG_DATA_HOME}/pi" "${TEST_XDG_DATA_HOME}/pi"
+assert_sequence_contains 'Pi XDG state is writable for status/task runtime' --bind "${TEST_STATE}/pi" "${TEST_STATE}/pi"
+assert_sequence_contains 'Pi XDG cache is writable for status/task runtime' --bind "${TEST_XDG_CACHE_HOME}/pi" "${TEST_XDG_CACHE_HOME}/pi"
+assert_sequence_contains 'global agent skills are read-only' --ro-bind "${TEST_HOME}/.agents/skills" "${TEST_HOME}/.agents/skills"
+assert_sequence_value_prefix 'private spi TMPDIR is created' --dir /tmp/spi-
+assert_sequence_tail_prefix 'private spi TMPDIR is chmod 0700' /tmp/spi- --chmod 0700
+assert_sequence_tail_prefix 'TMPDIR environment points at private spi path' /tmp/spi- --setenv TMPDIR
+assert_sequence_absent 'PI_CODING_AGENT_DIR is not forced when host env omits it' --setenv PI_CODING_AGENT_DIR "${TEST_HOME}/.pi/agent"
+assert_sequence_contains 'git is shadowed by scoder-git wrapper' --ro-bind "${FAKE_SCODER_GIT}" /usr/bin/git
+assert_sequence_contains 'project .pi is read-only by default' --ro-bind "${TEST_PROJECT}/.pi" "${TEST_PROJECT}/.pi"
+assert_sequence_contains 'project .agents is read-only by default' --ro-bind "${TEST_PROJECT}/.agents" "${TEST_PROJECT}/.agents"
+assert_sequence_contains 'default starship config is read-only' --ro-bind "${TEST_HOME}/.config/starship.toml" "${TEST_HOME}/.config/starship.toml"
+assert_sequence_contains 'XDG starship config is read-only' --ro-bind "${TEST_XDG_CONFIG_HOME}/starship.toml" "${TEST_XDG_CONFIG_HOME}/starship.toml"
+assert_sequence_contains 'home zsh startup file is read-only' --ro-bind "${TEST_HOME}/.zshrc" "${TEST_HOME}/.zshrc"
+assert_sequence_contains 'ZDOTDIR zsh startup file is read-only' --ro-bind "${TEST_ZDOTDIR}/.zshrc" "${TEST_ZDOTDIR}/.zshrc"
+if [[ -S "${TEST_NVIM_SOCKET}" && -S "${TEST_NVIM_LISTEN_SOCKET}" && -S "${TEST_TMUX_SOCKET}" ]]; then
+    assert_sequence_contains 'NVIM socket is exact-bound, not runtime-wide' --bind "${TEST_NVIM_SOCKET}" "${TEST_NVIM_SOCKET}"
+    assert_sequence_contains 'NVIM_LISTEN_ADDRESS socket is exact-bound' --bind "${TEST_NVIM_LISTEN_SOCKET}" "${TEST_NVIM_LISTEN_SOCKET}"
+    assert_sequence_contains 'TMUX socket is exact-bound' --bind "${TEST_TMUX_SOCKET}" "${TEST_TMUX_SOCKET}"
+    assert_sequence_contains 'NVIM environment is preserved when socket is bound' --setenv NVIM "${TEST_NVIM_SOCKET}"
+    assert_sequence_contains 'NVIM_LISTEN_ADDRESS environment is preserved when socket is bound' --setenv NVIM_LISTEN_ADDRESS "${TEST_NVIM_LISTEN_SOCKET}"
+    assert_sequence_contains 'TMUX environment is preserved when socket is bound' --setenv TMUX "${TEST_TMUX_SOCKET},123,0"
+    assert_sequence_contains 'TMUX_PANE environment is preserved with valid TMUX socket' --setenv TMUX_PANE '%42'
+fi
+assert_sequence_absent 'normal mode does not write-bind all ~/.pi' --bind "${TEST_HOME}/.pi" "${TEST_HOME}/.pi"
+assert_sequence_absent 'normal mode does not write-bind all ~/.agents' --bind "${TEST_HOME}/.agents" "${TEST_HOME}/.agents"
+assert_sequence_absent 'normal mode does not write-bind provider/model config catalogs' --bind "${TEST_HOME}/.pi/providers" "${TEST_HOME}/.pi/providers"
+assert_sequence_absent 'normal mode does not write-bind model config catalogs' --bind "${TEST_HOME}/.pi/models" "${TEST_HOME}/.pi/models"
+assert_sequence_absent 'terminal integration does not bind broad runtime root' --bind "${TEST_SOCKET_ROOT}" "${TEST_SOCKET_ROOT}"
+assert_sequence_absent 'terminal integration does not bind broad ~/.config' --ro-bind "${TEST_HOME}/.config" "${TEST_HOME}/.config"
+assert_sequence_absent 'terminal integration does not bind broad XDG config home' --ro-bind "${TEST_XDG_CONFIG_HOME}" "${TEST_XDG_CONFIG_HOME}"
+assert_sequence_absent 'Pi integration does not bind broad XDG data home' --ro-bind "${TEST_XDG_DATA_HOME}" "${TEST_XDG_DATA_HOME}"
+assert_sequence_absent 'Pi integration does not bind broad XDG state home' --bind "${TEST_STATE}" "${TEST_STATE}"
+assert_sequence_absent 'Pi integration does not bind broad XDG cache home' --bind "${TEST_XDG_CACHE_HOME}" "${TEST_XDG_CACHE_HOME}"
+
+if [[ -S "${TEST_PI_STATUS_SOCKET}" && -S "${TEST_PI_DENIED_SOCKET}" ]]; then
+    SPI_TEST_PI_STATUS_SOCKET="${TEST_PI_STATUS_SOCKET}" \
+        SPI_TEST_PI_DENIED_SOCKET="${TEST_PI_DENIED_SOCKET}" \
+        run_spi -- "${TEST_PROJECT}" -q --backend bwrap
+    assert_sequence_contains 'safe Pi status socket is exact-bound' --bind "${TEST_PI_STATUS_SOCKET}" "${TEST_PI_STATUS_SOCKET}"
+    assert_sequence_contains 'safe Pi status socket env is mapped into sandbox' --setenv PI_STATUS_SOCKET "${TEST_PI_STATUS_SOCKET}"
+    assert_sequence_absent 'non-status Pi socket is not mounted as status/footer integration' --bind "${TEST_PI_DENIED_SOCKET}" "${TEST_PI_DENIED_SOCKET}"
+    assert_sequence_absent 'non-status Pi socket env is not forwarded' --setenv PI_LOGIN_SOCKET "${TEST_PI_DENIED_SOCKET}"
+    assert_sequence_absent 'Pi socket integration does not bind broad runtime root' --bind "${TEST_SOCKET_ROOT}" "${TEST_SOCKET_ROOT}"
+fi
+
+readonly LINKED_GLOBAL_HOME="${TEST_ROOT}/linked-global-home"
+mkdir -p "${LINKED_GLOBAL_HOME}" "${TEST_PROJECT}/.agents/skills/example"
+ln -s "${TEST_PROJECT}/.agents" "${LINKED_GLOBAL_HOME}/.agents"
+SPI_TEST_HOME_ROOT="${LINKED_GLOBAL_HOME}" run_spi_with_stderr "${TEST_ROOT}/linked-global.err" -- "${TEST_PROJECT}" -q --backend bwrap
+assert_sequence_absent 'global skills symlinked into the project are not rebound as a duplicate alias' --ro-bind "${LINKED_GLOBAL_HOME}/.agents/skills" "${LINKED_GLOBAL_HOME}/.agents/skills"
+assert_sequence_contains 'project .agents stays visible through the normal project bind' --bind "${TEST_PROJECT}" "${TEST_PROJECT}"
+assert_sequence_absent 'global skill alias suppression does not write-bind all ~/.agents' --bind "${LINKED_GLOBAL_HOME}/.agents" "${LINKED_GLOBAL_HOME}/.agents"
+
+run_spi -- "${TEST_PROJECT}" -q --backend bwrap --allow-git
+assert_sequence_absent '--allow-git removes the default read-only .git overlay' --ro-bind "${TEST_PROJECT}/.git" "${TEST_PROJECT}/.git"
+
+run_spi -- "${TEST_PROJECT}" -q --backend bwrap --allow-pi-config
+assert_sequence_contains '--allow-pi-config write-binds ~/.pi explicitly' --bind "${TEST_HOME}/.pi" "${TEST_HOME}/.pi"
+
+SPI_TEST_PI_CODING_AGENT_DIR="${TEST_HOME}/.pi/agent" run_spi -- "${TEST_PROJECT}" -q --backend bwrap
+assert_sequence_contains 'PI_CODING_AGENT_DIR is preserved when host env sets it' --setenv PI_CODING_AGENT_DIR "${TEST_HOME}/.pi/agent"
+
+SPI_TEST_PI_PROVIDER=provider-fixture \
+    SPI_TEST_PI_MODEL=model-fixture \
+    SPI_TEST_PI_REASONING_LEVEL=medium \
+    SPI_TEST_PI_SESSION_ID=session-fixture \
+    run_spi -- "${TEST_PROJECT}" -q --backend bwrap
+assert_sequence_contains 'PI_PROVIDER is preserved when host env sets it' --setenv PI_PROVIDER provider-fixture
+assert_sequence_contains 'PI_MODEL is preserved when host env sets it' --setenv PI_MODEL model-fixture
+assert_sequence_contains 'PI_REASONING_LEVEL is preserved when host env sets it' --setenv PI_REASONING_LEVEL medium
+assert_sequence_contains 'PI_SESSION_* variables are preserved when host env sets them' --setenv PI_SESSION_ID session-fixture
+
+readonly EXTRA_RO="${TEST_ROOT}/extra-ro"
+readonly EXTRA_RW="${TEST_ROOT}/extra-rw"
+mkdir -p "${EXTRA_RO}" "${EXTRA_RW}"
+run_spi -- "${TEST_PROJECT}" -q --backend bwrap --add "${EXTRA_RO}" --add-rw "${EXTRA_RW}"
+assert_sequence_contains '--add binds extra path read-only' --ro-bind "${EXTRA_RO}" "${EXTRA_RO}"
+assert_sequence_contains '--add-rw binds extra path read-write' --bind "${EXTRA_RW}" "${EXTRA_RW}"
+
+readonly TARGET_FILE="${TEST_PROJECT}/file-target.txt"
+printf 'target\n' >"${TARGET_FILE}"
+run_spi -- "${TARGET_FILE}" -q --backend bwrap
+assert_sequence_contains 'single-file target mode exposes parent read-only' --ro-bind "${TEST_PROJECT}" "${TEST_PROJECT}"
+
+run_spi_with_stderr "${TEST_ROOT}/default.err" -- "${TEST_PROJECT}" --backend bwrap -x true
+assert_file_absent 'default startup hides .git protection info' "${TEST_ROOT}/default.err" 'spi: Protecting .git/ (read-only)'
+assert_file_absent 'default startup hides .agents protection info' "${TEST_ROOT}/default.err" 'spi: Protecting .agents/ (read-only)'
+assert_file_absent 'default startup hides .gitignore protection info' "${TEST_ROOT}/default.err" 'spi: Protecting .gitignore (read-only)'
+assert_file_absent 'default startup hides launch info' "${TEST_ROOT}/default.err" 'spi: Launching spi sandbox with bwrap...'
+
+run_spi_with_stderr "${TEST_ROOT}/verbose.err" -- "${TEST_PROJECT}" --verbose --backend bwrap -x true
+assert_file_contains '--verbose shows .git protection info' "${TEST_ROOT}/verbose.err" 'spi: Protecting .git/ (read-only)'
+assert_file_contains '--verbose shows .agents protection info' "${TEST_ROOT}/verbose.err" 'spi: Protecting .agents/ (read-only)'
+assert_file_contains '--verbose shows .gitignore protection info' "${TEST_ROOT}/verbose.err" 'spi: Protecting .gitignore (read-only)'
+assert_file_contains '--verbose shows launch info' "${TEST_ROOT}/verbose.err" 'spi: Launching spi sandbox with bwrap...'
+
+run_spi_with_stderr "${TEST_ROOT}/quiet-verbose.err" -- "${TEST_PROJECT}" --verbose -q --backend bwrap -x true
+assert_file_absent '--quiet suppresses verbose .git protection info' "${TEST_ROOT}/quiet-verbose.err" 'spi: Protecting .git/ (read-only)'
+assert_file_absent '--quiet suppresses verbose launch info' "${TEST_ROOT}/quiet-verbose.err" 'spi: Launching spi sandbox with bwrap...'
+
+rm -f -- "${BWRAP_CAPTURE}" "${BWRAP_PROBE_CAPTURE}"
+if env -i \
+    HOME="${TEST_HOME}" PATH="${TEST_BIN}:${PATH}" \
+    XDG_STATE_HOME="${TEST_STATE}" \
+    USER="${USER:-aemonge}" LOGNAME="${LOGNAME:-${USER:-aemonge}}" \
+    TERM="${TERM:-xterm-256color}" LANG="${LANG:-C.UTF-8}" \
+    PI_BIN="${FAKE_PI}" SCODER_GIT="${FAKE_SCODER_GIT}" \
+    SPI_TEST_BWRAP_CAPTURE="${BWRAP_CAPTURE}" \
+    SPI_TEST_BWRAP_PROBE_CAPTURE="${BWRAP_PROBE_CAPTURE}" \
+    "${SPI}" -- "${TEST_PROJECT}" -q --backend bwrap -x true >/dev/null 2>"${TEST_ROOT}/probe.err"; then
+    mapfile -d '' -t BWRAP_ARGS <"${BWRAP_PROBE_CAPTURE}"
+    assert_sequence_contains 'namespace probe mounts /usr for /bin -> /usr/bin shell chains' --ro-bind /usr /usr
+    assert_sequence_contains 'namespace probe mounts /bin before executing /bin/sh' --ro-bind /bin /bin
+else
+    printf 'FAIL: namespace probe regression check failed\n' >&2
+    sed 's/^/  /' "${TEST_ROOT}/probe.err" >&2
+    exit 1
+fi
+
+rm -f -- "${BWRAP_CAPTURE}"
+if env -i HOME="${TEST_HOME}" PATH="${TEST_BIN}:${PATH}" PI_BIN="${FAKE_PI}" SCODER_GIT="${FAKE_SCODER_GIT}" \
+    "${SPI}" -- "${TEST_PROJECT}" -q --backend gondolin >/dev/null 2>"${TEST_ROOT}/gondolin.err"; then
+    printf 'FAIL: gondolin backend unexpectedly succeeded\n' >&2
+    exit 1
+fi
+if [[ -e "${BWRAP_CAPTURE}" ]]; then
+    printf 'FAIL: gondolin backend invoked bubblewrap\n' >&2
+    exit 1
+fi
+if grep -q 'Gondolin backend is not implemented' "${TEST_ROOT}/gondolin.err"; then
+    printf 'PASS: gondolin backend fails early with actionable diagnostic\n'
+else
+    printf 'FAIL: gondolin diagnostic missing\n' >&2
+    exit 1
+fi
+
+if [[ "${SPI_VALIDATION_EXTERNAL:-0}" == "1" ]]; then
+    printf 'PASS: --validate regression check skipped during validation re-entry\n'
+elif command -v bwrap >/dev/null 2>&1 && [[ -x "${SCRIPT_DIR}/../scoder-git" ]]; then
+    readonly VALIDATE_HOME="${TEST_ROOT}/validate-home"
+    mkdir -p "${VALIDATE_HOME}"
+    if env -i \
+        HOME="${VALIDATE_HOME}" PATH="${PATH}" \
+        XDG_STATE_HOME="${TEST_STATE}" XDG_DATA_HOME="${TEST_XDG_DATA_HOME}" XDG_CACHE_HOME="${TEST_XDG_CACHE_HOME}" \
+        USER="${USER:-aemonge}" LOGNAME="${LOGNAME:-${USER:-aemonge}}" \
+        TERM="${TERM:-xterm-256color}" LANG="${LANG:-C.UTF-8}" \
+        PI_BIN=/bin/true PI_CODING_AGENT_DIR="${VALIDATE_HOME}/.pi/agent" \
+        SCODER_GIT="${SCRIPT_DIR}/../scoder-git" \
+        "${SPI}" -- "${TEST_PROJECT}" --validate >"${TEST_ROOT}/validate.out" 2>"${TEST_ROOT}/validate.err"; then
+        assert_file_contains '--validate runs validation suite, not doctor only' "${TEST_ROOT}/validate.out" 'All SPI validation tests passed'
+        assert_file_absent '--validate output is not just doctor diagnostics' "${TEST_ROOT}/validate.out" 'SPI doctor'
+    elif grep -F -q 'SPI validation' "${TEST_ROOT}/validate.out" && \
+        grep -F -q 'bwrap namespace probe failed' "${TEST_ROOT}/validate.out" && \
+        ! grep -F -q 'SPI doctor' "${TEST_ROOT}/validate.out"; then
+        printf 'PASS: --validate dispatches to validation suite even when live bwrap is unavailable\n'
+    else
+        printf 'FAIL: --validate regression check failed\n' >&2
+        sed 's/^/  /' "${TEST_ROOT}/validate.out" >&2
+        sed 's/^/  /' "${TEST_ROOT}/validate.err" >&2
+        exit 1
+    fi
+else
+    printf 'PASS: --validate regression check skipped because real bwrap/scoder-git is unavailable\n'
+fi
+
+printf 'spi parser and bwrap capture tests passed\n'
