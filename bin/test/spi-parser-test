@@ -16,10 +16,22 @@ trap 'rm -rf -- "${TEST_ROOT}"' EXIT
 readonly TEST_HOME="${TEST_ROOT}/home"
 readonly TEST_BIN="${TEST_ROOT}/bin"
 readonly TEST_PROJECT="${TEST_ROOT}/project"
+readonly TEST_DIRECT_OPENSPEC_PROJECT="${TEST_ROOT}/direct-openspec-project"
+readonly TEST_GALACTICA_PROJECT="${TEST_HOME}/galactica"
+readonly TEST_GALACTICA_NVIM_PROJECT="${TEST_GALACTICA_PROJECT}/.config/nvim"
+readonly TEST_NVIM_PROJECT="${TEST_HOME}/.config/nvim"
+readonly TEST_LINKED_NVIM_PROJECT="${TEST_HOME}/.config/linked-nvim"
+readonly TEST_LINKED_NVIM_SOURCE="${TEST_ROOT}/linked-targets/nvim"
+readonly TEST_LINKED_OPENSPEC_SOURCE="${TEST_ROOT}/linked-targets/openspec"
+readonly TEST_PI_AGENT_RESOURCE_SOURCE="${TEST_ROOT}/pi-agent-resource-source"
 readonly TEST_STATE="${TEST_ROOT}/state"
 readonly TEST_XDG_CONFIG_HOME="${TEST_HOME}/xdg-config"
 readonly TEST_XDG_DATA_HOME="${TEST_HOME}/xdg-data"
 readonly TEST_XDG_CACHE_HOME="${TEST_HOME}/xdg-cache"
+readonly TEST_SANDBOX_XDG_CONFIG_HOME="${TEST_HOME}/.config"
+readonly TEST_SANDBOX_XDG_DATA_HOME="${TEST_HOME}/.local/share"
+readonly TEST_SANDBOX_XDG_STATE_HOME="${TEST_HOME}/.local/state"
+readonly TEST_SANDBOX_XDG_CACHE_HOME="${TEST_HOME}/.cache"
 readonly TEST_ZDOTDIR="${TEST_HOME}/.config/zsh"
 readonly TEST_SOCKET_ROOT="${TEST_ROOT}/runtime"
 readonly TEST_NVIM_SOCKET="${TEST_SOCKET_ROOT}/nvim.sock"
@@ -30,6 +42,8 @@ readonly TEST_PI_DENIED_SOCKET="${TEST_SOCKET_ROOT}/pi/login.sock"
 readonly BWRAP_CAPTURE="${TEST_ROOT}/bwrap-args"
 readonly BWRAP_PROBE_CAPTURE="${TEST_ROOT}/bwrap-probe-args"
 readonly FAKE_PI="${TEST_BIN}/pi"
+readonly TEST_PNPM_HOME="${TEST_HOME}/.local/share/pnpm"
+readonly FAKE_PNPM_PI="${TEST_PNPM_HOME}/bin/pi"
 readonly FAKE_SCODER_GIT="${TEST_BIN}/scoder-git"
 
 mkdir -p \
@@ -48,6 +62,8 @@ mkdir -p \
     "${TEST_HOME}/.pi/agent/models" \
     "${TEST_HOME}/.pi/agent/metadata" \
     "${TEST_HOME}/.pi/agent/cache" \
+    "${TEST_HOME}/.pi/agent/git/github.com/example/example-package" \
+    "${TEST_HOME}/.pi/agent/npm/node_modules/example-package" \
     "${TEST_HOME}/.pi/agent/projects" \
     "${TEST_HOME}/.pi/agent/workspaces" \
     "${TEST_HOME}/.pi/agent/providers" \
@@ -56,12 +72,23 @@ mkdir -p \
     "${TEST_HOME}/.pi/models" \
     "${TEST_HOME}/.pi/prompts" \
     "${TEST_HOME}/.pi/themes" \
+    "${TEST_PI_AGENT_RESOURCE_SOURCE}/extensions" \
+    "${TEST_PI_AGENT_RESOURCE_SOURCE}/packages" \
+    "${TEST_PI_AGENT_RESOURCE_SOURCE}/prompts" \
+    "${TEST_PI_AGENT_RESOURCE_SOURCE}/skills" \
+    "${TEST_PI_AGENT_RESOURCE_SOURCE}/themes" \
     "${TEST_HOME}/.agents/skills/example" \
     "${TEST_HOME}/.config" \
+    "${TEST_PNPM_HOME}/bin" \
+    "${TEST_PNPM_HOME}/global/v11/fake/node_modules/@earendil-works/pi-coding-agent/dist" \
+    "${TEST_PNPM_HOME}/store/v11/files" \
     "${TEST_XDG_CONFIG_HOME}" \
+    "${TEST_XDG_CONFIG_HOME}/opencode" \
+    "${TEST_XDG_CONFIG_HOME}/openspec" \
     "${TEST_XDG_CONFIG_HOME}/pi" \
     "${TEST_XDG_DATA_HOME}/pi" \
     "${TEST_STATE}/pi" \
+    "${TEST_XDG_CACHE_HOME}/opencode/packages/opencode-subagent-statusline@latest" \
     "${TEST_XDG_CACHE_HOME}/pi" \
     "${TEST_ZDOTDIR}" \
     "$(dirname -- "${TEST_TMUX_SOCKET}")" \
@@ -71,25 +98,57 @@ mkdir -p \
     "${TEST_PROJECT}/.agents/skills/example" \
     "${TEST_PROJECT}/.pi" \
     "${TEST_PROJECT}/node_modules" \
+    "${TEST_DIRECT_OPENSPEC_PROJECT}/openspec/changes/direct-validation" \
+    "${TEST_DIRECT_OPENSPEC_PROJECT}/.pi/prompts" \
+    "${TEST_GALACTICA_PROJECT}" \
+    "${TEST_GALACTICA_NVIM_PROJECT}" \
+    "${TEST_GALACTICA_PROJECT}/.config/openspec/changes/galactica-validation" \
+    "${TEST_NVIM_PROJECT}" \
+    "${TEST_LINKED_NVIM_SOURCE}" \
+    "${TEST_LINKED_OPENSPEC_SOURCE}/changes/linked-validation" \
     "${TEST_STATE}"
+ln -s "${TEST_LINKED_NVIM_SOURCE}" "${TEST_LINKED_NVIM_PROJECT}"
+for pi_agent_resource in extensions packages prompts skills themes; do
+    ln -s "${TEST_PI_AGENT_RESOURCE_SOURCE}/${pi_agent_resource}" "${TEST_HOME}/.pi/agent/${pi_agent_resource}"
+done
+for pi_agent_file in keybindings.json settings.json trust.json auth.json models-store.json; do
+    ln -s "${TEST_PI_AGENT_RESOURCE_SOURCE}/${pi_agent_file}" "${TEST_HOME}/.pi/agent/${pi_agent_file}"
+done
 touch "${TEST_PROJECT}/.gitignore" "${TEST_PROJECT}/.env"
 printf 'pi-config\n' >"${TEST_HOME}/.pi/config"
 printf '{"theme":"original"}\n' >"${TEST_HOME}/.pi/agent/settings.json"
 printf '{"trusted":false}\n' >"${TEST_HOME}/.pi/agent/trust.json"
+printf '{"auth":"fixture"}\n' >"${TEST_HOME}/.pi/agent/auth.json"
+printf '{"models":[]}\n' >"${TEST_HOME}/.pi/agent/models-store.json"
+printf '{"key":"fixture"}\n' >"${TEST_HOME}/.pi/agent/keybindings.json"
 printf 'provider-catalog\n' >"${TEST_HOME}/.pi/providers/catalog.txt"
 printf 'model-catalog\n' >"${TEST_HOME}/.pi/models/catalog.txt"
 printf 'prompt-resource\n' >"${TEST_HOME}/.pi/prompts/default.txt"
 printf 'theme-resource\n' >"${TEST_HOME}/.pi/themes/default.txt"
 printf 'skill-resource\n' >"${TEST_HOME}/.agents/skills/example/SKILL.md"
 printf 'project-skill-resource\n' >"${TEST_PROJECT}/.agents/skills/example/SKILL.md"
+printf 'direct-openspec\n' >"${TEST_DIRECT_OPENSPEC_PROJECT}/openspec/changes/direct-validation/.openspec.yaml"
+printf 'direct-pi-prompt\n' >"${TEST_DIRECT_OPENSPEC_PROJECT}/.pi/prompts/opsx-propose.md"
+printf 'galactica-openspec\n' >"${TEST_GALACTICA_PROJECT}/.config/openspec/changes/galactica-validation/tasks.md"
+printf 'linked-openspec\n' >"${TEST_LINKED_OPENSPEC_SOURCE}/changes/linked-validation/tasks.md"
 printf 'pi-xdg-config\n' >"${TEST_XDG_CONFIG_HOME}/pi/config.toml"
+printf '{"plugin":["opencode-plugin-openspec"]}\n' >"${TEST_XDG_CONFIG_HOME}/opencode/opencode.json"
+printf '{"plugin":["opencode-subagent-statusline"]}\n' >"${TEST_XDG_CONFIG_HOME}/opencode/tui.json"
+printf 'schema: spec-driven\n' >"${TEST_XDG_CONFIG_HOME}/openspec/config.yaml"
 printf 'pi-xdg-data\n' >"${TEST_XDG_DATA_HOME}/pi/resource.txt"
+printf '{"name":"opencode-subagent-statusline"}\n' >"${TEST_XDG_CACHE_HOME}/opencode/packages/opencode-subagent-statusline@latest/package.json"
 printf "format = \"\$directory\"\n" >"${TEST_HOME}/.config/starship.toml"
 printf "format = \"\$character\"\n" >"${TEST_XDG_CONFIG_HOME}/starship.toml"
 printf 'zshenv\n' >"${TEST_HOME}/.zshenv"
 printf 'zshrc\n' >"${TEST_HOME}/.zshrc"
 printf 'zdotdir-zshrc\n' >"${TEST_ZDOTDIR}/.zshrc"
 printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"${FAKE_PI}"
+printf '%s\n' \
+    '#!/bin/sh' \
+    'basedir=$(dirname "$0")' \
+    'exec node "$basedir/../global/v11/fake/node_modules/@earendil-works/pi-coding-agent/dist/cli.js" "$@"' \
+    >"${FAKE_PNPM_PI}"
+printf 'console.log("fake pi")\n' >"${TEST_PNPM_HOME}/global/v11/fake/node_modules/@earendil-works/pi-coding-agent/dist/cli.js"
 printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"${FAKE_SCODER_GIT}"
 if command -v python3 >/dev/null 2>&1; then
     python3 - "${TEST_NVIM_SOCKET}" "${TEST_NVIM_LISTEN_SOCKET}" "${TEST_TMUX_SOCKET}" "${TEST_PI_STATUS_SOCKET}" "${TEST_PI_DENIED_SOCKET}" <<'PY'
@@ -145,11 +204,12 @@ if [[ "${is_probe}" -eq 1 ]]; then
 fi
 printf '%s\0' "$@" >"${SPI_TEST_BWRAP_CAPTURE}"
 BWRAP_EOF
-chmod +x "${FAKE_PI}" "${FAKE_SCODER_GIT}" "${TEST_BIN}/bwrap"
+chmod +x "${FAKE_PI}" "${FAKE_PNPM_PI}" "${FAKE_SCODER_GIT}" "${TEST_BIN}/bwrap"
 
 run_spi_with_stderr() {
     local stderr_file="$1"
     local home_root="${SPI_TEST_HOME_ROOT:-${TEST_HOME}}"
+    local pi_bin="${SPI_TEST_PI_BIN:-${FAKE_PI}}"
     local -a optional_env=()
     shift
 
@@ -178,14 +238,20 @@ run_spi_with_stderr() {
     rm -f -- "${BWRAP_CAPTURE}"
     if ! env -i \
         HOME="${home_root}" PATH="${TEST_BIN}:${PATH}" \
+        OPENCODE=1 OPENCODE_PID=4242 OPENCODE_DISABLE_PROJECT_CONFIG=1 \
+        OPENCODE_CONFIG_CONTENT='{"cwd":"stale-galactica"}' OPENCODE_ENABLE_EXA=1 \
+        USER_PREFIX="${TEST_GALACTICA_PROJECT}" \
+        TMUX_WORKSPACE_ROOT="${TEST_GALACTICA_PROJECT}" \
+        GALACTICA_HOME="${TEST_GALACTICA_PROJECT}" MYVIMRC="${TEST_GALACTICA_PROJECT}/init.lua" \
         XDG_STATE_HOME="${TEST_STATE}" XDG_DATA_HOME="${TEST_XDG_DATA_HOME}" XDG_CACHE_HOME="${TEST_XDG_CACHE_HOME}" \
         XDG_CONFIG_HOME="${TEST_XDG_CONFIG_HOME}" ZDOTDIR="${TEST_ZDOTDIR}" \
         NVIM="${TEST_NVIM_SOCKET}" NVIM_LISTEN_ADDRESS="${TEST_NVIM_LISTEN_SOCKET}" \
-        TMUX="${TEST_TMUX_SOCKET},123,0" TMUX_PANE="%42" \
+        NVIM_OPENCODE_PORT=4321 NVIM_LOG_FILE="${TEST_GALACTICA_PROJECT}/nvim.log" \
+        NVIM_THEME_COLOR=dark TMUX="${TEST_TMUX_SOCKET},123,0" TMUX_PANE="%42" \
         USER="${USER:-aemonge}" LOGNAME="${LOGNAME:-${USER:-aemonge}}" \
         TERM="${TERM:-xterm-256color}" LANG="${LANG:-C.UTF-8}" \
         "${optional_env[@]}" \
-        PI_BIN="${FAKE_PI}" SCODER_GIT="${FAKE_SCODER_GIT}" \
+        PI_BIN="${pi_bin}" SCODER_GIT="${FAKE_SCODER_GIT}" \
         SPI_FORCE_PROBE=1 SPI_TEST_BWRAP_CAPTURE="${BWRAP_CAPTURE}" \
         SPI_TEST_BWRAP_PROBE_CAPTURE="${BWRAP_PROBE_CAPTURE}" \
         "${SPI}" "$@" >/dev/null 2>"${stderr_file}"; then
@@ -289,6 +355,139 @@ assert_sequence_tail_prefix() {
     exit 1
 }
 
+sequence_first_index() {
+    local expected=("$@")
+    local index offset matched
+
+    for ((index = 0; index <= ${#BWRAP_ARGS[@]} - ${#expected[@]}; index++)); do
+        matched=1
+        for ((offset = 0; offset < ${#expected[@]}; offset++)); do
+            if [[ "${BWRAP_ARGS[index + offset]}" != "${expected[offset]}" ]]; then
+                matched=0
+                break
+            fi
+        done
+        if [[ "${matched}" -eq 1 ]]; then
+            SEQUENCE_INDEX="${index}"
+            return 0
+        fi
+    done
+    return 1
+}
+
+sequence_last_index() {
+    local expected=("$@")
+    local index offset matched
+
+    for ((index = ${#BWRAP_ARGS[@]} - ${#expected[@]}; index >= 0; index--)); do
+        matched=1
+        for ((offset = 0; offset < ${#expected[@]}; offset++)); do
+            if [[ "${BWRAP_ARGS[index + offset]}" != "${expected[offset]}" ]]; then
+                matched=0
+                break
+            fi
+        done
+        if [[ "${matched}" -eq 1 ]]; then
+            SEQUENCE_INDEX="${index}"
+            return 0
+        fi
+    done
+    return 1
+}
+
+assert_last_sequence_before() {
+    local description="$1"
+    shift
+    local before=()
+    local after=()
+    local before_index after_index
+
+    while [[ $# -gt 0 && "$1" != "::" ]]; do
+        before+=("$1")
+        shift
+    done
+    if [[ $# -eq 0 ]]; then
+        printf 'FAIL: %s\n  missing :: separator\n' "${description}" >&2
+        exit 1
+    fi
+    shift
+    after=("$@")
+
+    if ! sequence_last_index "${before[@]}"; then
+        printf 'FAIL: %s\n  missing before sequence: %q\n' "${description}" "${before[*]}" >&2
+        exit 1
+    fi
+    before_index="${SEQUENCE_INDEX}"
+    if ! sequence_first_index "${after[@]}"; then
+        printf 'FAIL: %s\n  missing after sequence: %q\n' "${description}" "${after[*]}" >&2
+        exit 1
+    fi
+    after_index="${SEQUENCE_INDEX}"
+
+    if ((before_index < after_index)); then
+        printf 'PASS: %s\n' "${description}"
+        return 0
+    fi
+
+    printf 'FAIL: %s\n  last before index %d is not before first after index %d\n' "${description}" "${before_index}" "${after_index}" >&2
+    exit 1
+}
+
+assert_placeholder_before_bind() {
+    local description="$1"
+    local placeholder_flag="$2"
+    local bind_flag="$3"
+    local source_path="$4"
+    local dest_path="$5"
+    local index
+
+    for ((index = 2; index < ${#BWRAP_ARGS[@]} - 2; index++)); do
+        if [[ "${BWRAP_ARGS[index]}" == "${bind_flag}" && \
+            "${BWRAP_ARGS[index + 1]}" == "${source_path}" && \
+            "${BWRAP_ARGS[index + 2]}" == "${dest_path}" && \
+            "${BWRAP_ARGS[index - 2]}" == "${placeholder_flag}" && \
+            "${BWRAP_ARGS[index - 1]}" == "${dest_path}" ]]; then
+            printf 'PASS: %s\n' "${description}"
+            return 0
+        fi
+    done
+
+    printf 'FAIL: %s\n  expected %s placeholder immediately before %s %s %s\n' \
+        "${description}" "${placeholder_flag}" "${bind_flag}" "${source_path}" "${dest_path}" >&2
+    exit 1
+}
+
+assert_file_bind_after_tmpfs() {
+    local description="$1"
+    local bind_flag="$2"
+    local source_path="$3"
+    local dest_path="$4"
+    local bind_index tmpfs_index index
+
+    bind_index=-1
+    tmpfs_index=-1
+    for ((index = 0; index < ${#BWRAP_ARGS[@]} - 2; index++)); do
+        if [[ "${BWRAP_ARGS[index]}" == "${bind_flag}" && \
+            "${BWRAP_ARGS[index + 1]}" == "${source_path}" && \
+            "${BWRAP_ARGS[index + 2]}" == "${dest_path}" ]]; then
+            bind_index="${index}"
+        fi
+        if [[ "${BWRAP_ARGS[index]}" == "--tmpfs" && \
+            "${BWRAP_ARGS[index + 1]}" == "$(dirname "${dest_path}")" ]]; then
+            tmpfs_index="${index}"
+        fi
+    done
+
+    if ((tmpfs_index >= 0 && bind_index > tmpfs_index)); then
+        printf 'PASS: %s\n' "${description}"
+        return 0
+    fi
+
+    printf 'FAIL: %s\n  expected direct %s %s %s after agent tmpfs, with no --file placeholder\n' \
+        "${description}" "${bind_flag}" "${source_path}" "${dest_path}" >&2
+    exit 1
+}
+
 assert_file_contains() {
     local description="$1"
     local file_path="$2"
@@ -324,11 +523,17 @@ assert_sequence_contains '.git is read-only by default' --ro-bind "${TEST_PROJEC
 assert_sequence_contains '.env remains visible as part of the project bind' --bind "${TEST_PROJECT}" "${TEST_PROJECT}"
 assert_sequence_contains 'Pi agent sessions are writable without whole-home exposure' --bind "${TEST_HOME}/.pi/agent/sessions" "${TEST_HOME}/.pi/agent/sessions"
 assert_sequence_contains 'existing Pi tree is read-only by default' --ro-bind "${TEST_HOME}/.pi" "${TEST_HOME}/.pi"
-assert_sequence_contains 'Pi agent root supports startup locks without whole ~/.pi writes' --bind "${TEST_HOME}/.pi/agent" "${TEST_HOME}/.pi/agent"
+assert_sequence_contains 'Pi agent root supports startup locks on writable tmpfs without symlink leaves' --tmpfs "${TEST_HOME}/.pi/agent"
+assert_sequence_absent 'Pi agent root is not whole-directory write-bound from host' --bind "${TEST_HOME}/.pi/agent" "${TEST_HOME}/.pi/agent"
 assert_sequence_contains 'Pi project state is writable without whole ~/.pi writes' --bind "${TEST_HOME}/.pi/agent/projects" "${TEST_HOME}/.pi/agent/projects"
+assert_placeholder_before_bind 'Pi project state destination dir exists before writable overlay' --dir --bind "${TEST_HOME}/.pi/agent/projects" "${TEST_HOME}/.pi/agent/projects"
 assert_sequence_contains 'Pi workspace state is writable without whole ~/.pi writes' --bind "${TEST_HOME}/.pi/agent/workspaces" "${TEST_HOME}/.pi/agent/workspaces"
 assert_sequence_contains 'Pi provider runtime state is writable under agent state' --bind "${TEST_HOME}/.pi/agent/providers" "${TEST_HOME}/.pi/agent/providers"
 assert_sequence_contains 'Pi generic state dir is writable under agent state' --bind "${TEST_HOME}/.pi/agent/state" "${TEST_HOME}/.pi/agent/state"
+assert_sequence_contains 'Pi git package cache is writable under agent state' --bind "${TEST_HOME}/.pi/agent/git" "${TEST_HOME}/.pi/agent/git"
+assert_placeholder_before_bind 'Pi git package cache destination dir exists before writable overlay' --dir --bind "${TEST_HOME}/.pi/agent/git" "${TEST_HOME}/.pi/agent/git"
+assert_sequence_contains 'Pi npm package cache is writable under agent state' --bind "${TEST_HOME}/.pi/agent/npm" "${TEST_HOME}/.pi/agent/npm"
+assert_placeholder_before_bind 'Pi npm package cache destination dir exists before writable overlay' --dir --bind "${TEST_HOME}/.pi/agent/npm" "${TEST_HOME}/.pi/agent/npm"
 assert_sequence_contains 'Pi task state is writable under agent state' --bind "${TEST_HOME}/.pi/agent/tasks" "${TEST_HOME}/.pi/agent/tasks"
 assert_sequence_contains 'Pi status state is writable under agent state' --bind "${TEST_HOME}/.pi/agent/status" "${TEST_HOME}/.pi/agent/status"
 assert_sequence_contains 'Pi todo state is writable under agent state' --bind "${TEST_HOME}/.pi/agent/todos" "${TEST_HOME}/.pi/agent/todos"
@@ -337,10 +542,33 @@ assert_sequence_contains 'Pi job state is writable under agent state' --bind "${
 assert_sequence_contains 'Pi run state is writable under agent state' --bind "${TEST_HOME}/.pi/agent/runs" "${TEST_HOME}/.pi/agent/runs"
 assert_sequence_contains 'Pi UI state is writable under agent state' --bind "${TEST_HOME}/.pi/agent/ui" "${TEST_HOME}/.pi/agent/ui"
 assert_sequence_contains 'Pi statusline state is writable under agent state' --bind "${TEST_HOME}/.pi/agent/statusline" "${TEST_HOME}/.pi/agent/statusline"
-assert_sequence_contains 'Pi XDG config is visible read-only' --ro-bind "${TEST_XDG_CONFIG_HOME}/pi" "${TEST_XDG_CONFIG_HOME}/pi"
-assert_sequence_contains 'Pi XDG data is visible read-only' --ro-bind "${TEST_XDG_DATA_HOME}/pi" "${TEST_XDG_DATA_HOME}/pi"
-assert_sequence_contains 'Pi XDG state is writable for status/task runtime' --bind "${TEST_STATE}/pi" "${TEST_STATE}/pi"
-assert_sequence_contains 'Pi XDG cache is writable for status/task runtime' --bind "${TEST_XDG_CACHE_HOME}/pi" "${TEST_XDG_CACHE_HOME}/pi"
+assert_sequence_contains 'Pi agent extensions symlink resolves read-only at logical path' --ro-bind "${TEST_PI_AGENT_RESOURCE_SOURCE}/extensions" "${TEST_HOME}/.pi/agent/extensions"
+assert_placeholder_before_bind 'Pi agent extensions destination dir exists before read-only overlay' --dir --ro-bind "${TEST_PI_AGENT_RESOURCE_SOURCE}/extensions" "${TEST_HOME}/.pi/agent/extensions"
+assert_sequence_contains 'Pi agent packages symlink resolves read-only at logical path' --ro-bind "${TEST_PI_AGENT_RESOURCE_SOURCE}/packages" "${TEST_HOME}/.pi/agent/packages"
+assert_placeholder_before_bind 'Pi agent packages destination dir exists before read-only overlay' --dir --ro-bind "${TEST_PI_AGENT_RESOURCE_SOURCE}/packages" "${TEST_HOME}/.pi/agent/packages"
+assert_sequence_contains 'Pi agent prompts symlink resolves read-only at logical path' --ro-bind "${TEST_PI_AGENT_RESOURCE_SOURCE}/prompts" "${TEST_HOME}/.pi/agent/prompts"
+assert_sequence_contains 'Pi agent skills symlink resolves read-only at logical path' --ro-bind "${TEST_PI_AGENT_RESOURCE_SOURCE}/skills" "${TEST_HOME}/.pi/agent/skills"
+assert_sequence_contains 'Pi agent themes symlink resolves read-only at logical path' --ro-bind "${TEST_PI_AGENT_RESOURCE_SOURCE}/themes" "${TEST_HOME}/.pi/agent/themes"
+assert_sequence_contains 'Pi agent keybindings symlink resolves read-only at logical path' --ro-bind "${TEST_PI_AGENT_RESOURCE_SOURCE}/keybindings.json" "${TEST_HOME}/.pi/agent/keybindings.json"
+assert_file_bind_after_tmpfs 'Pi agent keybindings file binds directly after agent tmpfs' --ro-bind "${TEST_PI_AGENT_RESOURCE_SOURCE}/keybindings.json" "${TEST_HOME}/.pi/agent/keybindings.json"
+assert_sequence_absent 'Pi agent packages resource symlink is not write-bound' --bind "${TEST_PI_AGENT_RESOURCE_SOURCE}/packages" "${TEST_HOME}/.pi/agent/packages"
+assert_sequence_contains 'Pi agent settings symlink remains writable at logical path' --bind "${TEST_PI_AGENT_RESOURCE_SOURCE}/settings.json" "${TEST_HOME}/.pi/agent/settings.json"
+assert_file_bind_after_tmpfs 'Pi agent settings file binds directly after agent tmpfs' --bind "${TEST_PI_AGENT_RESOURCE_SOURCE}/settings.json" "${TEST_HOME}/.pi/agent/settings.json"
+assert_sequence_contains 'Pi agent trust symlink remains writable at logical path' --bind "${TEST_PI_AGENT_RESOURCE_SOURCE}/trust.json" "${TEST_HOME}/.pi/agent/trust.json"
+assert_sequence_contains 'Pi agent auth symlink remains writable at logical path' --bind "${TEST_PI_AGENT_RESOURCE_SOURCE}/auth.json" "${TEST_HOME}/.pi/agent/auth.json"
+assert_sequence_contains 'Pi agent models store symlink remains writable at logical path' --bind "${TEST_PI_AGENT_RESOURCE_SOURCE}/models-store.json" "${TEST_HOME}/.pi/agent/models-store.json"
+assert_sequence_absent 'bwrap --file placeholders are not used for Pi agent file overlays' --file
+assert_sequence_contains 'Pi XDG config is visible read-only at sandbox HOME config path' --ro-bind "${TEST_XDG_CONFIG_HOME}/pi" "${TEST_SANDBOX_XDG_CONFIG_HOME}/pi"
+assert_sequence_contains 'Pi XDG data is visible read-only at sandbox HOME data path' --ro-bind "${TEST_XDG_DATA_HOME}/pi" "${TEST_SANDBOX_XDG_DATA_HOME}/pi"
+assert_sequence_contains 'Pi XDG state is writable at sandbox HOME state path' --bind "${TEST_STATE}/pi" "${TEST_SANDBOX_XDG_STATE_HOME}/pi"
+assert_sequence_contains 'Pi XDG cache is writable at sandbox HOME cache path' --bind "${TEST_XDG_CACHE_HOME}/pi" "${TEST_SANDBOX_XDG_CACHE_HOME}/pi"
+assert_sequence_contains 'XDG_CONFIG_HOME is canonicalized inside sandbox HOME' --setenv XDG_CONFIG_HOME "${TEST_SANDBOX_XDG_CONFIG_HOME}"
+assert_sequence_contains 'XDG_DATA_HOME is canonicalized inside sandbox HOME' --setenv XDG_DATA_HOME "${TEST_SANDBOX_XDG_DATA_HOME}"
+assert_sequence_contains 'XDG_STATE_HOME is canonicalized inside sandbox HOME' --setenv XDG_STATE_HOME "${TEST_SANDBOX_XDG_STATE_HOME}"
+assert_sequence_contains 'XDG_CACHE_HOME is canonicalized inside sandbox HOME' --setenv XDG_CACHE_HOME "${TEST_SANDBOX_XDG_CACHE_HOME}"
+assert_sequence_contains 'OpenCode footer config is visible read-only at sandbox XDG config path' --ro-bind "${TEST_XDG_CONFIG_HOME}/opencode" "${TEST_SANDBOX_XDG_CONFIG_HOME}/opencode"
+assert_sequence_contains 'OpenSpec footer config is visible read-only at sandbox XDG config path' --ro-bind "${TEST_XDG_CONFIG_HOME}/openspec" "${TEST_SANDBOX_XDG_CONFIG_HOME}/openspec"
+assert_sequence_contains 'OpenCode footer plugin package cache is visible read-only' --ro-bind "${TEST_XDG_CACHE_HOME}/opencode/packages" "${TEST_SANDBOX_XDG_CACHE_HOME}/opencode/packages"
 assert_sequence_contains 'global agent skills are read-only' --ro-bind "${TEST_HOME}/.agents/skills" "${TEST_HOME}/.agents/skills"
 assert_sequence_value_prefix 'private spi TMPDIR is created' --dir /tmp/spi-
 assert_sequence_tail_prefix 'private spi TMPDIR is chmod 0700' /tmp/spi- --chmod 0700
@@ -373,6 +601,50 @@ assert_sequence_absent 'Pi integration does not bind broad XDG data home' --ro-b
 assert_sequence_absent 'Pi integration does not bind broad XDG state home' --bind "${TEST_STATE}" "${TEST_STATE}"
 assert_sequence_absent 'Pi integration does not bind broad XDG cache home' --bind "${TEST_XDG_CACHE_HOME}" "${TEST_XDG_CACHE_HOME}"
 
+run_spi -- "${TEST_NVIM_PROJECT}" -q --backend bwrap
+assert_sequence_contains 'nested config target keeps exact sandbox workdir' --chdir "${TEST_NVIM_PROJECT}"
+assert_sequence_contains 'nested config target binds exact invocation directory' --bind "${TEST_NVIM_PROJECT}" "${TEST_NVIM_PROJECT}"
+assert_last_sequence_before 'nested config project parent dirs are created before OpenCode footer config bind' --dir "${TEST_HOME}/.config" :: --ro-bind "${TEST_XDG_CONFIG_HOME}/opencode" "${TEST_SANDBOX_XDG_CONFIG_HOME}/opencode"
+assert_last_sequence_before 'nested config project parent dirs are created before Pi XDG config bind' --dir "${TEST_HOME}/.config" :: --ro-bind "${TEST_XDG_CONFIG_HOME}/pi" "${TEST_SANDBOX_XDG_CONFIG_HOME}/pi"
+assert_sequence_absent 'nested config target is not remapped under stale galactica workspace' --chdir "${TEST_GALACTICA_PROJECT}/.config/nvim"
+assert_sequence_absent 'stale OpenCode marker is not forwarded into Pi sandbox' --setenv OPENCODE 1
+assert_sequence_absent 'stale OpenCode PID is not forwarded into Pi sandbox' --setenv OPENCODE_PID 4242
+assert_sequence_absent 'stale OpenCode project-config disable flag is not forwarded' --setenv OPENCODE_DISABLE_PROJECT_CONFIG 1
+assert_sequence_absent 'stale OpenCode config content is not forwarded' --setenv OPENCODE_CONFIG_CONTENT '{"cwd":"stale-galactica"}'
+assert_sequence_absent 'stale OpenCode feature env is not forwarded' --setenv OPENCODE_ENABLE_EXA 1
+assert_sequence_absent 'stale caller workspace prefix is not forwarded into Pi sandbox' --setenv USER_PREFIX "${TEST_GALACTICA_PROJECT}"
+assert_sequence_absent 'stale tmux workspace root is not forwarded into Pi sandbox' --setenv TMUX_WORKSPACE_ROOT "${TEST_GALACTICA_PROJECT}"
+assert_sequence_absent 'stale galactica home marker is not forwarded into Pi sandbox' --setenv GALACTICA_HOME "${TEST_GALACTICA_PROJECT}"
+assert_sequence_absent 'stale vimrc path is not forwarded into Pi sandbox' --setenv MYVIMRC "${TEST_GALACTICA_PROJECT}/init.lua"
+assert_sequence_absent 'stale Neovim OpenCode port is not forwarded into Pi sandbox' --setenv NVIM_OPENCODE_PORT 4321
+assert_sequence_absent 'stale Neovim log path is not forwarded into Pi sandbox' --setenv NVIM_LOG_FILE "${TEST_GALACTICA_PROJECT}/nvim.log"
+assert_sequence_absent 'stale Neovim theme env is not forwarded into Pi sandbox' --setenv NVIM_THEME_COLOR dark
+
+run_spi -- "${TEST_GALACTICA_NVIM_PROJECT}" -q --backend bwrap
+assert_sequence_contains 'nested galactica config target keeps exact sandbox workdir' --chdir "${TEST_GALACTICA_NVIM_PROJECT}"
+assert_sequence_contains 'nested target exposes nearest project OpenSpec read-only' --ro-bind "${TEST_GALACTICA_PROJECT}/.config/openspec" "${TEST_GALACTICA_PROJECT}/.config/openspec"
+assert_placeholder_before_bind 'nested project OpenSpec parent dirs exist before read-only overlay' --dir --ro-bind "${TEST_GALACTICA_PROJECT}/.config/openspec" "${TEST_GALACTICA_PROJECT}/.config/openspec"
+assert_sequence_absent 'nested target does not expose the whole OpenSpec parent as writable' --bind "${TEST_GALACTICA_PROJECT}/.config" "${TEST_GALACTICA_PROJECT}/.config"
+
+run_spi -- "${TEST_LINKED_NVIM_PROJECT}" -q --backend bwrap
+assert_sequence_contains 'symlinked config target uses resolved sandbox workdir like raw Pi' --chdir "${TEST_LINKED_NVIM_SOURCE}"
+assert_sequence_contains 'symlinked config target keeps logical HOME alias available' --bind "${TEST_LINKED_NVIM_SOURCE}" "${TEST_LINKED_NVIM_PROJECT}"
+assert_sequence_contains 'symlinked config target binds resolved source at logical HOME destination' --bind "${TEST_LINKED_NVIM_SOURCE}" "${TEST_LINKED_NVIM_PROJECT}"
+assert_last_sequence_before 'symlinked config project parent dirs are created before OpenCode footer config bind' --dir "${TEST_HOME}/.config" :: --ro-bind "${TEST_XDG_CONFIG_HOME}/opencode" "${TEST_SANDBOX_XDG_CONFIG_HOME}/opencode"
+assert_sequence_contains 'symlinked config target still exposes OpenCode footer config from HOME XDG' --ro-bind "${TEST_XDG_CONFIG_HOME}/opencode" "${TEST_SANDBOX_XDG_CONFIG_HOME}/opencode"
+assert_sequence_contains 'symlinked config target exposes resolved project OpenSpec at logical HOME config path' --ro-bind "${TEST_LINKED_OPENSPEC_SOURCE}" "${TEST_HOME}/.config/openspec"
+assert_sequence_contains 'symlinked config target exposes resolved project OpenSpec at resolved source path' --ro-bind "${TEST_LINKED_OPENSPEC_SOURCE}" "${TEST_LINKED_OPENSPEC_SOURCE}"
+assert_placeholder_before_bind 'symlinked project OpenSpec logical destination exists before read-only overlay' --dir --ro-bind "${TEST_LINKED_OPENSPEC_SOURCE}" "${TEST_HOME}/.config/openspec"
+assert_sequence_absent 'symlinked project OpenSpec does not use global OpenSpec config when resolved project exists' --ro-bind "${TEST_XDG_CONFIG_HOME}/openspec" "${TEST_SANDBOX_XDG_CONFIG_HOME}/openspec"
+assert_sequence_contains 'OpenSpec telemetry is disabled so footer JSON parsing stays clean' --setenv OPENSPEC_TELEMETRY 0
+
+run_spi -- "${TEST_DIRECT_OPENSPEC_PROJECT}" -q --backend bwrap
+assert_sequence_contains 'direct OpenSpec target keeps exact sandbox workdir' --chdir "${TEST_DIRECT_OPENSPEC_PROJECT}"
+assert_sequence_contains 'direct OpenSpec target binds project read-write' --bind "${TEST_DIRECT_OPENSPEC_PROJECT}" "${TEST_DIRECT_OPENSPEC_PROJECT}"
+assert_sequence_contains 'direct OpenSpec target protects local openspec read-only' --ro-bind "${TEST_DIRECT_OPENSPEC_PROJECT}/openspec" "${TEST_DIRECT_OPENSPEC_PROJECT}/openspec"
+assert_sequence_contains 'direct OpenSpec target protects local .pi read-only' --ro-bind "${TEST_DIRECT_OPENSPEC_PROJECT}/.pi" "${TEST_DIRECT_OPENSPEC_PROJECT}/.pi"
+assert_sequence_contains 'direct OpenSpec target disables telemetry for footer JSON parsing' --setenv OPENSPEC_TELEMETRY 0
+
 if [[ -S "${TEST_PI_STATUS_SOCKET}" && -S "${TEST_PI_DENIED_SOCKET}" ]]; then
     SPI_TEST_PI_STATUS_SOCKET="${TEST_PI_STATUS_SOCKET}" \
         SPI_TEST_PI_DENIED_SOCKET="${TEST_PI_DENIED_SOCKET}" \
@@ -383,6 +655,11 @@ if [[ -S "${TEST_PI_STATUS_SOCKET}" && -S "${TEST_PI_DENIED_SOCKET}" ]]; then
     assert_sequence_absent 'non-status Pi socket env is not forwarded' --setenv PI_LOGIN_SOCKET "${TEST_PI_DENIED_SOCKET}"
     assert_sequence_absent 'Pi socket integration does not bind broad runtime root' --bind "${TEST_SOCKET_ROOT}" "${TEST_SOCKET_ROOT}"
 fi
+
+SPI_TEST_PI_BIN="${FAKE_PNPM_PI}" run_spi -- "${TEST_PROJECT}" -q --backend bwrap
+assert_sequence_contains 'pnpm-installed Pi exposes its shim/package/store tree read-only' --ro-bind "${TEST_PNPM_HOME}" "${TEST_PNPM_HOME}"
+assert_sequence_absent 'pnpm-installed Pi does not bind only the fragile shim file' --ro-bind "${FAKE_PNPM_PI}" "${FAKE_PNPM_PI}"
+assert_sequence_contains 'pnpm-installed Pi executes the stable sandbox shim path' "${FAKE_PNPM_PI}"
 
 readonly LINKED_GLOBAL_HOME="${TEST_ROOT}/linked-global-home"
 mkdir -p "${LINKED_GLOBAL_HOME}" "${TEST_PROJECT}/.agents/skills/example"

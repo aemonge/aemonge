@@ -67,8 +67,10 @@ Pi state model:
   the Pi agent root writable for startup settings/trust JSON and lock dirs, plus
   selected writable Pi runtime/state subdirectories for sessions, auth, trust,
   models, metadata, cache, project/workspace/provider state, and related state.
-  Resource/config trees such as prompts, themes, skills, packages, provider and
-  model catalogs remain read-only unless --allow-pi-config is explicitly used.
+  Legacy/current ~/.pi/agent resource/config children such as extensions,
+  packages, prompts, skills, themes, and keybindings remain read-only and follow
+  symlinks at their logical HOME paths; mutable root JSON/state remains writable.
+  Future XDG Pi config/data paths are also exposed when present.
   ~/.agents/skills is mounted read-only when present, unless it resolves to
   the same project .agents/skills tree already exposed by the target.
   Use --allow-pi-config only when Pi must write broader ~/.pi configuration.
@@ -154,6 +156,24 @@ add_extra_bind_once() {
     EXTRA_BINDS+=("${bind_flag}" "${host_p}" "${sand_p}")
 }
 
+add_prepared_bind_once() {
+    local bind_flag="$1"
+    local host_p="$2"
+    local sand_p="$3"
+    local resolved_host_p
+    local bind_key="${bind_flag}:${sand_p}"
+
+    [[ -n "${EXTRA_BIND_DEST_SET[${bind_key}]:-}" ]] && return 0
+    resolve_bind_source_path "${host_p}"
+    resolved_host_p="${REPLY}"
+    EXTRA_BIND_DEST_SET["${bind_key}"]=1
+    add_parent_dirs_once "$(dirname "${sand_p}")"
+    if [[ -d "${resolved_host_p}" ]]; then
+        EXTRA_BINDS+=(--dir "${sand_p}")
+    fi
+    EXTRA_BINDS+=("${bind_flag}" "${resolved_host_p}" "${sand_p}")
+}
+
 add_sandbox_env_once() {
     local env_name="$1"
     local env_value="$2"
@@ -191,6 +211,26 @@ bind_runtime_dir() {
     bind_runtime_dir_precreated "${host_p}" "${sand_p}"
 }
 
+bind_prepared_runtime_dir() {
+    local host_p="$1"
+    local sand_p="$2"
+
+    mkdir -p -- "${host_p}"
+    add_prepared_bind_once --bind "${host_p}" "${sand_p}"
+}
+
+bind_runtime_path_precreated() {
+    local host_p="$1"
+    local sand_p="$2"
+    local resolved_host_p
+
+    [[ -e "${host_p}" ]] || return 0
+    resolve_bind_source_path "${host_p}"
+    resolved_host_p="${REPLY}"
+    add_parent_dirs_once "$(dirname "${sand_p}")"
+    add_extra_bind_once --bind "${resolved_host_p}" "${sand_p}"
+}
+
 opt_ro_bind_path() {
     local host_p="$1"
     local sand_p="$2"
@@ -213,7 +253,7 @@ opt_ro_bind_dir() {
 
 opt_ro_bind_global_skills() {
     local host_skills="${HOST_HOME}/.agents/skills"
-    local project_skills="${PROJECT_DIR}/.agents/skills"
+    local project_skills="${PROJECT_SOURCE_DIR}/.agents/skills"
     local resolved_host_skills=""
     local resolved_project_skills=""
 
@@ -237,19 +277,15 @@ bind_pi_xdg_resources() {
     local host_data_pi="${XDG_DATA_HOME:-${HOST_HOME}/.local/share}/pi"
     local host_state_pi="${XDG_STATE_HOME:-${HOST_HOME}/.local/state}/pi"
     local host_cache_pi="${XDG_CACHE_HOME:-${HOST_HOME}/.cache}/pi"
-    local sand_config_pi
-    local sand_data_pi
-    local sand_state_pi
-    local sand_cache_pi
+    local sand_config_pi="${SANDBOX_CONFIG_DIR}/pi"
+    local sand_data_pi="${SANDBOX_LOCAL_SHARE_DIR}/pi"
+    local sand_state_pi="${SANDBOX_LOCAL_STATE_DIR}/pi"
+    local sand_cache_pi="${SANDBOX_CACHE_DIR}/pi"
 
-    map_host_path_to_sandbox "${host_config_pi}"
-    sand_config_pi="${REPLY}"
-    map_host_path_to_sandbox "${host_data_pi}"
-    sand_data_pi="${REPLY}"
-    map_host_path_to_sandbox "${host_state_pi}"
-    sand_state_pi="${REPLY}"
-    map_host_path_to_sandbox "${host_cache_pi}"
-    sand_cache_pi="${REPLY}"
+    add_sandbox_env_once XDG_CONFIG_HOME "${SANDBOX_CONFIG_DIR}"
+    add_sandbox_env_once XDG_DATA_HOME "${SANDBOX_LOCAL_SHARE_DIR}"
+    add_sandbox_env_once XDG_STATE_HOME "${SANDBOX_LOCAL_STATE_DIR}"
+    add_sandbox_env_once XDG_CACHE_HOME "${SANDBOX_CACHE_DIR}"
 
     if [[ "${ALLOW_PI_CONFIG}" -eq 1 ]]; then
         [[ -d "${host_config_pi}" ]] && bind_runtime_dir "${host_config_pi}" "${sand_config_pi}"
@@ -261,6 +297,137 @@ bind_pi_xdg_resources() {
 
     bind_runtime_dir "${host_state_pi}" "${sand_state_pi}"
     bind_runtime_dir "${host_cache_pi}" "${sand_cache_pi}"
+}
+
+bind_pi_agent_resource_paths() {
+    local resource_path
+    local host_p
+    local sand_p
+
+    for resource_path in "${PI_AGENT_RO_PATHS[@]}"; do
+        host_p="${PI_AGENT_DIR}/${resource_path}"
+        sand_p="${SANDBOX_PI_AGENT_DIR}/${resource_path}"
+        [[ -e "${host_p}" ]] || continue
+        add_prepared_bind_once --ro-bind "${host_p}" "${sand_p}"
+    done
+
+    for resource_path in "${PI_AGENT_MUTABLE_ROOT_FILES[@]}"; do
+        host_p="${PI_AGENT_DIR}/${resource_path}"
+        sand_p="${SANDBOX_PI_AGENT_DIR}/${resource_path}"
+        [[ -e "${host_p}" ]] || continue
+        add_prepared_bind_once --bind "${host_p}" "${sand_p}"
+    done
+}
+
+bind_pi_agent_tmpfs_root() {
+    add_parent_dirs_once "$(dirname "${SANDBOX_PI_AGENT_DIR}")"
+    EXTRA_BINDS+=(--tmpfs "${SANDBOX_PI_AGENT_DIR}")
+}
+
+bind_footer_xdg_resources() {
+    local host_config_home="${XDG_CONFIG_HOME:-${HOST_HOME}/.config}"
+    local host_cache_home="${XDG_CACHE_HOME:-${HOST_HOME}/.cache}"
+
+    # Pi-compatible OpenCode footer/status integrations load their plugin config
+    # and OpenSpec metadata through XDG config/cache paths. Expose only the
+    # read-only config trees and cached package code needed for those resources;
+    # do not expose OpenCode data/state such as auth, sessions, DBs, or logs.
+    opt_ro_bind_dir "${host_config_home}/opencode" "${SANDBOX_CONFIG_DIR}/opencode"
+    opt_ro_bind_dir "${host_config_home}/openspec" "${SANDBOX_CONFIG_DIR}/openspec"
+    opt_ro_bind_dir "${host_cache_home}/opencode/packages" "${SANDBOX_CACHE_DIR}/opencode/packages"
+}
+
+bind_nearest_project_openspec() {
+    local logical_search_dir
+    local resolved_logical_search_dir
+    local resolved_source_search_dir
+    local openspec_dir
+    local logical_openspec_dir
+    local source_openspec_dir
+
+    if [[ "${TARGET_KIND}" == "dir" ]]; then
+        logical_search_dir="${TARGET_PATH}"
+    else
+        logical_search_dir="${TARGET_PARENT_DIR}"
+    fi
+
+    while [[ -n "${logical_search_dir}" && "${logical_search_dir}" != "/" ]]; do
+        openspec_dir="${logical_search_dir}/openspec"
+        if is_project_openspec_dir "${openspec_dir}"; then
+            resolve_project_openspec_source "${openspec_dir}"
+            source_openspec_dir="${REPLY}"
+            # If OpenSpec is inside the primary project bind, normal protected
+            # control-dir overlays handle it. Nested targets need the nearest
+            # sibling/ancestor OpenSpec tree exposed explicitly for Pi footer
+            # parity, without exposing the rest of that parent directory.
+            if [[ "${logical_search_dir}" != "${PROJECT_DIR}" ]]; then
+                add_prepared_bind_once --ro-bind "${source_openspec_dir}" "${openspec_dir}"
+                info "OpenSpec footer: mounted nearest project-local openspec/ read-only"
+            fi
+            if [[ "${source_openspec_dir}" != "${openspec_dir}" ]]; then
+                add_prepared_bind_once --ro-bind "${source_openspec_dir}" "${source_openspec_dir}"
+                info "OpenSpec footer: mounted resolved project-local openspec/ read-only"
+            fi
+            return 0
+        fi
+        logical_search_dir="$(dirname "${logical_search_dir}")"
+    done
+
+    if [[ "${TARGET_SOURCE_PATH}" == "${TARGET_PATH}" ]]; then
+        return 0
+    fi
+
+    if [[ "${TARGET_KIND}" == "dir" ]]; then
+        resolved_logical_search_dir="${TARGET_PATH}"
+        resolved_source_search_dir="${TARGET_SOURCE_PATH}"
+    else
+        resolved_logical_search_dir="${TARGET_PARENT_DIR}"
+        resolved_source_search_dir="${TARGET_SOURCE_PARENT_DIR}"
+    fi
+
+    while [[ -n "${resolved_source_search_dir}" && "${resolved_source_search_dir}" != "/" && \
+        -n "${resolved_logical_search_dir}" && "${resolved_logical_search_dir}" != "/" ]]; do
+        source_openspec_dir="${resolved_source_search_dir}/openspec"
+        logical_openspec_dir="${resolved_logical_search_dir}/openspec"
+        if is_project_openspec_dir "${source_openspec_dir}"; then
+            add_prepared_bind_once --ro-bind "${source_openspec_dir}" "${logical_openspec_dir}"
+            if [[ "${source_openspec_dir}" != "${logical_openspec_dir}" ]]; then
+                add_prepared_bind_once --ro-bind "${source_openspec_dir}" "${source_openspec_dir}"
+            fi
+            info "OpenSpec footer: mounted resolved nearest project-local openspec/ read-only"
+            return 0
+        fi
+        resolved_source_search_dir="$(dirname "${resolved_source_search_dir}")"
+        resolved_logical_search_dir="$(dirname "${resolved_logical_search_dir}")"
+    done
+}
+
+is_project_openspec_dir() {
+    local openspec_dir="$1"
+
+    [[ -d "${openspec_dir}" ]] || return 1
+    [[ -d "${openspec_dir}/changes" || -d "${openspec_dir}/specs" ]]
+}
+
+resolve_project_openspec_source() {
+    local openspec_dir="$1"
+    local child
+    local resolved_child
+    local candidate
+
+    for child in changes specs; do
+        if [[ -L "${openspec_dir}/${child}" ]]; then
+            resolved_child="$(realpath "${openspec_dir}/${child}" 2>/dev/null || true)"
+            [[ -n "${resolved_child}" ]] || continue
+            candidate="$(dirname "${resolved_child}")"
+            if is_project_openspec_dir "${candidate}"; then
+                REPLY="${candidate}"
+                return 0
+            fi
+        fi
+    done
+
+    REPLY="${openspec_dir}"
 }
 
 is_safe_pi_socket_env_name() {
@@ -311,6 +478,36 @@ bind_pi_socket_envs() {
     done <<<"${env_output}"
 }
 
+bind_pi_binary_package_tree() {
+    local pi_bin_real="$1"
+    local candidate
+    local resolved_candidate
+    local sand_candidate
+    local -a pnpm_home_candidates=()
+
+    if [[ -n "${PNPM_HOME:-}" && "${PNPM_HOME}" == /* ]]; then
+        pnpm_home_candidates+=("${PNPM_HOME}")
+    fi
+    if [[ -n "${XDG_DATA_HOME:-}" && "${XDG_DATA_HOME}" == /* ]]; then
+        pnpm_home_candidates+=("${XDG_DATA_HOME}/pnpm")
+    fi
+    pnpm_home_candidates+=("${HOST_HOME}/.local/share/pnpm")
+
+    for candidate in "${pnpm_home_candidates[@]}"; do
+        [[ -d "${candidate}" ]] || continue
+        resolved_candidate="$(realpath "${candidate}" 2>/dev/null || true)"
+        [[ -n "${resolved_candidate}" ]] || continue
+        is_path_within "${resolved_candidate}" "${pi_bin_real}" || continue
+
+        sand_candidate="${candidate}"
+        opt_ro_bind_dir "${candidate}" "${sand_candidate}"
+        info "Pi integration: mounted pnpm package tree read-only for Pi executable"
+        return 0
+    done
+
+    return 1
+}
+
 add_custom_bind() {
     local bind_flag="$1"
     local requested_path="$2"
@@ -327,6 +524,7 @@ add_custom_bind() {
 
 resolve_target_mode() {
     local requested_target="$1"
+    local logical_target
     local resolved_target
 
     if [[ ! -e "${requested_target}" ]]; then
@@ -334,17 +532,26 @@ resolve_target_mode() {
         exit 1
     fi
 
+    if [[ "${requested_target}" == /* ]]; then
+        logical_target="${requested_target}"
+    else
+        logical_target="${PWD}/${requested_target}"
+    fi
     resolved_target="$(realpath "${requested_target}")"
     if [[ -d "${resolved_target}" ]]; then
         TARGET_KIND="dir"
-        TARGET_PATH="${resolved_target}"
-        TARGET_PARENT_DIR="$(dirname "${resolved_target}")"
+        TARGET_PATH="${logical_target}"
+        TARGET_SOURCE_PATH="${resolved_target}"
+        TARGET_PARENT_DIR="$(dirname "${logical_target}")"
+        TARGET_SOURCE_PARENT_DIR="$(dirname "${resolved_target}")"
         return
     fi
     if [[ -f "${resolved_target}" ]]; then
         TARGET_KIND="file"
-        TARGET_PATH="${resolved_target}"
-        TARGET_PARENT_DIR="$(dirname "${resolved_target}")"
+        TARGET_PATH="${logical_target}"
+        TARGET_SOURCE_PATH="${resolved_target}"
+        TARGET_PARENT_DIR="$(dirname "${logical_target}")"
+        TARGET_SOURCE_PARENT_DIR="$(dirname "${resolved_target}")"
         return
     fi
 
@@ -437,7 +644,11 @@ discover_pi_binary() {
     add_parent_dirs_once "$(dirname "${PI_BIN_REAL}")"
     case "${PI_BIN_REAL}" in
     /usr/* | /bin/* | /sbin/*) ;;
-    *) EXTRA_BINDS+=(--ro-bind "${PI_BIN_REAL}" "${PI_BIN_REAL}") ;;
+    *)
+        if ! bind_pi_binary_package_tree "${PI_BIN_REAL}"; then
+            add_extra_bind_once --ro-bind "${PI_BIN_REAL}" "${PI_BIN_REAL}"
+        fi
+        ;;
     esac
 }
 
@@ -566,13 +777,35 @@ bind_terminal_integration() {
     bind_tmux_socket_env
 }
 
+is_stale_workspace_env_name() {
+    local env_name="$1"
+
+    case "${env_name}" in
+    OPENCODE_API_KEY)
+        return 1
+        ;;
+    OPENCODE*)
+        return 0
+        ;;
+    NVIM_OPENCODE_PORT | NVIM_LOG_FILE | NVIM_THEME_COLOR | \
+        USER_PREFIX | TMUX_WORKSPACE_ROOT | GALACTICA_HOME | MYVIMRC)
+        return 0
+        ;;
+    *)
+        return 1
+        ;;
+    esac
+}
+
 inherit_safe_environment() {
     local env_name
     local env_output
     env_output="$(compgen -e || true)"
     while IFS= read -r env_name; do
+        is_stale_workspace_env_name "${env_name}" && continue
         case "${env_name}" in
         HOME | PATH | PWD | OLDPWD | SHELL | SHLVL | _ | USER | LOGNAME | TERM | COLORTERM | LANG | LC_ALL | \
+            XDG_CONFIG_HOME | XDG_DATA_HOME | XDG_STATE_HOME | XDG_CACHE_HOME | \
             PI_BIN | PI_CODING_AGENT_DIR | PI_SESSION_* | PI_PROVIDER | PI_MODEL | PI_REASONING_LEVEL | \
             PI_*SOCKET* | \
             SPI_* | TMPDIR | GIT_OPTIONAL_LOCKS | SSH_AUTH_SOCK | \
@@ -633,7 +866,7 @@ run_doctor() {
         printf '  Pi mount mode: role-based; existing ~/.pi read-only with writable agent root and selected runtime/state dirs\n'
         printf '  Pi writable agent root: %s (settings/trust JSON and lock dirs)\n' "${PI_AGENT_DIR}"
         printf '  Pi writable runtime dirs: %s\n' "${PI_RUNTIME_WRITABLE_LABEL}"
-        printf '  Pi read-only resources: ~/.pi config/resources, ~/.config/pi, ~/.local/share/pi, plus ~/.agents/skills when present\n'
+        printf '  Pi read-only resources: ~/.pi config/resources, ~/.pi/agent packages/extensions/prompts/skills/themes/keybindings, future ~/.config/pi and ~/.local/share/pi, plus ~/.agents/skills when present\n'
         printf '  Pi writable XDG runtime/state: ~/.local/state/pi and ~/.cache/pi or XDG overrides\n'
     fi
     printf '  Project .pi/.agents protection: read-only by default with other control-plane paths\n'
@@ -661,6 +894,9 @@ run_validation() {
     local validation_root
     local test_home
     local test_project
+    local direct_openspec_project
+    local symlink_source_project
+    local symlink_logical_project
     local neighbor_dir
     local shared_ro_dir
     local shared_rw_dir
@@ -691,6 +927,9 @@ run_validation() {
     validation_root="$(mktemp -d "${TMPDIR:-/tmp}/spi-validation.XXXXXX")"
     test_home="${validation_root}/home"
     test_project="${validation_root}/project"
+    direct_openspec_project="${validation_root}/direct-openspec"
+    symlink_source_project="${validation_root}/symlink-source/.config"
+    symlink_logical_project="${test_home}/.config/linked-nvim"
     neighbor_dir="${validation_root}/neighbor"
     shared_ro_dir="${validation_root}/shared-ro"
     shared_rw_dir="${validation_root}/shared-rw"
@@ -738,8 +977,16 @@ run_validation() {
         "${test_project}/.pi" \
         "${test_project}/node_modules" \
         "${test_project}/src/lib" \
+        "${direct_openspec_project}/openspec/changes/direct-validation" \
+        "${direct_openspec_project}/openspec/specs" \
+        "${direct_openspec_project}/.pi/prompts" \
+        "${validation_root}/nested-parent/nvim" \
+        "${validation_root}/nested-parent/openspec/changes/nested-validation" \
+        "${symlink_source_project}/nvim" \
+        "${symlink_source_project}/openspec/changes/symlink-validation" \
         "$(dirname -- "${terminal_tmux_socket}")" \
         "${neighbor_dir}"
+    ln -s "${symlink_source_project}/nvim" "${symlink_logical_project}"
     printf 'original-pi-config\n' >"${test_home}/.pi/config"
     printf '{"theme":"original"}\n' >"${test_home}/.pi/agent/settings.json"
     printf '{"trusted":false}\n' >"${test_home}/.pi/agent/trust.json"
@@ -759,8 +1006,13 @@ run_validation() {
     printf 'SPI_VALIDATION=1\n' >"${test_project}/.env"
     printf 'ignored\n' >"${test_project}/.gitignore"
     printf 'project-pi-original\n' >"${test_project}/.pi/original.txt"
+    printf 'schema: spec-driven\n' >"${direct_openspec_project}/openspec/config.yaml"
+    printf 'schema: spec-driven\ncreated: 2026-08-04\n' >"${direct_openspec_project}/openspec/changes/direct-validation/.openspec.yaml"
+    printf 'direct-pi-prompt\n' >"${direct_openspec_project}/.pi/prompts/opsx-propose.md"
     printf 'alpha\n' >"${target_file_path}"
     printf 'beta\n' >"${sibling_file_path}"
+    printf 'nested-openspec\n' >"${validation_root}/nested-parent/openspec/changes/nested-validation/tasks.md"
+    printf 'symlink-openspec\n' >"${symlink_source_project}/openspec/changes/symlink-validation/tasks.md"
     printf '%s\n' '#!/usr/bin/env bash' 'printf host-tool-ok' >"${test_home}/.local/bin/spi-host-tool"
     chmod +x "${test_home}/.local/bin/spi-host-tool"
     mkdir -p -- "${shared_ro_dir}" "${shared_rw_dir}"
@@ -811,11 +1063,19 @@ PY
     run_validation_spi_with_home() {
         local sandbox_home="$1"
         local sandbox_agent_dir="$2"
+        local sandbox_xdg_config_home="${SPI_VALIDATION_XDG_CONFIG_HOME:-${sandbox_home}/.config}"
+        local sandbox_xdg_data_home="${SPI_VALIDATION_XDG_DATA_HOME:-${sandbox_home}/.local/share}"
+        local sandbox_xdg_state_home="${SPI_VALIDATION_XDG_STATE_HOME:-${sandbox_home}/.local/state}"
+        local sandbox_xdg_cache_home="${SPI_VALIDATION_XDG_CACHE_HOME:-${sandbox_home}/.cache}"
         shift 2
 
         env \
             HOME="${sandbox_home}" \
             PATH="${PATH}" \
+            XDG_CONFIG_HOME="${sandbox_xdg_config_home}" \
+            XDG_DATA_HOME="${sandbox_xdg_data_home}" \
+            XDG_STATE_HOME="${sandbox_xdg_state_home}" \
+            XDG_CACHE_HOME="${sandbox_xdg_cache_home}" \
             USER="${USER:-aemonge}" \
             LOGNAME="${LOGNAME:-${USER:-aemonge}}" \
             TERM="${TERM:-xterm-256color}" \
@@ -831,7 +1091,7 @@ PY
     }
 
     run_spi_terminal_fixture() {
-        XDG_CONFIG_HOME="${terminal_xdg_config_home}" \
+        SPI_VALIDATION_XDG_CONFIG_HOME="${terminal_xdg_config_home}" \
             ZDOTDIR="${terminal_zdotdir}" \
             NVIM="${terminal_nvim_socket}" \
             NVIM_LISTEN_ADDRESS="${terminal_nvim_listen_socket}" \
@@ -906,6 +1166,36 @@ PY
         else
             validation_fail "Test B.5 FAIL: raw command output was ${output}"
             failed_tests=$((failed_tests + 1))
+        fi
+
+        output="$(run_validation_spi -- "${validation_root}/nested-parent/nvim" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'task_path="$(dirname "$PWD")/openspec/changes/nested-validation/tasks.md"; cat "$task_path" >/dev/null || exit 1; if printf bad > "$task_path" 2>/dev/null; then printf OPENSPEC_WRITE_ALLOWED; else printf OPENSPEC_RO; fi' 2>&1 || true)"
+        if [[ "${output}" == *OPENSPEC_RO* ]] && [[ "${output}" != *OPENSPEC_WRITE_ALLOWED* ]] && \
+            [[ "$(<"${validation_root}/nested-parent/openspec/changes/nested-validation/tasks.md")" == 'nested-openspec' ]]; then
+            validation_pass 'Test B.7 PASS: nested target sees nearest project OpenSpec read-only'
+        else
+            validation_fail "Test B.7 FAIL: nested target OpenSpec visibility/policy failed (${output})"
+            failed_tests=$((failed_tests + 1))
+        fi
+
+        output="$(run_validation_spi -- "${symlink_logical_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'task_path="$HOME/.config/openspec/changes/symlink-validation/tasks.md"; cat "$task_path" >/dev/null || exit 1; if printf bad > "$task_path" 2>/dev/null; then printf SYMLINK_OPENSPEC_WRITE_ALLOWED; else printf SYMLINK_OPENSPEC_RO; fi' 2>&1 || true)"
+        if [[ "${output}" == *SYMLINK_OPENSPEC_RO* ]] && [[ "${output}" != *SYMLINK_OPENSPEC_WRITE_ALLOWED* ]] && \
+            [[ "$(<"${symlink_source_project}/openspec/changes/symlink-validation/tasks.md")" == 'symlink-openspec' ]]; then
+            validation_pass 'Test B.8 PASS: symlinked config target sees resolved project OpenSpec read-only at logical path'
+        else
+            validation_fail "Test B.8 FAIL: symlinked config target OpenSpec visibility/policy failed (${output})"
+            failed_tests=$((failed_tests + 1))
+        fi
+
+        if command -v openspec >/dev/null 2>&1; then
+            output="$(run_validation_spi -- "${direct_openspec_project}" -q --backend bwrap -x node -e 'const {execFileSync}=require("child_process"); const out=execFileSync("openspec",["list","--json"],{cwd:process.cwd(),encoding:"utf8"}); const parsed=JSON.parse(out); if(parsed.changes?.[0]?.name!=="direct-validation") throw new Error(out); if(out.includes("Note: OpenSpec")) throw new Error("telemetry note in stdout"); process.stdout.write("DIRECT_OPENSPEC_JSON_OK")' 2>&1 || true)"
+            if [[ "${output}" == 'DIRECT_OPENSPEC_JSON_OK' ]]; then
+                validation_pass 'Test B.9 PASS: direct OpenSpec target emits clean JSON for footer parsing'
+            else
+                validation_fail "Test B.9 FAIL: direct OpenSpec JSON parsing failed (${output})"
+                failed_tests=$((failed_tests + 1))
+            fi
+        else
+            printf 'ℹ️  Test B.9 SKIP: openspec unavailable for direct OpenSpec JSON probe\n'
         fi
 
         # shellcheck disable=SC2016 # $TMPDIR must expand inside the sandboxed shell.
@@ -1357,9 +1647,13 @@ fi
 
 PROJECT_TARGET=""
 PROJECT_DIR=""
+PROJECT_SOURCE_DIR=""
+PROJECT_ALIAS_DIR=""
 TARGET_KIND=""
 TARGET_PATH=""
+TARGET_SOURCE_PATH=""
 TARGET_PARENT_DIR=""
+TARGET_SOURCE_PARENT_DIR=""
 INVOCATION_CWD=""
 SANDBOX_PROJECT_ROOT=""
 SANDBOX_WORKDIR=""
@@ -1382,7 +1676,9 @@ declare -A SANDBOX_ENV_SET=()
 # startup lock dirs such as settings.json.lock/trust.json.lock and update the
 # corresponding root-agent JSON. Known child state trees are still listed and
 # precreated explicitly for diagnostics/tests and compatibility with older Pi
-# layouts. Resource/config trees outside ~/.pi/agent stay read-only by default.
+# layouts. Known ~/.pi/agent resource/config children are overlaid read-only
+# after the writable root so symlinked package/extension/prompt/skill/theme
+# resources resolve without granting broad write access to their targets.
 PI_AGENT_STATE_SUBDIRS=(
     tasks
     status
@@ -1398,12 +1694,28 @@ PI_AGENT_STATE_SUBDIRS=(
     models
     metadata
     cache
+    git
+    npm
     projects
     workspaces
     providers
     state
 )
-PI_RUNTIME_WRITABLE_LABEL="tasks status todos plans jobs runs ui statusline sessions auth trust models metadata cache projects workspaces providers state"
+PI_RUNTIME_WRITABLE_LABEL="tasks status todos plans jobs runs ui statusline sessions auth trust models metadata cache git npm projects workspaces providers state"
+PI_AGENT_RO_PATHS=(
+    extensions
+    packages
+    prompts
+    skills
+    themes
+    keybindings.json
+)
+PI_AGENT_MUTABLE_ROOT_FILES=(
+    settings.json
+    trust.json
+    auth.json
+    models-store.json
+)
 
 while [[ $# -gt 0 ]]; do
     if [[ "$1" == "--" && "${SPI_PARSE_MODE}" -eq 0 ]]; then
@@ -1549,11 +1861,18 @@ discover_git_wrapper
 resolve_target_mode "${PROJECT_TARGET}"
 INVOCATION_CWD="$(realpath "${PWD}")"
 if [[ "${TARGET_KIND}" == "dir" ]]; then
-    PROJECT_DIR="${TARGET_PATH}"
+    if [[ "${TARGET_PATH}" != "${TARGET_SOURCE_PATH}" ]]; then
+        PROJECT_DIR="${TARGET_SOURCE_PATH}"
+        PROJECT_ALIAS_DIR="${TARGET_PATH}"
+    else
+        PROJECT_DIR="${TARGET_PATH}"
+    fi
+    PROJECT_SOURCE_DIR="${TARGET_SOURCE_PATH}"
     SANDBOX_PROJECT_ROOT="${PROJECT_DIR}"
-    SANDBOX_WORKDIR="${TARGET_PATH}"
+    SANDBOX_WORKDIR="${PROJECT_DIR}"
 else
     PROJECT_DIR="${TARGET_PARENT_DIR}"
+    PROJECT_SOURCE_DIR="${TARGET_SOURCE_PARENT_DIR}"
     SANDBOX_PROJECT_ROOT="${PROJECT_DIR}"
     SANDBOX_WORKDIR="${INVOCATION_CWD}"
 fi
@@ -1586,12 +1905,15 @@ if [[ "${ALLOW_PI_CONFIG}" -eq 1 ]]; then
     bind_runtime_dir "${HOST_HOME}/.pi" "${SANDBOX_HOME}/.pi"
 else
     opt_ro_bind_dir "${HOST_HOME}/.pi" "${SANDBOX_HOME}/.pi"
-    bind_runtime_dir "${PI_AGENT_DIR}" "${SANDBOX_PI_AGENT_DIR}"
+    bind_pi_agent_tmpfs_root
     for state_subdir in "${PI_AGENT_STATE_SUBDIRS[@]}"; do
-        bind_runtime_dir "${PI_AGENT_DIR}/${state_subdir}" "${SANDBOX_PI_AGENT_DIR}/${state_subdir}"
+        bind_prepared_runtime_dir "${PI_AGENT_DIR}/${state_subdir}" "${SANDBOX_PI_AGENT_DIR}/${state_subdir}"
     done
+    bind_pi_agent_resource_paths
 fi
 bind_pi_xdg_resources
+bind_nearest_project_openspec
+bind_footer_xdg_resources
 opt_ro_bind_global_skills
 
 opt_ro_bind_path "${HOST_HOME}/.gitconfig" "${SANDBOX_HOME}/.gitconfig"
@@ -1603,8 +1925,11 @@ opt_ro_bind_path /var/run/nscd /var/run/nscd
 bind_terminal_integration
 bind_pi_socket_envs
 
-if [[ "${TARGET_KIND}" == "file" ]] && ! is_path_within "${PROJECT_DIR}" "${INVOCATION_CWD}"; then
+if [[ "${TARGET_KIND}" == "file" ]] && ! is_path_within "${PROJECT_SOURCE_DIR}" "${INVOCATION_CWD}"; then
     EXTRA_BINDS+=(--ro-bind "${INVOCATION_CWD}" "${INVOCATION_CWD}")
+fi
+if [[ -n "${PROJECT_ALIAS_DIR}" ]]; then
+    add_prepared_bind_once "${PROJECT_BIND_FLAG}" "${PROJECT_SOURCE_DIR}" "${PROJECT_ALIAS_DIR}"
 fi
 
 PROTECTED_CONTROL_DIRS=(
@@ -1630,14 +1955,20 @@ if [[ "${ALLOW_INFRA}" -eq 0 ]]; then
         if [[ "${control_dir}" == ".git" && "${ALLOW_GIT}" -eq 1 ]]; then
             continue
         fi
-        if [[ -d "${PROJECT_DIR}/${control_dir}" ]]; then
-            SAFE_BINDS+=(--ro-bind "${PROJECT_DIR}/${control_dir}" "${SANDBOX_PROJECT_ROOT}/${control_dir}")
+        if [[ -d "${PROJECT_SOURCE_DIR}/${control_dir}" ]]; then
+            SAFE_BINDS+=(--ro-bind "${PROJECT_SOURCE_DIR}/${control_dir}" "${SANDBOX_PROJECT_ROOT}/${control_dir}")
+            if [[ -n "${PROJECT_ALIAS_DIR}" ]]; then
+                SAFE_BINDS+=(--ro-bind "${PROJECT_SOURCE_DIR}/${control_dir}" "${PROJECT_ALIAS_DIR}/${control_dir}")
+            fi
             info "Protecting ${control_dir}/ (read-only)"
         fi
     done
     for control_file in "${PROTECTED_CONTROL_FILES[@]}"; do
-        if [[ -f "${PROJECT_DIR}/${control_file}" ]]; then
-            SAFE_BINDS+=(--ro-bind "${PROJECT_DIR}/${control_file}" "${SANDBOX_PROJECT_ROOT}/${control_file}")
+        if [[ -f "${PROJECT_SOURCE_DIR}/${control_file}" ]]; then
+            SAFE_BINDS+=(--ro-bind "${PROJECT_SOURCE_DIR}/${control_file}" "${SANDBOX_PROJECT_ROOT}/${control_file}")
+            if [[ -n "${PROJECT_ALIAS_DIR}" ]]; then
+                SAFE_BINDS+=(--ro-bind "${PROJECT_SOURCE_DIR}/${control_file}" "${PROJECT_ALIAS_DIR}/${control_file}")
+            fi
             info "Protecting ${control_file} (read-only)"
         fi
     done
@@ -1699,12 +2030,12 @@ BWRAP_CMD+=(
     --dir "${SANDBOX_CACHE_DIR}"
 )
 BWRAP_CMD+=("${EXTRA_DIRS[@]}")
-BWRAP_CMD+=("${EXTRA_BINDS[@]}")
 if [[ "${SANDBOX_PROJECT_ROOT}" != "/" ]]; then
     BWRAP_CMD+=(--dir "$(dirname "${SANDBOX_PROJECT_ROOT}")")
     BWRAP_CMD+=(--dir "${SANDBOX_PROJECT_ROOT}")
 fi
-BWRAP_CMD+=("${PROJECT_BIND_FLAG}" "${PROJECT_DIR}" "${SANDBOX_PROJECT_ROOT}")
+BWRAP_CMD+=("${EXTRA_BINDS[@]}")
+BWRAP_CMD+=("${PROJECT_BIND_FLAG}" "${PROJECT_SOURCE_DIR}" "${SANDBOX_PROJECT_ROOT}")
 BWRAP_CMD+=("${SAFE_BINDS[@]}")
 
 BWRAP_CMD+=(
@@ -1729,6 +2060,7 @@ BWRAP_CMD+=(
     --setenv SCODER_REAL_GIT /spi/real-git
     --setenv TMPDIR "${SPI_TMPDIR}"
     --setenv SPI_BACKEND "${BACKEND}"
+    --setenv OPENSPEC_TELEMETRY 0
 )
 
 if [[ "${PI_AGENT_DIR_FROM_ENV}" -eq 1 ]]; then
