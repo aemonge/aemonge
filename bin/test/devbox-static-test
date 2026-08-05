@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+# shellcheck disable=SC2016 # Assertions intentionally match literal shell source.
+set -Eeuo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly DEVBOX="${SCRIPT_DIR}/../devbox"
+
+[[ -x "${DEVBOX}" ]] || { printf 'FAIL: devbox executable missing: %s\n' "${DEVBOX}" >&2; exit 1; }
+
+assert_contains() {
+    local description="$1"
+    local text="$2"
+    if grep -F -q -- "${text}" "${DEVBOX}"; then
+        printf 'PASS: %s\n' "${description}"
+    else
+        printf 'FAIL: %s (missing %s)\n' "${description}" "${text}" >&2
+        exit 1
+    fi
+}
+
+assert_absent() {
+    local description="$1"
+    local text="$2"
+    if grep -F -q -- "${text}" "${DEVBOX}"; then
+        printf 'FAIL: %s (unexpected %s)\n' "${description}" "${text}" >&2
+        exit 1
+    fi
+    printf 'PASS: %s\n' "${description}"
+}
+
+assert_contains 'identifies the unified command' 'readonly PROGRAM_NAME="devbox"'
+assert_contains 'uses command-first parsing' 'DEVBOX_COMMAND+=("$1")'
+assert_contains 'supports a literal child delimiter' 'DEVBOX_COMMAND+=(--)'
+assert_contains 'defaults to an interactive Zsh login shell' 'RAW_COMMAND=("${DEVBOX_SHELL:-zsh}" -l)'
+assert_absent 'does not expose a box/profile selector' '--box'
+assert_absent 'does not advertise an exec mode' '-x, --exec'
+assert_contains 'uses a writable target by default' 'FS_MODE="${DEVBOX_FS_MODE:-rw}"'
+assert_contains 'protects critical infrastructure by default' 'ALLOW_INFRA=0'
+assert_contains 'fails closed on conflicting mount destinations' 'conflicting mount policy for ${sand_p}'
+assert_contains 'keeps Git writable under the scoder policy wrapper' 'ALLOW_GIT=1'
+assert_contains 'rejects writable host-root targets' 'refusing to mount the host root writable'
+assert_contains 'mounts Pi state and resources' 'bind_pi_agent_tmpfs_root'
+assert_contains 'pins the Pi agent root' '--setenv PI_CODING_AGENT_DIR "${SANDBOX_PI_AGENT_DIR}"'
+assert_contains 'mounts OpenCode development state' 'bind_opencode_state'
+assert_contains 'mounts symlinked OpenCode resource targets' 'bind_symlink_targets_in_dir'
+assert_contains 'runs OpenCode plugin integrity before direct launches' 'run_opencode_plugin_preflight'
+assert_contains 'guards OpenCode launched later from an interactive shell' 'prepare_opencode_command_guard'
+assert_contains 'runs comprehensive live parity validation' 'test/devbox-live-test'
+assert_contains 'runs extended unified live validation' 'test/devbox-live-extended-test'
+assert_contains 'runs adversarial discovery-cache validation' 'test/devbox-cache-test'
+assert_contains 'runs exhaustive OpenCode integrity validation' 'test/devbox-opencode-integrity-test'
+assert_contains 'runs OpenCode startup preflight validation' 'test/devbox-opencode-preflight-test'
+assert_contains 'supports live Neovim OpenCode ports' 'apply_nvim_opencode_port_default'
+assert_contains 'expands Cargo workspace targets' 'cargo_workspace_expand_target'
+assert_contains 'enables AWS by default' 'ALLOW_AWS="${DEVBOX_AWS:-1}"'
+assert_contains 'supports disabling AWS' '--no-aws'
+assert_contains 'keeps AWS configuration read-only' 'opt_ro_bind_dir "${host_aws_dir}" "${sandbox_aws_dir}"'
+assert_contains 'rejects missing custom AWS files' '${env_name} does not name a readable file'
+assert_contains 'keeps AWS SSO cache writable' '"${host_aws_dir}/sso/cache"'
+assert_contains 'enables clipboard by default' 'ALLOW_CLIPBOARD="${DEVBOX_CLIPBOARD:-1}"'
+assert_contains 'supports disabling clipboard' '--no-clipboard'
+assert_contains 'forwards exact Wayland sockets' 'bind_runtime_path_precreated "${wayland_socket}"'
+assert_contains 'forwards exact X11 sockets' 'bind_runtime_path_precreated "${x11_socket}"'
+assert_contains 'supports network isolation' '--unshare-net'
+assert_contains 'supports host-tool hardening' '--no-host-tools'
+assert_contains 'supports an order-independent hardened preset' 'LOCKED_MODE=1'
+assert_contains 'keeps locked-mode tool state ephemeral' 'EPHEMERAL_STATE=1'
+assert_contains 'supports disabling terminal control sockets' '--no-terminal-sockets'
+assert_contains 'fails clearly for unavailable commands' 'command not found or not executable: ${command_token}'
+assert_contains 'supports SSH-agent hardening' '--no-ssh-agent'
+assert_contains 'uses exact terminal socket integration' 'bind_tmux_socket_env'
+assert_contains 'supports GUI developer mode' '--web-developer'
+assert_contains 'uses atomic single-file copyback' 'mv -f -- "${temporary_target}" "${TARGET_SOURCE_PATH}"'
+assert_contains 'uses a private tmp directory' 'DEVBOX_TMPDIR="/tmp/devbox-$$"'
+assert_contains 'uses a devbox-specific discovery cache' '"${HOST_HOME}/.cache/devbox"'
+assert_contains 'validates discovery-cache ownership' 'stat -c %u -- "${DEVBOX_DISCOVERY_CACHE}"'
+assert_contains 'parses only whitelisted discovery-cache keys' 'read_discovery_cache'
+assert_contains 'encodes discovery-cache values as inert data' 'base64 --wrap=0'
+assert_absent 'never executes discovery-cache content as shell code' 'source "${DEVBOX_DISCOVERY_CACHE}"'
+assert_contains 'writes discovery cache atomically' 'mv -f -- "${temporary_cache}" "${DEVBOX_DISCOVERY_CACHE}"'
+assert_contains 'mounts system trees read-only' '--ro-bind /usr /usr'
+assert_contains 'uses a disposable home root' '--tmpfs /home'
+assert_contains 'uses a disposable temporary root' '--tmpfs /tmp'
+assert_contains 'clears inherited environment' '--clearenv'
+assert_contains 'dies with its parent' '--die-with-parent'
+assert_absent 'does not bind the entire host home writable' '--bind "${HOST_HOME}" "${SANDBOX_HOME}"'
+
+printf 'devbox static policy tests passed\n'

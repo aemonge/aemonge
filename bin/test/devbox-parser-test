@@ -1,0 +1,387 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+DEVBOX_ROOT="$(realpath "${SCRIPT_DIR}/..")"
+readonly DEVBOX_ROOT
+readonly DEVBOX="${DEVBOX_ROOT}/devbox"
+TEST_ROOT="$(mktemp -d)"
+readonly TEST_ROOT
+cleanup() {
+    rm -rf -- "${TEST_ROOT}"
+    rm -f -- "${X11_SOCKET:-}"
+}
+trap cleanup EXIT
+
+readonly TEST_HOME="${TEST_ROOT}/home"
+readonly TEST_BIN="${TEST_ROOT}/bin"
+readonly TEST_PROJECT="${TEST_ROOT}/project"
+readonly TEST_WORKSPACE="${TEST_ROOT}/workspace"
+readonly TEST_WORKSPACE_MEMBER="${TEST_WORKSPACE}/crates/member"
+readonly TEST_DEP_REPO="${TEST_ROOT}/dependency-repo"
+readonly TEST_DEP_APP="${TEST_DEP_REPO}/app"
+readonly TEST_DEP_LIB="${TEST_DEP_REPO}/lib"
+readonly TEST_ESCAPE_APP="${TEST_DEP_REPO}/escape-app"
+readonly TEST_OUTSIDE_DEP="${TEST_ROOT}/outside-dependency"
+readonly CAPTURE="${TEST_ROOT}/bwrap.args"
+readonly PI_BIN="${TEST_BIN}/pi"
+readonly OPENCODE_BIN="${TEST_BIN}/opencode"
+readonly DEVBOX_SYMLINK="${TEST_BIN}/devbox"
+readonly FAKE_GIT_WRAPPER="${TEST_BIN}/scoder-git"
+readonly RUNTIME_DIR="${TEST_ROOT}/runtime"
+readonly WAYLAND_SOCKET="${RUNTIME_DIR}/wayland-9"
+readonly X11_SOCKET="/tmp/.X11-unix/X9"
+readonly TMUX_SOCKET="${RUNTIME_DIR}/tmux/default"
+readonly XAUTH_FILE="${TEST_HOME}/.Xauthority"
+ZSH_BIN="$(realpath "$(command -v zsh)")"
+readonly ZSH_BIN
+readonly AWS_CUSTOM_CREDENTIALS="${TEST_ROOT}/custom-aws-credentials"
+readonly LINKED_OPENCODE_CONFIG="${TEST_ROOT}/linked-opencode.json"
+readonly LINKED_OPENCODE_AGENT="${TEST_ROOT}/linked-opencode-agent.md"
+readonly CUSTOM_XDG_CONFIG="${TEST_ROOT}/xdg-config"
+readonly CUSTOM_XDG_DATA="${TEST_ROOT}/xdg-data"
+readonly CUSTOM_XDG_CACHE="${TEST_ROOT}/xdg-cache"
+readonly SYMLINK_SOURCE_CONFIG="${TEST_ROOT}/symlink-source/.config"
+readonly SYMLINK_LOGICAL_TARGET="${TEST_HOME}/.config/linked-nvim"
+readonly SYMLINK_PROJECT_OPENSPEC="${SYMLINK_SOURCE_CONFIG}/openspec"
+
+mkdir -p -- \
+    "${TEST_BIN}" \
+    "${TEST_PROJECT}/.git" "${TEST_PROJECT}/.github" "${TEST_PROJECT}/.turbo" "${TEST_PROJECT}/.cargo" \
+    "${TEST_WORKSPACE_MEMBER}/src" \
+    "${TEST_DEP_REPO}/.git" "${TEST_DEP_APP}/src" "${TEST_DEP_LIB}/src" \
+    "${TEST_ESCAPE_APP}/src" "${TEST_OUTSIDE_DEP}/src" \
+    "${TEST_HOME}/.pi/agent" \
+    "${TEST_HOME}/.config/opencode/agents" "${TEST_HOME}/.config/openspec" \
+    "${CUSTOM_XDG_CONFIG}/opencode" "${CUSTOM_XDG_CONFIG}/openspec" \
+    "${CUSTOM_XDG_DATA}/opencode" "${CUSTOM_XDG_CACHE}/opencode" \
+    "${SYMLINK_SOURCE_CONFIG}/nvim" "${SYMLINK_PROJECT_OPENSPEC}/changes/parser-validation" \
+    "${TEST_HOME}/.local/share/opencode" "${TEST_HOME}/.cache/opencode" \
+    "${TEST_HOME}/.opencode" "${TEST_HOME}/.agents" "${TEST_HOME}/.bun" \
+    "${TEST_HOME}/.aws/sso/cache" "${TEST_HOME}/.aws/cli/cache" \
+    "${RUNTIME_DIR}" /tmp/.X11-unix
+
+printf '{}\n' >"${TEST_HOME}/.pi/agent/settings.json"
+printf '{}\n' >"${LINKED_OPENCODE_CONFIG}"
+printf '# linked agent\n' >"${LINKED_OPENCODE_AGENT}"
+ln -s "${LINKED_OPENCODE_CONFIG}" "${TEST_HOME}/.config/opencode/opencode.json"
+ln -s "${LINKED_OPENCODE_AGENT}" "${TEST_HOME}/.config/opencode/agents/Engineer.md"
+ln -s "${SYMLINK_SOURCE_CONFIG}/nvim" "${SYMLINK_LOGICAL_TARGET}"
+printf 'tasks\n' >"${SYMLINK_PROJECT_OPENSPEC}/changes/parser-validation/tasks.md"
+printf '[default]\nregion=us-east-1\n' >"${TEST_HOME}/.aws/config"
+printf '[default]\naws_access_key_id=fixture\n' >"${TEST_HOME}/.aws/credentials"
+printf 'xauth\n' >"${XAUTH_FILE}"
+printf '[custom]\naws_access_key_id=fixture\n' >"${AWS_CUSTOM_CREDENTIALS}"
+printf 'ignore\n' >"${TEST_PROJECT}/.gitignore"
+for lock_file in package-lock.json poetry.lock Cargo.lock pnpm-lock.yaml yarn.lock; do
+    printf 'lock\n' >"${TEST_PROJECT}/${lock_file}"
+done
+printf '%s\n' '[workspace]' 'members = ["crates/member"]' >"${TEST_WORKSPACE}/Cargo.toml"
+printf 'workspace-lock\n' >"${TEST_WORKSPACE}/Cargo.lock"
+printf '%s\n' '[package]' 'name = "member"' 'version = "0.1.0"' >"${TEST_WORKSPACE_MEMBER}/Cargo.toml"
+printf 'fn main() {}\n' >"${TEST_WORKSPACE_MEMBER}/src/main.rs"
+printf '%s\n' '[package]' 'name = "app"' 'version = "0.1.0"' '' '[dependencies]' 'dep-lib = { path = "../lib" }' >"${TEST_DEP_APP}/Cargo.toml"
+printf 'fn main() {}\n' >"${TEST_DEP_APP}/src/main.rs"
+printf '%s\n' '[package]' 'name = "dep-lib"' 'version = "0.1.0"' >"${TEST_DEP_LIB}/Cargo.toml"
+printf 'pub fn value() {}\n' >"${TEST_DEP_LIB}/src/lib.rs"
+printf '%s\n' '[package]' 'name = "escape-app"' 'version = "0.1.0"' '' '[dependencies]' 'outside = { path = "../../outside-dependency" }' >"${TEST_ESCAPE_APP}/Cargo.toml"
+printf 'fn main() {}\n' >"${TEST_ESCAPE_APP}/src/main.rs"
+printf '%s\n' '[package]' 'name = "outside"' 'version = "0.1.0"' >"${TEST_OUTSIDE_DEP}/Cargo.toml"
+printf 'pub fn outside() {}\n' >"${TEST_OUTSIDE_DEP}/src/lib.rs"
+
+printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"${PI_BIN}"
+printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"${OPENCODE_BIN}"
+printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"${FAKE_GIT_WRAPPER}"
+
+python3 - "${WAYLAND_SOCKET}" "${X11_SOCKET}" "${TMUX_SOCKET}" <<'PY'
+import os
+import socket
+import sys
+for path in sys.argv[1:]:
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    try:
+        os.unlink(path)
+    except FileNotFoundError:
+        pass
+    sock = socket.socket(socket.AF_UNIX)
+    sock.bind(path)
+    sock.close()
+PY
+
+cat >"${TEST_BIN}/bwrap" <<'BWRAP'
+#!/usr/bin/env bash
+if [[ "${1:-}" == "--version" ]]; then
+    printf 'bubblewrap 1.0.0\n'
+    exit 0
+fi
+if [[ "${1:-}" == "--help" ]]; then
+    printf '%s\n' '--disable-userns'
+    exit 0
+fi
+args=("$@")
+for ((i = 0; i < ${#args[@]}; i++)); do
+    if [[ "${args[i]}" == "--" && "${args[i + 1]:-}" == "/bin/sh" ]]; then
+        exit 0
+    fi
+done
+printf '%s\0' "$@" >"${DEVBOX_TEST_CAPTURE}"
+BWRAP
+chmod +x "${TEST_BIN}/bwrap" "${PI_BIN}" "${OPENCODE_BIN}" "${FAKE_GIT_WRAPPER}"
+ln -s "${DEVBOX}" "${DEVBOX_SYMLINK}"
+
+BWRAP_ARGS=()
+run_devbox_process() {
+    local devbox_entry="$1"
+    shift
+
+    env -i \
+        HOME="${TEST_HOME}" \
+        USER="${USER:-developer}" LOGNAME="${LOGNAME:-${USER:-developer}}" \
+        PATH="${TEST_BIN}:/usr/local/bin:/usr/bin:/bin" \
+        TERM=xterm-256color LANG=C.UTF-8 \
+        XDG_CONFIG_HOME="${DEVBOX_TEST_XDG_CONFIG_HOME:-${TEST_HOME}/.config}" \
+        XDG_DATA_HOME="${DEVBOX_TEST_XDG_DATA_HOME:-${TEST_HOME}/.local/share}" \
+        XDG_CACHE_HOME="${DEVBOX_TEST_XDG_CACHE_HOME:-${TEST_HOME}/.cache}" \
+        XDG_RUNTIME_DIR="${RUNTIME_DIR}" WAYLAND_DISPLAY=wayland-9 \
+        DISPLAY=:9 XAUTHORITY="${XAUTH_FILE}" TMUX="${TMUX_SOCKET},777,0" TMUX_PANE=%7 \
+        AWS_PROFILE=fixture AWS_REGION=us-east-1 \
+        AWS_SHARED_CREDENTIALS_FILE="${DEVBOX_TEST_AWS_CREDENTIALS_FILE:-${AWS_CUSTOM_CREDENTIALS}}" \
+        SCODER_GIT="${FAKE_GIT_WRAPPER}" \
+        DEVBOX_FORCE_PROBE=1 DEVBOX_TEST_CAPTURE="${CAPTURE}" \
+        "${devbox_entry}" "$@"
+}
+
+run_devbox() {
+    local devbox_entry="${DEVBOX_TEST_ENTRY:-${DEVBOX}}"
+
+    rm -f -- "${CAPTURE}"
+    run_devbox_process "${devbox_entry}" "$@" >/dev/null
+    mapfile -d '' -t BWRAP_ARGS <"${CAPTURE}"
+}
+
+assert_devbox_failure() {
+    local description="$1"
+    local expected_message="$2"
+    shift 2
+    local output
+    local status
+
+    rm -f -- "${CAPTURE}"
+    if output="$(run_devbox_process "${DEVBOX}" "$@" 2>&1)"; then
+        status=0
+    else
+        status=$?
+    fi
+    if [[ "${status}" -ne 0 && "${output}" == *"${expected_message}"* && ! -e "${CAPTURE}" ]]; then
+        printf 'PASS: %s\n' "${description}"
+        return 0
+    fi
+    printf 'FAIL: %s (status=%s, output=%s)\n' "${description}" "${status}" "${output}" >&2
+    exit 1
+}
+
+assert_sequence_contains() {
+    local description="$1"
+    shift
+    local -a expected=("$@")
+    local i j matched
+    for ((i = 0; i <= ${#BWRAP_ARGS[@]} - ${#expected[@]}; i++)); do
+        matched=1
+        for ((j = 0; j < ${#expected[@]}; j++)); do
+            [[ "${BWRAP_ARGS[i + j]}" == "${expected[j]}" ]] || { matched=0; break; }
+        done
+        if [[ "${matched}" -eq 1 ]]; then
+            printf 'PASS: %s\n' "${description}"
+            return 0
+        fi
+    done
+    printf 'FAIL: %s (missing sequence:' "${description}" >&2
+    printf ' %q' "${expected[@]}" >&2
+    printf ')\n' >&2
+    exit 1
+}
+
+assert_sequence_absent() {
+    local description="$1"
+    shift
+    local -a expected=("$@")
+    local i j matched
+    for ((i = 0; i <= ${#BWRAP_ARGS[@]} - ${#expected[@]}; i++)); do
+        matched=1
+        for ((j = 0; j < ${#expected[@]}; j++)); do
+            [[ "${BWRAP_ARGS[i + j]}" == "${expected[j]}" ]] || { matched=0; break; }
+        done
+        if [[ "${matched}" -eq 1 ]]; then
+            printf 'FAIL: %s (unexpected sequence:' "${description}" >&2
+            printf ' %q' "${expected[@]}" >&2
+            printf ')\n' >&2
+            exit 1
+        fi
+    done
+    printf 'PASS: %s\n' "${description}"
+}
+
+assert_no_conflicting_bind_destinations() {
+    local description="$1"
+    local index flag destination previous
+    local -A destination_modes=()
+
+    for ((index = 0; index < ${#BWRAP_ARGS[@]}; index++)); do
+        flag="${BWRAP_ARGS[index]}"
+        case "${flag}" in
+        --bind | --ro-bind)
+            destination="${BWRAP_ARGS[index + 2]:-}"
+            previous="${destination_modes[${destination}]:-}"
+            if [[ -n "${previous}" && "${previous}" != "${flag}" ]]; then
+                printf 'FAIL: %s (%s has %s and %s)\n' "${description}" "${destination}" "${previous}" "${flag}" >&2
+                exit 1
+            fi
+            destination_modes[${destination}]="${flag}"
+            index=$((index + 2))
+            ;;
+        esac
+    done
+    printf 'PASS: %s\n' "${description}"
+}
+
+assert_tail() {
+    local description="$1"
+    shift
+    local -a expected=("$@")
+    local start=$(( ${#BWRAP_ARGS[@]} - ${#expected[@]} ))
+    local i
+    for ((i = 0; i < ${#expected[@]}; i++)); do
+        if [[ "${BWRAP_ARGS[start + i]}" != "${expected[i]}" ]]; then
+            printf 'FAIL: %s\n' "${description}" >&2
+            exit 1
+        fi
+    done
+    printf 'PASS: %s\n' "${description}"
+}
+
+run_devbox pi hello -- "${TEST_PROJECT}" -q
+assert_tail 'command and arguments before -- execute inside the box' "${PI_BIN}" hello
+
+run_devbox pi before --- after -- "${TEST_PROJECT}" -q
+assert_tail '--- passes a literal -- to the child command' "${PI_BIN}" before -- after
+assert_sequence_contains 'target is mounted read-write by default' --bind "${TEST_PROJECT}" "${TEST_PROJECT}"
+assert_sequence_contains 'critical .github infrastructure is read-only' --ro-bind "${TEST_PROJECT}/.github" "${TEST_PROJECT}/.github"
+assert_sequence_contains 'critical Cargo.lock is read-only' --ro-bind "${TEST_PROJECT}/Cargo.lock" "${TEST_PROJECT}/Cargo.lock"
+assert_sequence_absent '.git remains writable' --ro-bind "${TEST_PROJECT}/.git" "${TEST_PROJECT}/.git"
+assert_sequence_contains 'Pi agent root is disposable' --tmpfs "${TEST_HOME}/.pi/agent"
+assert_sequence_contains 'Pi settings remain read-only' --ro-bind "${TEST_HOME}/.pi/agent/settings.json" "${TEST_HOME}/.pi/agent/settings.json"
+assert_sequence_contains 'Pi agent root is pinned' --setenv PI_CODING_AGENT_DIR "${TEST_HOME}/.pi/agent"
+assert_sequence_contains 'OpenCode config is writable in the shared box' --bind "${TEST_HOME}/.config/opencode" "${TEST_HOME}/.config/opencode"
+assert_sequence_contains 'OpenCode data is writable in the shared box' --bind "${TEST_HOME}/.local/share/opencode" "${TEST_HOME}/.local/share/opencode"
+assert_sequence_contains 'interactive-shell OpenCode launches use the guarded command' --ro-bind "${DEVBOX_ROOT}/devbox-opencode-guard" /devbox/bin/opencode
+assert_sequence_contains 'interactive-shell OpenCode guard can run the integrity helper' --ro-bind "${DEVBOX_ROOT}/devbox-opencode-integrity" /devbox/lib/devbox-opencode-integrity
+assert_sequence_contains 'interactive-shell OpenCode guard receives the real executable' --setenv DEVBOX_REAL_OPENCODE "${OPENCODE_BIN}"
+assert_sequence_contains 'symlinked OpenCode config targets are mounted at their resolved paths' --bind "${LINKED_OPENCODE_CONFIG}" "${LINKED_OPENCODE_CONFIG}"
+assert_sequence_contains 'symlinked OpenCode agent targets are mounted at their resolved paths' --bind "${LINKED_OPENCODE_AGENT}" "${LINKED_OPENCODE_AGENT}"
+assert_sequence_contains 'shared agent resources are writable for both development tools' --bind "${TEST_HOME}/.agents" "${TEST_HOME}/.agents"
+assert_sequence_absent 'shared agent skills are not overlaid read-only' --ro-bind "${TEST_HOME}/.agents/skills" "${TEST_HOME}/.agents/skills"
+assert_sequence_contains 'AWS directory is visible read-only by default' --ro-bind "${TEST_HOME}/.aws" "${TEST_HOME}/.aws"
+assert_sequence_contains 'AWS SSO cache is writable by default' --bind "${TEST_HOME}/.aws/sso/cache" "${TEST_HOME}/.aws/sso/cache"
+assert_sequence_contains 'AWS CLI cache is writable by default' --bind "${TEST_HOME}/.aws/cli/cache" "${TEST_HOME}/.aws/cli/cache"
+assert_sequence_contains 'AWS profile environment is inherited by default' --setenv AWS_PROFILE fixture
+assert_sequence_contains 'custom AWS credential files are exact-mounted read-only' --ro-bind "${AWS_CUSTOM_CREDENTIALS}" "${AWS_CUSTOM_CREDENTIALS}"
+assert_sequence_contains 'custom AWS credential path is preserved' --setenv AWS_SHARED_CREDENTIALS_FILE "${AWS_CUSTOM_CREDENTIALS}"
+assert_sequence_contains 'Wayland clipboard uses an exact socket bind' --bind "${WAYLAND_SOCKET}" "${WAYLAND_SOCKET}"
+assert_sequence_contains 'Wayland display environment is restored' --setenv WAYLAND_DISPLAY wayland-9
+assert_sequence_contains 'X11 clipboard uses an exact socket bind' --bind "${X11_SOCKET}" "${X11_SOCKET}"
+assert_sequence_contains 'DISPLAY is restored for X11 clipboard' --setenv DISPLAY :9
+assert_sequence_absent 'clipboard does not expose the complete runtime directory' --bind "${RUNTIME_DIR}" "${RUNTIME_DIR}"
+assert_sequence_contains 'tmux uses an exact socket bind by default' --bind "${TMUX_SOCKET}" "${TMUX_SOCKET}"
+assert_no_conflicting_bind_destinations 'default mount plan has no conflicting RO/RW destinations'
+
+run_devbox pi -- "${SYMLINK_LOGICAL_TARGET}" -q
+assert_sequence_contains 'project OpenSpec takes read-only precedence over writable global OpenSpec state' --ro-bind "${SYMLINK_PROJECT_OPENSPEC}" "${TEST_HOME}/.config/openspec"
+assert_sequence_absent 'writable global OpenSpec state cannot override project-specific OpenSpec' --bind "${TEST_HOME}/.config/openspec" "${TEST_HOME}/.config/openspec"
+assert_no_conflicting_bind_destinations 'symlinked project OpenSpec mount plan has no conflicting destination'
+
+run_devbox -- "${TEST_PROJECT}" -q
+assert_tail 'omitting a command starts a Zsh login shell' "${ZSH_BIN}" -l
+
+run_devbox opencode run -- "${TEST_PROJECT}" -q
+assert_tail 'OpenCode executes through the same command-first interface' "${OPENCODE_BIN}" run
+assert_sequence_contains 'non-system command binaries are exact-mounted read-only' --ro-bind "${OPENCODE_BIN}" "${OPENCODE_BIN}"
+
+DEVBOX_TEST_ENTRY="${DEVBOX_SYMLINK}" run_devbox opencode --version -- "${TEST_PROJECT}" -q
+assert_tail 'symlink invocation resolves built-in helpers from the physical installation' "${OPENCODE_BIN}" --version
+
+DEVBOX_TEST_XDG_CONFIG_HOME="${CUSTOM_XDG_CONFIG}" \
+    DEVBOX_TEST_XDG_DATA_HOME="${CUSTOM_XDG_DATA}" \
+    DEVBOX_TEST_XDG_CACHE_HOME="${CUSTOM_XDG_CACHE}" \
+    run_devbox pi -- "${TEST_PROJECT}" -q
+assert_sequence_contains 'custom XDG OpenCode config maps to the canonical sandbox path' --bind "${CUSTOM_XDG_CONFIG}/opencode" "${TEST_HOME}/.config/opencode"
+assert_sequence_contains 'custom XDG OpenCode data maps to the canonical sandbox path' --bind "${CUSTOM_XDG_DATA}/opencode" "${TEST_HOME}/.local/share/opencode"
+assert_sequence_contains 'custom XDG OpenCode cache maps to the canonical sandbox path' --bind "${CUSTOM_XDG_CACHE}/opencode" "${TEST_HOME}/.cache/opencode"
+assert_sequence_contains 'OpenCode guard cache cannot expose the discovery cache' --bind "${CUSTOM_XDG_CACHE}/devbox/opencode" "${TEST_HOME}/.cache/devbox/opencode"
+assert_sequence_absent 'custom XDG state does not mount the complete devbox cache' --bind "${CUSTOM_XDG_CACHE}/devbox" "${TEST_HOME}/.cache/devbox"
+
+run_devbox pi -- "${TEST_PROJECT}" -q --no-aws --no-clipboard --no-network
+assert_sequence_absent '--no-aws hides the AWS directory' --ro-bind "${TEST_HOME}/.aws" "${TEST_HOME}/.aws"
+assert_sequence_absent '--no-aws removes AWS environment variables' --setenv AWS_PROFILE fixture
+assert_sequence_absent '--no-aws hides custom AWS credential files' --ro-bind "${AWS_CUSTOM_CREDENTIALS}" "${AWS_CUSTOM_CREDENTIALS}"
+assert_sequence_absent '--no-aws removes custom AWS credential paths' --setenv AWS_SHARED_CREDENTIALS_FILE "${AWS_CUSTOM_CREDENTIALS}"
+assert_sequence_absent '--no-clipboard hides the Wayland socket' --bind "${WAYLAND_SOCKET}" "${WAYLAND_SOCKET}"
+assert_sequence_absent '--no-clipboard hides the X11 socket' --bind "${X11_SOCKET}" "${X11_SOCKET}"
+assert_sequence_contains '--no-network unshares the network namespace' --unshare-net
+
+run_devbox pi -- "${TEST_PROJECT}" -q --allow-infra
+assert_sequence_absent '--allow-infra removes .github protection' --ro-bind "${TEST_PROJECT}/.github" "${TEST_PROJECT}/.github"
+assert_sequence_absent '--allow-infra removes lockfile protection' --ro-bind "${TEST_PROJECT}/Cargo.lock" "${TEST_PROJECT}/Cargo.lock"
+
+run_devbox pi -- "${TEST_PROJECT}" -q --ro
+assert_sequence_contains '--ro mounts the complete target read-only' --ro-bind "${TEST_PROJECT}" "${TEST_PROJECT}"
+
+run_devbox pi -- "${TEST_PROJECT}" -q --locked
+assert_sequence_contains '--locked mounts the target read-only' --ro-bind "${TEST_PROJECT}" "${TEST_PROJECT}"
+assert_sequence_contains '--locked isolates networking' --unshare-net
+assert_sequence_absent '--locked hides AWS credentials' --ro-bind "${TEST_HOME}/.aws" "${TEST_HOME}/.aws"
+assert_sequence_absent '--locked hides clipboard sockets' --bind "${WAYLAND_SOCKET}" "${WAYLAND_SOCKET}"
+assert_sequence_absent '--locked hides host binaries' --ro-bind "${TEST_HOME}/.local/bin" "${TEST_HOME}/.local/bin"
+assert_sequence_absent '--locked disables tmux socket forwarding' --bind "${TMUX_SOCKET}" "${TMUX_SOCKET}"
+assert_sequence_contains '--locked keeps OpenCode configuration readable' --ro-bind "${TEST_HOME}/.config/opencode" "${TEST_HOME}/.config/opencode"
+assert_sequence_absent '--locked does not persist OpenCode configuration writes' --bind "${TEST_HOME}/.config/opencode" "${TEST_HOME}/.config/opencode"
+assert_sequence_absent '--locked keeps Pi state ephemeral' --bind "${TEST_HOME}/.pi/agent/tasks" "${TEST_HOME}/.pi/agent/tasks"
+
+run_devbox pi -- "${TEST_PROJECT}" -q --locked --allow-infra --allow-pi-config --full-dev --aws --clipboard
+assert_sequence_contains '--locked remains authoritative regardless of later permissive options' --ro-bind "${TEST_PROJECT}/.github" "${TEST_PROJECT}/.github"
+assert_sequence_absent '--locked cannot re-enable broad device access' --dev /dev
+assert_sequence_absent '--locked cannot re-enable AWS' --ro-bind "${TEST_HOME}/.aws" "${TEST_HOME}/.aws"
+assert_sequence_absent '--locked cannot re-enable clipboard' --bind "${WAYLAND_SOCKET}" "${WAYLAND_SOCKET}"
+assert_sequence_absent '--locked cannot make global Pi configuration writable' --bind "${TEST_HOME}/.pi" "${TEST_HOME}/.pi"
+
+run_devbox pi -- "${TEST_WORKSPACE_MEMBER}" -q
+assert_sequence_contains 'Cargo member expands the visible target to its workspace root' --bind "${TEST_WORKSPACE}" "${TEST_WORKSPACE}"
+assert_sequence_contains 'Cargo member remains the sandbox working directory' --chdir "${TEST_WORKSPACE_MEMBER}"
+assert_sequence_contains 'workspace Cargo.lock is protected at the expanded root' --ro-bind "${TEST_WORKSPACE}/Cargo.lock" "${TEST_WORKSPACE}/Cargo.lock"
+
+run_devbox pi -- "${TEST_DEP_APP}" -q
+assert_sequence_contains 'Cargo path dependencies are mounted exactly and read-only' --ro-bind "${TEST_DEP_LIB}" "${TEST_DEP_LIB}"
+assert_sequence_contains 'Cargo path dependency selection keeps the application writable' --bind "${TEST_DEP_APP}" "${TEST_DEP_APP}"
+assert_sequence_absent 'Cargo path dependency support does not broaden writes to the repository root' --bind "${TEST_DEP_REPO}" "${TEST_DEP_REPO}"
+
+run_devbox pi -- "${TEST_DEP_APP}" -q --add-rw "${TEST_DEP_LIB}"
+assert_sequence_contains 'explicit --add-rw authorizes path-dependency edits' --bind "${TEST_DEP_LIB}" "${TEST_DEP_LIB}"
+assert_sequence_absent 'explicit --add-rw replaces the automatic read-only dependency mount' --ro-bind "${TEST_DEP_LIB}" "${TEST_DEP_LIB}"
+
+assert_devbox_failure \
+    'Cargo manifests cannot automatically expose paths outside the selected repository' \
+    'Cargo path dependency escapes the selected repository' \
+    pi -- "${TEST_ESCAPE_APP}" -q
+assert_devbox_failure \
+    'conflicting explicit read-only/read-write mounts fail closed' \
+    'conflicting mount policy' \
+    pi -- "${TEST_PROJECT}" -q --add "${TEST_DEP_LIB}" --add-rw "${TEST_DEP_LIB}"
+assert_devbox_failure \
+    'missing commands fail before sandbox launch with a clear diagnostic' \
+    'command not found or not executable' \
+    devbox-command-that-does-not-exist -- "${TEST_PROJECT}" -q
+DEVBOX_TEST_AWS_CREDENTIALS_FILE="${TEST_ROOT}/missing-credentials" assert_devbox_failure \
+    'configured custom AWS files must exist and be readable' \
+    'AWS_SHARED_CREDENTIALS_FILE does not name a readable file' \
+    pi -- "${TEST_PROJECT}" -q
+
+printf 'devbox parser and mount-plan tests passed\n'
