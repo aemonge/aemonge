@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
-# spi - Safe wrapper for Pi using bubblewrap.
-# Heavy-copy adaptation of bin/scoder's sandbox model for the Pi CLI MVP.
+# spi - Safe, development-transparent wrapper for Pi using Bubblewrap.
+# Pi-specific adaptation of bin/scoder's filesystem boundary and tool model.
 
 set -euo pipefail
 
 readonly PROGRAM_NAME="spi"
-readonly PROGRAM_VERSION="0.1.0"
+readonly PROGRAM_VERSION="0.3.0"
 readonly PI_BIN_DEFAULT="pi"
 
 readonly RED='\033[0;31m'
@@ -16,8 +16,8 @@ readonly NC='\033[0m'
 
 usage() {
     cat <<'USAGE_EOF'
-spi 0.1.0
-Safe Pi wrapper using Bubblewrap.
+spi 0.3.0
+Safe Pi development wrapper using Bubblewrap.
 
 Usage:
   spi [PI_ARGS...] [-- [TARGET] [SPI_OPTIONS...]]
@@ -35,14 +35,19 @@ Options after "--":
   -q, --quiet                Suppress non-essential output
   -v, --verbose              Show informational startup diagnostics
   -x, --exec COMMAND...      Execute raw command inside sandbox instead of pi
-      --backend MODE         Sandbox backend: auto, bwrap, gondolin
-      --doctor               Run diagnostics and exit
+      --doctor               Run comprehensive diagnostics and exit
       --validate             Run comprehensive validation tests and exit
       --ro                   Mount target read-only
       --rw                   Mount target read-write (default)
-      --allow-git            Allow write access to .git (default: read-only)
+      --allow-git            Compatibility flag; Git writes are allowed by default
       --allow-pi-config      Write-bind all ~/.pi explicitly
-      --allow-infra          Allow write access to protected control paths
+      --allow-infra          Allow writes to protected target infrastructure
+      --allow-host-tools     Bind host development tools (default)
+      --no-host-tools        Disable host development tool binds
+      --no-nvim-remote       Disable the active Neovim socket/editor bridge
+  -g, --allow-gui            Allow GUI/session access
+  -s, --no-ssh-agent         Do not forward SSH_AUTH_SOCK
+  -w, --web-developer        Enable GUI mode and Chromium DevTools
       --full-dev             Allow full /dev access inside sandbox
 
 Arguments:
@@ -54,38 +59,43 @@ Arguments:
 Environment:
   PI_BIN                     Overrides default pi binary
   PI_CODING_AGENT_DIR        Optional Pi state root override (Pi default: ~/.pi/agent)
-  SPI_BACKEND                Default backend: auto, bwrap, gondolin
   SPI_FS_MODE                "ro" or "rw" (default)
   TMPDIR                     Set inside sandbox to /tmp/spi-<pid>
 
-Protected by default:
-  .git, .github, .pi, .agents, openspec, .claude, .mcp.json and common lockfiles.
-  Git is shadowed with the existing scoder-git policy wrapper when available.
+Filesystem boundary:
+  The selected directory is writable by default. Matching scoder's effective
+  policy, .git remains writable while critical root infrastructure (.github,
+  .turbo, .cargo, and common lockfiles) is overlaid read-only unless
+  --allow-infra is used. Host paths outside the target stay unavailable or
+  read-only unless explicitly exposed as runtime state or with --add-rw. Git
+  is shadowed with the same scoder-git policy wrapper used by scoder.
 
 Pi state model:
   Normal mode uses tmpfs HOME, exposes existing ~/.pi read-only, and overlays
-  the Pi agent root writable for startup settings/trust JSON and lock dirs, plus
-  selected writable Pi runtime/state subdirectories for sessions, auth, trust,
-  models, metadata, cache, project/workspace/provider state, and related state.
-  Legacy/current ~/.pi/agent resource/config children such as extensions,
-  packages, prompts, skills, themes, and keybindings remain read-only and follow
-  symlinks at their logical HOME paths; mutable root JSON/state remains writable.
+  a disposable Pi agent root for startup lock dirs, plus selected writable Pi
+  runtime/state subdirectories for sessions, auth, trust, models, metadata,
+  cache, project/workspace/provider state, and related state. Legacy/current
+  ~/.pi/agent resource/config children such as extensions, packages, prompts,
+  skills, themes, keybindings, and root JSON remain read-only and follow
+  symlinks at their logical HOME paths.
   Future XDG Pi config/data paths are also exposed when present.
   ~/.agents/skills is mounted read-only when present, unless it resolves to
   the same project .agents/skills tree already exposed by the target.
   Use --allow-pi-config only when Pi must write broader ~/.pi configuration.
+  Selecting ~/.pi itself as TARGET also makes that selected tree writable.
 
-Backends:
-  bwrap     Implemented on supported Linux hosts.
-  auto      Chooses bwrap on supported Linux hosts; never falls through to
-            unsandboxed pi.
-  gondolin  Fail-closed placeholder; Gondolin is inspiration only for this MVP.
+Development integration:
+  Host development tools and caches, SSH agent forwarding, optional GUI or
+  Chromium DevTools access, and the Neovim editor/socket bridge follow scoder's
+  development model. Tmux and Neovim sockets are exposed by exact path rather
+  than mounting the complete runtime directory. OpenCode-style plugin integrity
+  verification for Pi extensions is pending future work.
 USAGE_EOF
 }
 
 version() {
     printf '%s %s\n' "${PROGRAM_NAME}" "${PROGRAM_VERSION}"
-    printf 'Sandbox backend default: %s\n' "${SPI_BACKEND:-auto}"
+    printf 'Sandbox: Bubblewrap\n'
 }
 
 error() {
@@ -102,9 +112,75 @@ info() {
     fi
 }
 
+startup_trace_ms() {
+    date +%s%3N 2>/dev/null || printf '%s000' "$(date +%s)"
+}
+
 trace_startup() {
     [[ "${SPI_TRACE_STARTUP:-0}" == "1" ]] || return 0
-    printf 'spi startup: %s\n' "$1" >&2
+
+    local label="$1"
+    local now
+    local delta
+    local total
+
+    now="$(startup_trace_ms)"
+    if [[ "${SPI_TRACE_STARTUP_STARTED:-0}" -eq 0 ]]; then
+        SPI_TRACE_STARTUP_STARTED="${now}"
+        SPI_TRACE_STARTUP_LAST="${now}"
+    fi
+    delta=$((now - SPI_TRACE_STARTUP_LAST))
+    total=$((now - SPI_TRACE_STARTUP_STARTED))
+    SPI_TRACE_STARTUP_LAST="${now}"
+    printf 'spi startup: +%sms total=%sms %s\n' "${delta}" "${total}" "${label}" >&2
+}
+
+file_mtime() {
+    stat -c %Y "$1" 2>/dev/null || printf '0'
+}
+
+init_discovery_cache() {
+    SPI_CACHE_DIR="${HOST_HOME}/.cache/spi"
+    SPI_DISCOVERY_CACHE="${SPI_CACHE_DIR}/discovery-v1.env"
+    SPI_DISCOVERY_CACHE_VALID=0
+
+    mkdir -p -- "${SPI_CACHE_DIR}"
+    if [[ "${SPI_FORCE_PROBE:-0}" == "1" || "${SPI_FORCE_DISCOVERY:-0}" == "1" ]]; then
+        return 0
+    fi
+    if [[ -f "${SPI_DISCOVERY_CACHE}" ]]; then
+        # shellcheck disable=SC1090 # Cache is private and written by this script.
+        source "${SPI_DISCOVERY_CACHE}" || true
+        SPI_DISCOVERY_CACHE_VALID=1
+    fi
+}
+
+is_discovery_cache_current() {
+    local expected_bwrap_path="$1"
+    local expected_bwrap_version="$2"
+
+    [[ "${SPI_DISCOVERY_CACHE_VALID:-0}" -eq 1 ]] || return 1
+    [[ "${SPI_CACHE_SCRIPT_MTIME:-}" == "$(file_mtime "$0")" ]] || return 1
+    [[ "${SPI_CACHE_BWRAP_PATH:-}" == "${expected_bwrap_path}" ]] || return 1
+    [[ "${SPI_CACHE_BWRAP_VERSION:-}" == "${expected_bwrap_version}" ]] || return 1
+}
+
+write_discovery_cache() {
+    [[ -n "${SPI_DISCOVERY_CACHE:-}" ]] || return 0
+
+    umask 077
+    {
+        printf 'SPI_CACHE_SCRIPT_MTIME=%q\n' "$(file_mtime "$0")"
+        printf 'SPI_CACHE_BWRAP_PATH=%q\n' "${SPI_CACHE_BWRAP_PATH:-}"
+        printf 'SPI_CACHE_BWRAP_VERSION=%q\n' "${SPI_CACHE_BWRAP_VERSION:-}"
+        printf 'SPI_CACHE_BWRAP_DISABLE_USERNS_SUPPORTED=%q\n' "${SPI_CACHE_BWRAP_DISABLE_USERNS_SUPPORTED:-}"
+        printf 'SPI_CACHE_BWRAP_NAMESPACE_SUPPORT=%q\n' "${SPI_CACHE_BWRAP_NAMESPACE_SUPPORT:-}"
+        printf 'SPI_CACHE_REAL_GIT_HOST=%q\n' "${SPI_CACHE_REAL_GIT_HOST:-}"
+        printf 'SPI_CACHE_REAL_GIT_REALPATH=%q\n' "${SPI_CACHE_REAL_GIT_REALPATH:-}"
+        printf 'SPI_CACHE_SCODER_GIT_HOST=%q\n' "${SPI_CACHE_SCODER_GIT_HOST:-}"
+        printf 'SPI_CACHE_SCODER_GIT_REALPATH=%q\n' "${SPI_CACHE_SCODER_GIT_REALPATH:-}"
+    } >"${SPI_DISCOVERY_CACHE}"
+    chmod 600 "${SPI_DISCOVERY_CACHE}"
 }
 
 resolve_bind_source_path() {
@@ -311,11 +387,11 @@ bind_pi_agent_resource_paths() {
         add_prepared_bind_once --ro-bind "${host_p}" "${sand_p}"
     done
 
-    for resource_path in "${PI_AGENT_MUTABLE_ROOT_FILES[@]}"; do
+    for resource_path in "${PI_AGENT_ROOT_CONFIG_FILES[@]}"; do
         host_p="${PI_AGENT_DIR}/${resource_path}"
         sand_p="${SANDBOX_PI_AGENT_DIR}/${resource_path}"
         [[ -e "${host_p}" ]] || continue
-        add_prepared_bind_once --bind "${host_p}" "${sand_p}"
+        add_prepared_bind_once --ro-bind "${host_p}" "${sand_p}"
     done
 }
 
@@ -522,6 +598,55 @@ add_custom_bind() {
     SAFE_BINDS+=("${bind_flag}" "${resolved_path}" "${resolved_path}")
 }
 
+cleanup_file_mode_tmp_dir() {
+    if [[ -n "${FILE_MODE_TMP_DIR:-}" && -d "${FILE_MODE_TMP_DIR}" ]]; then
+        rm -rf -- "${FILE_MODE_TMP_DIR}"
+    fi
+}
+
+prepare_single_file_overlay() {
+    local entry
+    local target_name
+    local target_parent_container
+    local had_dotglob=0
+    local had_nullglob=0
+
+    target_name="$(basename "${TARGET_SOURCE_PATH}")"
+    FILE_MODE_TMP_DIR="$(mktemp -d /tmp/spi-filemode-XXXXXX)"
+    FILE_MODE_PARENT_DIR="${FILE_MODE_TMP_DIR}/parent"
+    FILE_MODE_TARGET_PATH="${FILE_MODE_PARENT_DIR}/${target_name}"
+    FILE_MODE_RO_SOURCE_SANDBOX_PATH="/tmp/.spi-ro-parent-$$"
+
+    mkdir -p -- "${FILE_MODE_PARENT_DIR}"
+    cp -p -- "${TARGET_SOURCE_PATH}" "${FILE_MODE_TARGET_PATH}"
+
+    shopt -q dotglob && had_dotglob=1
+    shopt -q nullglob && had_nullglob=1
+    shopt -s dotglob nullglob
+    for entry in "${PROJECT_SOURCE_DIR}"/*; do
+        [[ "$(basename "${entry}")" == "${target_name}" ]] && continue
+        ln -s "${FILE_MODE_RO_SOURCE_SANDBOX_PATH}/$(basename "${entry}")" \
+            "${FILE_MODE_PARENT_DIR}/$(basename "${entry}")"
+    done
+    ((had_dotglob)) || shopt -u dotglob
+    ((had_nullglob)) || shopt -u nullglob
+
+    FILE_MODE_BINDS=(--ro-bind "${PROJECT_SOURCE_DIR}" "${FILE_MODE_RO_SOURCE_SANDBOX_PATH}")
+    target_parent_container="$(dirname "${SANDBOX_PROJECT_ROOT}")"
+    if [[ "${target_parent_container}" != "/" ]]; then
+        FILE_MODE_BINDS+=(--ro-bind "${target_parent_container}" "${target_parent_container}")
+    fi
+    FILE_MODE_BINDS+=(--bind "${FILE_MODE_PARENT_DIR}" "${SANDBOX_PROJECT_ROOT}")
+}
+
+sync_single_file_target_back() {
+    if [[ ! -f "${FILE_MODE_TARGET_PATH}" ]]; then
+        error "single-file target disappeared during sandbox session: ${TARGET_SOURCE_PATH}"
+        return 1
+    fi
+    cp -p -- "${FILE_MODE_TARGET_PATH}" "${TARGET_SOURCE_PATH}"
+}
+
 resolve_target_mode() {
     local requested_target="$1"
     local logical_target
@@ -557,38 +682,6 @@ resolve_target_mode() {
 
     error "target must be a directory or regular file: ${requested_target}"
     exit 1
-}
-
-resolve_backend() {
-    case "${BACKEND}" in
-    auto)
-        if [[ "$(uname -s 2>/dev/null || printf unknown)" != "Linux" ]] || ! command -v bwrap >/dev/null 2>&1; then
-            error "auto backend requires Linux and bubblewrap; refusing to run pi without a sandbox"
-            exit 1
-        fi
-        BACKEND="bwrap"
-        ;;
-    bwrap)
-        if [[ "$(uname -s 2>/dev/null || printf unknown)" != "Linux" ]]; then
-            error "bubblewrap backend requires Linux"
-            exit 1
-        fi
-        if ! command -v bwrap >/dev/null 2>&1; then
-            error "bubblewrap (bwrap) not found in PATH"
-            error "install bubblewrap, or rerun only after another supported backend exists"
-            exit 1
-        fi
-        ;;
-    gondolin)
-        error "Gondolin backend is not implemented in spi ${PROGRAM_VERSION}; use --backend bwrap on Linux"
-        error "Gondolin is tracked as inspiration only, so spi fails closed instead of running plain pi"
-        exit 1
-        ;;
-    *)
-        error "unknown backend: ${BACKEND} (expected auto, bwrap, gondolin)"
-        exit 1
-        ;;
-    esac
 }
 
 check_bwrap_namespace_support() {
@@ -654,21 +747,40 @@ discover_pi_binary() {
 
 discover_git_wrapper() {
     local script_dir
+    local requested_scoder_git
+    local requested_real_git
 
     script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-    SCODER_GIT_HOST="${SCODER_GIT:-${script_dir}/scoder-git}"
-    if [[ ! -x "${SCODER_GIT_HOST}" ]]; then
-        error "scoder-git wrapper not found or not executable: ${SCODER_GIT_HOST}"
+    requested_scoder_git="${SCODER_GIT:-${script_dir}/scoder-git}"
+    requested_real_git="$(command -v git 2>/dev/null || true)"
+
+    if [[ ! -x "${requested_scoder_git}" ]]; then
+        error "scoder-git wrapper not found or not executable: ${requested_scoder_git}"
         exit 1
     fi
-    SCODER_GIT_HOST="$(realpath "${SCODER_GIT_HOST}")"
-
-    REAL_GIT_HOST="$(command -v git 2>/dev/null || true)"
-    if [[ -z "${REAL_GIT_HOST}" || ! -x "${REAL_GIT_HOST}" ]]; then
+    if [[ -z "${requested_real_git}" || ! -x "${requested_real_git}" ]]; then
         error "real git binary not found in host PATH"
         exit 1
     fi
-    REAL_GIT_HOST="$(realpath "${REAL_GIT_HOST}")"
+
+    if is_discovery_cache_current "${SPI_CACHE_BWRAP_PATH}" "${SPI_CACHE_BWRAP_VERSION}" &&
+        [[ "${SPI_CACHE_SCODER_GIT_HOST:-}" == "${requested_scoder_git}" && -x "${SPI_CACHE_SCODER_GIT_REALPATH:-}" ]]; then
+        SCODER_GIT_HOST="${SPI_CACHE_SCODER_GIT_REALPATH}"
+    else
+        SCODER_GIT_HOST="$(realpath "${requested_scoder_git}")"
+        SPI_CACHE_SCODER_GIT_HOST="${requested_scoder_git}"
+        SPI_CACHE_SCODER_GIT_REALPATH="${SCODER_GIT_HOST}"
+    fi
+
+    if is_discovery_cache_current "${SPI_CACHE_BWRAP_PATH}" "${SPI_CACHE_BWRAP_VERSION}" &&
+        [[ "${SPI_CACHE_REAL_GIT_HOST:-}" == "${requested_real_git}" && -x "${SPI_CACHE_REAL_GIT_REALPATH:-}" ]]; then
+        REAL_GIT_HOST="${SPI_CACHE_REAL_GIT_REALPATH}"
+    else
+        REAL_GIT_HOST="$(realpath "${requested_real_git}")"
+        SPI_CACHE_REAL_GIT_HOST="${requested_real_git}"
+        SPI_CACHE_REAL_GIT_REALPATH="${REAL_GIT_HOST}"
+    fi
+    write_discovery_cache
 }
 
 opt_ro_bind_terminal_file() {
@@ -772,9 +884,95 @@ bind_terminal_integration() {
         fi
     fi
 
-    bind_terminal_socket_env NVIM
-    bind_terminal_socket_env NVIM_LISTEN_ADDRESS
+    if [[ "${ALLOW_NVIM_REMOTE}" -eq 1 ]]; then
+        bind_terminal_socket_env NVIM
+        bind_terminal_socket_env NVIM_LISTEN_ADDRESS
+    fi
     bind_tmux_socket_env
+}
+
+select_host_tool_home() {
+    local env_value="$1"
+    local preferred_path="$2"
+    local legacy_path="$3"
+
+    if [[ -n "${env_value}" ]]; then
+        REPLY="${env_value}"
+    elif [[ -d "${preferred_path}" || ! -d "${legacy_path}" ]]; then
+        REPLY="${preferred_path}"
+    else
+        REPLY="${legacy_path}"
+    fi
+}
+
+find_chromium_binary() {
+    local candidate
+    local -a candidates=()
+
+    [[ -n "${SPI_CHROMIUM_BIN:-}" ]] && candidates+=("${SPI_CHROMIUM_BIN}")
+    candidates+=(chromium google-chrome-stable google-chrome chrome)
+    for candidate in "${candidates[@]}"; do
+        if command -v "${candidate}" >/dev/null 2>&1; then
+            command -v "${candidate}"
+            return 0
+        fi
+    done
+    return 1
+}
+
+is_devtools_endpoint_ready() {
+    if command -v curl >/dev/null 2>&1; then
+        curl --silent --show-error --fail "http://127.0.0.1:9222/json/version" >/dev/null 2>&1
+        return $?
+    fi
+    if command -v python3 >/dev/null 2>&1; then
+        python3 - <<'PY' >/dev/null 2>&1
+import sys
+import urllib.request
+try:
+    with urllib.request.urlopen("http://127.0.0.1:9222/json/version", timeout=1):
+        pass
+except Exception:
+    sys.exit(1)
+PY
+        return $?
+    fi
+    return 1
+}
+
+ensure_chromium_devtools() {
+    local chromium_bin
+    local chromium_profile="${SPI_CHROMIUM_PROFILE:-/tmp/pi-chrome}"
+    local chromium_log="${SPI_CHROMIUM_LOG:-/tmp/spi-chromium.log}"
+    local attempt
+
+    if is_devtools_endpoint_ready; then
+        info "Chromium DevTools already available on 127.0.0.1:9222"
+        return 0
+    fi
+    chromium_bin="$(find_chromium_binary || true)"
+    if [[ -z "${chromium_bin}" ]]; then
+        error "web-developer mode could not find a Chromium-compatible browser"
+        error "set SPI_CHROMIUM_BIN or install chromium/google-chrome"
+        return 1
+    fi
+
+    mkdir -p -- "${chromium_profile}"
+    info "Starting Chromium DevTools via ${chromium_bin}"
+    nohup "${chromium_bin}" \
+        --remote-debugging-port=9222 \
+        --user-data-dir="${chromium_profile}" \
+        --no-first-run \
+        --no-default-browser-check \
+        about:blank >"${chromium_log}" 2>&1 </dev/null &
+
+    for ((attempt = 1; attempt <= 20; attempt++)); do
+        is_devtools_endpoint_ready && return 0
+        sleep 0.5
+    done
+    error "Chromium launched but DevTools endpoint did not become ready"
+    error "check log: ${chromium_log}"
+    return 1
 }
 
 is_stale_workspace_env_name() {
@@ -797,26 +995,42 @@ is_stale_workspace_env_name() {
     esac
 }
 
+should_inherit_env() {
+    local env_name="$1"
+
+    is_stale_workspace_env_name "${env_name}" && return 1
+    if [[ "${ALLOW_GUI:-0}" -eq 1 ]]; then
+        case "${env_name}" in
+        DISPLAY | WAYLAND_DISPLAY | XAUTHORITY | DBUS_SESSION_BUS_ADDRESS | SESSION_MANAGER)
+            return 0
+            ;;
+        esac
+    fi
+
+    case "${env_name}" in
+    HOME | PATH | PWD | OLDPWD | SHELL | SHLVL | _ | USER | LOGNAME | TERM | COLORTERM | LANG | LC_ALL | \
+        XDG_CONFIG_HOME | XDG_DATA_HOME | XDG_STATE_HOME | XDG_CACHE_HOME | \
+        EDITOR | VISUAL | PI_BIN | PI_CODING_AGENT_DIR | PI_SESSION_* | PI_PROVIDER | PI_MODEL | PI_REASONING_LEVEL | \
+        PI_*SOCKET* | SPI_* | TMPDIR | GIT_OPTIONAL_LOCKS | SSH_AUTH_SOCK | \
+        GPG_AGENT_INFO | DBUS_SESSION_BUS_ADDRESS | SESSION_MANAGER | XAUTHORITY | DISPLAY | WAYLAND_DISPLAY | \
+        NVIM | NVIM_LISTEN_ADDRESS | TMUX | TMUX_PANE | \
+        PLAYWRIGHT_BROWSERS_PATH | MISE_SKIP_ACTIVATE | UV_LINK_MODE | PNPM_HOME | \
+        PYENV_ROOT | RUSTUP_HOME | CARGO_HOME | GOPATH | GOBIN | PYO3_PYTHON)
+        return 1
+        ;;
+    esac
+    return 0
+}
+
 inherit_safe_environment() {
     local env_name
     local env_output
+
     env_output="$(compgen -e || true)"
     while IFS= read -r env_name; do
-        is_stale_workspace_env_name "${env_name}" && continue
-        case "${env_name}" in
-        HOME | PATH | PWD | OLDPWD | SHELL | SHLVL | _ | USER | LOGNAME | TERM | COLORTERM | LANG | LC_ALL | \
-            XDG_CONFIG_HOME | XDG_DATA_HOME | XDG_STATE_HOME | XDG_CACHE_HOME | \
-            PI_BIN | PI_CODING_AGENT_DIR | PI_SESSION_* | PI_PROVIDER | PI_MODEL | PI_REASONING_LEVEL | \
-            PI_*SOCKET* | \
-            SPI_* | TMPDIR | GIT_OPTIONAL_LOCKS | SSH_AUTH_SOCK | \
-            NVIM | NVIM_LISTEN_ADDRESS | TMUX | TMUX_PANE)
-            ;;
-        *)
-            if [[ -n "${!env_name:-}" ]]; then
-                BWRAP_CMD+=(--setenv "${env_name}" "${!env_name}")
-            fi
-            ;;
-        esac
+        if should_inherit_env "${env_name}" && [[ -n "${!env_name:-}" ]]; then
+            BWRAP_CMD+=(--setenv "${env_name}" "${!env_name}")
+        fi
     done <<<"${env_output}"
 }
 
@@ -839,39 +1053,21 @@ preserve_pi_session_environment() {
 run_doctor() {
     local status=0
 
-    printf 'SPI doctor\n'
-    printf '  backend requested: %s\n' "${BACKEND}"
-    if [[ "$(uname -s 2>/dev/null || printf unknown)" == "Linux" ]]; then
-        printf '  host OS: Linux\n'
+    printf 'SPI doctor: running comprehensive validation\n'
+    if run_validation; then
+        :
     else
-        printf '  host OS: unsupported (%s)\n' "$(uname -s 2>/dev/null || printf unknown)"
-        status=1
+        status=$?
     fi
-    if command -v bwrap >/dev/null 2>&1; then
-        printf '  bwrap: %s (%s)\n' "$(command -v bwrap)" "$(bwrap --version 2>/dev/null || printf unknown)"
-    else
-        printf '  bwrap: missing\n'
-        status=1
-    fi
-    if command -v "${PI_BIN}" >/dev/null 2>&1; then
-        printf '  pi: %s\n' "$(command -v "${PI_BIN}")"
-    else
-        printf '  pi: missing (%s)\n' "${PI_BIN}"
-        status=1
-    fi
+
+    printf '\nSPI configuration summary\n'
+    printf '  sandbox: Bubblewrap only\n'
     printf '  Pi state root: %s%s\n' "${PI_AGENT_DIR}" "$([[ "${PI_AGENT_DIR_FROM_ENV}" -eq 1 ]] && printf ' (from PI_CODING_AGENT_DIR)' || printf ' (Pi default)')"
-    if [[ "${ALLOW_PI_CONFIG}" -eq 1 ]]; then
-        printf '  Pi mount mode: full ~/.pi writable by explicit --allow-pi-config opt-in\n'
-    else
-        printf '  Pi mount mode: role-based; existing ~/.pi read-only with writable agent root and selected runtime/state dirs\n'
-        printf '  Pi writable agent root: %s (settings/trust JSON and lock dirs)\n' "${PI_AGENT_DIR}"
-        printf '  Pi writable runtime dirs: %s\n' "${PI_RUNTIME_WRITABLE_LABEL}"
-        printf '  Pi read-only resources: ~/.pi config/resources, ~/.pi/agent packages/extensions/prompts/skills/themes/keybindings, future ~/.config/pi and ~/.local/share/pi, plus ~/.agents/skills when present\n'
-        printf '  Pi writable XDG runtime/state: ~/.local/state/pi and ~/.cache/pi or XDG overrides\n'
-    fi
-    printf '  Project .pi/.agents protection: read-only by default with other control-plane paths\n'
-    printf '  Pi env preservation: PI_SESSION_*, PI_PROVIDER, PI_MODEL, PI_REASONING_LEVEL when set\n'
-    printf '  Gondolin: unsupported placeholder; fail-closed\n'
+    printf '  target policy: writable by default with scoder-compatible critical infrastructure read-only\n'
+    printf '  host tools: %s\n' "$([[ "${ALLOW_HOST_TOOLS}" -eq 1 ]] && printf enabled || printf disabled)"
+    printf '  SSH agent forwarding: %s\n' "$([[ "${FORWARD_SSH_AGENT}" -eq 1 ]] && printf enabled || printf disabled)"
+    printf '  GUI access: %s\n' "$([[ "${ALLOW_GUI}" -eq 1 ]] && printf enabled || printf disabled)"
+    printf '  plugin/extension integrity verification: PENDING\n'
 
     return "${status}"
 }
@@ -906,9 +1102,14 @@ run_validation() {
     local terminal_runtime_marker
     local terminal_nvim_socket
     local terminal_nvim_listen_socket
+    local terminal_nvim_editor
     local terminal_tmux_socket
     local target_file_path
     local sibling_file_path
+    local plugin_home
+    local plugin_agent_dir
+    local plugin_package_dir
+    local validation_pi_bin
     local failed_tests=0
     local live_bwrap=0
     local output
@@ -939,9 +1140,14 @@ run_validation() {
     terminal_runtime_marker="${terminal_runtime_dir}/marker.txt"
     terminal_nvim_socket="${terminal_runtime_dir}/nvim.sock"
     terminal_nvim_listen_socket="${terminal_runtime_dir}/nvim-listen.sock"
+    terminal_nvim_editor="${test_home}/.config/nvim/scripts/opencode-editor"
     terminal_tmux_socket="${terminal_runtime_dir}/tmux/default"
     target_file_path="${test_project}/src/lib/target.txt"
     sibling_file_path="${test_project}/src/lib/sibling.txt"
+    plugin_home="${validation_root}/plugin-home"
+    plugin_agent_dir="${plugin_home}/.pi/agent"
+    plugin_package_dir="${plugin_agent_dir}/packages/spi-validation-package"
+    validation_pi_bin="$(command -v "${PI_BIN}" 2>/dev/null || true)"
     printf -v neighbor_dir_q '%q' "${neighbor_dir}"
     printf -v shared_ro_dir_q '%q' "${shared_ro_dir}"
     printf -v shared_rw_dir_q '%q' "${shared_rw_dir}"
@@ -968,11 +1174,14 @@ run_validation() {
         "${test_home}/.cache/pi" \
         "${test_home}/.agents/skills/example" \
         "${test_home}/.local/bin" \
-        "${test_home}/.config" \
+        "${test_home}/.config/nvim/scripts" \
         "${terminal_xdg_config_home}" \
         "${terminal_zdotdir}" \
         "${test_home}/.pi" \
         "${test_project}/.git" \
+        "${test_project}/.github" \
+        "${test_project}/.turbo" \
+        "${test_project}/.cargo" \
         "${test_project}/.agents/skills/example" \
         "${test_project}/.pi" \
         "${test_project}/node_modules" \
@@ -980,6 +1189,8 @@ run_validation() {
         "${direct_openspec_project}/openspec/changes/direct-validation" \
         "${direct_openspec_project}/openspec/specs" \
         "${direct_openspec_project}/.pi/prompts" \
+        "${plugin_agent_dir}/extensions" \
+        "${plugin_package_dir}" \
         "${validation_root}/nested-parent/nvim" \
         "${validation_root}/nested-parent/openspec/changes/nested-validation" \
         "${symlink_source_project}/nvim" \
@@ -1001,14 +1212,42 @@ run_validation() {
     printf 'validation-zshenv\n' >"${test_home}/.zshenv"
     printf 'validation-zshrc\n' >"${test_home}/.zshrc"
     printf 'validation-zdotdir-zshrc\n' >"${terminal_zdotdir}/.zshrc"
+    printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"${terminal_nvim_editor}"
+    chmod +x "${terminal_nvim_editor}"
     printf 'runtime-marker\n' >"${terminal_runtime_marker}"
     printf 'neighbor-secret\n' >"${neighbor_dir}/secret.txt"
     printf 'SPI_VALIDATION=1\n' >"${test_project}/.env"
     printf 'ignored\n' >"${test_project}/.gitignore"
+    printf 'lock\n' >"${test_project}/package-lock.json"
+    printf 'lock\n' >"${test_project}/poetry.lock"
+    printf 'lock\n' >"${test_project}/Cargo.lock"
+    printf 'lock\n' >"${test_project}/pnpm-lock.yaml"
+    printf 'lock\n' >"${test_project}/yarn.lock"
     printf 'project-pi-original\n' >"${test_project}/.pi/original.txt"
     printf 'schema: spec-driven\n' >"${direct_openspec_project}/openspec/config.yaml"
     printf 'schema: spec-driven\ncreated: 2026-08-04\n' >"${direct_openspec_project}/openspec/changes/direct-validation/.openspec.yaml"
     printf 'direct-pi-prompt\n' >"${direct_openspec_project}/.pi/prompts/opsx-propose.md"
+    printf '%s\n' '{"packages":["./packages/spi-validation-package"]}' >"${plugin_agent_dir}/settings.json"
+    printf '%s\n' '{}' >"${plugin_agent_dir}/trust.json"
+    cat >"${plugin_agent_dir}/extensions/spi-auto-validation.ts" <<'SPI_AUTO_EXTENSION'
+export default function (pi: any) {
+  pi.registerFlag("spi-auto-extension-loaded", {
+    description: "SPI auto-discovered extension loaded",
+    type: "boolean",
+    default: false,
+  });
+}
+SPI_AUTO_EXTENSION
+    printf '%s\n' '{"name":"spi-validation-package","pi":{"extensions":["./index.ts"]}}' >"${plugin_package_dir}/package.json"
+    cat >"${plugin_package_dir}/index.ts" <<'SPI_PACKAGE_EXTENSION'
+export default function (pi: any) {
+  pi.registerFlag("spi-package-extension-loaded", {
+    description: "SPI settings package extension loaded",
+    type: "boolean",
+    default: false,
+  });
+}
+SPI_PACKAGE_EXTENSION
     printf 'alpha\n' >"${target_file_path}"
     printf 'beta\n' >"${sibling_file_path}"
     printf 'nested-openspec\n' >"${validation_root}/nested-parent/openspec/changes/nested-validation/tasks.md"
@@ -1080,7 +1319,12 @@ PY
             LOGNAME="${LOGNAME:-${USER:-aemonge}}" \
             TERM="${TERM:-xterm-256color}" \
             LANG="${LANG:-C.UTF-8}" \
-            PI_BIN=/bin/true \
+            RUSTUP_HOME="${sandbox_home}/.local/share/rustup" \
+            CARGO_HOME="${sandbox_home}/.local/share/cargo" \
+            GOPATH="${sandbox_home}/.local/share/go" \
+            GOBIN= \
+            SSH_AUTH_SOCK="${SPI_VALIDATION_SSH_AUTH_SOCK:-}" \
+            PI_BIN="${SPI_VALIDATION_PI_BIN:-/bin/true}" \
             PI_CODING_AGENT_DIR="${sandbox_agent_dir}" \
             SPI_FORCE_PROBE=1 \
             "${script_path}" "$@"
@@ -1127,6 +1371,23 @@ PY
             failed_tests=$((failed_tests + 1))
         fi
 
+        if [[ -n "${validation_pi_bin}" && -x "${validation_pi_bin}" ]]; then
+            output="$(env -u PI_CODING_AGENT_DIR -u SSH_AUTH_SOCK \
+                HOME="${plugin_home}" PATH="${PATH}" \
+                USER="${USER:-aemonge}" LOGNAME="${LOGNAME:-${USER:-aemonge}}" \
+                TERM="${TERM:-xterm-256color}" LANG="${LANG:-C.UTF-8}" \
+                PI_BIN="${validation_pi_bin}" SPI_FORCE_PROBE=1 \
+                "${script_path}" --help -- "${test_project}" -q --backend bwrap --no-host-tools --no-ssh-agent 2>&1 || true)"
+            if [[ "${output}" == *--spi-auto-extension-loaded* && "${output}" == *--spi-package-extension-loaded* ]]; then
+                validation_pass 'Test A.4 PASS: real Pi loads global extensions and settings packages without a host PI_CODING_AGENT_DIR override'
+            else
+                validation_fail "Test A.4 FAIL: real Pi did not load mounted global extensions/settings packages (${output})"
+                failed_tests=$((failed_tests + 1))
+            fi
+        else
+            validation_warn 'Test A.4 SKIP: real Pi binary unavailable for extension loading probe'
+        fi
+
         if output="$(run_validation_spi -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'printf spi-rw-ok > validation-write.txt && cat validation-write.txt' 2>&1)" &&
             [[ "${output}" == "spi-rw-ok" ]] && [[ -f "${test_project}/validation-write.txt" ]] &&
             [[ "$(<"${test_project}/validation-write.txt")" == "spi-rw-ok" ]]; then
@@ -1168,6 +1429,7 @@ PY
             failed_tests=$((failed_tests + 1))
         fi
 
+        # shellcheck disable=SC2016 # Variables expand inside the sandboxed shell.
         output="$(run_validation_spi -- "${validation_root}/nested-parent/nvim" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'task_path="$(dirname "$PWD")/openspec/changes/nested-validation/tasks.md"; cat "$task_path" >/dev/null || exit 1; if printf bad > "$task_path" 2>/dev/null; then printf OPENSPEC_WRITE_ALLOWED; else printf OPENSPEC_RO; fi' 2>&1 || true)"
         if [[ "${output}" == *OPENSPEC_RO* ]] && [[ "${output}" != *OPENSPEC_WRITE_ALLOWED* ]] && \
             [[ "$(<"${validation_root}/nested-parent/openspec/changes/nested-validation/tasks.md")" == 'nested-openspec' ]]; then
@@ -1177,6 +1439,7 @@ PY
             failed_tests=$((failed_tests + 1))
         fi
 
+        # shellcheck disable=SC2016 # Variables expand inside the sandboxed shell.
         output="$(run_validation_spi -- "${symlink_logical_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'task_path="$HOME/.config/openspec/changes/symlink-validation/tasks.md"; cat "$task_path" >/dev/null || exit 1; if printf bad > "$task_path" 2>/dev/null; then printf SYMLINK_OPENSPEC_WRITE_ALLOWED; else printf SYMLINK_OPENSPEC_RO; fi' 2>&1 || true)"
         if [[ "${output}" == *SYMLINK_OPENSPEC_RO* ]] && [[ "${output}" != *SYMLINK_OPENSPEC_WRITE_ALLOWED* ]] && \
             [[ "$(<"${symlink_source_project}/openspec/changes/symlink-validation/tasks.md")" == 'symlink-openspec' ]]; then
@@ -1215,6 +1478,15 @@ PY
             failed_tests=$((failed_tests + 1))
         fi
 
+        # shellcheck disable=SC2016 # $HOME expands inside the sandbox.
+        output="$(run_validation_spi -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'for d in "$HOME/.cache/uv" "$HOME/.local/share/pnpm" "$HOME/.local/share/cargo" "$HOME/.local/share/go" "$HOME/.bun"; do if ! test -w "$d"; then printf "NOT_WRITABLE:%s" "$d"; exit 1; fi; done; printf HOST_TOOL_STATE_OK' 2>&1 || true)"
+        if [[ "${output}" == 'HOST_TOOL_STATE_OK' ]]; then
+            validation_pass 'Test D.1b PASS: scoder-parity host tool state is writable'
+        else
+            validation_fail "Test D.1b FAIL: host tool state is unavailable (${output})"
+            failed_tests=$((failed_tests + 1))
+        fi
+
         output="$(run_validation_spi -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'grep -q "^nameserver " /etc/resolv.conf && printf RESOLVER_OK' 2>&1 || true)"
         if [[ "${output}" == 'RESOLVER_OK' ]]; then
             validation_pass 'Test D.2 PASS: DNS resolver config is available'
@@ -1243,28 +1515,46 @@ PY
             printf 'ℹ️  Test D.3 SKIP: timeout unavailable for bounded DNS probe\n'
         fi
 
-        output="$(run_validation_spi -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'printf nope > .git/spi-blocked' 2>&1 || true)"
-        if [[ ! -e "${test_project}/.git/spi-blocked" ]] && [[ "${output}" =~ Read-only|Permission\ denied|cannot\ create|Operation\ not\ permitted ]]; then
-            validation_pass 'Test C.1 PASS: .git is protected read-only by default'
+        output="$(run_validation_spi -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'printf git-ok > .git/spi-default && cat .git/spi-default' 2>&1 || true)"
+        if [[ "${output}" == 'git-ok' && "$(<"${test_project}/.git/spi-default")" == 'git-ok' ]]; then
+            validation_pass 'Test C.1 PASS: .git is writable inside the selected target by default'
         else
-            validation_fail "Test C.1 FAIL: default .git protection did not block writes (${output})"
+            validation_fail "Test C.1 FAIL: default .git write failed (${output})"
             failed_tests=$((failed_tests + 1))
         fi
 
         if output="$(run_validation_spi -- "${test_project}" -q --backend bwrap --allow-git -x /bin/bash --noprofile --norc -lc 'printf spi-git-ok > .git/spi-allowed && cat .git/spi-allowed' 2>&1)" &&
-            [[ "${output}" == "spi-git-ok" ]] && [[ -f "${test_project}/.git/spi-allowed" ]] &&
-            [[ "$(<"${test_project}/.git/spi-allowed")" == "spi-git-ok" ]]; then
-            validation_pass 'Test C.2 PASS: --allow-git permits .git writes'
+            [[ "${output}" == "spi-git-ok" ]] && [[ -f "${test_project}/.git/spi-allowed" ]]; then
+            validation_pass 'Test C.2 PASS: --allow-git remains compatible with default Git writes'
         else
-            validation_fail "Test C.2 FAIL: --allow-git did not permit .git writes (${output})"
+            validation_fail "Test C.2 FAIL: --allow-git compatibility failed (${output})"
             failed_tests=$((failed_tests + 1))
         fi
 
-        output="$(run_validation_spi -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'printf bad > .agents/spi-blocked' 2>&1 || true)"
-        if [[ ! -e "${test_project}/.agents/spi-blocked" ]] && [[ "${output}" =~ Read-only|Permission\ denied|cannot\ create|Operation\ not\ permitted ]]; then
-            validation_pass 'Test C.3 PASS: project .agents is protected read-only by default'
+        output="$(run_validation_spi -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'printf agents-ok > .agents/spi-default && cat .agents/spi-default' 2>&1 || true)"
+        if [[ "${output}" == 'agents-ok' && "$(<"${test_project}/.agents/spi-default")" == 'agents-ok' ]]; then
+            validation_pass 'Test C.3 PASS: project .agents is writable inside the selected target'
         else
-            validation_fail "Test C.3 FAIL: project .agents protection did not block writes (${output})"
+            validation_fail "Test C.3 FAIL: project .agents write failed (${output})"
+            failed_tests=$((failed_tests + 1))
+        fi
+
+        # shellcheck disable=SC2016 # $path expands inside the sandboxed shell.
+        output="$(run_validation_spi -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'for path in .github/spi-validation .turbo/spi-validation .cargo/spi-validation .gitignore package-lock.json poetry.lock Cargo.lock pnpm-lock.yaml yarn.lock; do if { printf bad > "$path"; } 2>/dev/null; then printf "WRITE_ALLOWED:%s" "$path"; exit 1; fi; done; printf INFRA_RO' 2>&1 || true)"
+        if [[ "${output}" == *INFRA_RO* && "${output}" != *WRITE_ALLOWED:* ]] && [[ ! -e "${test_project}/.github/spi-validation" ]] &&
+            [[ "$(<"${test_project}/Cargo.lock")" == 'lock' ]]; then
+            validation_pass 'Test C.4 PASS: scoder-compatible critical infrastructure is read-only by default'
+        else
+            validation_fail "Test C.4 FAIL: critical infrastructure protection failed (${output})"
+            failed_tests=$((failed_tests + 1))
+        fi
+
+        output="$(run_validation_spi -- "${test_project}" -q --backend bwrap --allow-infra -x /bin/bash --noprofile --norc -lc 'printf infra-ok > .github/spi-allowed && printf lock-ok > Cargo.lock && printf INFRA_RW' 2>&1 || true)"
+        if [[ "${output}" == 'INFRA_RW' ]] && [[ "$(<"${test_project}/.github/spi-allowed")" == 'infra-ok' ]] &&
+            [[ "$(<"${test_project}/Cargo.lock")" == 'lock-ok' ]]; then
+            validation_pass 'Test C.5 PASS: --allow-infra restores target infrastructure writes'
+        else
+            validation_fail "Test C.5 FAIL: --allow-infra did not restore writes (${output})"
             failed_tests=$((failed_tests + 1))
         fi
 
@@ -1293,6 +1583,14 @@ PY
             validation_pass 'Test E.2 PASS: Pi config is readable when bound read-only'
         else
             validation_fail "Test E.2 FAIL: Pi config read failed (${output})"
+            failed_tests=$((failed_tests + 1))
+        fi
+
+        output="$(run_validation_spi -- "${test_home}/.pi" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'printf selected-pi-ok > selected-target-write && cat selected-target-write' 2>&1 || true)"
+        if [[ "${output}" == 'selected-pi-ok' && "$(<"${test_home}/.pi/selected-target-write")" == 'selected-pi-ok' ]]; then
+            validation_pass 'Test E.2b PASS: selecting ~/.pi makes that target writable'
+        else
+            validation_fail "Test E.2b FAIL: selected ~/.pi target was not writable (${output})"
             failed_tests=$((failed_tests + 1))
         fi
 
@@ -1332,13 +1630,13 @@ PY
         fi
 
         # shellcheck disable=SC2016 # $HOME must expand inside the sandboxed shell.
-        output="$(run_validation_spi -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'cat "$HOME/.pi/agent/settings.json" "$HOME/.pi/agent/trust.json" >/dev/null || exit 1; mkdir "$HOME/.pi/agent/settings.json.lock" "$HOME/.pi/agent/trust.json.lock" || exit 1; printf "{\"theme\":\"updated\"}\n" > "$HOME/.pi/agent/settings.json" || exit 1; printf "{\"trusted\":true}\n" > "$HOME/.pi/agent/trust.json" || exit 1; rmdir "$HOME/.pi/agent/settings.json.lock" "$HOME/.pi/agent/trust.json.lock" || exit 1; printf PI_AGENT_ROOT_LOCK_OK' 2>&1 || true)"
-        if [[ "${output}" == 'PI_AGENT_ROOT_LOCK_OK' ]] &&
-            [[ "$(<"${test_home}/.pi/agent/settings.json")" == '{"theme":"updated"}' ]] &&
-            [[ "$(<"${test_home}/.pi/agent/trust.json")" == '{"trusted":true}' ]]; then
-            validation_pass 'Test E.9 PASS: Pi root-agent lock dirs and startup JSON are writable'
+        output="$(run_validation_spi -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'cat "$HOME/.pi/agent/settings.json" "$HOME/.pi/agent/trust.json" >/dev/null || exit 1; mkdir "$HOME/.pi/agent/settings.json.lock" "$HOME/.pi/agent/trust.json.lock" || exit 1; if printf bad > "$HOME/.pi/agent/settings.json" 2>/dev/null; then printf ROOT_CONFIG_WRITE_ALLOWED; else printf ROOT_CONFIG_RO; fi; rmdir "$HOME/.pi/agent/settings.json.lock" "$HOME/.pi/agent/trust.json.lock" || exit 1; printf PI_AGENT_ROOT_LOCK_OK' 2>&1 || true)"
+        if [[ "${output}" == *ROOT_CONFIG_RO* && "${output}" == *PI_AGENT_ROOT_LOCK_OK* ]] &&
+            [[ "$(<"${test_home}/.pi/agent/settings.json")" == '{"theme":"original"}' ]] &&
+            [[ "$(<"${test_home}/.pi/agent/trust.json")" == '{"trusted":false}' ]]; then
+            validation_pass 'Test E.9 PASS: Pi root config is read-only while disposable lock dirs work'
         else
-            validation_fail "Test E.9 FAIL: Pi root-agent lock dirs/startup JSON were not writable (${output})"
+            validation_fail "Test E.9 FAIL: Pi root config/lock policy failed (${output})"
             failed_tests=$((failed_tests + 1))
         fi
 
@@ -1375,12 +1673,11 @@ PY
             failed_tests=$((failed_tests + 1))
         fi
 
-        output="$(run_validation_spi -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'printf bad > .pi/spi-blocked' 2>&1 || true)"
-        if [[ ! -e "${test_project}/.pi/spi-blocked" ]] && [[ "$(<"${test_project}/.pi/original.txt")" == 'project-pi-original' ]] &&
-            [[ "${output}" =~ Read-only|Permission\ denied|cannot\ create|Operation\ not\ permitted ]]; then
-            validation_pass 'Test E.8 PASS: project .pi is protected read-only by default'
+        output="$(run_validation_spi -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'printf project-pi-ok > .pi/spi-default && cat .pi/spi-default' 2>&1 || true)"
+        if [[ "${output}" == 'project-pi-ok' && "$(<"${test_project}/.pi/spi-default")" == 'project-pi-ok' ]]; then
+            validation_pass 'Test E.8 PASS: project .pi is writable inside the selected target'
         else
-            validation_fail "Test E.8 FAIL: project .pi protection did not block writes (${output})"
+            validation_fail "Test E.8 FAIL: project .pi write failed (${output})"
             failed_tests=$((failed_tests + 1))
         fi
 
@@ -1409,13 +1706,23 @@ PY
             failed_tests=$((failed_tests + 1))
         fi
 
-        # shellcheck disable=SC2016 # $SSH_AUTH_SOCK must expand inside the sandboxed shell.
-        output="$(run_validation_spi -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'test -z "${SSH_AUTH_SOCK:-}" && printf NO_SSH_AGENT' 2>&1 || true)"
-        if [[ "${output}" == 'NO_SSH_AGENT' ]]; then
-            validation_pass 'Test H.1 PASS: SSH_AUTH_SOCK is not forwarded by default'
-        else
-            validation_fail "Test H.1 FAIL: SSH_AUTH_SOCK unexpectedly visible (${output})"
-            failed_tests=$((failed_tests + 1))
+        if [[ -S "${terminal_nvim_socket}" ]]; then
+            # shellcheck disable=SC2016 # $SSH_AUTH_SOCK must expand inside the sandboxed shell.
+            output="$(SPI_VALIDATION_SSH_AUTH_SOCK="${terminal_nvim_socket}" run_validation_spi -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'test -S "$SSH_AUTH_SOCK" && printf SSH_AGENT_OK' 2>&1 || true)"
+            if [[ "${output}" == 'SSH_AGENT_OK' ]]; then
+                validation_pass 'Test H.1a PASS: SSH_AUTH_SOCK is forwarded by default'
+            else
+                validation_fail "Test H.1a FAIL: SSH_AUTH_SOCK forwarding failed (${output})"
+                failed_tests=$((failed_tests + 1))
+            fi
+            # shellcheck disable=SC2016 # $SSH_AUTH_SOCK expands inside the sandboxed shell.
+            output="$(SPI_VALIDATION_SSH_AUTH_SOCK="${terminal_nvim_socket}" run_validation_spi -- "${test_project}" -q --backend bwrap --no-ssh-agent -x /bin/bash --noprofile --norc -lc 'test -z "${SSH_AUTH_SOCK:-}" && printf NO_SSH_AGENT' 2>&1 || true)"
+            if [[ "${output}" == 'NO_SSH_AGENT' ]]; then
+                validation_pass 'Test H.1b PASS: --no-ssh-agent disables forwarding'
+            else
+                validation_fail "Test H.1b FAIL: --no-ssh-agent did not disable forwarding (${output})"
+                failed_tests=$((failed_tests + 1))
+            fi
         fi
 
         # shellcheck disable=SC2016 # Environment variables must expand inside the sandboxed shell.
@@ -1436,6 +1743,15 @@ PY
             failed_tests=$((failed_tests + 1))
         fi
 
+        # shellcheck disable=SC2016 # EDITOR/VISUAL expand inside the sandboxed shell.
+        output="$(run_spi_terminal_fixture -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'test "$EDITOR" = "$HOME/.config/nvim/scripts/opencode-editor" && test "$VISUAL" = "$EDITOR" && test -x "$EDITOR" && if { printf bad > "$EDITOR"; } 2>/dev/null; then exit 1; fi; printf NVIM_EDITOR_OK' 2>&1 || true)"
+        if [[ "${output}" == *NVIM_EDITOR_OK* ]] && [[ "$(head -n 1 "${terminal_nvim_editor}")" == '#!/usr/bin/env bash' ]]; then
+            validation_pass 'Test H.3b PASS: scoder-compatible Neovim EDITOR/VISUAL bridge is read-only'
+        else
+            validation_fail "Test H.3b FAIL: Neovim editor bridge failed (${output})"
+            failed_tests=$((failed_tests + 1))
+        fi
+
         if [[ -S "${terminal_nvim_socket}" && -S "${terminal_nvim_listen_socket}" && -S "${terminal_tmux_socket}" ]]; then
             # shellcheck disable=SC2016 # Terminal socket variables must expand inside the sandboxed shell.
             output="$(run_spi_terminal_fixture -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'tmux_socket="${TMUX%%,*}"; test -S "$NVIM" && test -S "$NVIM_LISTEN_ADDRESS" && test -S "$tmux_socket" && test "$TMUX_PANE" = "%7" && printf TERMINAL_SOCKET_OK' 2>&1 || true)"
@@ -1445,8 +1761,17 @@ PY
                 validation_fail "Test H.4 FAIL: terminal socket forwarding check failed (${output})"
                 failed_tests=$((failed_tests + 1))
             fi
+
+            # shellcheck disable=SC2016 # Terminal variables expand inside the sandboxed shell.
+            output="$(run_spi_terminal_fixture -- "${test_project}" -q --backend bwrap --no-nvim-remote -x /bin/bash --noprofile --norc -lc 'tmux_socket="${TMUX%%,*}"; test -z "${NVIM:-}" && test -z "${NVIM_LISTEN_ADDRESS:-}" && test -S "$tmux_socket" && test "$TMUX_PANE" = "%7" && test "$EDITOR" = v_quickedit_hover && printf NVIM_REMOTE_DISABLED' 2>&1 || true)"
+            if [[ "${output}" == 'NVIM_REMOTE_DISABLED' ]]; then
+                validation_pass 'Test H.4b PASS: --no-nvim-remote disables Neovim while retaining exact tmux integration'
+            else
+                validation_fail "Test H.4b FAIL: --no-nvim-remote policy failed (${output})"
+                failed_tests=$((failed_tests + 1))
+            fi
         else
-            printf 'ℹ️  Test H.4 SKIP: python3 unavailable for fake Unix socket fixtures\n'
+            printf 'ℹ️  Test H.4/H.4b SKIP: python3 unavailable for fake Unix socket fixtures\n'
         fi
 
         output="$(run_spi_terminal_fixture -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc "test ! -e ${terminal_runtime_marker_q} && printf NO_RUNTIME_WIDE" 2>&1 || true)"
@@ -1473,11 +1798,19 @@ PY
             failed_tests=$((failed_tests + 1))
         fi
 
-        output="$(run_validation_spi -- "${target_file_path}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc "printf blocked > ${target_file_path_q}" 2>&1 || true)"
-        if [[ "${output}" =~ Read-only|Permission\ denied|cannot\ create|Operation\ not\ permitted ]] && [[ "$(<"${target_file_path}")" == 'alpha' ]]; then
-            validation_pass 'Test L.2 PASS: writable single-file target mode is unsupported and remains read-only'
+        output="$(run_validation_spi -- "${target_file_path}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc "printf updated > ${target_file_path_q} && cat ${target_file_path_q}" 2>&1 || true)"
+        if [[ "${output}" == 'updated' && "$(<"${target_file_path}")" == 'updated' ]]; then
+            validation_pass 'Test L.2 PASS: writable single-file target changes sync back on success'
         else
-            validation_fail "Test L.2 FAIL: file target write was not blocked (${output})"
+            validation_fail "Test L.2 FAIL: writable single-file target did not sync (${output})"
+            failed_tests=$((failed_tests + 1))
+        fi
+
+        output="$(run_validation_spi -- "${target_file_path}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc "printf blocked > ${sibling_file_path_q}" 2>&1 || true)"
+        if [[ "${output}" =~ Read-only|Permission\ denied|cannot\ create|Operation\ not\ permitted ]] && [[ "$(<"${sibling_file_path}")" == 'beta' ]]; then
+            validation_pass 'Test L.3 PASS: writable single-file mode keeps siblings read-only'
+        else
+            validation_fail "Test L.3 FAIL: sibling write was not blocked (${output})"
             failed_tests=$((failed_tests + 1))
         fi
 
@@ -1568,11 +1901,19 @@ PY
         printf 'ℹ️  Live bwrap validation skipped because bwrap/probe prerequisites failed\n'
     fi
 
-    output="$(env HOME="${test_home}" PATH="${PATH}" PI_BIN=/bin/true PI_CODING_AGENT_DIR="${test_home}/.pi/agent" "${script_path}" -- "${test_project}" -q --backend gondolin 2>&1 || true)"
-    if [[ "${output}" == *'Gondolin backend is not implemented'* ]]; then
-        validation_pass 'Test F.1 PASS: --backend gondolin fails closed'
+    output="$(env HOME="${test_home}" PATH="${PATH}" PI_BIN=/bin/true PI_CODING_AGENT_DIR="${test_home}/.pi/agent" "${script_path}" -- "${test_project}" -q --backend unsupported 2>&1 || true)"
+    if [[ "${output}" == *'spi supports only the bwrap backend'* ]]; then
+        validation_pass 'Test F.1 PASS: non-Bubblewrap backend requests fail closed'
     else
-        validation_fail "Test F.1 FAIL: --backend gondolin did not fail closed (${output})"
+        validation_fail "Test F.1 FAIL: non-Bubblewrap backend request did not fail closed (${output})"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    output="$(env HOME="${test_home}" PATH="${PATH}" PI_BIN=/bin/true PI_CODING_AGENT_DIR="${test_home}/.pi/agent" SPI_FORCE_PROBE=1 "${script_path}" -- / -q -x /bin/true 2>&1 || true)"
+    if [[ "${output}" == *'refusing to mount the host root writable'* ]]; then
+        validation_pass 'Test F.2 PASS: writable host-root targets are rejected'
+    else
+        validation_fail "Test F.2 FAIL: writable host-root target was not rejected (${output})"
         failed_tests=$((failed_tests + 1))
     fi
 
@@ -1621,15 +1962,21 @@ fi
 
 # -------- defaults --------
 PI_BIN="${PI_BIN:-${PI_BIN_DEFAULT}}"
-BACKEND="${SPI_BACKEND:-auto}"
 FS_MODE="${SPI_FS_MODE:-rw}"
 QUIET=0
 VERBOSE=0
 VALIDATE_MODE=0
 DOCTOR_MODE=0
-ALLOW_GIT=0
+ALLOW_GIT=1
 ALLOW_INFRA=0
 ALLOW_PI_CONFIG=0
+ALLOW_HOST_TOOLS=1
+ALLOW_HOST_TOOLS_SET=0
+ALLOW_HOST_TOOLS_DISABLE_SET=0
+ALLOW_GUI=0
+WEB_DEVELOPER_MODE=0
+ALLOW_NVIM_REMOTE=1
+FORWARD_SSH_AGENT=1
 RESTRICT_DEV=1
 RO_SET=0
 RW_SET=0
@@ -1637,6 +1984,18 @@ SPI_PARSE_MODE=0
 HOST_HOME="${HOME}"
 HOST_USER="${USER:-andres}"
 HOST_LOGNAME="${LOGNAME:-${HOST_USER}}"
+SPI_TRACE_STARTUP_STARTED=0
+SPI_TRACE_STARTUP_LAST=0
+SPI_CACHE_DIR=""
+SPI_DISCOVERY_CACHE=""
+SPI_DISCOVERY_CACHE_VALID=0
+SPI_CACHE_BWRAP_PATH=""
+SPI_CACHE_BWRAP_VERSION=""
+BWRAP_DISABLE_USERNS_SUPPORTED=0
+
+trace_startup "defaults initialized"
+init_discovery_cache
+trace_startup "discovery cache initialized"
 PI_AGENT_DIR_FROM_ENV=0
 if [[ -n "${PI_CODING_AGENT_DIR:-}" ]]; then
     PI_AGENT_DIR="${PI_CODING_AGENT_DIR}"
@@ -1657,6 +2016,11 @@ TARGET_SOURCE_PARENT_DIR=""
 INVOCATION_CWD=""
 SANDBOX_PROJECT_ROOT=""
 SANDBOX_WORKDIR=""
+FILE_MODE_TMP_DIR=""
+FILE_MODE_PARENT_DIR=""
+FILE_MODE_TARGET_PATH=""
+FILE_MODE_RO_SOURCE_SANDBOX_PATH=""
+FILE_MODE_BINDS=()
 PI_ARGS=()
 SPI_ARGS=()
 RAW_COMMAND=()
@@ -1671,14 +2035,14 @@ declare -A PARENT_DIR_EXPANSION_SET=()
 declare -A EXTRA_BIND_DEST_SET=()
 declare -A SANDBOX_ENV_SET=()
 
+trap cleanup_file_mode_tmp_dir EXIT
+
 # Pi writable runtime/state is intentionally narrow. Existing ~/.pi is mounted
-# read-only first, then ~/.pi/agent is overlaid writable so Pi can mkdir direct
-# startup lock dirs such as settings.json.lock/trust.json.lock and update the
-# corresponding root-agent JSON. Known child state trees are still listed and
-# precreated explicitly for diagnostics/tests and compatibility with older Pi
-# layouts. Known ~/.pi/agent resource/config children are overlaid read-only
-# after the writable root so symlinked package/extension/prompt/skill/theme
-# resources resolve without granting broad write access to their targets.
+# read-only first, then ~/.pi/agent is replaced by disposable tmpfs so Pi can
+# mkdir direct startup lock dirs such as settings.json.lock/trust.json.lock.
+# Known child state trees are precreated and persist through explicit writable
+# binds. Agent resources and root configuration JSON are restored read-only so
+# they can be changed only when ~/.pi itself is the selected writable target.
 PI_AGENT_STATE_SUBDIRS=(
     tasks
     status
@@ -1701,7 +2065,8 @@ PI_AGENT_STATE_SUBDIRS=(
     providers
     state
 )
-PI_RUNTIME_WRITABLE_LABEL="tasks status todos plans jobs runs ui statusline sessions auth trust models metadata cache git npm projects workspaces providers state"
+# TODO(spi-plugin-integrity): validate Pi extensions/packages before startup,
+# including symlink containment, manifests, entry points, and a private fingerprint cache.
 PI_AGENT_RO_PATHS=(
     extensions
     packages
@@ -1710,7 +2075,7 @@ PI_AGENT_RO_PATHS=(
     themes
     keybindings.json
 )
-PI_AGENT_MUTABLE_ROOT_FILES=(
+PI_AGENT_ROOT_CONFIG_FILES=(
     settings.json
     trust.json
     auth.json
@@ -1767,12 +2132,15 @@ while [[ $# -gt 0 ]]; do
         ;;
     --backend)
         if [[ $# -lt 2 ]]; then error "missing argument for --backend"; exit 1; fi
-        BACKEND="$2"
+        if [[ "$2" != "bwrap" ]]; then error "spi supports only the bwrap backend"; exit 1; fi
         shift 2
         ;;
-    --backend=*)
-        BACKEND="${1#--backend=}"
+    --backend=bwrap)
         shift
+        ;;
+    --backend=*)
+        error "spi supports only the bwrap backend"
+        exit 1
         ;;
     --doctor | --docotr)
         DOCTOR_MODE=1
@@ -1802,6 +2170,33 @@ while [[ $# -gt 0 ]]; do
         ;;
     --allow-pi-config)
         ALLOW_PI_CONFIG=1
+        shift
+        ;;
+    --allow-host-tools)
+        ALLOW_HOST_TOOLS=1
+        ALLOW_HOST_TOOLS_SET=1
+        shift
+        ;;
+    --no-host-tools)
+        ALLOW_HOST_TOOLS=0
+        ALLOW_HOST_TOOLS_DISABLE_SET=1
+        shift
+        ;;
+    --no-nvim-remote)
+        ALLOW_NVIM_REMOTE=0
+        shift
+        ;;
+    -g | --allow-gui)
+        ALLOW_GUI=1
+        shift
+        ;;
+    -s | --no-ssh-agent)
+        FORWARD_SSH_AGENT=0
+        shift
+        ;;
+    -w | --web-developer)
+        WEB_DEVELOPER_MODE=1
+        ALLOW_GUI=1
         shift
         ;;
     --full-dev)
@@ -1844,6 +2239,10 @@ if [[ "${RO_SET}" -eq 1 && "${RW_SET}" -eq 1 ]]; then
     error "--ro and --rw are mutually exclusive"
     exit 1
 fi
+if [[ "${ALLOW_HOST_TOOLS_SET}" -eq 1 && "${ALLOW_HOST_TOOLS_DISABLE_SET}" -eq 1 ]]; then
+    error "--allow-host-tools and --no-host-tools are mutually exclusive"
+    exit 1
+fi
 if [[ "${FS_MODE}" != "ro" && "${FS_MODE}" != "rw" ]]; then
     error "invalid FS mode '${FS_MODE}' (expected 'ro' or 'rw')"
     exit 1
@@ -1852,13 +2251,69 @@ if [[ -z "${PROJECT_TARGET}" ]]; then
     PROJECT_TARGET="${PWD}"
 fi
 
-resolve_backend
-[[ "${BACKEND}" == "bwrap" ]] || { error "resolved backend is not implemented: ${BACKEND}"; exit 1; }
-check_bwrap_namespace_support || exit 1
+if [[ "$(uname -s 2>/dev/null || printf unknown)" != "Linux" ]]; then
+    error "Bubblewrap requires Linux"
+    exit 1
+fi
+if ! command -v bwrap >/dev/null 2>&1; then
+    error "bubblewrap (bwrap) not found in PATH"
+    error "install bubblewrap before running spi"
+    exit 1
+fi
+
+SPI_CACHE_BWRAP_PATH="$(command -v bwrap)"
+SPI_CACHE_BWRAP_VERSION="$(bwrap --version 2>/dev/null || printf unknown)"
+if ! is_discovery_cache_current "${SPI_CACHE_BWRAP_PATH}" "${SPI_CACHE_BWRAP_VERSION}"; then
+    SPI_CACHE_BWRAP_DISABLE_USERNS_SUPPORTED=""
+    SPI_CACHE_BWRAP_NAMESPACE_SUPPORT=""
+    SPI_CACHE_REAL_GIT_HOST=""
+    SPI_CACHE_REAL_GIT_REALPATH=""
+    SPI_CACHE_SCODER_GIT_HOST=""
+    SPI_CACHE_SCODER_GIT_REALPATH=""
+fi
+if is_discovery_cache_current "${SPI_CACHE_BWRAP_PATH}" "${SPI_CACHE_BWRAP_VERSION}" &&
+    [[ -n "${SPI_CACHE_BWRAP_DISABLE_USERNS_SUPPORTED:-}" ]]; then
+    BWRAP_DISABLE_USERNS_SUPPORTED="${SPI_CACHE_BWRAP_DISABLE_USERNS_SUPPORTED}"
+    trace_startup "bwrap capability cache hit"
+else
+    BWRAP_DISABLE_USERNS_SUPPORTED=0
+    if bwrap --help 2>/dev/null | grep -q -- "--disable-userns"; then
+        BWRAP_DISABLE_USERNS_SUPPORTED=1
+    fi
+    SPI_CACHE_BWRAP_DISABLE_USERNS_SUPPORTED="${BWRAP_DISABLE_USERNS_SUPPORTED}"
+    write_discovery_cache
+    trace_startup "bwrap capabilities discovered"
+fi
+
+if is_discovery_cache_current "${SPI_CACHE_BWRAP_PATH}" "${SPI_CACHE_BWRAP_VERSION}" &&
+    [[ "${SPI_CACHE_BWRAP_NAMESPACE_SUPPORT:-}" == "ok" ]]; then
+    trace_startup "bwrap namespace probe cache hit"
+else
+    check_bwrap_namespace_support || exit 1
+    if [[ "${SPI_FORCE_PROBE:-0}" != "1" ]]; then
+        SPI_CACHE_BWRAP_NAMESPACE_SUPPORT=ok
+        write_discovery_cache
+    fi
+    trace_startup "bwrap namespace probe completed"
+fi
+
 discover_pi_binary
 discover_git_wrapper
+trace_startup "tool discovery completed"
+
+if [[ "${WEB_DEVELOPER_MODE}" -eq 1 ]]; then
+    ensure_chromium_devtools || exit 1
+fi
+if [[ "${FORWARD_SSH_AGENT}" -eq 1 && -n "${SSH_AUTH_SOCK:-}" && ! -S "${SSH_AUTH_SOCK}" ]]; then
+    error "SSH_AUTH_SOCK is not a socket: ${SSH_AUTH_SOCK}"
+    exit 1
+fi
 
 resolve_target_mode "${PROJECT_TARGET}"
+if [[ "${TARGET_KIND}" == "dir" && "${TARGET_SOURCE_PATH}" == "/" && "${FS_MODE}" != "ro" ]]; then
+    error "refusing to mount the host root writable; use --ro or select a narrower target"
+    exit 1
+fi
 INVOCATION_CWD="$(realpath "${PWD}")"
 if [[ "${TARGET_KIND}" == "dir" ]]; then
     if [[ "${TARGET_PATH}" != "${TARGET_SOURCE_PATH}" ]]; then
@@ -1883,6 +2338,12 @@ SANDBOX_LOCAL_SHARE_DIR="${SANDBOX_LOCAL_DIR}/share"
 SANDBOX_LOCAL_STATE_DIR="${SANDBOX_LOCAL_DIR}/state"
 SANDBOX_CONFIG_DIR="${SANDBOX_HOME}/.config"
 SANDBOX_CACHE_DIR="${SANDBOX_HOME}/.cache"
+SANDBOX_BUN_HOME="${SANDBOX_HOME}/.bun"
+SANDBOX_PNPM_HOME="${SANDBOX_LOCAL_SHARE_DIR}/pnpm"
+SANDBOX_PLAYWRIGHT_BROWSERS_CACHE="${SANDBOX_CACHE_DIR}/ms-playwright"
+SANDBOX_EDITOR="v_quickedit_hover"
+NVIM_EDITOR_SCRIPT="${HOST_HOME}/.config/nvim/scripts/opencode-editor"
+SANDBOX_NVIM_EDITOR="${SANDBOX_HOME}/.config/nvim/scripts/opencode-editor"
 SPI_TMPDIR="/tmp/spi-$$"
 
 map_host_path_to_sandbox "${PI_AGENT_DIR}"
@@ -1890,16 +2351,70 @@ SANDBOX_PI_AGENT_DIR="${REPLY}"
 
 if [[ "${TARGET_KIND}" == "file" || "${FS_MODE}" == "ro" ]]; then
     PROJECT_BIND_FLAG="--ro-bind"
+    PROJECT_TOOL_BIND_FLAG="--ro-bind"
 else
     PROJECT_BIND_FLAG="--bind"
+    PROJECT_TOOL_BIND_FLAG="--bind"
 fi
 
-SANDBOX_PATH="/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin"
-if [[ -d "${HOST_HOME}/.local/bin" ]]; then
-    resolve_bind_source_path "${HOST_HOME}/.local/bin"
-    EXTRA_BINDS+=(--ro-bind "${REPLY}" "${SANDBOX_HOME}/.local/bin")
-    SANDBOX_PATH="${SANDBOX_HOME}/.local/bin:${SANDBOX_PATH}"
+SANDBOX_PATH="/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin:/usr/bin/site_perl"
+SANDBOX_PATH="${SANDBOX_BUN_HOME}/bin:${SANDBOX_PNPM_HOME}:${SANDBOX_PNPM_HOME}/bin:${SANDBOX_PATH}"
+
+if [[ "${ALLOW_HOST_TOOLS}" -eq 1 ]]; then
+    info "Binding host development tools"
+    if [[ -d "${HOST_HOME}/.local/bin" ]]; then
+        resolve_bind_source_path "${HOST_HOME}/.local/bin"
+        EXTRA_BINDS+=(--ro-bind "${REPLY}" "${SANDBOX_HOME}/.local/bin")
+        SANDBOX_PATH="${SANDBOX_HOME}/.local/bin:${SANDBOX_PATH}"
+    fi
+
+    HOST_RUNTIME_BIND_SUBPATHS=(
+        ".local/share/uv" ".cache/uv" ".npm" ".cache/npm" ".cache/node"
+        ".local/share/pnpm" ".cache/pnpm" ".krimto" ".cache/yarn"
+        ".cache/pip" ".cache/pipx" ".local/pipx" ".cache/sccache"
+        ".cache/go-build" ".hex" ".mix" ".cache/rebar3" ".cache/gleam"
+        ".local/share/gleam" ".deno" ".gradle" ".m2/repository"
+        ".nuget/packages" ".gem" ".bundle" ".cache/bundle"
+        ".composer" ".cache/composer" ".bun" ".cache/bun" ".cache/ms-playwright"
+    )
+    for runtime_subpath in "${HOST_RUNTIME_BIND_SUBPATHS[@]}"; do
+        bind_runtime_dir "${HOST_HOME}/${runtime_subpath}" "${SANDBOX_HOME}/${runtime_subpath}"
+    done
+
+    if [[ -d "${HOST_HOME}/.pyenv" ]]; then
+        opt_ro_bind_dir "${HOST_HOME}/.pyenv" "${SANDBOX_HOME}/.pyenv"
+        SANDBOX_PATH="${SANDBOX_HOME}/.pyenv/shims:${SANDBOX_HOME}/.pyenv/bin:${SANDBOX_PATH}"
+        PYENV_ROOT_SANDBOX="${SANDBOX_HOME}/.pyenv"
+    fi
+
+    select_host_tool_home "${RUSTUP_HOME:-}" "${HOST_HOME}/.local/share/rustup" "${HOST_HOME}/.rustup"
+    HOST_RUSTUP_HOME="${REPLY}"
+    if [[ -d "${HOST_RUSTUP_HOME}" ]]; then
+        map_host_path_to_sandbox "${HOST_RUSTUP_HOME}"
+        RUSTUP_HOME_SANDBOX="${REPLY}"
+        opt_ro_bind_dir "${HOST_RUSTUP_HOME}" "${RUSTUP_HOME_SANDBOX}"
+    fi
+
+    select_host_tool_home "${CARGO_HOME:-}" "${HOST_HOME}/.local/share/cargo" "${HOST_HOME}/.cargo"
+    HOST_CARGO_HOME="${REPLY}"
+    map_host_path_to_sandbox "${HOST_CARGO_HOME}"
+    CARGO_HOME_SANDBOX="${REPLY}"
+    bind_runtime_dir "${HOST_CARGO_HOME}" "${CARGO_HOME_SANDBOX}"
+    SANDBOX_PATH="${CARGO_HOME_SANDBOX}/bin:${SANDBOX_PATH}"
+
+    select_host_tool_home "${GOPATH:-}" "${HOST_HOME}/.local/share/go" "${HOST_HOME}/go"
+    HOST_GOPATH="${REPLY}"
+    map_host_path_to_sandbox "${HOST_GOPATH}"
+    GOPATH_SANDBOX="${REPLY}"
+    bind_runtime_dir "${HOST_GOPATH}" "${GOPATH_SANDBOX}"
+    SANDBOX_PATH="${GOPATH_SANDBOX}/bin:${SANDBOX_PATH}"
+    if [[ -n "${GOBIN:-}" ]]; then
+        map_host_path_to_sandbox "${GOBIN}"
+        GOBIN_SANDBOX="${REPLY}"
+        SANDBOX_PATH="${GOBIN_SANDBOX}:${SANDBOX_PATH}"
+    fi
 fi
+trace_startup "host development tool binds prepared"
 
 if [[ "${ALLOW_PI_CONFIG}" -eq 1 ]]; then
     bind_runtime_dir "${HOST_HOME}/.pi" "${SANDBOX_HOME}/.pi"
@@ -1918,12 +2433,58 @@ opt_ro_bind_global_skills
 
 opt_ro_bind_path "${HOST_HOME}/.gitconfig" "${SANDBOX_HOME}/.gitconfig"
 opt_ro_bind_path "${HOST_HOME}/.config/git/config" "${SANDBOX_HOME}/.config/git/config"
+if [[ "${ALLOW_NVIM_REMOTE}" -eq 1 && -f "${NVIM_EDITOR_SCRIPT}" ]]; then
+    opt_ro_bind_path "${NVIM_EDITOR_SCRIPT}" "${SANDBOX_NVIM_EDITOR}"
+    SANDBOX_EDITOR="${SANDBOX_NVIM_EDITOR}"
+    info "Neovim integration: using ${SANDBOX_NVIM_EDITOR} for EDITOR/VISUAL"
+fi
+RESOLV_CONF_TARGET="$(readlink -f /etc/resolv.conf 2>/dev/null || true)"
+if [[ -n "${RESOLV_CONF_TARGET}" && "${RESOLV_CONF_TARGET}" != "/etc/resolv.conf" && -f "${RESOLV_CONF_TARGET}" ]]; then
+    opt_ro_bind_path "${RESOLV_CONF_TARGET}" "${RESOLV_CONF_TARGET}"
+fi
 opt_ro_bind_path /run/systemd/resolve /run/systemd/resolve
 opt_ro_bind_path /run/dbus /run/dbus
 opt_ro_bind_path /run/NetworkManager /run/NetworkManager
 opt_ro_bind_path /var/run/nscd /var/run/nscd
 bind_terminal_integration
 bind_pi_socket_envs
+
+if [[ "${ALLOW_GUI}" -eq 1 ]]; then
+    info "Allowing GUI/session access"
+    [[ -d /tmp/.X11-unix ]] && opt_ro_bind_dir /tmp/.X11-unix /tmp/.X11-unix
+    if [[ -n "${XAUTHORITY:-}" && -e "${XAUTHORITY}" ]]; then
+        opt_ro_bind_path "${XAUTHORITY}" "${XAUTHORITY}"
+    elif [[ -f "${HOST_HOME}/.Xauthority" ]]; then
+        opt_ro_bind_path "${HOST_HOME}/.Xauthority" "${SANDBOX_HOME}/.Xauthority"
+    fi
+    if [[ -n "${XDG_RUNTIME_DIR:-}" && -d "${XDG_RUNTIME_DIR}" ]]; then
+        bind_runtime_dir "${XDG_RUNTIME_DIR}" "${XDG_RUNTIME_DIR}"
+    fi
+fi
+
+if [[ "${FORWARD_SSH_AGENT}" -eq 1 && -n "${SSH_AUTH_SOCK:-}" ]]; then
+    bind_runtime_path_precreated "${SSH_AUTH_SOCK}" "${SSH_AUTH_SOCK}"
+    add_sandbox_env_once SSH_AUTH_SOCK "${SSH_AUTH_SOCK}"
+    info "Forwarding SSH agent socket: ${SSH_AUTH_SOCK}"
+fi
+
+if [[ -d "${PROJECT_SOURCE_DIR}/.cargo/bin" ]]; then
+    EXTRA_BINDS+=("${PROJECT_TOOL_BIND_FLAG}" "${PROJECT_SOURCE_DIR}/.cargo/bin" "${SANDBOX_HOME}/.cargo/bin")
+    SANDBOX_PATH="${SANDBOX_HOME}/.cargo/bin:${SANDBOX_PATH}"
+fi
+if [[ -d "${PROJECT_SOURCE_DIR}/.venv/bin" ]]; then
+    EXTRA_BINDS+=("${PROJECT_TOOL_BIND_FLAG}" "${PROJECT_SOURCE_DIR}/.venv/bin" "${SANDBOX_PROJECT_ROOT}/.venv/bin")
+    SANDBOX_PATH="${SANDBOX_PROJECT_ROOT}/.venv/bin:${SANDBOX_PATH}"
+fi
+if [[ -d "${PROJECT_SOURCE_DIR}/node_modules/.bin" ]]; then
+    EXTRA_BINDS+=("${PROJECT_TOOL_BIND_FLAG}" "${PROJECT_SOURCE_DIR}/node_modules/.bin" "${SANDBOX_PROJECT_ROOT}/node_modules/.bin")
+    SANDBOX_PATH="${SANDBOX_PROJECT_ROOT}/node_modules/.bin:${SANDBOX_PATH}"
+fi
+if [[ -d "${PROJECT_SOURCE_DIR}/bin" && -f "${PROJECT_SOURCE_DIR}/go.mod" ]]; then
+    EXTRA_BINDS+=("${PROJECT_TOOL_BIND_FLAG}" "${PROJECT_SOURCE_DIR}/bin" "${SANDBOX_PROJECT_ROOT}/bin")
+    SANDBOX_PATH="${SANDBOX_PROJECT_ROOT}/bin:${SANDBOX_PATH}"
+fi
+trace_startup "runtime, GUI, SSH, and project tool binds prepared"
 
 if [[ "${TARGET_KIND}" == "file" ]] && ! is_path_within "${PROJECT_SOURCE_DIR}" "${INVOCATION_CWD}"; then
     EXTRA_BINDS+=(--ro-bind "${INVOCATION_CWD}" "${INVOCATION_CWD}")
@@ -1932,44 +2493,44 @@ if [[ -n "${PROJECT_ALIAS_DIR}" ]]; then
     add_prepared_bind_once "${PROJECT_BIND_FLAG}" "${PROJECT_SOURCE_DIR}" "${PROJECT_ALIAS_DIR}"
 fi
 
-PROTECTED_CONTROL_DIRS=(
+# Match scoder's effective target-root policy: Git metadata stays writable by
+# default, while critical build/repository infrastructure is protected unless
+# --allow-infra is explicit.
+PROTECTED_INFRA_DIRS=(
     ".git"
     ".github"
-    ".pi"
-    ".agents"
-    "openspec"
-    ".claude"
+    ".turbo"
+    ".cargo"
 )
-PROTECTED_CONTROL_FILES=(
-    ".mcp.json"
+PROTECTED_INFRA_FILES=(
     ".gitignore"
     "package-lock.json"
-    "pnpm-lock.yaml"
-    "yarn.lock"
     "poetry.lock"
     "Cargo.lock"
+    "pnpm-lock.yaml"
+    "yarn.lock"
 )
 
 if [[ "${ALLOW_INFRA}" -eq 0 ]]; then
-    for control_dir in "${PROTECTED_CONTROL_DIRS[@]}"; do
-        if [[ "${control_dir}" == ".git" && "${ALLOW_GIT}" -eq 1 ]]; then
+    for infra_dir in "${PROTECTED_INFRA_DIRS[@]}"; do
+        if [[ "${infra_dir}" == ".git" && "${ALLOW_GIT}" -eq 1 ]]; then
             continue
         fi
-        if [[ -d "${PROJECT_SOURCE_DIR}/${control_dir}" ]]; then
-            SAFE_BINDS+=(--ro-bind "${PROJECT_SOURCE_DIR}/${control_dir}" "${SANDBOX_PROJECT_ROOT}/${control_dir}")
+        if [[ -d "${PROJECT_SOURCE_DIR}/${infra_dir}" ]]; then
+            SAFE_BINDS+=(--ro-bind "${PROJECT_SOURCE_DIR}/${infra_dir}" "${SANDBOX_PROJECT_ROOT}/${infra_dir}")
             if [[ -n "${PROJECT_ALIAS_DIR}" ]]; then
-                SAFE_BINDS+=(--ro-bind "${PROJECT_SOURCE_DIR}/${control_dir}" "${PROJECT_ALIAS_DIR}/${control_dir}")
+                SAFE_BINDS+=(--ro-bind "${PROJECT_SOURCE_DIR}/${infra_dir}" "${PROJECT_ALIAS_DIR}/${infra_dir}")
             fi
-            info "Protecting ${control_dir}/ (read-only)"
+            info "Protecting ${infra_dir}/ (read-only)"
         fi
     done
-    for control_file in "${PROTECTED_CONTROL_FILES[@]}"; do
-        if [[ -f "${PROJECT_SOURCE_DIR}/${control_file}" ]]; then
-            SAFE_BINDS+=(--ro-bind "${PROJECT_SOURCE_DIR}/${control_file}" "${SANDBOX_PROJECT_ROOT}/${control_file}")
+    for infra_file in "${PROTECTED_INFRA_FILES[@]}"; do
+        if [[ -f "${PROJECT_SOURCE_DIR}/${infra_file}" ]]; then
+            SAFE_BINDS+=(--ro-bind "${PROJECT_SOURCE_DIR}/${infra_file}" "${SANDBOX_PROJECT_ROOT}/${infra_file}")
             if [[ -n "${PROJECT_ALIAS_DIR}" ]]; then
-                SAFE_BINDS+=(--ro-bind "${PROJECT_SOURCE_DIR}/${control_file}" "${PROJECT_ALIAS_DIR}/${control_file}")
+                SAFE_BINDS+=(--ro-bind "${PROJECT_SOURCE_DIR}/${infra_file}" "${PROJECT_ALIAS_DIR}/${infra_file}")
             fi
-            info "Protecting ${control_file} (read-only)"
+            info "Protecting ${infra_file} (read-only)"
         fi
     done
 fi
@@ -1988,7 +2549,7 @@ BWRAP_CMD=(
     --ro-bind /lib /lib
 )
 
-if bwrap --help 2>/dev/null | grep -q -- "--disable-userns"; then
+if [[ "${BWRAP_DISABLE_USERNS_SUPPORTED}" -eq 1 ]]; then
     BWRAP_CMD=(bwrap --unshare-user "${BWRAP_CMD[@]:1}")
     BWRAP_CMD+=(--disable-userns)
 else
@@ -2036,6 +2597,10 @@ if [[ "${SANDBOX_PROJECT_ROOT}" != "/" ]]; then
 fi
 BWRAP_CMD+=("${EXTRA_BINDS[@]}")
 BWRAP_CMD+=("${PROJECT_BIND_FLAG}" "${PROJECT_SOURCE_DIR}" "${SANDBOX_PROJECT_ROOT}")
+if [[ "${TARGET_KIND}" == "file" && "${FS_MODE}" != "ro" ]]; then
+    prepare_single_file_overlay
+    BWRAP_CMD+=("${FILE_MODE_BINDS[@]}")
+fi
 BWRAP_CMD+=("${SAFE_BINDS[@]}")
 
 BWRAP_CMD+=(
@@ -2055,17 +2620,32 @@ BWRAP_CMD+=(
     --setenv COLORTERM "${COLORTERM:-truecolor}"
     --setenv LANG "${LANG:-C.UTF-8}"
     --setenv LC_ALL "${LC_ALL:-C.UTF-8}"
+    --setenv EDITOR "${SANDBOX_EDITOR}"
+    --setenv VISUAL "${SANDBOX_EDITOR}"
     --setenv SHELL "${SHELL:-/bin/bash}"
     --setenv GIT_OPTIONAL_LOCKS 0
     --setenv SCODER_REAL_GIT /spi/real-git
     --setenv TMPDIR "${SPI_TMPDIR}"
-    --setenv SPI_BACKEND "${BACKEND}"
+    --setenv PNPM_HOME "${SANDBOX_PNPM_HOME}"
+    --setenv PLAYWRIGHT_BROWSERS_PATH "${SANDBOX_PLAYWRIGHT_BROWSERS_CACHE}"
+    --setenv MISE_SKIP_ACTIVATE 1
+    --setenv UV_LINK_MODE copy
     --setenv OPENSPEC_TELEMETRY 0
 )
 
-if [[ "${PI_AGENT_DIR_FROM_ENV}" -eq 1 ]]; then
-    BWRAP_CMD+=(--setenv PI_CODING_AGENT_DIR "${SANDBOX_PI_AGENT_DIR}")
+[[ -n "${PYENV_ROOT_SANDBOX:-}" ]] && BWRAP_CMD+=(--setenv PYENV_ROOT "${PYENV_ROOT_SANDBOX}")
+[[ -n "${RUSTUP_HOME_SANDBOX:-}" ]] && BWRAP_CMD+=(--setenv RUSTUP_HOME "${RUSTUP_HOME_SANDBOX}")
+[[ -n "${CARGO_HOME_SANDBOX:-}" ]] && BWRAP_CMD+=(--setenv CARGO_HOME "${CARGO_HOME_SANDBOX}")
+[[ -n "${GOPATH_SANDBOX:-}" ]] && BWRAP_CMD+=(--setenv GOPATH "${GOPATH_SANDBOX}")
+[[ -n "${GOBIN_SANDBOX:-}" ]] && BWRAP_CMD+=(--setenv GOBIN "${GOBIN_SANDBOX}")
+if [[ -n "${PYO3_PYTHON:-}" ]]; then
+    BWRAP_CMD+=(--setenv PYO3_PYTHON "${SANDBOX_WORKDIR}/.venv/bin/python")
 fi
+
+# Always pin Pi to the config tree that spi mounted. Relying on Pi's homedir()
+# fallback inside a user namespace can resolve a different home than $HOME,
+# causing settings, packages, extensions, and themes to disappear silently.
+BWRAP_CMD+=(--setenv PI_CODING_AGENT_DIR "${SANDBOX_PI_AGENT_DIR}")
 
 if [[ ${#RAW_COMMAND[@]} -gt 0 ]]; then
     BWRAP_CMD+=("${RAW_COMMAND[@]}")
@@ -2074,5 +2654,15 @@ else
 fi
 
 trace_startup "bwrap command built"
-info "Launching spi sandbox with ${BACKEND}..."
+info "Launching spi Bubblewrap sandbox..."
+if [[ "${TARGET_KIND}" == "file" && "${FS_MODE}" != "ro" ]]; then
+    set +e
+    "${BWRAP_CMD[@]}"
+    BWRAP_STATUS=$?
+    set -e
+    if [[ "${BWRAP_STATUS}" -eq 0 ]]; then
+        sync_single_file_target_back || exit 1
+    fi
+    exit "${BWRAP_STATUS}"
+fi
 exec "${BWRAP_CMD[@]}"

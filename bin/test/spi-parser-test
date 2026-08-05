@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016 # Fixtures and source assertions intentionally use literal shell expansions.
 set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
@@ -33,6 +34,7 @@ readonly TEST_SANDBOX_XDG_DATA_HOME="${TEST_HOME}/.local/share"
 readonly TEST_SANDBOX_XDG_STATE_HOME="${TEST_HOME}/.local/state"
 readonly TEST_SANDBOX_XDG_CACHE_HOME="${TEST_HOME}/.cache"
 readonly TEST_ZDOTDIR="${TEST_HOME}/.config/zsh"
+readonly TEST_NVIM_EDITOR="${TEST_HOME}/.config/nvim/scripts/opencode-editor"
 readonly TEST_SOCKET_ROOT="${TEST_ROOT}/runtime"
 readonly TEST_NVIM_SOCKET="${TEST_SOCKET_ROOT}/nvim.sock"
 readonly TEST_NVIM_LISTEN_SOCKET="${TEST_SOCKET_ROOT}/nvim-listen.sock"
@@ -78,7 +80,7 @@ mkdir -p \
     "${TEST_PI_AGENT_RESOURCE_SOURCE}/skills" \
     "${TEST_PI_AGENT_RESOURCE_SOURCE}/themes" \
     "${TEST_HOME}/.agents/skills/example" \
-    "${TEST_HOME}/.config" \
+    "${TEST_HOME}/.config/nvim/scripts" \
     "${TEST_PNPM_HOME}/bin" \
     "${TEST_PNPM_HOME}/global/v11/fake/node_modules/@earendil-works/pi-coding-agent/dist" \
     "${TEST_PNPM_HOME}/store/v11/files" \
@@ -95,6 +97,9 @@ mkdir -p \
     "$(dirname -- "${TEST_PI_STATUS_SOCKET}")" \
     "${TEST_BIN}" \
     "${TEST_PROJECT}/.git" \
+    "${TEST_PROJECT}/.github" \
+    "${TEST_PROJECT}/.turbo" \
+    "${TEST_PROJECT}/.cargo" \
     "${TEST_PROJECT}/.agents/skills/example" \
     "${TEST_PROJECT}/.pi" \
     "${TEST_PROJECT}/node_modules" \
@@ -114,7 +119,9 @@ done
 for pi_agent_file in keybindings.json settings.json trust.json auth.json models-store.json; do
     ln -s "${TEST_PI_AGENT_RESOURCE_SOURCE}/${pi_agent_file}" "${TEST_HOME}/.pi/agent/${pi_agent_file}"
 done
-touch "${TEST_PROJECT}/.gitignore" "${TEST_PROJECT}/.env"
+touch "${TEST_PROJECT}/.gitignore" "${TEST_PROJECT}/package-lock.json" \
+    "${TEST_PROJECT}/poetry.lock" "${TEST_PROJECT}/Cargo.lock" \
+    "${TEST_PROJECT}/pnpm-lock.yaml" "${TEST_PROJECT}/yarn.lock" "${TEST_PROJECT}/.env"
 printf 'pi-config\n' >"${TEST_HOME}/.pi/config"
 printf '{"theme":"original"}\n' >"${TEST_HOME}/.pi/agent/settings.json"
 printf '{"trusted":false}\n' >"${TEST_HOME}/.pi/agent/trust.json"
@@ -142,6 +149,7 @@ printf "format = \"\$character\"\n" >"${TEST_XDG_CONFIG_HOME}/starship.toml"
 printf 'zshenv\n' >"${TEST_HOME}/.zshenv"
 printf 'zshrc\n' >"${TEST_HOME}/.zshrc"
 printf 'zdotdir-zshrc\n' >"${TEST_ZDOTDIR}/.zshrc"
+printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"${TEST_NVIM_EDITOR}"
 printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"${FAKE_PI}"
 printf '%s\n' \
     '#!/bin/sh' \
@@ -204,7 +212,7 @@ if [[ "${is_probe}" -eq 1 ]]; then
 fi
 printf '%s\0' "$@" >"${SPI_TEST_BWRAP_CAPTURE}"
 BWRAP_EOF
-chmod +x "${FAKE_PI}" "${FAKE_PNPM_PI}" "${FAKE_SCODER_GIT}" "${TEST_BIN}/bwrap"
+chmod +x "${TEST_NVIM_EDITOR}" "${FAKE_PI}" "${FAKE_PNPM_PI}" "${FAKE_SCODER_GIT}" "${TEST_BIN}/bwrap"
 
 run_spi_with_stderr() {
     local stderr_file="$1"
@@ -233,6 +241,15 @@ run_spi_with_stderr() {
     fi
     if [[ -n "${SPI_TEST_PI_DENIED_SOCKET:-}" ]]; then
         optional_env+=(PI_LOGIN_SOCKET="${SPI_TEST_PI_DENIED_SOCKET}")
+    fi
+    if [[ -n "${SPI_TEST_SSH_AUTH_SOCK:-}" ]]; then
+        optional_env+=(SSH_AUTH_SOCK="${SPI_TEST_SSH_AUTH_SOCK}")
+    fi
+    if [[ -n "${SPI_TEST_XDG_RUNTIME_DIR:-}" ]]; then
+        optional_env+=(XDG_RUNTIME_DIR="${SPI_TEST_XDG_RUNTIME_DIR}")
+    fi
+    if [[ -n "${SPI_TEST_DISPLAY:-}" ]]; then
+        optional_env+=(DISPLAY="${SPI_TEST_DISPLAY}")
     fi
 
     rm -f -- "${BWRAP_CAPTURE}"
@@ -353,6 +370,43 @@ assert_sequence_tail_prefix() {
 
     printf 'FAIL: %s\n  expected sequence ending with prefix: %q -> %s\n' "${description}" "${expected[*]}" "${prefix}" >&2
     exit 1
+}
+
+assert_bind_with_prefix() {
+    local description="$1"
+    local bind_flag="$2"
+    local source_prefix="$3"
+    local destination="$4"
+    local index
+
+    for ((index = 0; index < ${#BWRAP_ARGS[@]} - 2; index++)); do
+        if [[ "${BWRAP_ARGS[index]}" == "${bind_flag}" && \
+            "${BWRAP_ARGS[index + 1]}" == "${source_prefix}"* && \
+            "${BWRAP_ARGS[index + 2]}" == "${destination}" ]]; then
+            printf 'PASS: %s\n' "${description}"
+            return 0
+        fi
+    done
+    printf 'FAIL: %s\n  expected %s %s* %s\n' "${description}" "${bind_flag}" "${source_prefix}" "${destination}" >&2
+    exit 1
+}
+
+assert_bind_with_prefix_absent() {
+    local description="$1"
+    local bind_flag="$2"
+    local source_prefix="$3"
+    local destination="$4"
+    local index
+
+    for ((index = 0; index < ${#BWRAP_ARGS[@]} - 2; index++)); do
+        if [[ "${BWRAP_ARGS[index]}" == "${bind_flag}" && \
+            "${BWRAP_ARGS[index + 1]}" == "${source_prefix}"* && \
+            "${BWRAP_ARGS[index + 2]}" == "${destination}" ]]; then
+            printf 'FAIL: %s\n  unexpected %s %s* %s\n' "${description}" "${bind_flag}" "${source_prefix}" "${destination}" >&2
+            exit 1
+        fi
+    done
+    printf 'PASS: %s\n' "${description}"
 }
 
 sequence_first_index() {
@@ -519,7 +573,7 @@ run_spi prompt -- "${TEST_PROJECT}" -q --backend bwrap
 assert_sequence_contains 'pi args before -- are forwarded unchanged' "${FAKE_PI}" prompt
 assert_sequence_contains 'target defaults to canonical sandbox workdir after parsing' --chdir "${TEST_PROJECT}"
 assert_sequence_contains 'project directory is read-write by default' --bind "${TEST_PROJECT}" "${TEST_PROJECT}"
-assert_sequence_contains '.git is read-only by default' --ro-bind "${TEST_PROJECT}/.git" "${TEST_PROJECT}/.git"
+assert_sequence_absent '.git has no read-only overlay inside the selected target' --ro-bind "${TEST_PROJECT}/.git" "${TEST_PROJECT}/.git"
 assert_sequence_contains '.env remains visible as part of the project bind' --bind "${TEST_PROJECT}" "${TEST_PROJECT}"
 assert_sequence_contains 'Pi agent sessions are writable without whole-home exposure' --bind "${TEST_HOME}/.pi/agent/sessions" "${TEST_HOME}/.pi/agent/sessions"
 assert_sequence_contains 'existing Pi tree is read-only by default' --ro-bind "${TEST_HOME}/.pi" "${TEST_HOME}/.pi"
@@ -552,11 +606,11 @@ assert_sequence_contains 'Pi agent themes symlink resolves read-only at logical 
 assert_sequence_contains 'Pi agent keybindings symlink resolves read-only at logical path' --ro-bind "${TEST_PI_AGENT_RESOURCE_SOURCE}/keybindings.json" "${TEST_HOME}/.pi/agent/keybindings.json"
 assert_file_bind_after_tmpfs 'Pi agent keybindings file binds directly after agent tmpfs' --ro-bind "${TEST_PI_AGENT_RESOURCE_SOURCE}/keybindings.json" "${TEST_HOME}/.pi/agent/keybindings.json"
 assert_sequence_absent 'Pi agent packages resource symlink is not write-bound' --bind "${TEST_PI_AGENT_RESOURCE_SOURCE}/packages" "${TEST_HOME}/.pi/agent/packages"
-assert_sequence_contains 'Pi agent settings symlink remains writable at logical path' --bind "${TEST_PI_AGENT_RESOURCE_SOURCE}/settings.json" "${TEST_HOME}/.pi/agent/settings.json"
-assert_file_bind_after_tmpfs 'Pi agent settings file binds directly after agent tmpfs' --bind "${TEST_PI_AGENT_RESOURCE_SOURCE}/settings.json" "${TEST_HOME}/.pi/agent/settings.json"
-assert_sequence_contains 'Pi agent trust symlink remains writable at logical path' --bind "${TEST_PI_AGENT_RESOURCE_SOURCE}/trust.json" "${TEST_HOME}/.pi/agent/trust.json"
-assert_sequence_contains 'Pi agent auth symlink remains writable at logical path' --bind "${TEST_PI_AGENT_RESOURCE_SOURCE}/auth.json" "${TEST_HOME}/.pi/agent/auth.json"
-assert_sequence_contains 'Pi agent models store symlink remains writable at logical path' --bind "${TEST_PI_AGENT_RESOURCE_SOURCE}/models-store.json" "${TEST_HOME}/.pi/agent/models-store.json"
+assert_sequence_contains 'Pi agent settings symlink remains read-only at logical path' --ro-bind "${TEST_PI_AGENT_RESOURCE_SOURCE}/settings.json" "${TEST_HOME}/.pi/agent/settings.json"
+assert_file_bind_after_tmpfs 'Pi agent settings file binds read-only after agent tmpfs' --ro-bind "${TEST_PI_AGENT_RESOURCE_SOURCE}/settings.json" "${TEST_HOME}/.pi/agent/settings.json"
+assert_sequence_contains 'Pi agent trust symlink remains read-only at logical path' --ro-bind "${TEST_PI_AGENT_RESOURCE_SOURCE}/trust.json" "${TEST_HOME}/.pi/agent/trust.json"
+assert_sequence_contains 'Pi agent auth symlink remains read-only at logical path' --ro-bind "${TEST_PI_AGENT_RESOURCE_SOURCE}/auth.json" "${TEST_HOME}/.pi/agent/auth.json"
+assert_sequence_contains 'Pi agent models store symlink remains read-only at logical path' --ro-bind "${TEST_PI_AGENT_RESOURCE_SOURCE}/models-store.json" "${TEST_HOME}/.pi/agent/models-store.json"
 assert_sequence_absent 'bwrap --file placeholders are not used for Pi agent file overlays' --file
 assert_sequence_contains 'Pi XDG config is visible read-only at sandbox HOME config path' --ro-bind "${TEST_XDG_CONFIG_HOME}/pi" "${TEST_SANDBOX_XDG_CONFIG_HOME}/pi"
 assert_sequence_contains 'Pi XDG data is visible read-only at sandbox HOME data path' --ro-bind "${TEST_XDG_DATA_HOME}/pi" "${TEST_SANDBOX_XDG_DATA_HOME}/pi"
@@ -573,14 +627,24 @@ assert_sequence_contains 'global agent skills are read-only' --ro-bind "${TEST_H
 assert_sequence_value_prefix 'private spi TMPDIR is created' --dir /tmp/spi-
 assert_sequence_tail_prefix 'private spi TMPDIR is chmod 0700' /tmp/spi- --chmod 0700
 assert_sequence_tail_prefix 'TMPDIR environment points at private spi path' /tmp/spi- --setenv TMPDIR
-assert_sequence_absent 'PI_CODING_AGENT_DIR is not forced when host env omits it' --setenv PI_CODING_AGENT_DIR "${TEST_HOME}/.pi/agent"
+assert_sequence_contains 'PI_CODING_AGENT_DIR is pinned to the mounted default agent root' --setenv PI_CODING_AGENT_DIR "${TEST_HOME}/.pi/agent"
 assert_sequence_contains 'git is shadowed by scoder-git wrapper' --ro-bind "${FAKE_SCODER_GIT}" /usr/bin/git
-assert_sequence_contains 'project .pi is read-only by default' --ro-bind "${TEST_PROJECT}/.pi" "${TEST_PROJECT}/.pi"
-assert_sequence_contains 'project .agents is read-only by default' --ro-bind "${TEST_PROJECT}/.agents" "${TEST_PROJECT}/.agents"
+assert_sequence_absent 'project .pi is writable through the selected target bind' --ro-bind "${TEST_PROJECT}/.pi" "${TEST_PROJECT}/.pi"
+assert_sequence_absent 'project .agents is writable through the selected target bind' --ro-bind "${TEST_PROJECT}/.agents" "${TEST_PROJECT}/.agents"
+assert_sequence_absent 'project .git remains writable like scoder effective defaults' --ro-bind "${TEST_PROJECT}/.git" "${TEST_PROJECT}/.git"
+for protected_dir in .github .turbo .cargo; do
+    assert_sequence_contains "default target protects ${protected_dir}" --ro-bind "${TEST_PROJECT}/${protected_dir}" "${TEST_PROJECT}/${protected_dir}"
+done
+for protected_file in .gitignore package-lock.json poetry.lock Cargo.lock pnpm-lock.yaml yarn.lock; do
+    assert_sequence_contains "default target protects ${protected_file}" --ro-bind "${TEST_PROJECT}/${protected_file}" "${TEST_PROJECT}/${protected_file}"
+done
 assert_sequence_contains 'default starship config is read-only' --ro-bind "${TEST_HOME}/.config/starship.toml" "${TEST_HOME}/.config/starship.toml"
 assert_sequence_contains 'XDG starship config is read-only' --ro-bind "${TEST_XDG_CONFIG_HOME}/starship.toml" "${TEST_XDG_CONFIG_HOME}/starship.toml"
 assert_sequence_contains 'home zsh startup file is read-only' --ro-bind "${TEST_HOME}/.zshrc" "${TEST_HOME}/.zshrc"
 assert_sequence_contains 'ZDOTDIR zsh startup file is read-only' --ro-bind "${TEST_ZDOTDIR}/.zshrc" "${TEST_ZDOTDIR}/.zshrc"
+assert_sequence_contains 'Neovim editor bridge is mounted read-only' --ro-bind "${TEST_NVIM_EDITOR}" "${TEST_NVIM_EDITOR}"
+assert_sequence_contains 'EDITOR selects the Neovim bridge' --setenv EDITOR "${TEST_NVIM_EDITOR}"
+assert_sequence_contains 'VISUAL selects the Neovim bridge' --setenv VISUAL "${TEST_NVIM_EDITOR}"
 if [[ -S "${TEST_NVIM_SOCKET}" && -S "${TEST_NVIM_LISTEN_SOCKET}" && -S "${TEST_TMUX_SOCKET}" ]]; then
     assert_sequence_contains 'NVIM socket is exact-bound, not runtime-wide' --bind "${TEST_NVIM_SOCKET}" "${TEST_NVIM_SOCKET}"
     assert_sequence_contains 'NVIM_LISTEN_ADDRESS socket is exact-bound' --bind "${TEST_NVIM_LISTEN_SOCKET}" "${TEST_NVIM_LISTEN_SOCKET}"
@@ -592,6 +656,8 @@ if [[ -S "${TEST_NVIM_SOCKET}" && -S "${TEST_NVIM_LISTEN_SOCKET}" && -S "${TEST_
 fi
 assert_sequence_absent 'normal mode does not write-bind all ~/.pi' --bind "${TEST_HOME}/.pi" "${TEST_HOME}/.pi"
 assert_sequence_absent 'normal mode does not write-bind all ~/.agents' --bind "${TEST_HOME}/.agents" "${TEST_HOME}/.agents"
+assert_sequence_contains 'host tool parity write-binds pnpm state' --bind "${TEST_PNPM_HOME}" "${TEST_PNPM_HOME}"
+assert_sequence_contains 'host tool parity configures PNPM_HOME' --setenv PNPM_HOME "${TEST_PNPM_HOME}"
 assert_sequence_absent 'normal mode does not write-bind provider/model config catalogs' --bind "${TEST_HOME}/.pi/providers" "${TEST_HOME}/.pi/providers"
 assert_sequence_absent 'normal mode does not write-bind model config catalogs' --bind "${TEST_HOME}/.pi/models" "${TEST_HOME}/.pi/models"
 assert_sequence_absent 'terminal integration does not bind broad runtime root' --bind "${TEST_SOCKET_ROOT}" "${TEST_SOCKET_ROOT}"
@@ -641,8 +707,8 @@ assert_sequence_contains 'OpenSpec telemetry is disabled so footer JSON parsing 
 run_spi -- "${TEST_DIRECT_OPENSPEC_PROJECT}" -q --backend bwrap
 assert_sequence_contains 'direct OpenSpec target keeps exact sandbox workdir' --chdir "${TEST_DIRECT_OPENSPEC_PROJECT}"
 assert_sequence_contains 'direct OpenSpec target binds project read-write' --bind "${TEST_DIRECT_OPENSPEC_PROJECT}" "${TEST_DIRECT_OPENSPEC_PROJECT}"
-assert_sequence_contains 'direct OpenSpec target protects local openspec read-only' --ro-bind "${TEST_DIRECT_OPENSPEC_PROJECT}/openspec" "${TEST_DIRECT_OPENSPEC_PROJECT}/openspec"
-assert_sequence_contains 'direct OpenSpec target protects local .pi read-only' --ro-bind "${TEST_DIRECT_OPENSPEC_PROJECT}/.pi" "${TEST_DIRECT_OPENSPEC_PROJECT}/.pi"
+assert_sequence_absent 'direct OpenSpec target leaves local openspec writable' --ro-bind "${TEST_DIRECT_OPENSPEC_PROJECT}/openspec" "${TEST_DIRECT_OPENSPEC_PROJECT}/openspec"
+assert_sequence_absent 'direct OpenSpec target leaves local .pi writable' --ro-bind "${TEST_DIRECT_OPENSPEC_PROJECT}/.pi" "${TEST_DIRECT_OPENSPEC_PROJECT}/.pi"
 assert_sequence_contains 'direct OpenSpec target disables telemetry for footer JSON parsing' --setenv OPENSPEC_TELEMETRY 0
 
 if [[ -S "${TEST_PI_STATUS_SOCKET}" && -S "${TEST_PI_DENIED_SOCKET}" ]]; then
@@ -655,6 +721,23 @@ if [[ -S "${TEST_PI_STATUS_SOCKET}" && -S "${TEST_PI_DENIED_SOCKET}" ]]; then
     assert_sequence_absent 'non-status Pi socket env is not forwarded' --setenv PI_LOGIN_SOCKET "${TEST_PI_DENIED_SOCKET}"
     assert_sequence_absent 'Pi socket integration does not bind broad runtime root' --bind "${TEST_SOCKET_ROOT}" "${TEST_SOCKET_ROOT}"
 fi
+
+if [[ -S "${TEST_PI_DENIED_SOCKET}" ]]; then
+    SPI_TEST_SSH_AUTH_SOCK="${TEST_PI_DENIED_SOCKET}" run_spi -- "${TEST_PROJECT}" -q --backend bwrap
+    assert_sequence_contains 'SSH agent socket is forwarded by default' --bind "${TEST_PI_DENIED_SOCKET}" "${TEST_PI_DENIED_SOCKET}"
+    assert_sequence_contains 'SSH_AUTH_SOCK is restored in the sandbox' --setenv SSH_AUTH_SOCK "${TEST_PI_DENIED_SOCKET}"
+    SPI_TEST_SSH_AUTH_SOCK="${TEST_PI_DENIED_SOCKET}" run_spi -- "${TEST_PROJECT}" -q --backend bwrap --no-ssh-agent
+    assert_sequence_absent '--no-ssh-agent suppresses the SSH socket bind' --bind "${TEST_PI_DENIED_SOCKET}" "${TEST_PI_DENIED_SOCKET}"
+    assert_sequence_absent '--no-ssh-agent suppresses SSH_AUTH_SOCK' --setenv SSH_AUTH_SOCK "${TEST_PI_DENIED_SOCKET}"
+fi
+
+SPI_TEST_XDG_RUNTIME_DIR="${TEST_SOCKET_ROOT}" SPI_TEST_DISPLAY=:99 run_spi -- "${TEST_PROJECT}" -q --backend bwrap --allow-gui
+assert_sequence_contains 'GUI mode write-binds the session runtime directory' --bind "${TEST_SOCKET_ROOT}" "${TEST_SOCKET_ROOT}"
+assert_sequence_contains 'GUI mode preserves DISPLAY' --setenv DISPLAY :99
+
+run_spi -- "${TEST_PROJECT}" -q --backend bwrap --no-host-tools
+assert_sequence_absent '--no-host-tools suppresses writable pnpm state' --bind "${TEST_PNPM_HOME}" "${TEST_PNPM_HOME}"
+assert_sequence_absent '--no-host-tools suppresses host ~/.local/bin' --ro-bind "${TEST_HOME}/.local/bin" "${TEST_HOME}/.local/bin"
 
 SPI_TEST_PI_BIN="${FAKE_PNPM_PI}" run_spi -- "${TEST_PROJECT}" -q --backend bwrap
 assert_sequence_contains 'pnpm-installed Pi exposes its shim/package/store tree read-only' --ro-bind "${TEST_PNPM_HOME}" "${TEST_PNPM_HOME}"
@@ -670,13 +753,36 @@ assert_sequence_contains 'project .agents stays visible through the normal proje
 assert_sequence_absent 'global skill alias suppression does not write-bind all ~/.agents' --bind "${LINKED_GLOBAL_HOME}/.agents" "${LINKED_GLOBAL_HOME}/.agents"
 
 run_spi -- "${TEST_PROJECT}" -q --backend bwrap --allow-git
-assert_sequence_absent '--allow-git removes the default read-only .git overlay' --ro-bind "${TEST_PROJECT}/.git" "${TEST_PROJECT}/.git"
+assert_sequence_absent '--allow-git remains compatible with default writable .git' --ro-bind "${TEST_PROJECT}/.git" "${TEST_PROJECT}/.git"
+
+run_spi -- "${TEST_PROJECT}" -q --backend bwrap --allow-infra
+for protected_dir in .github .turbo .cargo; do
+    assert_sequence_absent "--allow-infra exposes ${protected_dir} through the writable target" --ro-bind "${TEST_PROJECT}/${protected_dir}" "${TEST_PROJECT}/${protected_dir}"
+done
+for protected_file in .gitignore package-lock.json poetry.lock Cargo.lock pnpm-lock.yaml yarn.lock; do
+    assert_sequence_absent "--allow-infra exposes ${protected_file} through the writable target" --ro-bind "${TEST_PROJECT}/${protected_file}" "${TEST_PROJECT}/${protected_file}"
+done
+
+run_spi -- "${TEST_PROJECT}" -q --backend bwrap --no-nvim-remote
+assert_sequence_absent '--no-nvim-remote suppresses the NVIM socket bind' --bind "${TEST_NVIM_SOCKET}" "${TEST_NVIM_SOCKET}"
+assert_sequence_absent '--no-nvim-remote suppresses NVIM_LISTEN_ADDRESS socket bind' --bind "${TEST_NVIM_LISTEN_SOCKET}" "${TEST_NVIM_LISTEN_SOCKET}"
+assert_sequence_absent '--no-nvim-remote suppresses NVIM environment' --setenv NVIM "${TEST_NVIM_SOCKET}"
+assert_sequence_absent '--no-nvim-remote suppresses the Neovim editor script bind' --ro-bind "${TEST_NVIM_EDITOR}" "${TEST_NVIM_EDITOR}"
+assert_sequence_contains '--no-nvim-remote falls back to scoder-compatible editor command' --setenv EDITOR v_quickedit_hover
+if [[ -S "${TEST_TMUX_SOCKET}" ]]; then
+    assert_sequence_contains '--no-nvim-remote keeps exact tmux forwarding' --bind "${TEST_TMUX_SOCKET}" "${TEST_TMUX_SOCKET}"
+    assert_sequence_contains '--no-nvim-remote keeps TMUX environment' --setenv TMUX "${TEST_TMUX_SOCKET},123,0"
+fi
 
 run_spi -- "${TEST_PROJECT}" -q --backend bwrap --allow-pi-config
 assert_sequence_contains '--allow-pi-config write-binds ~/.pi explicitly' --bind "${TEST_HOME}/.pi" "${TEST_HOME}/.pi"
 
+run_spi -- "${TEST_HOME}/.pi" -q --backend bwrap
+assert_sequence_contains 'selecting ~/.pi makes the complete target writable' --bind "${TEST_HOME}/.pi" "${TEST_HOME}/.pi"
+assert_last_sequence_before 'selected ~/.pi target overrides the normal read-only global bind' --ro-bind "${TEST_HOME}/.pi" "${TEST_HOME}/.pi" :: --bind "${TEST_HOME}/.pi" "${TEST_HOME}/.pi"
+
 SPI_TEST_PI_CODING_AGENT_DIR="${TEST_HOME}/.pi/agent" run_spi -- "${TEST_PROJECT}" -q --backend bwrap
-assert_sequence_contains 'PI_CODING_AGENT_DIR is preserved when host env sets it' --setenv PI_CODING_AGENT_DIR "${TEST_HOME}/.pi/agent"
+assert_sequence_contains 'explicit PI_CODING_AGENT_DIR remains pinned to its mounted sandbox path' --setenv PI_CODING_AGENT_DIR "${TEST_HOME}/.pi/agent"
 
 SPI_TEST_PI_PROVIDER=provider-fixture \
     SPI_TEST_PI_MODEL=model-fixture \
@@ -698,23 +804,23 @@ assert_sequence_contains '--add-rw binds extra path read-write' --bind "${EXTRA_
 readonly TARGET_FILE="${TEST_PROJECT}/file-target.txt"
 printf 'target\n' >"${TARGET_FILE}"
 run_spi -- "${TARGET_FILE}" -q --backend bwrap
-assert_sequence_contains 'single-file target mode exposes parent read-only' --ro-bind "${TEST_PROJECT}" "${TEST_PROJECT}"
+assert_sequence_contains 'single-file target mode exposes source parent read-only first' --ro-bind "${TEST_PROJECT}" "${TEST_PROJECT}"
+assert_bind_with_prefix 'single-file target mode overlays a writable temporary parent' --bind /tmp/spi-filemode- "${TEST_PROJECT}"
+assert_sequence_tail_prefix 'single-file target mode exposes siblings through a hidden read-only parent' /tmp/.spi-ro-parent- --ro-bind "${TEST_PROJECT}"
+run_spi -- "${TARGET_FILE}" -q --backend bwrap --ro
+assert_bind_with_prefix_absent '--ro single-file mode does not create a writable temporary overlay' --bind /tmp/spi-filemode- "${TEST_PROJECT}"
 
 run_spi_with_stderr "${TEST_ROOT}/default.err" -- "${TEST_PROJECT}" --backend bwrap -x true
-assert_file_absent 'default startup hides .git protection info' "${TEST_ROOT}/default.err" 'spi: Protecting .git/ (read-only)'
-assert_file_absent 'default startup hides .agents protection info' "${TEST_ROOT}/default.err" 'spi: Protecting .agents/ (read-only)'
-assert_file_absent 'default startup hides .gitignore protection info' "${TEST_ROOT}/default.err" 'spi: Protecting .gitignore (read-only)'
-assert_file_absent 'default startup hides launch info' "${TEST_ROOT}/default.err" 'spi: Launching spi sandbox with bwrap...'
+assert_file_absent 'default startup hides host tool info' "${TEST_ROOT}/default.err" 'spi: Binding host development tools'
+assert_file_absent 'default startup hides launch info' "${TEST_ROOT}/default.err" 'spi: Launching spi Bubblewrap sandbox...'
 
 run_spi_with_stderr "${TEST_ROOT}/verbose.err" -- "${TEST_PROJECT}" --verbose --backend bwrap -x true
-assert_file_contains '--verbose shows .git protection info' "${TEST_ROOT}/verbose.err" 'spi: Protecting .git/ (read-only)'
-assert_file_contains '--verbose shows .agents protection info' "${TEST_ROOT}/verbose.err" 'spi: Protecting .agents/ (read-only)'
-assert_file_contains '--verbose shows .gitignore protection info' "${TEST_ROOT}/verbose.err" 'spi: Protecting .gitignore (read-only)'
-assert_file_contains '--verbose shows launch info' "${TEST_ROOT}/verbose.err" 'spi: Launching spi sandbox with bwrap...'
+assert_file_contains '--verbose shows host tool integration info' "${TEST_ROOT}/verbose.err" 'spi: Binding host development tools'
+assert_file_contains '--verbose shows launch info' "${TEST_ROOT}/verbose.err" 'spi: Launching spi Bubblewrap sandbox...'
 
 run_spi_with_stderr "${TEST_ROOT}/quiet-verbose.err" -- "${TEST_PROJECT}" --verbose -q --backend bwrap -x true
-assert_file_absent '--quiet suppresses verbose .git protection info' "${TEST_ROOT}/quiet-verbose.err" 'spi: Protecting .git/ (read-only)'
-assert_file_absent '--quiet suppresses verbose launch info' "${TEST_ROOT}/quiet-verbose.err" 'spi: Launching spi sandbox with bwrap...'
+assert_file_absent '--quiet suppresses verbose host tool info' "${TEST_ROOT}/quiet-verbose.err" 'spi: Binding host development tools'
+assert_file_absent '--quiet suppresses verbose launch info' "${TEST_ROOT}/quiet-verbose.err" 'spi: Launching spi Bubblewrap sandbox...'
 
 rm -f -- "${BWRAP_CAPTURE}" "${BWRAP_PROBE_CAPTURE}"
 if env -i \
@@ -735,20 +841,48 @@ else
     exit 1
 fi
 
+rm -f -- "${BWRAP_CAPTURE}" "${BWRAP_PROBE_CAPTURE}"
+if env -i \
+    HOME="${TEST_HOME}" PATH="${TEST_BIN}:${PATH}" XDG_STATE_HOME="${TEST_STATE}" \
+    USER="${USER:-aemonge}" LOGNAME="${LOGNAME:-${USER:-aemonge}}" \
+    TERM="${TERM:-xterm-256color}" LANG="${LANG:-C.UTF-8}" \
+    PI_BIN="${FAKE_PI}" SCODER_GIT="${FAKE_SCODER_GIT}" \
+    SPI_TEST_BWRAP_CAPTURE="${BWRAP_CAPTURE}" SPI_TEST_BWRAP_PROBE_CAPTURE="${BWRAP_PROBE_CAPTURE}" \
+    "${SPI}" -- "${TEST_PROJECT}" -q --backend bwrap -x true >/dev/null 2>"${TEST_ROOT}/cache.err" && \
+    [[ -e "${BWRAP_CAPTURE}" && ! -e "${BWRAP_PROBE_CAPTURE}" ]]; then
+    printf 'PASS: startup cache skips an unchanged namespace probe\n'
+else
+    printf 'FAIL: startup cache did not skip the unchanged namespace probe\n' >&2
+    sed 's/^/  /' "${TEST_ROOT}/cache.err" >&2
+    exit 1
+fi
+
 rm -f -- "${BWRAP_CAPTURE}"
 if env -i HOME="${TEST_HOME}" PATH="${TEST_BIN}:${PATH}" PI_BIN="${FAKE_PI}" SCODER_GIT="${FAKE_SCODER_GIT}" \
-    "${SPI}" -- "${TEST_PROJECT}" -q --backend gondolin >/dev/null 2>"${TEST_ROOT}/gondolin.err"; then
-    printf 'FAIL: gondolin backend unexpectedly succeeded\n' >&2
+    "${SPI}" -- / -q -x true >/dev/null 2>"${TEST_ROOT}/root-target.err"; then
+    printf 'FAIL: writable host-root target unexpectedly succeeded\n' >&2
+    exit 1
+fi
+if [[ -e "${BWRAP_CAPTURE}" ]] || ! grep -q 'refusing to mount the host root writable' "${TEST_ROOT}/root-target.err"; then
+    printf 'FAIL: writable host-root target was not rejected before launch\n' >&2
+    exit 1
+fi
+printf 'PASS: writable host-root targets are rejected before launch\n'
+
+rm -f -- "${BWRAP_CAPTURE}"
+if env -i HOME="${TEST_HOME}" PATH="${TEST_BIN}:${PATH}" PI_BIN="${FAKE_PI}" SCODER_GIT="${FAKE_SCODER_GIT}" \
+    "${SPI}" -- "${TEST_PROJECT}" -q --backend unsupported >/dev/null 2>"${TEST_ROOT}/backend.err"; then
+    printf 'FAIL: unsupported backend unexpectedly succeeded\n' >&2
     exit 1
 fi
 if [[ -e "${BWRAP_CAPTURE}" ]]; then
-    printf 'FAIL: gondolin backend invoked bubblewrap\n' >&2
+    printf 'FAIL: unsupported backend invoked bubblewrap\n' >&2
     exit 1
 fi
-if grep -q 'Gondolin backend is not implemented' "${TEST_ROOT}/gondolin.err"; then
-    printf 'PASS: gondolin backend fails early with actionable diagnostic\n'
+if grep -q 'spi supports only the bwrap backend' "${TEST_ROOT}/backend.err"; then
+    printf 'PASS: non-Bubblewrap backend requests fail early\n'
 else
-    printf 'FAIL: gondolin diagnostic missing\n' >&2
+    printf 'FAIL: bwrap-only backend diagnostic missing\n' >&2
     exit 1
 fi
 

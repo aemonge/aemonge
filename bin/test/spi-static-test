@@ -1,23 +1,20 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016 # Assertions intentionally match literal shell source.
 set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 readonly SCRIPT_DIR
 readonly SPI="${SCRIPT_DIR}/../spi"
 
-if [[ ! -x "${SPI}" ]]; then
-    printf '❌ spi executable is missing: %s\n' "${SPI}" >&2
-    exit 1
-fi
+[[ -x "${SPI}" ]] || { printf '❌ spi executable is missing: %s\n' "${SPI}" >&2; exit 1; }
 
 assert_contains() {
     local description="$1"
     local pattern="$2"
-
-    if grep -q -- "${pattern}" "${SPI}"; then
+    if grep -F -q -- "${pattern}" "${SPI}"; then
         printf '✅ %s\n' "${description}"
     else
-        printf '❌ %s\n  missing pattern: %s\n' "${description}" "${pattern}" >&2
+        printf '❌ %s\n  missing text: %s\n' "${description}" "${pattern}" >&2
         exit 1
     fi
 }
@@ -25,107 +22,97 @@ assert_contains() {
 assert_absent() {
     local description="$1"
     local pattern="$2"
-
-    if grep -q -- "${pattern}" "${SPI}"; then
-        printf '❌ %s\n  unexpected pattern: %s\n' "${description}" "${pattern}" >&2
+    if grep -F -q -- "${pattern}" "${SPI}"; then
+        printf '❌ %s\n  unexpected text: %s\n' "${description}" "${pattern}" >&2
         exit 1
     fi
     printf '✅ %s\n' "${description}"
 }
 
-assert_contains 'spi identifies itself as SPI, not scoder' 'readonly PROGRAM_NAME="spi"'
-assert_contains 'spi defaults to the pi executable' 'readonly PI_BIN_DEFAULT="pi"'
-# shellcheck disable=SC2016 # These are literal source patterns, not expansions.
-assert_contains 'spi defaults backend selection to auto' 'BACKEND="${SPI_BACKEND:-auto}"'
-assert_contains 'spi keeps .git read-only by default' '^ALLOW_GIT=0$'
-assert_contains 'spi exposes an explicit git opt-in' '--allow-git'
-assert_contains 'spi exposes an explicit Pi config opt-in' '--allow-pi-config'
-assert_contains 'spi exposes explicit verbose startup diagnostics' '--verbose'
-assert_contains 'spi hides info logs unless verbose is enabled' 'QUIET.*-eq 0.*VERBOSE.*-eq 1'
-assert_contains 'spi implements validation separately from doctor' '^run_validation() {'
-assert_contains 'spi validate mode calls run_validation' 'run_validation'
-assert_contains 'spi validation reports pass summary' 'All SPI validation tests passed'
-assert_contains 'spi fails closed for Gondolin backend' 'Gondolin backend is not implemented'
-assert_contains 'spi never falls through to unsandboxed pi in auto mode' 'auto backend requires Linux and bubblewrap'
-assert_contains 'spi validation checks HOME path semantics' 'Test A.1 PASS: HOME mirrors host home path on tmpfs'
-assert_contains 'spi validation checks home write isolation' 'Test A.2 PASS: ~/.bashrc writes do not leak to host'
-assert_contains 'spi validation checks system file protection' 'Test A.3 PASS: system files are read-only'
-assert_contains 'spi validation checks node_modules writability' 'Test B.3 PASS: node_modules is writable when workspace is rw'
-assert_contains 'spi validation checks project .env visibility' 'Test B.4 PASS: project .env is visible'
-assert_contains 'spi validation checks raw command execution' 'Test B.5 PASS: raw commands execute inside sandbox'
-assert_contains 'spi validation checks nested OpenSpec visibility' 'Test B.7 PASS: nested target sees nearest project OpenSpec read-only'
-assert_contains 'spi validation checks symlink OpenSpec visibility' 'Test B.8 PASS: symlinked config target sees resolved project OpenSpec read-only at logical path'
-assert_contains 'spi validation checks direct OpenSpec clean JSON' 'Test B.9 PASS: direct OpenSpec target emits clean JSON for footer parsing'
-assert_contains 'spi validation checks private TMPDIR' 'Test B.6 PASS: TMPDIR points to a private writable /tmp/spi-'
-assert_contains 'spi validation checks role-based Pi state writability' 'Test E.3 PASS: role-based Pi runtime/status state subdirectories are writable'
-assert_contains 'spi includes Pi footer/status agent resources in writable state' 'statusline'
-assert_contains 'spi includes Pi task/todo/plan agent resources in writable state' 'tasks status todos plans jobs runs ui statusline'
-assert_contains 'spi binds Pi XDG resources through a dedicated helper' 'bind_pi_xdg_resources'
-assert_contains 'spi binds legacy Pi agent resource symlinks through a dedicated helper' 'bind_pi_agent_resource_paths'
-assert_contains 'spi marks legacy Pi agent packages/extensions read-only' 'PI_AGENT_RO_PATHS='
-assert_contains 'spi preserves mutable legacy Pi agent root JSON files' 'PI_AGENT_MUTABLE_ROOT_FILES='
-assert_contains 'spi binds footer OpenCode/OpenSpec resources through a dedicated helper' 'bind_footer_xdg_resources'
-assert_contains 'spi binds nearest project-local OpenSpec for footer parity' 'bind_nearest_project_openspec'
-assert_contains 'spi rejects non-project OpenSpec config dirs during footer discovery' 'is_project_openspec_dir'
-assert_contains 'spi resolves symlinked OpenSpec marker children' 'resolve_project_openspec_source'
-assert_contains 'spi disables OpenSpec telemetry for extension JSON parsing' 'OPENSPEC_TELEMETRY 0'
-assert_contains 'spi validation checks Pi XDG config/data read-only resources' 'Test E.11 PASS: Pi XDG config/data resources are visible read-only'
-assert_contains 'spi validation checks Pi XDG state/cache writable resources' 'Test E.12 PASS: Pi XDG state/cache dirs are writable without broad XDG exposure'
-assert_contains 'spi validation checks root-agent Pi lock writability' 'Test E.9 PASS: Pi root-agent lock dirs and startup JSON are writable'
-assert_contains 'spi validation creates provider fixture in temp HOME' 'provider-catalog'
-assert_contains 'spi validation creates model fixture in temp HOME' 'model-catalog'
-assert_contains 'spi validation checks provider/model configs are read-only' 'Test E.6 PASS: provider/model config resources are visible read-only'
-assert_contains 'spi validation blocks provider and model config writes independently' 'MODEL_CONFIG_RO'
-assert_contains 'spi validation creates skills fixture in temp HOME' 'skill-resource'
-assert_contains 'spi validation checks global skills are read-only' 'Test E.7 PASS: ~/.agents/skills resources are visible read-only'
-assert_contains 'spi validation checks symlinked global skill alias dedupe' 'Test E.10 PASS: symlinked global skills are not rebound as duplicate aliases'
-assert_contains 'spi validation creates project .pi fixture before protection test' 'project-pi-original'
-assert_contains 'spi validation checks project .pi protection' 'Test E.8 PASS: project .pi is protected read-only by default'
-assert_contains 'spi validation verifies symlinked Pi config is read-only' 'SYMLINK_CONFIG_RO'
-assert_contains 'spi validation checks terminal config read-only mounts' 'Test H.3 PASS: terminal config files are readable and read-only'
-assert_contains 'spi validation accepts terminal read-only marker with shell diagnostics' '\*TERMINAL_CONFIG_RO\*'
-assert_contains 'spi validation checks exact terminal socket mounts' 'Test H.4 PASS: terminal sockets are exact-bound and env is preserved'
-assert_contains 'spi validates runtime directory is not broadly exposed' 'Test H.5 PASS: broad runtime directory is not exposed'
-assert_contains 'spi discovers only safe Pi status/task sockets' 'bind_pi_socket_envs'
-assert_contains 'spi binds pnpm-installed Pi package trees read-only' 'bind_pi_binary_package_tree'
-assert_contains 'spi detects pnpm home for global Pi shims' '.local/share/pnpm'
-assert_contains 'spi exposes cached OpenCode footer plugin packages read-only' 'opencode/packages'
-assert_contains 'spi blocks raw PI socket env inheritance by default' 'PI_\*SOCKET\*'
-assert_contains 'spi validation checks git wrapper shadowing' 'Test M.1 PASS: /usr/bin/git is shadowed by scoder-git'
-assert_contains 'spi validation checks add read-only mounts' 'Test N.2 PASS: --add keeps extra path read-only'
-assert_contains 'spi validation checks add-rw mounts' 'Test N.3 PASS: --add-rw allows writes'
-assert_contains 'spi uses a private per-run TMPDIR' 'SPI_TMPDIR="/tmp/spi-\$\$"'
-assert_contains 'spi uses a tmpfs home model' '--tmpfs /home'
-assert_contains 'spi protects project control-plane directories' 'PROTECTED_CONTROL_DIRS='
-assert_contains 'spi protects project .agents control-plane directory' '".agents"'
-# shellcheck disable=SC2016 # These are literal source patterns, not expansions.
-assert_contains 'spi shadows git with the scoder-git policy wrapper' '--ro-bind "${SCODER_GIT_HOST}" /usr/bin/git'
-assert_contains 'spi binds role-based Pi agent state subdirectories' 'PI_AGENT_STATE_SUBDIRS='
-assert_contains 'spi exposes Pi git package cache as agent state' 'git npm projects'
-assert_contains 'spi exposes Pi npm package cache as agent state' 'metadata cache git npm'
-assert_contains 'spi uses tmpfs for legacy Pi agent root to avoid symlink mount destinations' 'bind_pi_agent_tmpfs_root'
-assert_contains 'spi prepares leaf destinations before legacy Pi agent overlays' 'add_prepared_bind_once'
-assert_absent 'spi does not use bwrap --file placeholders' '--file'
-assert_absent 'spi does not allocate bwrap file placeholder fds' 'BWRAP_EMPTY_FILE_FD'
-assert_absent 'spi does not create temp files for bwrap file placeholders' 'BWRAP_EMPTY_FILE='
-assert_contains 'spi reports role-based Pi mount mode' 'role-based; existing ~/.pi read-only with writable agent root and selected runtime/state dirs'
-assert_contains 'spi documents root-agent startup lock support' 'settings/trust JSON and lock dirs'
-assert_contains 'spi exposes global skills read-only' '.agents/skills'
-assert_contains 'spi dedupes symlinked global skills that resolve to project skills' 'opt_ro_bind_global_skills'
-assert_contains 'spi documents symlinked global skill dedupe' 'same project .agents/skills tree already exposed by the target'
-assert_contains 'spi preserves Pi provider/model/session environment explicitly' 'preserve_pi_session_environment'
-assert_contains 'spi filters stale parent workspace environment' 'is_stale_workspace_env_name'
-assert_contains 'spi filters broad inherited OpenCode control environment' 'OPENCODE\*)'
-assert_contains 'spi filters stale Neovim OpenCode port inheritance' 'NVIM_OPENCODE_PORT'
-assert_contains 'spi has terminal integration bind discovery' '^bind_terminal_integration() {'
-assert_contains 'spi preserves NVIM only through socket forwarding' 'NVIM | NVIM_LISTEN_ADDRESS | TMUX | TMUX_PANE'
-assert_contains 'spi documents read-only Pi resources' 'Legacy/current ~/.pi/agent resource/config children'
-assert_contains 'spi gates full Pi config writes behind allow flag' 'ALLOW_PI_CONFIG.*-eq 1'
-# shellcheck disable=SC2016 # These are literal source patterns, not expansions.
-assert_absent 'spi does not write-bind the entire host home' '--bind "${HOST_HOME}" "${SANDBOX_HOME}"'
-assert_absent 'spi does not bind broad XDG runtime directory' "--bind \"\${XDG_RUNTIME_DIR}"
-assert_absent 'spi does not bind broad /tmp' '--bind /tmp /tmp'
-assert_absent 'spi does not forward SSH agent sockets by default' '--setenv SSH_AUTH_SOCK'
-assert_absent 'spi has no OpenCode-specific project mounts' '\.opencode'
+assert_contains 'spi identifies itself correctly' 'readonly PROGRAM_NAME="spi"'
+assert_contains 'spi defaults to Pi' 'readonly PI_BIN_DEFAULT="pi"'
+assert_contains 'spi uses strict Bash mode' 'set -euo pipefail'
+assert_contains 'spi requires Bubblewrap directly' 'bubblewrap (bwrap) not found in PATH'
+assert_contains 'spi accepts only the bwrap compatibility backend value' 'spi supports only the bwrap backend'
+assert_absent 'spi has no selectable SPI_BACKEND environment' 'SPI_BACKEND'
+assert_absent 'spi has no backend resolution function' 'resolve_backend'
 
-printf 'spi static safety tests passed\n'
+assert_contains 'critical target infrastructure is protected by default' 'ALLOW_INFRA=0'
+assert_contains 'target protection uses scoder-compatible infrastructure directories' 'PROTECTED_INFRA_DIRS='
+assert_contains 'target protection uses scoder-compatible lockfiles' 'PROTECTED_INFRA_FILES='
+assert_contains 'writable host-root targets are explicitly refused' 'refusing to mount the host root writable'
+assert_contains 'Git metadata is writable by default' 'ALLOW_GIT=1'
+assert_contains 'Git is shadowed by the scoder policy wrapper' '--ro-bind "${SCODER_GIT_HOST}" /usr/bin/git'
+assert_contains 'real Git is private to the wrapper' '--setenv SCODER_REAL_GIT /spi/real-git'
+assert_contains 'global Git identity remains read-only' 'opt_ro_bind_path "${HOST_HOME}/.gitconfig"'
+
+assert_contains 'Pi global configuration remains role-based' 'bind_pi_agent_tmpfs_root'
+assert_contains 'Pi is pinned to the mounted config root even without a host override' '--setenv PI_CODING_AGENT_DIR "${SANDBOX_PI_AGENT_DIR}"'
+assert_contains 'Pi state has selected persistent writable subdirectories' 'PI_AGENT_STATE_SUBDIRS='
+assert_contains 'Pi resource paths remain read-only' 'PI_AGENT_RO_PATHS='
+assert_contains 'Pi root configuration is overlaid read-only' 'PI_AGENT_ROOT_CONFIG_FILES='
+assert_contains 'Pi XDG resources have a dedicated policy' 'bind_pi_xdg_resources'
+assert_contains 'global skills remain read-only' 'opt_ro_bind_global_skills'
+assert_contains 'nearest OpenSpec support remains available' 'bind_nearest_project_openspec'
+
+assert_contains 'host development tools are enabled by default' 'ALLOW_HOST_TOOLS=1'
+assert_contains 'host tools can be disabled' '--no-host-tools'
+assert_contains 'uv state is writable for host tool parity' '".local/share/uv" ".cache/uv"'
+assert_contains 'pnpm state is writable for host tool parity' '".local/share/pnpm" ".cache/pnpm"'
+assert_contains 'Cargo home is discovered and persisted' 'CARGO_HOME_SANDBOX'
+assert_contains 'Go path is discovered and persisted' 'GOPATH_SANDBOX'
+assert_contains 'Pyenv is exposed read-only when present' 'PYENV_ROOT_SANDBOX'
+assert_contains 'project virtualenv binaries are put on PATH' '${PROJECT_SOURCE_DIR}/.venv/bin'
+assert_contains 'project Node binaries are put on PATH' '${PROJECT_SOURCE_DIR}/node_modules/.bin'
+
+assert_contains 'SSH agent forwarding is enabled by default' 'FORWARD_SSH_AGENT=1'
+assert_contains 'SSH agent forwarding can be disabled' '--no-ssh-agent'
+assert_contains 'SSH socket is exact-bound' 'bind_runtime_path_precreated "${SSH_AUTH_SOCK}"'
+assert_contains 'SSH_AUTH_SOCK is restored explicitly' 'add_sandbox_env_once SSH_AUTH_SOCK'
+assert_contains 'GUI access is optional' '--allow-gui'
+assert_contains 'GUI mode can expose X11 read-only' 'opt_ro_bind_dir /tmp/.X11-unix'
+assert_contains 'GUI mode can expose the runtime directory' 'bind_runtime_dir "${XDG_RUNTIME_DIR}"'
+assert_contains 'web developer mode starts Chromium DevTools' 'ensure_chromium_devtools'
+assert_contains 'Chromium uses a dedicated Pi profile by default' 'SPI_CHROMIUM_PROFILE:-/tmp/pi-chrome'
+
+assert_contains 'single-file mode uses a writable temporary overlay' 'prepare_single_file_overlay'
+assert_contains 'single-file mode preserves read-only siblings' 'FILE_MODE_RO_SOURCE_SANDBOX_PATH'
+assert_contains 'single-file mode syncs the selected target back' 'sync_single_file_target_back'
+assert_contains 'single-file temporary state is cleaned on exit' 'trap cleanup_file_mode_tmp_dir EXIT'
+
+assert_contains 'startup discovery cache is initialized' 'init_discovery_cache'
+assert_contains 'startup cache validates script and bwrap identity' 'is_discovery_cache_current'
+assert_contains 'startup cache is private' 'chmod 600 "${SPI_DISCOVERY_CACHE}"'
+assert_contains 'namespace probes can hit the startup cache' 'bwrap namespace probe cache hit'
+
+assert_contains 'doctor runs the comprehensive validation suite' 'SPI doctor: running comprehensive validation'
+assert_contains 'doctor invokes run_validation' 'if run_validation; then'
+assert_contains 'plugin integrity work is explicitly pending' 'plugin/extension integrity verification: PENDING'
+assert_contains 'validation checks host tool writable state' 'scoder-parity host tool state is writable'
+assert_contains 'validation checks default SSH forwarding' 'SSH_AUTH_SOCK is forwarded by default'
+assert_contains 'validation checks writable single-file sync' 'writable single-file target changes sync back on success'
+assert_contains 'validation checks global Pi root config is read-only' 'Pi root config is read-only while disposable lock dirs work'
+assert_contains 'validation executes real Pi extension and settings-package discovery' 'real Pi loads global extensions and settings packages without a host PI_CODING_AGENT_DIR override'
+assert_contains 'validation checks selected ~/.pi writability' 'selecting ~/.pi makes that target writable'
+
+assert_contains 'spi uses a tmpfs HOME' '--tmpfs /home'
+assert_contains 'spi uses a tmpfs /tmp' '--tmpfs /tmp'
+assert_contains 'spi uses a private TMPDIR' 'SPI_TMPDIR="/tmp/spi-$$"'
+assert_contains 'spi limits devices by default' '--dev-bind /dev/null /dev/null'
+assert_contains 'spi clears the inherited environment first' '--clearenv'
+assert_contains 'spi dies with its parent' '--die-with-parent'
+assert_absent 'spi never binds the entire host home writable' '--bind "${HOST_HOME}" "${SANDBOX_HOME}"'
+assert_absent 'spi never bind-mounts host /tmp wholesale' '--bind /tmp /tmp'
+
+assert_contains 'Neovim remote integration is enabled by default' 'ALLOW_NVIM_REMOTE=1'
+assert_contains 'Neovim remote integration can be disabled' '--no-nvim-remote'
+assert_contains 'Neovim socket integration remains exact' 'bind_terminal_socket_env NVIM'
+assert_contains 'Neovim editor bridge uses the scoder-compatible script' 'NVIM_EDITOR_SCRIPT="${HOST_HOME}/.config/nvim/scripts/opencode-editor"'
+assert_contains 'Neovim editor bridge sets EDITOR explicitly' '--setenv EDITOR "${SANDBOX_EDITOR}"'
+assert_contains 'Neovim editor bridge sets VISUAL explicitly' '--setenv VISUAL "${SANDBOX_EDITOR}"'
+assert_contains 'Tmux socket integration remains exact' 'bind_tmux_socket_env'
+assert_contains 'safe Pi status socket discovery remains available' 'bind_pi_socket_envs'
+assert_contains 'stale OpenCode workspace state is filtered' 'is_stale_workspace_env_name'
+assert_contains 'Pi session/model/provider state is preserved' 'preserve_pi_session_environment'
+
+printf 'spi static safety and development-parity tests passed\n'
