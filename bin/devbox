@@ -1937,6 +1937,8 @@ PI_AGENT_RO_PATHS=(
 )
 PI_AGENT_ROOT_CONFIG_FILES=(
     settings.json
+    fancy-footer.json
+    galactica-status.json
     trust.json
     auth.json
     models-store.json

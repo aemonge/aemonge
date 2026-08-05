@@ -46,6 +46,7 @@ run_validation() {
     local plugin_home
     local plugin_agent_dir
     local plugin_package_dir
+    local pi_root_config_source_dir
     local validation_pi_bin
     local failed_tests=0
     local live_bwrap=0
@@ -81,6 +82,7 @@ run_validation() {
     plugin_home="${validation_root}/plugin-home"
     plugin_agent_dir="${plugin_home}/.pi/agent"
     plugin_package_dir="${plugin_agent_dir}/packages/devbox-validation-package"
+    pi_root_config_source_dir="${validation_root}/pi-root-config-source"
     validation_pi_bin="$(command -v "${PI_BIN}" 2>/dev/null || true)"
     printf -v neighbor_dir_q '%q' "${neighbor_dir}"
     printf -v shared_ro_dir_q '%q' "${shared_ro_dir}"
@@ -125,6 +127,7 @@ run_validation() {
         "${direct_openspec_project}/.pi/prompts" \
         "${plugin_agent_dir}/extensions" \
         "${plugin_package_dir}" \
+        "${pi_root_config_source_dir}" \
         "${validation_root}/nested-parent/nvim" \
         "${validation_root}/nested-parent/openspec/changes/nested-validation" \
         "${symlink_source_project}/nvim" \
@@ -135,6 +138,10 @@ run_validation() {
     printf 'original-pi-config\n' >"${test_home}/.pi/config"
     printf '{"theme":"original"}\n' >"${test_home}/.pi/agent/settings.json"
     printf '{"trusted":false}\n' >"${test_home}/.pi/agent/trust.json"
+    printf '{"devboxSentinel":"fancy-footer"}\n' >"${pi_root_config_source_dir}/fancy-footer.json"
+    printf '{"devboxSentinel":"galactica-status"}\n' >"${pi_root_config_source_dir}/galactica-status.json"
+    ln -s "${pi_root_config_source_dir}/fancy-footer.json" "${test_home}/.pi/agent/fancy-footer.json"
+    ln -s "${pi_root_config_source_dir}/galactica-status.json" "${test_home}/.pi/agent/galactica-status.json"
     printf 'provider-catalog\n' >"${test_home}/.pi/providers/catalog.txt"
     printf 'model-catalog\n' >"${test_home}/.pi/models/catalog.txt"
     printf 'pi-xdg-config\n' >"${test_home}/.config/pi/config.toml"
@@ -571,6 +578,17 @@ PY
             validation_pass 'Test E.9 PASS: Pi root config is read-only while disposable lock dirs work'
         else
             validation_fail "Test E.9 FAIL: Pi root config/lock policy failed (${output})"
+            failed_tests=$((failed_tests + 1))
+        fi
+
+        # shellcheck disable=SC2016 # $HOME must expand inside the sandboxed shell.
+        output="$(run_validation_devbox -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'test -r "$HOME/.pi/agent/fancy-footer.json" && test -r "$HOME/.pi/agent/galactica-status.json" || exit 1; python3 -c "import json,sys; expected=(\"fancy-footer\",\"galactica-status\"); data=[json.load(open(path, encoding=\"utf-8\")) for path in sys.argv[1:]]; assert [item[\"devboxSentinel\"] for item in data] == list(expected)" "$HOME/.pi/agent/fancy-footer.json" "$HOME/.pi/agent/galactica-status.json" || exit 1; if { printf bad > "$HOME/.pi/agent/fancy-footer.json"; } 2>/dev/null; then exit 1; fi; if { printf bad > "$HOME/.pi/agent/galactica-status.json"; } 2>/dev/null; then exit 1; fi; printf PI_FOOTER_CONFIG_OK' 2>&1 || true)"
+        if [[ "${output}" == 'PI_FOOTER_CONFIG_OK' ]] &&
+            [[ "$(<"${pi_root_config_source_dir}/fancy-footer.json")" == '{"devboxSentinel":"fancy-footer"}' ]] &&
+            [[ "$(<"${pi_root_config_source_dir}/galactica-status.json")" == '{"devboxSentinel":"galactica-status"}' ]]; then
+            validation_pass 'Test E.9a PASS: Fancy Footer and Galactica root config JSON is visible through symlink-safe read-only mounts'
+        else
+            validation_fail "Test E.9a FAIL: Fancy Footer/Galactica root config JSON was missing or invalid (${output})"
             failed_tests=$((failed_tests + 1))
         fi
 
