@@ -2194,6 +2194,9 @@ if [[ -z "${PROJECT_TARGET}" ]]; then
     PROJECT_TARGET="${PWD}"
 fi
 
+# TODO(macOS-sandbox-exec): Add a native macOS sandbox-exec backend after
+# extracting the mount, environment, and security policy from BWRAP_CMD. Preserve
+# fail-closed conflicts, read-only resources, locked mode, and backend live tests.
 if [[ "$(uname -s 2>/dev/null || printf unknown)" != "Linux" ]]; then
     error "Bubblewrap requires Linux"
     exit 1
