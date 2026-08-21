@@ -49,6 +49,7 @@ show_help() {
     echo "  pnpm                Update pnpm packages"
     echo "  bun                 Update bun runtime and global packages"
     echo "  pip                 Update pipx packages"
+    echo "  pi                  Update pi and packages"
     echo "  zinit               Update zinit plugins"
     echo "  clean-dev           Clean (nvim, zinit, treesitter, mason) dev packages"
     echo "  neovim              Update Neovim plugins"
@@ -82,6 +83,7 @@ typeset -a ALL_STAGES=(
     pnpm
     bun
     pip
+    pi
     zinit
     clean-dev
     neovim
@@ -104,6 +106,7 @@ typeset -A STAGE_FUNCS=(
     pnpm update_pnpm
     bun update_bun
     pip update_pip
+    pi update_pi
     zinit update_zinit
     clean-dev clean_dev
     neovim update_neovim
@@ -126,6 +129,7 @@ typeset -A STAGE_DESCRIPTIONS=(
     pnpm "Update pnpm packages"
     bun "Update bun runtime and global packages"
     pip "Update pipx packages"
+    pi "Update pi and packages"
     zinit "Update zinit plugins"
     clean-dev "Clean dev packages"
     neovim "Update Neovim plugins"
@@ -543,6 +547,21 @@ update_gem() {
     gem update
 }
 
+update_pi() {
+    require_user "pi update --all" || return $?
+    require_command "pi" "pi update --all" || return $?
+
+    local pi_path
+    pi_path="$(command -v pi)"
+    if [[ "$pi_path" != "$HOME"/* ]]; then
+        skip_stage "pi is managed outside HOME at $pi_path."
+        return $?
+    fi
+
+    $QUIET || title "Running: 'pi update --all'"
+    pi update --all
+}
+
 update_pip() {
     # Check if running as user, and if so proceed
     require_user "uv tool updates" || return $?
@@ -766,6 +785,7 @@ run_daily_updates() {
         pip \
         pnpm \
         bun \
+        pi \
         opencode-refresh \
         bins
 }

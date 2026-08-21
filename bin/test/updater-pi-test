@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly SCRIPT_DIR
+readonly UPDATER="${SCRIPT_DIR}/../updater"
+TEST_ROOT=""
+
+cleanup() {
+    if [[ -n "${TEST_ROOT}" && -d "${TEST_ROOT}" ]]; then
+        rm -rf -- "${TEST_ROOT}"
+    fi
+}
+trap cleanup EXIT
+
+fail() {
+    printf 'FAIL: %s\n' "$1" >&2
+    exit 1
+}
+
+assert_call_count() {
+    local description="$1"
+    local expected="$2"
+    local log_file="$3"
+    local actual
+
+    actual="$(wc -l <"${log_file}")"
+    if [[ "${actual}" != "${expected}" ]]; then
+        fail "${description} (expected ${expected}, got ${actual})"
+    fi
+    printf 'PASS: %s\n' "${description}"
+}
+
+make_fake_pi() {
+    local bin_dir="$1"
+
+    mkdir -p -- "${bin_dir}"
+    cat >"${bin_dir}/pi" <<'FAKE_PI'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+printf '%s\n' "$*" >>"${PI_TEST_LOG}"
+FAKE_PI
+    chmod +x "${bin_dir}/pi"
+}
+
+run_updater() {
+    local home_dir="$1"
+    local pi_bin_dir="$2"
+    local log_file="$3"
+    shift 3
+
+    env \
+        HOME="${home_dir}" \
+        XDG_RUNTIME_DIR="${TEST_ROOT}/runtime" \
+        PI_TEST_LOG="${log_file}" \
+        PATH="${pi_bin_dir}:/usr/bin:/bin" \
+        /bin/zsh "${UPDATER}" --quiet "$@" >/dev/null 2>&1
+}
+
+TEST_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/updater-pi-test.XXXXXX")"
+readonly TEST_ROOT
+mkdir -p -- "${TEST_ROOT}/home" "${TEST_ROOT}/runtime"
+make_fake_pi "${TEST_ROOT}/home/bin"
+
+printf '' >"${TEST_ROOT}/direct.log"
+run_updater "${TEST_ROOT}/home" "${TEST_ROOT}/home/bin" "${TEST_ROOT}/direct.log" --only pi pi
+assert_call_count 'direct Pi stage runs pi update --all exactly once' 1 "${TEST_ROOT}/direct.log"
+[[ "$(<"${TEST_ROOT}/direct.log")" == 'update --all' ]] || fail 'direct Pi stage passed unexpected arguments'
+printf 'PASS: direct Pi stage passes update --all\n'
+
+printf '' >"${TEST_ROOT}/daily.log"
+run_updater "${TEST_ROOT}/home" "${TEST_ROOT}/home/bin" "${TEST_ROOT}/daily.log" --only pi daily
+assert_call_count 'daily profile includes the Pi stage exactly once' 1 "${TEST_ROOT}/daily.log"
+[[ "$(<"${TEST_ROOT}/daily.log")" == 'update --all' ]] || fail 'daily Pi stage passed unexpected arguments'
+printf 'PASS: daily Pi stage passes update --all\n'
+
+make_fake_pi "${TEST_ROOT}/external/bin"
+printf '' >"${TEST_ROOT}/external.log"
+run_updater "${TEST_ROOT}/home" "${TEST_ROOT}/external/bin" "${TEST_ROOT}/external.log" --only pi pi
+assert_call_count 'externally managed Pi is skipped rather than self-updated' 0 "${TEST_ROOT}/external.log"
+
+printf 'updater Pi stage tests passed\n'
