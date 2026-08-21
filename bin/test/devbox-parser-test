@@ -38,6 +38,8 @@ readonly ZSH_BIN
 readonly AWS_CUSTOM_CREDENTIALS="${TEST_ROOT}/custom-aws-credentials"
 readonly LINKED_OPENCODE_CONFIG="${TEST_ROOT}/linked-opencode.json"
 readonly LINKED_OPENCODE_AGENT="${TEST_ROOT}/linked-opencode-agent.md"
+readonly LINKED_PI_AGENTS="${TEST_ROOT}/linked-pi-agents"
+readonly LINKED_PI_TASKFLOWS="${TEST_ROOT}/linked-pi-taskflows"
 readonly CUSTOM_XDG_CONFIG="${TEST_ROOT}/xdg-config"
 readonly CUSTOM_XDG_DATA="${TEST_ROOT}/xdg-data"
 readonly CUSTOM_XDG_CACHE="${TEST_ROOT}/xdg-cache"
@@ -51,10 +53,11 @@ mkdir -p -- \
     "${TEST_WORKSPACE_MEMBER}/src" \
     "${TEST_DEP_REPO}/.git" "${TEST_DEP_APP}/src" "${TEST_DEP_LIB}/src" \
     "${TEST_ESCAPE_APP}/src" "${TEST_OUTSIDE_DEP}/src" \
-    "${TEST_HOME}/.pi/agent" \
+    "${TEST_HOME}/.pi/agent" "${LINKED_PI_AGENTS}" "${LINKED_PI_TASKFLOWS}" \
     "${TEST_HOME}/.config/opencode/agents" "${TEST_HOME}/.config/openspec" \
+    "${TEST_HOME}/.local/share/openspec/schemas/ramona-idea" \
     "${CUSTOM_XDG_CONFIG}/opencode" "${CUSTOM_XDG_CONFIG}/openspec" \
-    "${CUSTOM_XDG_DATA}/opencode" "${CUSTOM_XDG_CACHE}/opencode" \
+    "${CUSTOM_XDG_DATA}/opencode" "${CUSTOM_XDG_DATA}/openspec/schemas/ramona-plan" "${CUSTOM_XDG_CACHE}/opencode" \
     "${SYMLINK_SOURCE_CONFIG}/nvim" "${SYMLINK_PROJECT_OPENSPEC}/changes/parser-validation" \
     "${TEST_HOME}/.local/share/opencode" "${TEST_HOME}/.cache/opencode" \
     "${TEST_HOME}/.opencode" "${TEST_HOME}/.agents" "${TEST_HOME}/.bun" \
@@ -62,6 +65,12 @@ mkdir -p -- \
     "${RUNTIME_DIR}" /tmp/.X11-unix
 
 printf '{}\n' >"${TEST_HOME}/.pi/agent/settings.json"
+printf 'agent\n' >"${LINKED_PI_AGENTS}/ramona-step-engineer.md"
+printf 'flow\n' >"${LINKED_PI_TASKFLOWS}/ramona-happy-path.json"
+ln -s "${LINKED_PI_AGENTS}" "${TEST_HOME}/.pi/agent/agents"
+ln -s "${LINKED_PI_TASKFLOWS}" "${TEST_HOME}/.pi/agent/taskflows"
+printf 'schema\n' >"${TEST_HOME}/.local/share/openspec/schemas/ramona-idea/schema.yaml"
+printf 'schema\n' >"${CUSTOM_XDG_DATA}/openspec/schemas/ramona-plan/schema.yaml"
 printf '{}\n' >"${LINKED_OPENCODE_CONFIG}"
 printf '# linked agent\n' >"${LINKED_OPENCODE_AGENT}"
 ln -s "${LINKED_OPENCODE_CONFIG}" "${TEST_HOME}/.config/opencode/opencode.json"
@@ -221,6 +230,27 @@ assert_sequence_absent() {
     printf 'PASS: %s\n' "${description}"
 }
 
+assert_bind_destination_absent() {
+    local description="$1"
+    local expected_destination="$2"
+    local index flag destination
+
+    for ((index = 0; index < ${#BWRAP_ARGS[@]}; index++)); do
+        flag="${BWRAP_ARGS[index]}"
+        case "${flag}" in
+        --bind | --ro-bind)
+            destination="${BWRAP_ARGS[index + 2]:-}"
+            if [[ "${destination}" == "${expected_destination}" ]]; then
+                printf 'FAIL: %s (unexpected %s destination)\n' "${description}" "${flag}" >&2
+                exit 1
+            fi
+            index=$((index + 2))
+            ;;
+        esac
+    done
+    printf 'PASS: %s\n' "${description}"
+}
+
 assert_no_conflicting_bind_destinations() {
     local description="$1"
     local index flag destination previous
@@ -270,6 +300,10 @@ assert_sequence_contains 'critical Cargo.lock is read-only' --ro-bind "${TEST_PR
 assert_sequence_absent '.git remains writable' --ro-bind "${TEST_PROJECT}/.git" "${TEST_PROJECT}/.git"
 assert_sequence_contains 'Pi agent root is disposable' --tmpfs "${TEST_HOME}/.pi/agent"
 assert_sequence_contains 'Pi settings remain read-only' --ro-bind "${TEST_HOME}/.pi/agent/settings.json" "${TEST_HOME}/.pi/agent/settings.json"
+assert_sequence_contains 'symlink-backed Pi agents are resolved and mounted read-only' --ro-bind "${LINKED_PI_AGENTS}" "${TEST_HOME}/.pi/agent/agents"
+assert_sequence_contains 'symlink-backed Pi Taskflows are resolved and mounted read-only' --ro-bind "${LINKED_PI_TASKFLOWS}" "${TEST_HOME}/.pi/agent/taskflows"
+assert_sequence_contains 'user OpenSpec schemas are mounted read-only at the canonical XDG destination' --ro-bind "${TEST_HOME}/.local/share/openspec/schemas" "${TEST_HOME}/.local/share/openspec/schemas"
+assert_bind_destination_absent 'the complete XDG data tree is not mounted' "${TEST_HOME}/.local/share"
 assert_sequence_contains 'Pi agent root is pinned' --setenv PI_CODING_AGENT_DIR "${TEST_HOME}/.pi/agent"
 assert_sequence_contains 'OpenCode config is writable in the shared box' --bind "${TEST_HOME}/.config/opencode" "${TEST_HOME}/.config/opencode"
 assert_sequence_contains 'OpenCode data is writable in the shared box' --bind "${TEST_HOME}/.local/share/opencode" "${TEST_HOME}/.local/share/opencode"
@@ -315,6 +349,8 @@ DEVBOX_TEST_XDG_CONFIG_HOME="${CUSTOM_XDG_CONFIG}" \
     run_devbox pi -- "${TEST_PROJECT}" -q
 assert_sequence_contains 'custom XDG OpenCode config maps to the canonical sandbox path' --bind "${CUSTOM_XDG_CONFIG}/opencode" "${TEST_HOME}/.config/opencode"
 assert_sequence_contains 'custom XDG OpenCode data maps to the canonical sandbox path' --bind "${CUSTOM_XDG_DATA}/opencode" "${TEST_HOME}/.local/share/opencode"
+assert_sequence_contains 'custom XDG OpenSpec schemas map read-only to the canonical sandbox path' --ro-bind "${CUSTOM_XDG_DATA}/openspec/schemas" "${TEST_HOME}/.local/share/openspec/schemas"
+assert_bind_destination_absent 'custom XDG data is not mounted wholesale' "${TEST_HOME}/.local/share"
 assert_sequence_contains 'custom XDG OpenCode cache maps to the canonical sandbox path' --bind "${CUSTOM_XDG_CACHE}/opencode" "${TEST_HOME}/.cache/opencode"
 assert_sequence_contains 'OpenCode guard cache cannot expose the discovery cache' --bind "${CUSTOM_XDG_CACHE}/devbox/opencode" "${TEST_HOME}/.cache/devbox/opencode"
 assert_sequence_absent 'custom XDG state does not mount the complete devbox cache' --bind "${CUSTOM_XDG_CACHE}/devbox" "${TEST_HOME}/.cache/devbox"
@@ -345,6 +381,9 @@ assert_sequence_absent '--locked disables tmux socket forwarding' --bind "${TMUX
 assert_sequence_contains '--locked keeps OpenCode configuration readable' --ro-bind "${TEST_HOME}/.config/opencode" "${TEST_HOME}/.config/opencode"
 assert_sequence_absent '--locked does not persist OpenCode configuration writes' --bind "${TEST_HOME}/.config/opencode" "${TEST_HOME}/.config/opencode"
 assert_sequence_absent '--locked keeps Pi state ephemeral' --bind "${TEST_HOME}/.pi/agent/tasks" "${TEST_HOME}/.pi/agent/tasks"
+assert_sequence_contains '--locked keeps global Pi agents readable and read-only' --ro-bind "${LINKED_PI_AGENTS}" "${TEST_HOME}/.pi/agent/agents"
+assert_sequence_contains '--locked keeps saved Pi Taskflows readable and read-only' --ro-bind "${LINKED_PI_TASKFLOWS}" "${TEST_HOME}/.pi/agent/taskflows"
+assert_sequence_contains '--locked keeps user OpenSpec schemas readable and read-only' --ro-bind "${TEST_HOME}/.local/share/openspec/schemas" "${TEST_HOME}/.local/share/openspec/schemas"
 
 run_devbox pi -- "${TEST_PROJECT}" -q --locked --allow-infra --allow-pi-config --full-dev --aws --clipboard
 assert_sequence_contains '--locked remains authoritative regardless of later permissive options' --ro-bind "${TEST_PROJECT}/.github" "${TEST_PROJECT}/.github"
@@ -375,6 +414,20 @@ assert_devbox_failure \
     'conflicting explicit read-only/read-write mounts fail closed' \
     'conflicting mount policy' \
     pi -- "${TEST_PROJECT}" -q --add "${TEST_DEP_LIB}" --add-rw "${TEST_DEP_LIB}"
+assert_devbox_failure \
+    'writable overrides cannot replace the read-only user schema destination' \
+    'conflicting mount policy' \
+    pi -- "${TEST_PROJECT}" -q --add-rw "${TEST_HOME}/.local/share/openspec/schemas"
+
+rm "${TEST_HOME}/.pi/agent/agents" "${TEST_HOME}/.pi/agent/taskflows"
+ln -s "${TEST_ROOT}/missing-agents" "${TEST_HOME}/.pi/agent/agents"
+ln -s "${TEST_ROOT}/missing-taskflows" "${TEST_HOME}/.pi/agent/taskflows"
+rm -rf -- "${TEST_HOME}/.local/share/openspec/schemas"
+run_devbox pi -- "${TEST_PROJECT}" -q
+assert_bind_destination_absent 'broken Pi agent symlinks are skipped safely' "${TEST_HOME}/.pi/agent/agents"
+assert_bind_destination_absent 'broken Pi Taskflow symlinks are skipped safely' "${TEST_HOME}/.pi/agent/taskflows"
+assert_bind_destination_absent 'missing user schemas are skipped safely' "${TEST_HOME}/.local/share/openspec/schemas"
+
 assert_devbox_failure \
     'missing commands fail before sandbox launch with a clear diagnostic' \
     'command not found or not executable' \

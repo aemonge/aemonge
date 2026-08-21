@@ -423,6 +423,14 @@ bind_pi_xdg_resources() {
     fi
 }
 
+bind_user_openspec_schemas() {
+    local host_schemas="${XDG_DATA_HOME:-${HOST_HOME}/.local/share}/openspec/schemas"
+    local sandbox_schemas="${SANDBOX_LOCAL_SHARE_DIR}/openspec/schemas"
+
+    [[ -d "${host_schemas}" ]] || return 0
+    add_prepared_bind_once --ro-bind "${host_schemas}" "${sandbox_schemas}"
+}
+
 bind_pi_agent_resource_paths() {
     local resource_path
     local host_p
@@ -1928,10 +1936,12 @@ PI_AGENT_STATE_SUBDIRS=(
 # TODO(devbox-plugin-integrity): validate Pi extensions/packages before startup,
 # including symlink containment, manifests, entry points, and a private fingerprint cache.
 PI_AGENT_RO_PATHS=(
+    agents
     extensions
     packages
     prompts
     skills
+    taskflows
     themes
     keybindings.json
 )
@@ -2373,6 +2383,7 @@ else
     bind_pi_agent_resource_paths
 fi
 bind_pi_xdg_resources
+bind_user_openspec_schemas
 bind_nearest_project_openspec
 bind_opencode_state
 prepare_opencode_command_guard

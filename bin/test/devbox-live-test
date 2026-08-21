@@ -47,6 +47,9 @@ run_validation() {
     local plugin_agent_dir
     local plugin_package_dir
     local pi_root_config_source_dir
+    local linked_resource_home
+    local linked_pi_agents
+    local linked_pi_taskflows
     local validation_pi_bin
     local failed_tests=0
     local live_bwrap=0
@@ -83,6 +86,9 @@ run_validation() {
     plugin_agent_dir="${plugin_home}/.pi/agent"
     plugin_package_dir="${plugin_agent_dir}/packages/devbox-validation-package"
     pi_root_config_source_dir="${validation_root}/pi-root-config-source"
+    linked_resource_home="${validation_root}/linked-resource-home"
+    linked_pi_agents="${validation_root}/linked-pi-agents"
+    linked_pi_taskflows="${validation_root}/linked-pi-taskflows"
     validation_pi_bin="$(command -v "${PI_BIN}" 2>/dev/null || true)"
     printf -v neighbor_dir_q '%q' "${neighbor_dir}"
     printf -v shared_ro_dir_q '%q' "${shared_ro_dir}"
@@ -102,10 +108,15 @@ run_validation() {
         "${test_home}/.pi/agent/runs" \
         "${test_home}/.pi/agent/ui" \
         "${test_home}/.pi/agent/statusline" \
+        "${test_home}/.pi/agent/agents" \
+        "${test_home}/.pi/agent/taskflows" \
         "${test_home}/.pi/providers" \
         "${test_home}/.pi/models" \
         "${test_home}/.config/pi" \
         "${test_home}/.local/share/pi" \
+        "${test_home}/.local/share/openspec/schemas/ramona-idea" \
+        "${test_home}/.local/share/openspec/schemas/ramona-plan" \
+        "${test_home}/.local/share/private-data" \
         "${test_home}/.local/state/pi" \
         "${test_home}/.cache/pi" \
         "${test_home}/.agents/skills/example" \
@@ -128,6 +139,11 @@ run_validation() {
         "${plugin_agent_dir}/extensions" \
         "${plugin_package_dir}" \
         "${pi_root_config_source_dir}" \
+        "${linked_resource_home}/.pi/agent" \
+        "${linked_resource_home}/.local/share/openspec/schemas/ramona-idea" \
+        "${linked_resource_home}/.local/share/openspec/schemas/ramona-plan" \
+        "${linked_resource_home}/.local/share/private-data" \
+        "${linked_pi_agents}" "${linked_pi_taskflows}" \
         "${validation_root}/nested-parent/nvim" \
         "${validation_root}/nested-parent/openspec/changes/nested-validation" \
         "${symlink_source_project}/nvim" \
@@ -135,6 +151,8 @@ run_validation() {
         "$(dirname -- "${terminal_tmux_socket}")" \
         "${neighbor_dir}"
     ln -s "${symlink_source_project}/nvim" "${symlink_logical_project}"
+    ln -s "${linked_pi_agents}" "${linked_resource_home}/.pi/agent/agents"
+    ln -s "${linked_pi_taskflows}" "${linked_resource_home}/.pi/agent/taskflows"
     printf 'original-pi-config\n' >"${test_home}/.pi/config"
     printf '{"theme":"original"}\n' >"${test_home}/.pi/agent/settings.json"
     printf '{"trusted":false}\n' >"${test_home}/.pi/agent/trust.json"
@@ -146,6 +164,16 @@ run_validation() {
     printf 'model-catalog\n' >"${test_home}/.pi/models/catalog.txt"
     printf 'pi-xdg-config\n' >"${test_home}/.config/pi/config.toml"
     printf 'pi-xdg-data\n' >"${test_home}/.local/share/pi/resource.txt"
+    printf 'agent-resource\n' >"${test_home}/.pi/agent/agents/ramona-step-engineer.md"
+    printf 'taskflow-resource\n' >"${test_home}/.pi/agent/taskflows/ramona-happy-path.json"
+    printf 'idea-schema\n' >"${test_home}/.local/share/openspec/schemas/ramona-idea/schema.yaml"
+    printf 'plan-schema\n' >"${test_home}/.local/share/openspec/schemas/ramona-plan/schema.yaml"
+    printf 'private-data\n' >"${test_home}/.local/share/private-data/hidden.txt"
+    printf 'linked-agent-resource\n' >"${linked_pi_agents}/ramona-step-engineer.md"
+    printf 'linked-taskflow-resource\n' >"${linked_pi_taskflows}/ramona-happy-path.json"
+    printf 'linked-idea-schema\n' >"${linked_resource_home}/.local/share/openspec/schemas/ramona-idea/schema.yaml"
+    printf 'linked-plan-schema\n' >"${linked_resource_home}/.local/share/openspec/schemas/ramona-plan/schema.yaml"
+    printf 'linked-private-data\n' >"${linked_resource_home}/.local/share/private-data/hidden.txt"
     printf 'skill-resource\n' >"${test_home}/.agents/skills/example/SKILL.md"
     printf 'project-skill-resource\n' >"${test_project}/.agents/skills/example/SKILL.md"
     printf "format = \"\$directory\"\n" >"${test_home}/.config/starship.toml"
@@ -589,6 +617,32 @@ PY
             validation_pass 'Test E.9a PASS: Fancy Footer and Galactica root config JSON is visible through symlink-safe read-only mounts'
         else
             validation_fail "Test E.9a FAIL: Fancy Footer/Galactica root config JSON was missing or invalid (${output})"
+            failed_tests=$((failed_tests + 1))
+        fi
+
+        # shellcheck disable=SC2016 # $HOME must expand inside the sandboxed shell.
+        output="$(run_validation_devbox -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'for path in "$HOME/.pi/agent/agents/ramona-step-engineer.md" "$HOME/.pi/agent/taskflows/ramona-happy-path.json" "$HOME/.local/share/openspec/schemas/ramona-idea/schema.yaml" "$HOME/.local/share/openspec/schemas/ramona-plan/schema.yaml"; do cat "$path" >/dev/null || exit 1; if { printf bad > "$path"; } 2>/dev/null; then printf "WRITE_ALLOWED:%s" "$path"; exit 1; fi; done; test ! -e "$HOME/.local/share/private-data/hidden.txt" || exit 1; printf GLOBAL_RESOURCES_RO' 2>&1 || true)"
+        if [[ "${output}" == 'GLOBAL_RESOURCES_RO' ]] &&
+            [[ "$(<"${test_home}/.pi/agent/agents/ramona-step-engineer.md")" == 'agent-resource' ]] &&
+            [[ "$(<"${test_home}/.pi/agent/taskflows/ramona-happy-path.json")" == 'taskflow-resource' ]] &&
+            [[ "$(<"${test_home}/.local/share/openspec/schemas/ramona-idea/schema.yaml")" == 'idea-schema' ]] &&
+            [[ "$(<"${test_home}/.local/share/openspec/schemas/ramona-plan/schema.yaml")" == 'plan-schema' ]]; then
+            validation_pass 'Test E.13 PASS: default devbox exposes only global agents, Taskflows, and user schemas read-only'
+        else
+            validation_fail "Test E.13 FAIL: default global resource policy failed (${output})"
+            failed_tests=$((failed_tests + 1))
+        fi
+
+        # shellcheck disable=SC2016 # $HOME must expand inside the sandboxed shell.
+        output="$(run_validation_devbox_with_home "${linked_resource_home}" "${linked_resource_home}/.pi/agent" -- "${test_project}" -q --backend bwrap --locked -x /bin/bash --noprofile --norc -lc 'for path in "$HOME/.pi/agent/agents/ramona-step-engineer.md" "$HOME/.pi/agent/taskflows/ramona-happy-path.json" "$HOME/.local/share/openspec/schemas/ramona-idea/schema.yaml" "$HOME/.local/share/openspec/schemas/ramona-plan/schema.yaml"; do cat "$path" >/dev/null || exit 1; if { printf bad > "$path"; } 2>/dev/null; then printf "WRITE_ALLOWED:%s" "$path"; exit 1; fi; done; test ! -e "$HOME/.local/share/private-data/hidden.txt" || exit 1; printf LOCKED_LINKED_RESOURCES_RO' 2>&1 || true)"
+        if [[ "${output}" == 'LOCKED_LINKED_RESOURCES_RO' ]] &&
+            [[ "$(<"${linked_pi_agents}/ramona-step-engineer.md")" == 'linked-agent-resource' ]] &&
+            [[ "$(<"${linked_pi_taskflows}/ramona-happy-path.json")" == 'linked-taskflow-resource' ]] &&
+            [[ "$(<"${linked_resource_home}/.local/share/openspec/schemas/ramona-idea/schema.yaml")" == 'linked-idea-schema' ]] &&
+            [[ "$(<"${linked_resource_home}/.local/share/openspec/schemas/ramona-plan/schema.yaml")" == 'linked-plan-schema' ]]; then
+            validation_pass 'Test E.14 PASS: locked devbox resolves symlink-backed Pi resources and keeps schemas read-only'
+        else
+            validation_fail "Test E.14 FAIL: locked symlink-backed resource policy failed (${output})"
             failed_tests=$((failed_tests + 1))
         fi
 
