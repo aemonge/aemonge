@@ -11,8 +11,8 @@ Step states: `[ ]` Pending, `[-]` Running/interrupted/failed, `[x]` Complete.
 **Bounded repair:** Use only Bubblewrap `--symlink` entries in restricted modes for `/proc/self/fd` and descriptors 0, 1, and 2; modify only `bin/devbox`, directly relevant `bin/test/devbox-*` tests, and matching OpenSpec progress. Do not bind complete host `/dev` or alter unrelated behavior.
 **Regression check:** Restricted writable and locked modes expose and resolve all four links; process substitution succeeds; full-dev stays unchanged; restricted host `/dev` remains bounded; existing device nodes remain; `bash -n`, relevant static/parser/live tests, every available `bin/test/devbox*-test`, and `bin/devbox --validate` pass. Namespace denial is a failed check, not a skip-to-green.
 **Final history target:** `fix(devbox): restore restricted fd compatibility`
-**Current Git boundary:** Successful Step history is `step(devbox): restore restricted fd compatibility`; Task-boundary history waits for Human validation.
-**Human validation:** Pending
+**Current Git boundary:** Step history is `d7b6ca4 step(devbox): restore restricted fd compatibility`; accepted Task boundary is `fix(devbox): restore restricted fd compatibility`.
+**Human validation:** VALID at 2026-08-24T08:11:47Z
 
 - [x] Step 1.1 Add bounded Bubblewrap compatibility links and prove restricted, locked, and full-dev behavior.
   - Started: 2026-08-24T07:56:12Z.
@@ -27,4 +27,4 @@ Step states: `[ ]` Pending, `[-]` Running/interrupted/failed, `[x]` Complete.
 
 ### Human validation
 
-- [ ] Human runs the host acceptance, confirms exact process substitution plus all four compatibility links in restricted and locked modes without broad `/dev`, and returns `VALID`.
+- [x] Human ran the host acceptance, confirmed exact process substitution plus all four compatibility links in restricted and locked modes without broad `/dev`, and returned `VALID` at 2026-08-24T08:11:47Z. Login-shell `tty` warnings were observed and accepted; the chained acceptance commands completed successfully.
