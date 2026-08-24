@@ -174,6 +174,12 @@ split_global_options() {
             GLOBAL_GIT_ARGS+=("$1")
             shift
             ;;
+        --no-optional-locks)
+            # Read-only status integrations such as Fancy Footer pass this
+            # global flag to guarantee they never take optional repository locks.
+            GLOBAL_GIT_ARGS+=("$1")
+            shift
+            ;;
         -c)
             if [[ $# -lt 2 ]]; then
                 deny "git -c without key=value"
@@ -393,7 +399,7 @@ validate_add_paths() {
         shift
     done
 
-    local cwd_arg="${scoped_cwd[@]}"
+    local cwd_arg="${scoped_cwd[0]}"
     local i=0
     local scoped_arg
     while [[ ${i} -lt ${#scoped_git_args[@]} ]]; do
@@ -462,7 +468,7 @@ validate_commit_file_paths() {
         shift
     done
 
-    local cwd_arg="${scoped_cwd[@]}"
+    local cwd_arg="${scoped_cwd[0]}"
     local i=0
     local scoped_arg
     while [[ ${i} -lt ${#scoped_git_args[@]} ]]; do

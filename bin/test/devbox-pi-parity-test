@@ -1,0 +1,202 @@
+#!/usr/bin/env bash
+# shellcheck disable=SC2016 # Single-quoted probes expand only inside the sandbox.
+set -Eeuo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly SCRIPT_DIR
+readonly DEVBOX="${SCRIPT_DIR}/../devbox"
+readonly TOOL_PROBE="${SCRIPT_DIR}/devbox-pi-tool-probe.ts"
+TEST_ROOT="$(mktemp -d)"
+readonly TEST_ROOT
+trap 'rm -rf -- "${TEST_ROOT}"' EXIT
+
+pass() { printf 'PASS: %s\n' "$1"; }
+fail() { printf 'FAIL: %s\n' "$1" >&2; exit 1; }
+
+run_fixture_box() {
+    local target="$1"
+    shift
+    env -i \
+        HOME="${FIXTURE_HOME}" USER="${USER:-developer}" LOGNAME="${LOGNAME:-${USER:-developer}}" \
+        XDG_CONFIG_HOME="${FIXTURE_HOME}/.config" XDG_DATA_HOME="${FIXTURE_HOME}/.local/share" \
+        XDG_STATE_HOME="${FIXTURE_HOME}/.local/state" XDG_CACHE_HOME="${FIXTURE_HOME}/.cache" \
+        PI_CODING_AGENT_DIR="${FIXTURE_AGENT_LOGICAL}" \
+        PATH="${PATH}" TERM="${TERM:-xterm-256color}" LANG="${LANG:-C.UTF-8}" \
+        DEVBOX_FORCE_PROBE=1 \
+        "${DEVBOX}" /bin/bash --noprofile --norc -lc "$1" -- "${target}" -q \
+        --no-host-tools --no-aws --no-clipboard --no-ssh-agent "${@:2}"
+}
+
+FIXTURE_HOME="${TEST_ROOT}/home"
+FIXTURE_REAL_PROJECT="${TEST_ROOT}/real-project"
+FIXTURE_AGENT_LOGICAL="${FIXTURE_HOME}/.pi/agent"
+FIXTURE_AGENT_REAL="${FIXTURE_REAL_PROJECT}/.pi/agent"
+FIXTURE_PROJECT="${TEST_ROOT}/ordinary-project"
+readonly FIXTURE_HOME FIXTURE_REAL_PROJECT FIXTURE_AGENT_LOGICAL FIXTURE_AGENT_REAL FIXTURE_PROJECT
+mkdir -p -- \
+    "${FIXTURE_HOME}/.pi" "${FIXTURE_AGENT_REAL}" "${FIXTURE_PROJECT}" \
+    "${FIXTURE_AGENT_REAL}/packages/example/node_modules" \
+    "${FIXTURE_AGENT_REAL}/npm/node_modules/example" \
+    "${FIXTURE_AGENT_REAL}/extensions" "${FIXTURE_AGENT_REAL}/skills/example" \
+    "${FIXTURE_AGENT_REAL}/prompts" "${FIXTURE_AGENT_REAL}/taskflows" \
+    "${FIXTURE_AGENT_REAL}/themes" "${FIXTURE_AGENT_REAL}/sessions"
+ln -s "${FIXTURE_AGENT_REAL}" "${FIXTURE_AGENT_LOGICAL}"
+printf '# fixture root context\n' >"${FIXTURE_AGENT_REAL}/AGENTS.md"
+printf '{"quietStartup":true}\n' >"${FIXTURE_AGENT_REAL}/settings.json"
+printf '{}\n' >"${FIXTURE_AGENT_REAL}/keybindings.json"
+printf '{}\n' >"${FIXTURE_AGENT_REAL}/fancy-footer.json"
+printf '{}\n' >"${FIXTURE_AGENT_REAL}/galactica-status.json"
+printf '{"name":"example"}\n' >"${FIXTURE_AGENT_REAL}/packages/example/package.json"
+printf 'package dependency\n' >"${FIXTURE_AGENT_REAL}/packages/example/node_modules/dependency.txt"
+printf 'npm package\n' >"${FIXTURE_AGENT_REAL}/npm/node_modules/example/index.js"
+printf 'extension\n' >"${FIXTURE_AGENT_REAL}/extensions/example.ts"
+printf '# skill\n' >"${FIXTURE_AGENT_REAL}/skills/example/SKILL.md"
+printf '# prompt\n' >"${FIXTURE_AGENT_REAL}/prompts/example.md"
+printf '{}\n' >"${FIXTURE_AGENT_REAL}/taskflows/example.json"
+printf '{}\n' >"${FIXTURE_AGENT_REAL}/themes/example.json"
+
+fixture_visibility='test -L "$PI_CODING_AGENT_DIR"; test "$(realpath "$PI_CODING_AGENT_DIR")" = '"$(printf '%q' "${FIXTURE_AGENT_REAL}")"'; for path in AGENTS.md settings.json keybindings.json fancy-footer.json galactica-status.json packages/example/package.json packages/example/node_modules/dependency.txt npm/node_modules/example/index.js extensions/example.ts skills/example/SKILL.md prompts/example.md taskflows/example.json themes/example.json; do test -r "$PI_CODING_AGENT_DIR/$path" || exit 1; done; test -r '"$(printf '%q' "${FIXTURE_AGENT_REAL}/AGENTS.md")"'; test ! -w "$PI_CODING_AGENT_DIR/settings.json"; test ! -w "$PI_CODING_AGENT_DIR/packages"; printf fixture-state > "$PI_CODING_AGENT_DIR/sessions/persistent"; printf FIXTURE_OK'
+
+if ! output="$(run_fixture_box "${FIXTURE_PROJECT}" "${fixture_visibility}" 2>&1)"; then
+    fail "symlinked Pi directory closure failed (${output})"
+fi
+[[ "${output}" == FIXTURE_OK && "$(<"${FIXTURE_AGENT_REAL}/sessions/persistent")" == fixture-state ]] || fail "symlinked Pi directory closure failed (${output})"
+pass 'whole-directory Pi symlink preserves logical access, real targets, root context, packages, and persistent state'
+
+rm -f -- "${FIXTURE_AGENT_REAL}/sessions/persistent"
+if ! output="$(run_fixture_box "${FIXTURE_AGENT_LOGICAL}" "${fixture_visibility}" 2>&1)"; then
+    fail "Pi-directory target shadowed closure (${output})"
+fi
+[[ "${output}" == FIXTURE_OK && "$(<"${FIXTURE_AGENT_REAL}/sessions/persistent")" == fixture-state ]] || fail "Pi-directory target shadowed closure (${output})"
+pass 'selecting the Pi directory as target cannot hide later-mounted resources or state'
+
+rm -f -- "${FIXTURE_AGENT_REAL}/sessions/locked"
+if ! output="$(run_fixture_box "${FIXTURE_PROJECT}" 'test ! -w "$PI_CODING_AGENT_DIR/settings.json"; test ! -w "$PI_CODING_AGENT_DIR/packages"; printf temporary > "$PI_CODING_AGENT_DIR/sessions/locked"; printf LOCKED_OK' --locked 2>&1)"; then
+    fail "locked Pi launch failed (${output})"
+fi
+[[ "${output}" == LOCKED_OK && ! -e "${FIXTURE_AGENT_REAL}/sessions/locked" ]] || fail "locked Pi state was not ephemeral (${output})"
+pass '--locked keeps Pi resources read-only and state ephemeral'
+
+if ! output="$(run_fixture_box "${FIXTURE_PROJECT}" 'printf "{\"changed\":true}\n" > "$PI_CODING_AGENT_DIR/settings.json"; printf changed > "$PI_CODING_AGENT_DIR/packages/example/changed"; printf ALLOW_OK' --allow-pi-config 2>&1)"; then
+    fail "--allow-pi-config launch failed (${output})"
+fi
+[[ "${output}" == ALLOW_OK && -e "${FIXTURE_AGENT_REAL}/packages/example/changed" && "$(<"${FIXTURE_AGENT_REAL}/settings.json")" == '{"changed":true}' ]] || fail "--allow-pi-config did not enable writes (${output})"
+pass '--allow-pi-config explicitly enables configuration and package-source writes'
+
+if ! command -v pi >/dev/null 2>&1; then
+    printf 'SKIP: real Pi unavailable\n'
+    exit 0
+fi
+
+rpc_probe() {
+    local output_file="$1"
+    local error_file="$2"
+    shift 2
+    printf '%s\n' \
+        '{"id":"commands","type":"get_commands"}' \
+        '{"id":"state","type":"get_state"}' \
+        '{"id":"tools","type":"prompt","message":"/devbox-pi-tool-registry"}' |
+        timeout 30 "$@" --mode rpc --no-session --no-approve -e "${TOOL_PROBE}" \
+            >"${output_file}" 2>"${error_file}"
+}
+
+summarize_rpc() {
+    python3 - "$1" <<'PY'
+import collections
+import json
+import sys
+
+commands = None
+state = None
+tools = None
+for raw in open(sys.argv[1], encoding="utf-8"):
+    event = json.loads(raw)
+    if event.get("command") == "get_commands":
+        commands = [item["name"] for item in event["data"]["commands"]]
+    elif event.get("command") == "get_state":
+        model = event["data"].get("model") or {}
+        state = [model.get("provider"), model.get("id"), event["data"].get("thinkingLevel")]
+    elif event.get("type") == "extension_ui_request":
+        message = event.get("message", "")
+        if message.startswith("DEVBOX_TOOLS:"):
+            tools = json.loads(message.removeprefix("DEVBOX_TOOLS:"))
+if commands is None or state is None or tools is None:
+    raise SystemExit("missing RPC registry, state, or tool probe response")
+counts = collections.Counter(commands)
+tool_counts = collections.Counter(tools)
+print(json.dumps({
+    "commands": commands,
+    "duplicates": sorted(name for name, count in counts.items() if count > 1),
+    "state": state,
+    "work_focus_count": tool_counts["work_focus"],
+}, sort_keys=True))
+PY
+}
+
+run_real_pair() {
+    local label="$1"
+    local target="$2"
+    local host_out="${TEST_ROOT}/${label}-host.jsonl"
+    local host_err="${TEST_ROOT}/${label}-host.stderr"
+    local sand_out="${TEST_ROOT}/${label}-sandbox.jsonl"
+    local sand_err="${TEST_ROOT}/${label}-sandbox.stderr"
+    local host_summary
+    local sand_summary
+
+    if ! (cd -- "${target}" && rpc_probe "${host_out}" "${host_err}" pi); then
+        fail "${label} host Pi RPC probe failed ($( <"${host_err}"))"
+    fi
+    if ! printf '%s\n' \
+        '{"id":"commands","type":"get_commands"}' \
+        '{"id":"state","type":"get_state"}' \
+        '{"id":"tools","type":"prompt","message":"/devbox-pi-tool-registry"}' |
+        timeout 30 "${DEVBOX}" pi --mode rpc --no-session --no-approve -e "${TOOL_PROBE}" -- \
+            "${target}" -q --no-aws --no-clipboard --no-ssh-agent --add "${TOOL_PROBE}" \
+            >"${sand_out}" 2>"${sand_err}"; then
+        fail "${label} sandbox Pi RPC probe failed ($( <"${sand_err}"))"
+    fi
+    [[ ! -s "${host_err}" ]] || fail "${label} host Pi startup stderr is not clean ($( <"${host_err}"))"
+    [[ ! -s "${sand_err}" ]] || fail "${label} sandbox Pi startup stderr is not clean ($( <"${sand_err}"))"
+    host_summary="$(summarize_rpc "${host_out}")"
+    sand_summary="$(summarize_rpc "${sand_out}")"
+    [[ "${sand_summary}" == "${host_summary}" ]] || fail "${label} RPC registry/state differs (host=${host_summary}; sandbox=${sand_summary})"
+    python3 - "${sand_summary}" <<'PY'
+import json
+import sys
+summary = json.loads(sys.argv[1])
+required = {"work", "openspec-focus", "galactica-status", "galactica-status-refresh", "next-loop"}
+assert required <= set(summary["commands"]), summary
+assert summary["commands"].count("work") == 1, summary
+assert summary["duplicates"] == [], summary
+assert summary["work_focus_count"] == 1, summary
+assert summary["state"] == ["openai-codex", "gpt-5.6-sol", "high"], summary
+PY
+    pass "${label} real Pi RPC commands, model, thinking, and work_focus tool match host exactly"
+}
+
+run_real_pair ordinary-project /home/aemonge/usr
+run_real_pair pi-directory-target /home/aemonge/.pi/agent
+
+host_git_probe="$(cd -- /home/aemonge/usr && {
+    git --no-optional-locks status --porcelain=2 --branch
+    git --no-optional-locks diff --numstat HEAD
+})"
+sandbox_git_probe="$("${DEVBOX}" /bin/bash --noprofile --norc -lc '
+git --no-optional-locks status --porcelain=2 --branch
+git --no-optional-locks diff --numstat HEAD
+' -- /home/aemonge/usr -q --no-aws --no-clipboard --no-ssh-agent)"
+[[ "${sandbox_git_probe}" == "${host_git_probe}" ]] || fail 'Fancy Footer lock-free Git status/diff output differs from host'
+[[ "${sandbox_git_probe}" == *$'\tbin/devbox'* ]] || fail 'Fancy Footer Git numstat probe did not include the current devbox diff'
+pass 'Fancy Footer lock-free Git status and diff totals match host'
+
+host_hashes="$(for name in AGENTS.md settings.json keybindings.json fancy-footer.json galactica-status.json; do sha256sum "/home/aemonge/.pi/agent/${name}"; done | awk '{print $1}')"
+sandbox_hashes="$("${DEVBOX}" /bin/bash --noprofile --norc -lc 'for name in AGENTS.md settings.json keybindings.json fancy-footer.json galactica-status.json; do sha256sum "$PI_CODING_AGENT_DIR/$name"; done' -- /home/aemonge/.pi/agent -q --no-aws --no-clipboard --no-ssh-agent | awk '{print $1}')"
+[[ "${sandbox_hashes}" == "${host_hashes}" ]] || fail 'sandbox root Pi configuration hashes differ from host'
+pass 'sandbox root Pi context/configuration hashes match host'
+
+host_pi_version="$(pi --version)"
+runtime="$("${DEVBOX}" /bin/bash --noprofile --norc -lc 'printf "%s %s" "$(node --version)" "$(pi --version)"' -- /home/aemonge/usr -q --no-aws --no-clipboard --no-ssh-agent)"
+[[ "${runtime}" == "v24.19.0 ${host_pi_version}" ]] || fail "unexpected real runtime (${runtime}; host Pi=${host_pi_version})"
+pass "sandbox uses Node 24.19.0 and the unchanged host Pi ${host_pi_version} runtime"
+
+printf 'devbox Pi parity tests passed\n'

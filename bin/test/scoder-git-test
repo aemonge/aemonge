@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-readonly SCODER_GIT="$(cd -- "${SCRIPT_DIR}/.." && pwd -P)/scoder-git"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly SCRIPT_DIR
+SCODER_GIT="$(cd -- "${SCRIPT_DIR}/.." && pwd -P)/scoder-git"
+readonly SCODER_GIT
 
 FAILED=0
 
@@ -150,6 +152,7 @@ main() {
 
     local tmpdir
     tmpdir="$(mktemp -d)"
+    # shellcheck disable=SC2064 # Capture the local temp path before main returns.
     trap "rm -rf -- '${tmpdir}'" EXIT
 
     cat >"${tmpdir}/fake-git" <<'FAKE_GIT'
@@ -194,6 +197,8 @@ FAKE_GIT
 
     assert_allowed "${tmpdir}" "allows git status" status
     assert_allowed "${tmpdir}" "allows git diff" diff -- README.md
+    assert_allowed "${tmpdir}" "allows lock-free Fancy Footer status" --no-optional-locks status --porcelain=2 --branch
+    assert_allowed "${tmpdir}" "allows lock-free Fancy Footer diff" --no-optional-locks diff --numstat HEAD
     assert_allowed "${tmpdir}" "allows git merge-base" merge-base main feature/test
     assert_allowed "${tmpdir}" "allows git merge-base --is-ancestor" merge-base --is-ancestor main feature/test
     assert_allowed "${tmpdir}" "allows git for-each-ref" for-each-ref refs/heads
