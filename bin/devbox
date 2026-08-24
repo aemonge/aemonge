@@ -395,10 +395,12 @@ bind_pi_xdg_resources() {
     local host_config_pi="${XDG_CONFIG_HOME:-${HOST_HOME}/.config}/pi"
     local host_data_pi="${XDG_DATA_HOME:-${HOST_HOME}/.local/share}/pi"
     local host_state_pi="${XDG_STATE_HOME:-${HOST_HOME}/.local/state}/pi"
+    local host_state_ramona="${XDG_STATE_HOME:-${HOST_HOME}/.local/state}/ramona"
     local host_cache_pi="${XDG_CACHE_HOME:-${HOST_HOME}/.cache}/pi"
     local sand_config_pi="${SANDBOX_CONFIG_DIR}/pi"
     local sand_data_pi="${SANDBOX_LOCAL_SHARE_DIR}/pi"
     local sand_state_pi="${SANDBOX_LOCAL_STATE_DIR}/pi"
+    local sand_state_ramona="${SANDBOX_LOCAL_STATE_DIR}/ramona"
     local sand_cache_pi="${SANDBOX_CACHE_DIR}/pi"
 
     add_sandbox_env_once XDG_CONFIG_HOME "${SANDBOX_CONFIG_DIR}"
@@ -416,9 +418,13 @@ bind_pi_xdg_resources() {
 
     if [[ "${EPHEMERAL_STATE}" -eq 1 ]]; then
         add_extra_dir_once "${sand_state_pi}"
+        add_extra_dir_once "${sand_state_ramona}"
         add_extra_dir_once "${sand_cache_pi}"
     else
         bind_runtime_dir "${host_state_pi}" "${sand_state_pi}"
+        mkdir -p -- "${host_state_ramona}"
+        chmod 0700 -- "${host_state_ramona}"
+        bind_runtime_dir_precreated "${host_state_ramona}" "${sand_state_ramona}"
         bind_runtime_dir "${host_cache_pi}" "${sand_cache_pi}"
     fi
 }

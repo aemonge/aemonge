@@ -42,6 +42,7 @@ readonly LINKED_PI_AGENTS="${TEST_ROOT}/linked-pi-agents"
 readonly LINKED_PI_TASKFLOWS="${TEST_ROOT}/linked-pi-taskflows"
 readonly CUSTOM_XDG_CONFIG="${TEST_ROOT}/xdg-config"
 readonly CUSTOM_XDG_DATA="${TEST_ROOT}/xdg-data"
+readonly CUSTOM_XDG_STATE="${TEST_ROOT}/xdg-state"
 readonly CUSTOM_XDG_CACHE="${TEST_ROOT}/xdg-cache"
 readonly SYMLINK_SOURCE_CONFIG="${TEST_ROOT}/symlink-source/.config"
 readonly SYMLINK_LOGICAL_TARGET="${TEST_HOME}/.config/linked-nvim"
@@ -57,7 +58,8 @@ mkdir -p -- \
     "${TEST_HOME}/.config/opencode/agents" "${TEST_HOME}/.config/openspec" \
     "${TEST_HOME}/.local/share/openspec/schemas/ramona-idea" \
     "${CUSTOM_XDG_CONFIG}/opencode" "${CUSTOM_XDG_CONFIG}/openspec" \
-    "${CUSTOM_XDG_DATA}/opencode" "${CUSTOM_XDG_DATA}/openspec/schemas/ramona-plan" "${CUSTOM_XDG_CACHE}/opencode" \
+    "${CUSTOM_XDG_DATA}/opencode" "${CUSTOM_XDG_DATA}/openspec/schemas/ramona-plan" \
+    "${CUSTOM_XDG_STATE}" "${CUSTOM_XDG_CACHE}/opencode" \
     "${SYMLINK_SOURCE_CONFIG}/nvim" "${SYMLINK_PROJECT_OPENSPEC}/changes/parser-validation" \
     "${TEST_HOME}/.local/share/opencode" "${TEST_HOME}/.cache/opencode" \
     "${TEST_HOME}/.opencode" "${TEST_HOME}/.agents" "${TEST_HOME}/.bun" \
@@ -150,6 +152,7 @@ run_devbox_process() {
         TERM=xterm-256color LANG=C.UTF-8 \
         XDG_CONFIG_HOME="${DEVBOX_TEST_XDG_CONFIG_HOME:-${TEST_HOME}/.config}" \
         XDG_DATA_HOME="${DEVBOX_TEST_XDG_DATA_HOME:-${TEST_HOME}/.local/share}" \
+        XDG_STATE_HOME="${DEVBOX_TEST_XDG_STATE_HOME:-${TEST_HOME}/.local/state}" \
         XDG_CACHE_HOME="${DEVBOX_TEST_XDG_CACHE_HOME:-${TEST_HOME}/.cache}" \
         XDG_RUNTIME_DIR="${RUNTIME_DIR}" WAYLAND_DISPLAY=wayland-9 \
         DISPLAY=:9 XAUTHORITY="${XAUTH_FILE}" TMUX="${TMUX_SOCKET},777,0" TMUX_PANE=%7 \
@@ -315,6 +318,10 @@ assert_sequence_contains 'symlink-backed Pi agents are resolved and mounted read
 assert_sequence_contains 'symlink-backed Pi Taskflows are resolved and mounted read-only' --ro-bind "${LINKED_PI_TASKFLOWS}" "${TEST_HOME}/.pi/agent/taskflows"
 assert_sequence_contains 'user OpenSpec schemas are mounted read-only at the canonical XDG destination' --ro-bind "${TEST_HOME}/.local/share/openspec/schemas" "${TEST_HOME}/.local/share/openspec/schemas"
 assert_bind_destination_absent 'the complete XDG data tree is not mounted' "${TEST_HOME}/.local/share"
+assert_sequence_contains 'Ramona state is mounted writable at the canonical XDG destination' --bind "${TEST_HOME}/.local/state/ramona" "${TEST_HOME}/.local/state/ramona"
+assert_bind_destination_absent 'the complete XDG state tree is not mounted' "${TEST_HOME}/.local/state"
+[[ "$(stat -c %a -- "${TEST_HOME}/.local/state/ramona")" == 700 ]] || { printf 'FAIL: host Ramona state is not owner-only\n' >&2; exit 1; }
+printf 'PASS: host Ramona state is owner-only\n'
 assert_sequence_contains 'Pi agent root is pinned' --setenv PI_CODING_AGENT_DIR "${TEST_HOME}/.pi/agent"
 assert_sequence_contains 'OpenCode config is writable in the shared box' --bind "${TEST_HOME}/.config/opencode" "${TEST_HOME}/.config/opencode"
 assert_sequence_contains 'OpenCode data is writable in the shared box' --bind "${TEST_HOME}/.local/share/opencode" "${TEST_HOME}/.local/share/opencode"
@@ -356,12 +363,15 @@ assert_tail 'symlink invocation resolves built-in helpers from the physical inst
 
 DEVBOX_TEST_XDG_CONFIG_HOME="${CUSTOM_XDG_CONFIG}" \
     DEVBOX_TEST_XDG_DATA_HOME="${CUSTOM_XDG_DATA}" \
+    DEVBOX_TEST_XDG_STATE_HOME="${CUSTOM_XDG_STATE}" \
     DEVBOX_TEST_XDG_CACHE_HOME="${CUSTOM_XDG_CACHE}" \
     run_devbox pi -- "${TEST_PROJECT}" -q
 assert_sequence_contains 'custom XDG OpenCode config maps to the canonical sandbox path' --bind "${CUSTOM_XDG_CONFIG}/opencode" "${TEST_HOME}/.config/opencode"
 assert_sequence_contains 'custom XDG OpenCode data maps to the canonical sandbox path' --bind "${CUSTOM_XDG_DATA}/opencode" "${TEST_HOME}/.local/share/opencode"
 assert_sequence_contains 'custom XDG OpenSpec schemas map read-only to the canonical sandbox path' --ro-bind "${CUSTOM_XDG_DATA}/openspec/schemas" "${TEST_HOME}/.local/share/openspec/schemas"
 assert_bind_destination_absent 'custom XDG data is not mounted wholesale' "${TEST_HOME}/.local/share"
+assert_sequence_contains 'custom XDG Ramona state maps to the canonical sandbox path' --bind "${CUSTOM_XDG_STATE}/ramona" "${TEST_HOME}/.local/state/ramona"
+assert_bind_destination_absent 'custom XDG state is not mounted wholesale' "${TEST_HOME}/.local/state"
 assert_sequence_contains 'custom XDG OpenCode cache maps to the canonical sandbox path' --bind "${CUSTOM_XDG_CACHE}/opencode" "${TEST_HOME}/.cache/opencode"
 assert_sequence_contains 'OpenCode guard cache cannot expose the discovery cache' --bind "${CUSTOM_XDG_CACHE}/devbox/opencode" "${TEST_HOME}/.cache/devbox/opencode"
 assert_sequence_absent 'custom XDG state does not mount the complete devbox cache' --bind "${CUSTOM_XDG_CACHE}/devbox" "${TEST_HOME}/.cache/devbox"
@@ -392,6 +402,8 @@ assert_sequence_absent '--locked disables tmux socket forwarding' --bind "${TMUX
 assert_sequence_contains '--locked keeps OpenCode configuration readable' --ro-bind "${TEST_HOME}/.config/opencode" "${TEST_HOME}/.config/opencode"
 assert_sequence_absent '--locked does not persist OpenCode configuration writes' --bind "${TEST_HOME}/.config/opencode" "${TEST_HOME}/.config/opencode"
 assert_sequence_absent '--locked keeps Pi state ephemeral' --bind "${TEST_HOME}/.pi/agent/tasks" "${TEST_HOME}/.pi/agent/tasks"
+assert_sequence_absent '--locked keeps Ramona state ephemeral' --bind "${TEST_HOME}/.local/state/ramona" "${TEST_HOME}/.local/state/ramona"
+assert_sequence_contains '--locked creates disposable Ramona state' --dir "${TEST_HOME}/.local/state/ramona"
 assert_sequence_contains '--locked keeps global Pi agents readable and read-only' --ro-bind "${LINKED_PI_AGENTS}" "${TEST_HOME}/.pi/agent/agents"
 assert_sequence_contains '--locked keeps saved Pi Taskflows readable and read-only' --ro-bind "${LINKED_PI_TASKFLOWS}" "${TEST_HOME}/.pi/agent/taskflows"
 assert_sequence_contains '--locked keeps user OpenSpec schemas readable and read-only' --ro-bind "${TEST_HOME}/.local/share/openspec/schemas" "${TEST_HOME}/.local/share/openspec/schemas"

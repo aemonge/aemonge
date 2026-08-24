@@ -50,6 +50,7 @@ run_validation() {
     local linked_resource_home
     local linked_pi_agents
     local linked_pi_taskflows
+    local custom_xdg_state_home
     local validation_pi_bin
     local failed_tests=0
     local live_bwrap=0
@@ -89,6 +90,7 @@ run_validation() {
     linked_resource_home="${validation_root}/linked-resource-home"
     linked_pi_agents="${validation_root}/linked-pi-agents"
     linked_pi_taskflows="${validation_root}/linked-pi-taskflows"
+    custom_xdg_state_home="${validation_root}/custom-xdg-state"
     validation_pi_bin="$(command -v "${PI_BIN}" 2>/dev/null || true)"
     printf -v neighbor_dir_q '%q' "${neighbor_dir}"
     printf -v shared_ro_dir_q '%q' "${shared_ro_dir}"
@@ -118,6 +120,8 @@ run_validation() {
         "${test_home}/.local/share/openspec/schemas/ramona-plan" \
         "${test_home}/.local/share/private-data" \
         "${test_home}/.local/state/pi" \
+        "${test_home}/.local/state/private-data" \
+        "${custom_xdg_state_home}" \
         "${test_home}/.cache/pi" \
         "${test_home}/.agents/skills/example" \
         "${test_home}/.local/bin" \
@@ -169,6 +173,7 @@ run_validation() {
     printf 'idea-schema\n' >"${test_home}/.local/share/openspec/schemas/ramona-idea/schema.yaml"
     printf 'plan-schema\n' >"${test_home}/.local/share/openspec/schemas/ramona-plan/schema.yaml"
     printf 'private-data\n' >"${test_home}/.local/share/private-data/hidden.txt"
+    printf 'private-state\n' >"${test_home}/.local/state/private-data/hidden.txt"
     printf 'linked-agent-resource\n' >"${linked_pi_agents}/ramona-step-engineer.md"
     printf 'linked-taskflow-resource\n' >"${linked_pi_taskflows}/ramona-happy-path.json"
     printf 'linked-idea-schema\n' >"${linked_resource_home}/.local/share/openspec/schemas/ramona-idea/schema.yaml"
@@ -619,6 +624,49 @@ PY
             validation_pass 'Test E.12 PASS: Pi XDG state/cache dirs are writable without broad XDG exposure'
         else
             validation_fail "Test E.12 FAIL: Pi XDG state/cache dirs were not writable (${output})"
+            failed_tests=$((failed_tests + 1))
+        fi
+
+        # shellcheck disable=SC2016 # XDG_STATE_HOME expands inside the sandboxed shell.
+        output="$(run_validation_devbox -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'install -d -m 0700 "$XDG_STATE_HOME/ramona" "$XDG_STATE_HOME/ramona/checkpoints" "$XDG_STATE_HOME/ramona/checkpoints/devbox-validation" || exit 1; umask 077; printf %s ramona-checkpoint-v1 > "$XDG_STATE_HOME/ramona/checkpoints/devbox-validation/checkpoint" || exit 1; chmod 0600 "$XDG_STATE_HOME/ramona/checkpoints/devbox-validation/checkpoint" || exit 1; test ! -e "$XDG_STATE_HOME/private-data/hidden.txt" || exit 1; printf RAMONA_WRITE_OK' 2>&1 || true)"
+        if [[ "${output}" == 'RAMONA_WRITE_OK' ]] &&
+            [[ "$(<"${test_home}/.local/state/ramona/checkpoints/devbox-validation/checkpoint")" == 'ramona-checkpoint-v1' ]] &&
+            [[ "$(stat -c %a -- "${test_home}/.local/state/ramona")" == 700 ]] &&
+            [[ "$(stat -c %a -- "${test_home}/.local/state/ramona/checkpoints")" == 700 ]] &&
+            [[ "$(stat -c %a -- "${test_home}/.local/state/ramona/checkpoints/devbox-validation")" == 700 ]] &&
+            [[ "$(stat -c %a -- "${test_home}/.local/state/ramona/checkpoints/devbox-validation/checkpoint")" == 600 ]]; then
+            validation_pass 'Test E.12a PASS: default devbox persists only private Ramona checkpoint state with exact bytes and modes'
+        else
+            validation_fail "Test E.12a FAIL: Ramona checkpoint persistence or privacy failed (${output})"
+            failed_tests=$((failed_tests + 1))
+        fi
+
+        # shellcheck disable=SC2016 # XDG_STATE_HOME expands inside the sandboxed shell.
+        output="$(run_validation_devbox -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'cat "$XDG_STATE_HOME/ramona/checkpoints/devbox-validation/checkpoint"' 2>&1 || true)"
+        if [[ "${output}" == 'ramona-checkpoint-v1' ]]; then
+            validation_pass 'Test E.12b PASS: a fresh devbox reads the persisted checkpoint bytes'
+        else
+            validation_fail "Test E.12b FAIL: a fresh devbox could not read the checkpoint (${output})"
+            failed_tests=$((failed_tests + 1))
+        fi
+
+        # shellcheck disable=SC2016 # XDG_STATE_HOME expands inside the sandboxed shell.
+        output="$(run_validation_devbox -- "${test_project}" -q --backend bwrap --locked -x /bin/bash --noprofile --norc -lc 'install -d -m 0700 "$XDG_STATE_HOME/ramona/checkpoints/locked"; umask 077; printf locked > "$XDG_STATE_HOME/ramona/checkpoints/locked/checkpoint"; printf RAMONA_LOCKED_WRITE_OK' 2>&1 || true)"
+        if [[ "${output}" == 'RAMONA_LOCKED_WRITE_OK' ]] && [[ ! -e "${test_home}/.local/state/ramona/checkpoints/locked/checkpoint" ]]; then
+            validation_pass 'Test E.12c PASS: locked Ramona state remains ephemeral'
+        else
+            validation_fail "Test E.12c FAIL: locked Ramona state persisted or was not writable (${output})"
+            failed_tests=$((failed_tests + 1))
+        fi
+
+        # shellcheck disable=SC2016 # XDG_STATE_HOME expands inside the sandboxed shell.
+        output="$(DEVBOX_VALIDATION_XDG_STATE_HOME="${custom_xdg_state_home}" run_validation_devbox -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'test "$XDG_STATE_HOME" = "$HOME/.local/state" || exit 1; install -d -m 0700 "$XDG_STATE_HOME/ramona/checkpoints/custom"; umask 077; printf %s custom-checkpoint-v1 > "$XDG_STATE_HOME/ramona/checkpoints/custom/checkpoint"; chmod 0600 "$XDG_STATE_HOME/ramona/checkpoints/custom/checkpoint"; printf RAMONA_CUSTOM_XDG_OK' 2>&1 || true)"
+        if [[ "${output}" == 'RAMONA_CUSTOM_XDG_OK' ]] &&
+            [[ "$(<"${custom_xdg_state_home}/ramona/checkpoints/custom/checkpoint")" == 'custom-checkpoint-v1' ]] &&
+            [[ ! -e "${test_home}/.local/state/ramona/checkpoints/custom/checkpoint" ]]; then
+            validation_pass 'Test E.12d PASS: custom XDG state maps only Ramona to the canonical sandbox path'
+        else
+            validation_fail "Test E.12d FAIL: custom XDG Ramona mapping failed (${output})"
             failed_tests=$((failed_tests + 1))
         fi
 
