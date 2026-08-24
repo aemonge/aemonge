@@ -177,16 +177,21 @@ PY
 run_real_pair ordinary-project /home/aemonge/usr
 run_real_pair pi-directory-target /home/aemonge/.pi/agent
 
-host_git_probe="$(cd -- /home/aemonge/usr && {
+git -C "${FIXTURE_PROJECT}" init -q
+printf 'base\n' >"${FIXTURE_PROJECT}/footer.txt"
+git -C "${FIXTURE_PROJECT}" -c user.name=Fixture -c user.email=fixture@example.invalid add -- footer.txt
+git -C "${FIXTURE_PROJECT}" -c user.name=Fixture -c user.email=fixture@example.invalid commit -qm fixture
+printf 'added\n' >>"${FIXTURE_PROJECT}/footer.txt"
+host_git_probe="$(cd -- "${FIXTURE_PROJECT}" && {
     git --no-optional-locks status --porcelain=2 --branch
     git --no-optional-locks diff --numstat HEAD
 })"
-sandbox_git_probe="$("${DEVBOX}" /bin/bash --noprofile --norc -lc '
+sandbox_git_probe="$(run_fixture_box "${FIXTURE_PROJECT}" '
 git --no-optional-locks status --porcelain=2 --branch
 git --no-optional-locks diff --numstat HEAD
-' -- /home/aemonge/usr -q --no-aws --no-clipboard --no-ssh-agent)"
+')"
 [[ "${sandbox_git_probe}" == "${host_git_probe}" ]] || fail 'Fancy Footer lock-free Git status/diff output differs from host'
-[[ "${sandbox_git_probe}" == *$'\tbin/devbox'* ]] || fail 'Fancy Footer Git numstat probe did not include the current devbox diff'
+[[ "${sandbox_git_probe}" == *$'1\t0\tfooter.txt'* ]] || fail 'Fancy Footer Git numstat probe did not report the fixture diff'
 pass 'Fancy Footer lock-free Git status and diff totals match host'
 
 host_hashes="$(for name in AGENTS.md settings.json keybindings.json fancy-footer.json galactica-status.json; do sha256sum "/home/aemonge/.pi/agent/${name}"; done | awk '{print $1}')"
