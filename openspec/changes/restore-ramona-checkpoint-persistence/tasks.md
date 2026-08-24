@@ -21,9 +21,10 @@ state maps correctly; unrelated state stays hidden; Pi state and all devbox test
 remain green; and a fresh Happy-path checkpoint survives Pi exit.
 **Final history target:** `fix(devbox): persist bounded Ramona checkpoints`
 **Current Git boundary:**
-`step(devbox): persist bounded Ramona checkpoints`; the Task-boundary commit
-waits for Human `VALID`.
-**Human validation:** Pending
+`2e6c653 step(devbox): persist bounded Ramona checkpoints`; Human validation
+permits the declared Task-boundary commit.
+**Human validation:** `VALID` recorded 2026-08-24T09:14:58Z after direct host
+inspection of exact bytes, modes, and manifest integrity.
 
 - [x] Step 1.1 Add the narrow persistent Ramona state bind and discriminating
   regression coverage.
@@ -38,9 +39,12 @@ waits for Human `VALID`.
     state, hidden unrelated state, existing Pi state, all seven devbox test
     executables, and complete `bin/devbox -- --validate`. The undeclared
     whole-file ShellCheck findings were pre-existing and not part of the Plan's
-    retry-check allowlist.
-  - History: `step(devbox): persist bounded Ramona checkpoints`.
+    retry-check allowlist. Fresh run `ramona-happy-path-mt70900o-430621` then
+    completed; after Pi exited, the host and a second devbox verified its exact
+    checkpoint bytes, `0700` directories, `0600` files, and manifest integrity.
+  - History: `2e6c653 step(devbox): persist bounded Ramona checkpoints`.
 
 ### Human validation
 
-- [ ] Human confirms host checkpoint persistence and returns `VALID`.
+- [x] Human confirmed host checkpoint persistence with `VALID` at
+  2026-08-24T09:14:58Z.

@@ -37,8 +37,8 @@ so Taskflow progress and recoverable history stay at the same durable boundary.
 - [x] A fresh devbox reads identical checkpoint bytes after the writer exits.
 - [x] Locked mode stays ephemeral and unrelated XDG state stays hidden.
 - [x] Custom XDG state roots, Pi state, and existing sandbox policy still pass.
-- [ ] A fresh Ramona Happy-path canary leaves its checkpoint on the host.
-- [ ] Human validates persistence before the Task-boundary commit.
+- [x] A fresh Ramona Happy-path canary leaves its checkpoint on the host.
+- [x] Human validated persistence before the Task-boundary commit.
 
 ## Scope and boundaries
 
@@ -75,5 +75,5 @@ available `bin/test/devbox*-test` and `bin/devbox -- --validate` from the host.
 Finally rerun a fresh Ramona Happy-path canary and verify its checkpoint after Pi
 exits.
 
-Human validates the host checkpoint bytes and permissions. Final validation
-remains pending until Human returns `VALID`.
+Human validated the host checkpoint bytes, `0700` directories, `0600` files,
+and manifest integrity with `VALID` at 2026-08-24T09:14:58Z.
