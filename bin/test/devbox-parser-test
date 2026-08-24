@@ -298,6 +298,17 @@ assert_sequence_contains 'target is mounted read-write by default' --bind "${TES
 assert_sequence_contains 'critical .github infrastructure is read-only' --ro-bind "${TEST_PROJECT}/.github" "${TEST_PROJECT}/.github"
 assert_sequence_contains 'critical Cargo.lock is read-only' --ro-bind "${TEST_PROJECT}/Cargo.lock" "${TEST_PROJECT}/Cargo.lock"
 assert_sequence_absent '.git remains writable' --ro-bind "${TEST_PROJECT}/.git" "${TEST_PROJECT}/.git"
+assert_sequence_contains 'restricted mode keeps /dev/null' --dev-bind /dev/null /dev/null
+assert_sequence_contains 'restricted mode keeps /dev/zero' --dev-bind /dev/zero /dev/zero
+assert_sequence_contains 'restricted mode keeps /dev/random' --dev-bind /dev/random /dev/random
+assert_sequence_contains 'restricted mode keeps /dev/urandom' --dev-bind /dev/urandom /dev/urandom
+assert_sequence_contains 'restricted mode keeps /dev/tty' --dev-bind /dev/tty /dev/tty
+assert_sequence_contains 'restricted mode creates /dev/fd with Bubblewrap' --symlink /proc/self/fd /dev/fd
+assert_sequence_contains 'restricted mode creates /dev/stdin with Bubblewrap' --symlink /proc/self/fd/0 /dev/stdin
+assert_sequence_contains 'restricted mode creates /dev/stdout with Bubblewrap' --symlink /proc/self/fd/1 /dev/stdout
+assert_sequence_contains 'restricted mode creates /dev/stderr with Bubblewrap' --symlink /proc/self/fd/2 /dev/stderr
+assert_sequence_absent 'restricted mode does not enable broad device access' --dev /dev
+assert_sequence_absent 'restricted mode does not bind the complete host device tree' --dev-bind /dev /dev
 assert_sequence_contains 'Pi agent root is disposable' --tmpfs "${TEST_HOME}/.pi/agent"
 assert_sequence_contains 'Pi settings remain read-only' --ro-bind "${TEST_HOME}/.pi/agent/settings.json" "${TEST_HOME}/.pi/agent/settings.json"
 assert_sequence_contains 'symlink-backed Pi agents are resolved and mounted read-only' --ro-bind "${LINKED_PI_AGENTS}" "${TEST_HOME}/.pi/agent/agents"
@@ -384,6 +395,10 @@ assert_sequence_absent '--locked keeps Pi state ephemeral' --bind "${TEST_HOME}/
 assert_sequence_contains '--locked keeps global Pi agents readable and read-only' --ro-bind "${LINKED_PI_AGENTS}" "${TEST_HOME}/.pi/agent/agents"
 assert_sequence_contains '--locked keeps saved Pi Taskflows readable and read-only' --ro-bind "${LINKED_PI_TASKFLOWS}" "${TEST_HOME}/.pi/agent/taskflows"
 assert_sequence_contains '--locked keeps user OpenSpec schemas readable and read-only' --ro-bind "${TEST_HOME}/.local/share/openspec/schemas" "${TEST_HOME}/.local/share/openspec/schemas"
+assert_sequence_contains '--locked keeps /dev/fd compatibility' --symlink /proc/self/fd /dev/fd
+assert_sequence_contains '--locked keeps /dev/stdin compatibility' --symlink /proc/self/fd/0 /dev/stdin
+assert_sequence_contains '--locked keeps /dev/stdout compatibility' --symlink /proc/self/fd/1 /dev/stdout
+assert_sequence_contains '--locked keeps /dev/stderr compatibility' --symlink /proc/self/fd/2 /dev/stderr
 
 run_devbox pi -- "${TEST_PROJECT}" -q --locked --allow-infra --allow-pi-config --full-dev --aws --clipboard
 assert_sequence_contains '--locked remains authoritative regardless of later permissive options' --ro-bind "${TEST_PROJECT}/.github" "${TEST_PROJECT}/.github"
@@ -391,6 +406,12 @@ assert_sequence_absent '--locked cannot re-enable broad device access' --dev /de
 assert_sequence_absent '--locked cannot re-enable AWS' --ro-bind "${TEST_HOME}/.aws" "${TEST_HOME}/.aws"
 assert_sequence_absent '--locked cannot re-enable clipboard' --bind "${WAYLAND_SOCKET}" "${WAYLAND_SOCKET}"
 assert_sequence_absent '--locked cannot make global Pi configuration writable' --bind "${TEST_HOME}/.pi" "${TEST_HOME}/.pi"
+assert_sequence_contains '--locked remains file-descriptor compatible' --symlink /proc/self/fd /dev/fd
+
+run_devbox pi -- "${TEST_PROJECT}" -q --full-dev
+assert_sequence_contains '--full-dev keeps its existing synthetic device tree' --dev /dev
+assert_sequence_absent '--full-dev does not add the restricted /dev/fd override' --symlink /proc/self/fd /dev/fd
+assert_sequence_absent '--full-dev does not bind the complete host device tree' --dev-bind /dev /dev
 
 run_devbox pi -- "${TEST_WORKSPACE_MEMBER}" -q
 assert_sequence_contains 'Cargo member expands the visible target to its workspace root' --bind "${TEST_WORKSPACE}" "${TEST_WORKSPACE}"

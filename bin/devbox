@@ -2538,6 +2538,10 @@ if [[ "${RESTRICT_DEV}" -eq 1 ]]; then
         --dev-bind /dev/urandom /dev/urandom
         --dev-bind /dev/tty /dev/tty
         --tmpfs /dev/shm
+        --symlink /proc/self/fd /dev/fd
+        --symlink /proc/self/fd/0 /dev/stdin
+        --symlink /proc/self/fd/1 /dev/stdout
+        --symlink /proc/self/fd/2 /dev/stderr
     )
 else
     BWRAP_CMD+=(--dev /dev)

@@ -398,6 +398,30 @@ PY
             failed_tests=$((failed_tests + 1))
         fi
 
+        output="$(run_validation_devbox -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'test "$(readlink /dev/fd)" = /proc/self/fd && test "$(readlink /dev/stdin)" = /proc/self/fd/0 && test "$(readlink /dev/stdout)" = /proc/self/fd/1 && test "$(readlink /dev/stderr)" = /proc/self/fd/2 && cmp -s <(printf x) <(printf x) && for node in null zero random urandom tty; do test -c "/dev/$node" || exit 1; done && test ! -e /dev/full && printf RESTRICTED_FD_OK' 2>&1 || true)"
+        if [[ "${output}" == 'RESTRICTED_FD_OK' ]]; then
+            validation_pass 'Test B.5a PASS: restricted mode keeps selected devices and bounded file-descriptor compatibility'
+        else
+            validation_fail "Test B.5a FAIL: restricted file-descriptor compatibility failed (${output})"
+            failed_tests=$((failed_tests + 1))
+        fi
+
+        output="$(run_validation_devbox -- "${test_project}" -q --backend bwrap --locked -x /bin/bash --noprofile --norc -lc 'test "$(readlink /dev/fd)" = /proc/self/fd && test "$(readlink /dev/stdin)" = /proc/self/fd/0 && test "$(readlink /dev/stdout)" = /proc/self/fd/1 && test "$(readlink /dev/stderr)" = /proc/self/fd/2 && cmp -s <(printf x) <(printf x) && test ! -e /dev/full && printf LOCKED_FD_OK' 2>&1 || true)"
+        if [[ "${output}" == 'LOCKED_FD_OK' ]]; then
+            validation_pass 'Test B.5b PASS: locked mode keeps bounded file-descriptor compatibility'
+        else
+            validation_fail "Test B.5b FAIL: locked file-descriptor compatibility failed (${output})"
+            failed_tests=$((failed_tests + 1))
+        fi
+
+        output="$(run_validation_devbox -- "${test_project}" -q --backend bwrap --full-dev -x /bin/bash --noprofile --norc -lc 'test -c /dev/full && cmp -s <(printf x) <(printf x) && printf FULL_DEV_OK' 2>&1 || true)"
+        if [[ "${output}" == 'FULL_DEV_OK' ]]; then
+            validation_pass 'Test B.5c PASS: full-dev keeps its existing device-tree behavior'
+        else
+            validation_fail "Test B.5c FAIL: full-dev behavior changed (${output})"
+            failed_tests=$((failed_tests + 1))
+        fi
+
         # shellcheck disable=SC2016 # Variables expand inside the sandboxed shell.
         output="$(run_validation_devbox -- "${validation_root}/nested-parent/nvim" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'task_path="$(dirname "$PWD")/openspec/changes/nested-validation/tasks.md"; cat "$task_path" >/dev/null || exit 1; if printf bad > "$task_path" 2>/dev/null; then printf OPENSPEC_WRITE_ALLOWED; else printf OPENSPEC_RO; fi' 2>&1 || true)"
         if [[ "${output}" == *OPENSPEC_RO* ]] && [[ "${output}" != *OPENSPEC_WRITE_ALLOWED* ]] && \
