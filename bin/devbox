@@ -1269,6 +1269,31 @@ bind_tmux_socket_env() {
     fi
 }
 
+discover_active_pty() {
+    local candidate=""
+    local fd
+
+    ACTIVE_PTY_PATH=""
+    if [[ -t 0 || -t 1 || -t 2 ]] && [[ -r /dev/tty ]]; then
+        candidate="$({ tty </dev/tty; } 2>/dev/null || true)"
+    fi
+    if [[ ! "${candidate}" =~ ^/dev/pts/[0-9]+$ || ! -c "${candidate}" ]]; then
+        candidate=""
+        for fd in 0 1 2; do
+            [[ -t "${fd}" ]] || continue
+            candidate="$(readlink -f "/proc/self/fd/${fd}" 2>/dev/null || true)"
+            if [[ "${candidate}" =~ ^/dev/pts/[0-9]+$ && -c "${candidate}" ]]; then
+                break
+            fi
+            candidate=""
+        done
+    fi
+    if [[ -n "${candidate}" ]]; then
+        ACTIVE_PTY_PATH="${candidate}"
+        info "Terminal integration: preserving active PTY ${ACTIVE_PTY_PATH}"
+    fi
+}
+
 bind_terminal_integration() {
     local xdg_starship=""
     local sand_xdg_starship=""
@@ -1863,6 +1888,7 @@ DEVBOX_PACKAGE
         "${script_dir}/test/devbox-live-extended-test" \
         "${script_dir}/test/devbox-static-test" \
         "${script_dir}/test/devbox-pi-parity-test" \
+        "${script_dir}/test/devbox-pty-test" \
         "${script_dir}/test/devbox-cache-test" \
         "${script_dir}/test/scoder-git-test" \
         "${script_dir}/test/devbox-parser-test" \
@@ -1940,6 +1966,7 @@ DEVBOX_DISCOVERY_CACHE_VALID=0
 DEVBOX_CACHE_BWRAP_PATH=""
 DEVBOX_CACHE_BWRAP_VERSION=""
 BWRAP_DISABLE_USERNS_SUPPORTED=0
+ACTIVE_PTY_PATH=""
 
 trace_startup "defaults initialized"
 PI_AGENT_DIR_FROM_ENV=0
@@ -2594,6 +2621,8 @@ for added_path in "${ADD_RW_PATHS[@]}"; do
     add_custom_bind --bind "${added_path}"
 done
 
+discover_active_pty
+
 BWRAP_CMD=(
     bwrap
     --ro-bind /usr /usr
@@ -2635,6 +2664,12 @@ if [[ "${RESTRICT_DEV}" -eq 1 ]]; then
     )
 else
     BWRAP_CMD+=(--dev /dev)
+fi
+if [[ -n "${ACTIVE_PTY_PATH}" ]]; then
+    BWRAP_CMD+=(
+        --dir /dev/pts
+        --dev-bind "${ACTIVE_PTY_PATH}" "${ACTIVE_PTY_PATH}"
+    )
 fi
 
 BWRAP_CMD+=(
