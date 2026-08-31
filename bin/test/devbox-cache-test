@@ -75,7 +75,7 @@ import sys
 path = Path(sys.argv[1])
 lines = path.read_text().splitlines()
 path.write_text("\n".join(
-    f"DEVBOX_CACHE_SCODER_GIT_REALPATH={sys.argv[2]}" if line.startswith("DEVBOX_CACHE_SCODER_GIT_REALPATH=") else line
+    f"DEVBOX_CACHE_DEVBOX_GIT_REALPATH={sys.argv[2]}" if line.startswith("DEVBOX_CACHE_DEVBOX_GIT_REALPATH=") else line
     for line in lines
 ) + "\n")
 PY

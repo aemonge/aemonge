@@ -5,7 +5,7 @@ set -Eeuo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 readonly SCRIPT_DIR
 readonly DEVBOX="${SCRIPT_DIR}/../devbox"
-readonly SCODER_GIT="${SCRIPT_DIR}/../scoder-git"
+readonly DEVBOX_GIT="${SCRIPT_DIR}/../devbox-git"
 TEST_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/devbox-live-extended.XXXXXX")"
 readonly TEST_ROOT
 readonly TEST_HOME="${TEST_ROOT}/home"
@@ -82,7 +82,7 @@ run_box() {
         XDG_RUNTIME_DIR="${RUNTIME_DIR}" WAYLAND_DISPLAY=wayland-97 \
         DISPLAY="${X11_DISPLAY}" XAUTHORITY="${XAUTH_FILE}" \
         AWS_PROFILE=fixture AWS_SHARED_CREDENTIALS_FILE="${CUSTOM_AWS_FILE}" \
-        SCODER_GIT="${SCODER_GIT}" \
+        DEVBOX_GIT="${DEVBOX_GIT}" \
         "${DEVBOX}" "$@"
 }
 
@@ -139,7 +139,7 @@ output="$(run_box /bin/bash --noprofile --norc -lc \
     -- "${TEST_PROJECT}" -q --no-network --no-aws --no-clipboard --no-ssh-agent 2>&1 || true)"
 [[ "${output}" == NETWORK_ISOLATED ]] && pass 'Test P.9 PASS: --no-network removes the default network route' || fail "Test P.9 FAIL: ${output}"
 
-missing_socket_output="$(env -i HOME="${TEST_HOME}" USER="${USER:-developer}" LOGNAME="${LOGNAME:-${USER:-developer}}" PATH="${PATH}" TERM=xterm-256color LANG=C.UTF-8 SCODER_GIT="${SCODER_GIT}" SSH_AUTH_SOCK="${TEST_ROOT}/missing.sock" "${DEVBOX}" /bin/true -- "${TEST_PROJECT}" -q --no-aws --no-clipboard 2>&1 || true)"
+missing_socket_output="$(env -i HOME="${TEST_HOME}" USER="${USER:-developer}" LOGNAME="${LOGNAME:-${USER:-developer}}" PATH="${PATH}" TERM=xterm-256color LANG=C.UTF-8 DEVBOX_GIT="${DEVBOX_GIT}" SSH_AUTH_SOCK="${TEST_ROOT}/missing.sock" "${DEVBOX}" /bin/true -- "${TEST_PROJECT}" -q --no-aws --no-clipboard 2>&1 || true)"
 [[ "${missing_socket_output}" == *'SSH_AUTH_SOCK is not a socket'* ]] && pass 'Test P.10 PASS: missing SSH agent sockets fail closed with a clear diagnostic' || fail "Test P.10 FAIL: ${missing_socket_output}"
 
 output="$(run_box /bin/bash --noprofile --norc -lc \

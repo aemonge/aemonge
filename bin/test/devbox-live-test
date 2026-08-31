@@ -867,6 +867,14 @@ PY
             failed_tests=$((failed_tests + 1))
         fi
 
+        output="$(run_validation_devbox -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'test "$DEVBOX_ACTIVE" = 1 && test "$DEVBOX_PROJECT_ROOT" = "$PWD" && test "$DEVBOX_GIT_POLICY" = wrapped && test "$DEVBOX_GIT_WRAPPER" = devbox-git && test -r "$DEVBOX_AGENT_CONTEXT_FILE" && grep -q DEVBOX_GIT_POLICY=wrapped "$DEVBOX_AGENT_CONTEXT_FILE" && printf DEVBOX_CONTEXT_OK' 2>&1 || true)"
+        if [[ "${output}" == 'DEVBOX_CONTEXT_OK' ]]; then
+            validation_pass 'Test I.2 PASS: Devbox identity and separate agent context are exposed'
+        else
+            validation_fail "Test I.2 FAIL: Devbox agent context was unavailable (${output})"
+            failed_tests=$((failed_tests + 1))
+        fi
+
         output="$(run_validation_devbox -- "${target_file_path}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc "cat ${sibling_file_path_q}" 2>&1 || true)"
         if [[ "${output}" == 'beta' ]]; then
             validation_pass 'Test L.1 PASS: file target mode keeps sibling files readable'
@@ -891,17 +899,17 @@ PY
             failed_tests=$((failed_tests + 1))
         fi
 
-        output="$(run_validation_devbox -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'git --scoder-git-version' 2>&1 || true)"
-        if [[ "${output}" == scoder-git* ]]; then
-            validation_pass 'Test M.1 PASS: /usr/bin/git is shadowed by scoder-git'
+        output="$(run_validation_devbox -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'git --devbox-git-version' 2>&1 || true)"
+        if [[ "${output}" == devbox-git* ]]; then
+            validation_pass 'Test M.1 PASS: /usr/bin/git is shadowed by devbox-git'
         else
             validation_fail "Test M.1 FAIL: /usr/bin/git is not shadowed (${output})"
             failed_tests=$((failed_tests + 1))
         fi
 
         output="$(run_validation_devbox -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'git push 2>&1' 2>&1 || true)"
-        if [[ "${output}" == *'fatal: scoder blocked git push'* ]]; then
-            validation_pass 'Test M.2 PASS: git push is denied by policy wrapper'
+        if [[ "${output}" == *'fatal: devbox blocked git push'* ]]; then
+            validation_pass 'Test M.2 PASS: git push is denied by the Devbox policy wrapper'
         else
             validation_fail "Test M.2 FAIL: git push was not denied (${output})"
             failed_tests=$((failed_tests + 1))

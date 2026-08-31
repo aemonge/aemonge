@@ -1,12 +1,22 @@
 #!/usr/bin/env bash
 
-# scoder-git - policy-enforcing git wrapper for scoder sandboxes.
-# Intended to be mounted over /usr/bin/git inside scoder, with the real git
-# binary provided through SCODER_REAL_GIT.
+# Shared policy-enforcing Git wrapper for Scoder and Devbox sandboxes.
+# The invoking sandbox supplies its public identity and private real-Git path.
 
 set -Eeuo pipefail
 
-readonly PROGRAM_NAME="scoder-git"
+case "$(basename -- "$0")" in
+    devbox-git)
+        default_program_name="devbox-git"
+        default_sandbox_name="devbox"
+        ;;
+    *)
+        default_program_name="scoder-git"
+        default_sandbox_name="scoder"
+        ;;
+esac
+readonly PROGRAM_NAME="${DEVBOX_GIT_PROGRAM_NAME:-${default_program_name}}"
+readonly SANDBOX_NAME="${DEVBOX_RUNTIME_NAME:-${default_sandbox_name}}"
 readonly PROGRAM_VERSION="0.1.0"
 
 error() {
@@ -35,19 +45,19 @@ deny_with_hints() {
 
 deny() {
     deny_with_hints "$*" \
-        "Assistant: stop and explain the blocked scoder-git policy to the user." \
+        "Assistant: stop and explain the blocked ${PROGRAM_NAME} policy to the user." \
         "Assistant: do not invent a bypass; ask whether the workflow or allowlist should change."
 }
 
 deny_destructive() {
     deny_with_hints "$1" \
-        "Assistant: do not delete untracked files or discard work from scoder." \
+        "Assistant: do not delete untracked files or discard work from ${SANDBOX_NAME}." \
         "Assistant: inspect status/diff and ask the user before any destructive cleanup."
 }
 
 deny_reset_destructive() {
     deny_with_hints "$1" \
-        "Assistant: do not discard tracked work from scoder." \
+        "Assistant: do not discard tracked work from ${SANDBOX_NAME}." \
         "Assistant: inspect status/diff and ask the user before any hard reset or cleanup."
 }
 
@@ -59,51 +69,51 @@ deny_branch_movement() {
 
 deny_config_escape() {
     deny_with_hints "$1" \
-        "Assistant: do not bypass scoder protections with config, hooks, signing, or editor overrides." \
-        "Assistant: use only allowed identity config or ask the user to adjust scoder policy with tests."
+        "Assistant: do not bypass ${SANDBOX_NAME} protections with config, hooks, signing, or editor overrides." \
+        "Assistant: use only allowed identity config or ask the user to adjust ${SANDBOX_NAME} policy with tests."
 }
 
 deny_path_escape() {
     deny_with_hints "$1" \
-        "Assistant: keep paths inside the repository mounted for this scoder session." \
+        "Assistant: keep paths inside the repository mounted for this ${SANDBOX_NAME} session." \
         "Assistant: ask the user before staging or reading commit-message files outside the repo."
 }
 
 deny_unknown_command() {
     deny_with_hints "$1" \
-        "Assistant: scoder-git uses an allowlist; do not invent shell workarounds." \
+        "Assistant: ${PROGRAM_NAME} uses an allowlist; do not invent shell workarounds." \
         "Assistant: ask the user whether this command should be added with tests."
 }
 
-deny_run_outside_scoder() {
+deny_run_outside_sandbox() {
     local command_text="$1"
     local category="${2:-generic}"
     local -a lines=(
-        "fatal: scoder blocked ${command_text}; no ${command_text#git } was performed"
+        "fatal: ${SANDBOX_NAME} blocked ${command_text}; no ${command_text#git } was performed"
     )
 
     case "${category}" in
     network)
         lines+=(
-            "hint: Assistant: never push from scoder or perform network Git operations from this sandbox."
-            "hint: Assistant: summarize the intended remote operation and ask the user to run it outside scoder."
+            "hint: Assistant: never push from ${SANDBOX_NAME} or perform network Git operations from this sandbox."
+            "hint: Assistant: summarize the intended remote operation and ask the user to run it outside ${SANDBOX_NAME}."
         )
         ;;
     history)
         lines+=(
-            "hint: Assistant: do not rewrite or integrate history inside scoder."
-            "hint: Assistant: explain the need and ask the user to run the history operation outside scoder."
+            "hint: Assistant: do not rewrite or integrate history inside ${SANDBOX_NAME}."
+            "hint: Assistant: explain the need and ask the user to run the history operation outside ${SANDBOX_NAME}."
         )
         ;;
     destructive)
         lines+=(
-            "hint: Assistant: do not delete untracked files or discard work from scoder."
+            "hint: Assistant: do not delete untracked files or discard work from ${SANDBOX_NAME}."
             "hint: Assistant: inspect status/diff and ask the user before any destructive cleanup."
         )
         ;;
     *)
         lines+=(
-            "hint: Assistant: stop and explain the blocked scoder-git policy to the user."
+            "hint: Assistant: stop and explain the blocked ${PROGRAM_NAME} policy to the user."
             "hint: Assistant: do not invent a bypass; ask whether the workflow or allowlist should change."
         )
         ;;
@@ -114,18 +124,19 @@ deny_run_outside_scoder() {
 }
 
 find_real_git() {
-    if [[ -n "${SCODER_REAL_GIT:-}" ]]; then
-        if [[ -x "${SCODER_REAL_GIT}" ]]; then
-            printf '%s\n' "${SCODER_REAL_GIT}"
+    local configured_real_git="${DEVBOX_REAL_GIT:-${SCODER_REAL_GIT:-}}"
+    if [[ -n "${configured_real_git}" ]]; then
+        if [[ -x "${configured_real_git}" ]]; then
+            printf '%s\n' "${configured_real_git}"
             return 0
         fi
 
-        error "SCODER_REAL_GIT is not executable: ${SCODER_REAL_GIT}"
+        error "configured real Git is not executable: ${configured_real_git}"
         exit 127
     fi
 
     local candidate
-    for candidate in /usr/libexec/scoder/real-git /usr/bin/git /bin/git; do
+    for candidate in /usr/libexec/devbox/real-git /usr/libexec/scoder/real-git /usr/bin/git /bin/git; do
         if [[ -x "${candidate}" && "$(realpath "$candidate")" != "$(realpath "$0")" ]]; then
             printf '%s\n' "${candidate}"
             return 0
@@ -533,7 +544,7 @@ validate_commit_file_paths() {
 }
 
 main() {
-    if [[ "${1:-}" == "--scoder-git-version" ]]; then
+    if [[ "${1:-}" == "--devbox-git-version" || "${1:-}" == "--scoder-git-version" ]]; then
         printf '%s %s\n' "${PROGRAM_NAME}" "${PROGRAM_VERSION}"
         return 0
     fi
@@ -623,13 +634,13 @@ main() {
         exec "${real_git}" "${GLOBAL_GIT_ARGS[@]}" "$@"
         ;;
     push | pull | fetch)
-        deny_run_outside_scoder "git ${subcommand}" "network"
+        deny_run_outside_sandbox "git ${subcommand}" "network"
         ;;
     rebase | merge | cherry-pick | revert | tag | checkout)
-        deny_run_outside_scoder "git ${subcommand}" "history"
+        deny_run_outside_sandbox "git ${subcommand}" "history"
         ;;
     clean)
-        deny_run_outside_scoder "git ${subcommand}" "destructive"
+        deny_run_outside_sandbox "git ${subcommand}" "destructive"
         ;;
     *)
         deny_unknown_command "unknown git command: git ${subcommand}"

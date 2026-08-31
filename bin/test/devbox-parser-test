@@ -294,6 +294,14 @@ assert_tail() {
 
 run_devbox pi hello -- "${TEST_PROJECT}" -q
 assert_tail 'command and arguments before -- execute inside the box' "${PI_BIN}" hello
+assert_sequence_contains 'agent context is mounted separately and read-only' --ro-bind "${DEVBOX_ROOT}/devbox-agent-context.md" /devbox/agent-context.md
+assert_sequence_contains 'Devbox activity is explicit' --setenv DEVBOX_ACTIVE 1
+assert_sequence_contains 'Devbox project root is explicit' --setenv DEVBOX_PROJECT_ROOT "${TEST_PROJECT}"
+assert_sequence_contains 'agent context path is explicit' --setenv DEVBOX_AGENT_CONTEXT_FILE /devbox/agent-context.md
+assert_sequence_contains 'effective filesystem mode is explicit' --setenv DEVBOX_FS_MODE rw
+assert_sequence_contains 'effective network capability is explicit' --setenv DEVBOX_NETWORK 1
+assert_sequence_contains 'Git policy identity is explicit' --setenv DEVBOX_GIT_POLICY wrapped
+assert_sequence_contains 'private real Git uses the Devbox contract' --setenv DEVBOX_REAL_GIT /devbox/real-git
 
 run_devbox pi before --- after -- "${TEST_PROJECT}" -q
 assert_tail '--- passes a literal -- to the child command' "${PI_BIN}" before -- after
