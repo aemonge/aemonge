@@ -54,7 +54,8 @@ mkdir -p -- \
     "${TEST_WORKSPACE_MEMBER}/src" \
     "${TEST_DEP_REPO}/.git" "${TEST_DEP_APP}/src" "${TEST_DEP_LIB}/src" \
     "${TEST_ESCAPE_APP}/src" "${TEST_OUTSIDE_DEP}/src" \
-    "${TEST_HOME}/.pi/agent" "${LINKED_PI_AGENTS}" "${LINKED_PI_TASKFLOWS}" \
+    "${TEST_HOME}/.pi/agent" "${TEST_HOME}/.pi/agent/scripts" \
+    "${LINKED_PI_AGENTS}" "${LINKED_PI_TASKFLOWS}" \
     "${TEST_HOME}/.config/opencode/agents" "${TEST_HOME}/.config/openspec" \
     "${TEST_HOME}/.local/share/openspec/schemas/ramona-idea" \
     "${CUSTOM_XDG_CONFIG}/opencode" "${CUSTOM_XDG_CONFIG}/openspec" \
@@ -67,6 +68,7 @@ mkdir -p -- \
     "${RUNTIME_DIR}" /tmp/.X11-unix
 
 printf '{}\n' >"${TEST_HOME}/.pi/agent/settings.json"
+printf '#!/usr/bin/env bash\n' >"${TEST_HOME}/.pi/agent/scripts/helper"
 printf 'agent\n' >"${LINKED_PI_AGENTS}/ramona-step-engineer.md"
 printf 'flow\n' >"${LINKED_PI_TASKFLOWS}/ramona-happy-path.json"
 ln -s "${LINKED_PI_AGENTS}" "${TEST_HOME}/.pi/agent/agents"
@@ -302,6 +304,10 @@ assert_sequence_contains 'effective filesystem mode is explicit' --setenv DEVBOX
 assert_sequence_contains 'effective network capability is explicit' --setenv DEVBOX_NETWORK 1
 assert_sequence_contains 'Git policy identity is explicit' --setenv DEVBOX_GIT_POLICY wrapped
 assert_sequence_contains 'private real Git uses the Devbox contract' --setenv DEVBOX_REAL_GIT /devbox/real-git
+assert_sequence_contains 'local trust state is mounted writable' --bind "${TEST_HOME}/.pi/agent/trust" "${TEST_HOME}/.pi/agent/trust"
+assert_sequence_contains 'Pi scripts are mounted read-only' --ro-bind "${TEST_HOME}/.pi/agent/scripts" "${TEST_HOME}/.pi/agent/scripts"
+[[ "$(stat -c %a "${TEST_HOME}/.pi/agent/trust")" == 700 ]] || { printf 'FAIL: local trust mode is not 0700\n' >&2; exit 1; }
+printf 'PASS: local trust mode is 0700\n'
 
 run_devbox pi before --- after -- "${TEST_PROJECT}" -q
 assert_tail '--- passes a literal -- to the child command' "${PI_BIN}" before -- after

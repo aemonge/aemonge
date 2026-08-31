@@ -111,6 +111,7 @@ run_validation() {
         "${test_home}/.pi/agent/ui" \
         "${test_home}/.pi/agent/statusline" \
         "${test_home}/.pi/agent/agents" \
+        "${test_home}/.pi/agent/scripts" \
         "${test_home}/.pi/agent/taskflows" \
         "${test_home}/.pi/providers" \
         "${test_home}/.pi/models" \
@@ -169,6 +170,7 @@ run_validation() {
     printf 'pi-xdg-config\n' >"${test_home}/.config/pi/config.toml"
     printf 'pi-xdg-data\n' >"${test_home}/.local/share/pi/resource.txt"
     printf 'agent-resource\n' >"${test_home}/.pi/agent/agents/ramona-step-engineer.md"
+    printf '#!/usr/bin/env bash\n' >"${test_home}/.pi/agent/scripts/devbox-helper"
     printf 'taskflow-resource\n' >"${test_home}/.pi/agent/taskflows/ramona-happy-path.json"
     printf 'idea-schema\n' >"${test_home}/.local/share/openspec/schemas/ramona-idea/schema.yaml"
     printf 'plan-schema\n' >"${test_home}/.local/share/openspec/schemas/ramona-plan/schema.yaml"
@@ -671,11 +673,12 @@ PY
         fi
 
         # shellcheck disable=SC2016 # $HOME must expand inside the sandboxed shell.
-        output="$(run_validation_devbox -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'cat "$HOME/.pi/agent/settings.json" "$HOME/.pi/agent/trust.json" >/dev/null || exit 1; mkdir "$HOME/.pi/agent/settings.json.lock" "$HOME/.pi/agent/trust.json.lock" || exit 1; if printf bad > "$HOME/.pi/agent/settings.json" 2>/dev/null; then printf ROOT_CONFIG_WRITE_ALLOWED; else printf ROOT_CONFIG_RO; fi; rmdir "$HOME/.pi/agent/settings.json.lock" "$HOME/.pi/agent/trust.json.lock" || exit 1; printf PI_AGENT_ROOT_LOCK_OK' 2>&1 || true)"
+        output="$(run_validation_devbox -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'cat "$HOME/.pi/agent/settings.json" "$HOME/.pi/agent/trust.json" >/dev/null || exit 1; mkdir "$HOME/.pi/agent/settings.json.lock" "$HOME/.pi/agent/trust.json.lock" || exit 1; if printf bad > "$HOME/.pi/agent/settings.json" 2>/dev/null; then printf ROOT_CONFIG_WRITE_ALLOWED; else printf ROOT_CONFIG_RO; fi; test -w "$HOME/.pi/agent/trust.json" || exit 1; rmdir "$HOME/.pi/agent/settings.json.lock" "$HOME/.pi/agent/trust.json.lock" || exit 1; printf PI_AGENT_ROOT_LOCK_OK' 2>&1 || true)"
         if [[ "${output}" == *ROOT_CONFIG_RO* && "${output}" == *PI_AGENT_ROOT_LOCK_OK* ]] &&
             [[ "$(<"${test_home}/.pi/agent/settings.json")" == '{"theme":"original"}' ]] &&
-            [[ "$(<"${test_home}/.pi/agent/trust.json")" == '{"trusted":false}' ]]; then
-            validation_pass 'Test E.9 PASS: Pi root config is read-only while disposable lock dirs work'
+            [[ "$(<"${test_home}/.pi/agent/trust.json")" == '{"trusted":false}' ]] &&
+            [[ "$(stat -c %a -- "${test_home}/.pi/agent/trust.json")" == 600 ]]; then
+            validation_pass 'Test E.9 PASS: Pi root config is read-only while machine-local trust and disposable locks work'
         else
             validation_fail "Test E.9 FAIL: Pi root config/lock policy failed (${output})"
             failed_tests=$((failed_tests + 1))
@@ -689,6 +692,15 @@ PY
             validation_pass 'Test E.9a PASS: Fancy Footer and Galactica root config JSON is visible through symlink-safe read-only mounts'
         else
             validation_fail "Test E.9a FAIL: Fancy Footer/Galactica root config JSON was missing or invalid (${output})"
+            failed_tests=$((failed_tests + 1))
+        fi
+
+        # shellcheck disable=SC2016 # $HOME must expand inside the sandboxed shell.
+        output="$(run_validation_devbox -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'test -r "$HOME/.pi/agent/scripts/devbox-helper" || exit 1; if { printf bad > "$HOME/.pi/agent/scripts/blocked"; } 2>/dev/null; then exit 1; fi; printf PI_SCRIPTS_RO' 2>&1 || true)"
+        if [[ "${output}" == 'PI_SCRIPTS_RO' ]] && [[ ! -e "${test_home}/.pi/agent/scripts/blocked" ]]; then
+            validation_pass 'Test E.9b PASS: Pi scripts are visible read-only'
+        else
+            validation_fail "Test E.9b FAIL: Pi scripts were missing or writable (${output})"
             failed_tests=$((failed_tests + 1))
         fi
 

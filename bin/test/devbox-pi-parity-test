@@ -32,14 +32,16 @@ FIXTURE_REAL_PROJECT="${TEST_ROOT}/real-project"
 FIXTURE_AGENT_LOGICAL="${FIXTURE_HOME}/.pi/agent"
 FIXTURE_AGENT_REAL="${FIXTURE_REAL_PROJECT}/.pi/agent"
 FIXTURE_PROJECT="${TEST_ROOT}/ordinary-project"
-readonly FIXTURE_HOME FIXTURE_REAL_PROJECT FIXTURE_AGENT_LOGICAL FIXTURE_AGENT_REAL FIXTURE_PROJECT
+FIXTURE_STATE_ROOT="${FIXTURE_HOME}/.local/state/devbox/pi-agent"
+readonly FIXTURE_HOME FIXTURE_REAL_PROJECT FIXTURE_AGENT_LOGICAL FIXTURE_AGENT_REAL FIXTURE_PROJECT FIXTURE_STATE_ROOT
 mkdir -p -- \
     "${FIXTURE_HOME}/.pi" "${FIXTURE_AGENT_REAL}" "${FIXTURE_PROJECT}" \
     "${FIXTURE_AGENT_REAL}/packages/example/node_modules" \
     "${FIXTURE_AGENT_REAL}/npm/node_modules/example" \
     "${FIXTURE_AGENT_REAL}/extensions" "${FIXTURE_AGENT_REAL}/skills/example" \
-    "${FIXTURE_AGENT_REAL}/prompts" "${FIXTURE_AGENT_REAL}/taskflows" \
-    "${FIXTURE_AGENT_REAL}/themes" "${FIXTURE_AGENT_REAL}/sessions"
+    "${FIXTURE_AGENT_REAL}/prompts" "${FIXTURE_AGENT_REAL}/scripts" \
+    "${FIXTURE_AGENT_REAL}/taskflows" "${FIXTURE_AGENT_REAL}/themes" \
+    "${FIXTURE_AGENT_REAL}/sessions"
 ln -s "${FIXTURE_AGENT_REAL}" "${FIXTURE_AGENT_LOGICAL}"
 printf '# fixture root context\n' >"${FIXTURE_AGENT_REAL}/AGENTS.md"
 printf '{"quietStartup":true}\n' >"${FIXTURE_AGENT_REAL}/settings.json"
@@ -52,36 +54,57 @@ printf 'npm package\n' >"${FIXTURE_AGENT_REAL}/npm/node_modules/example/index.js
 printf 'extension\n' >"${FIXTURE_AGENT_REAL}/extensions/example.ts"
 printf '# skill\n' >"${FIXTURE_AGENT_REAL}/skills/example/SKILL.md"
 printf '# prompt\n' >"${FIXTURE_AGENT_REAL}/prompts/example.md"
+printf '#!/usr/bin/env bash\n' >"${FIXTURE_AGENT_REAL}/scripts/example"
 printf '{}\n' >"${FIXTURE_AGENT_REAL}/taskflows/example.json"
 printf '{}\n' >"${FIXTURE_AGENT_REAL}/themes/example.json"
 
-fixture_visibility='test -L "$PI_CODING_AGENT_DIR"; test "$(realpath "$PI_CODING_AGENT_DIR")" = '"$(printf '%q' "${FIXTURE_AGENT_REAL}")"'; for path in AGENTS.md settings.json keybindings.json fancy-footer.json galactica-status.json packages/example/package.json packages/example/node_modules/dependency.txt npm/node_modules/example/index.js extensions/example.ts skills/example/SKILL.md prompts/example.md taskflows/example.json themes/example.json; do test -r "$PI_CODING_AGENT_DIR/$path" || exit 1; done; test -r '"$(printf '%q' "${FIXTURE_AGENT_REAL}/AGENTS.md")"'; test ! -w "$PI_CODING_AGENT_DIR/settings.json"; test ! -w "$PI_CODING_AGENT_DIR/packages"; printf fixture-state > "$PI_CODING_AGENT_DIR/sessions/persistent"; printf FIXTURE_OK'
+fixture_visibility='test -L "$PI_CODING_AGENT_DIR"; test "$(realpath "$PI_CODING_AGENT_DIR")" = '"$(printf '%q' "${FIXTURE_AGENT_REAL}")"'; for path in AGENTS.md settings.json keybindings.json fancy-footer.json galactica-status.json packages/example/package.json packages/example/node_modules/dependency.txt npm/node_modules/example/index.js extensions/example.ts skills/example/SKILL.md prompts/example.md scripts/example taskflows/example.json themes/example.json; do test -r "$PI_CODING_AGENT_DIR/$path" || exit 1; done; test -r '"$(printf '%q' "${FIXTURE_AGENT_REAL}/AGENTS.md")"'; test ! -w "$PI_CODING_AGENT_DIR/settings.json"; test ! -w "$PI_CODING_AGENT_DIR/packages"; if { printf blocked > "$PI_CODING_AGENT_DIR/scripts/blocked"; } 2>/dev/null; then exit 1; fi; printf fixture-state > "$PI_CODING_AGENT_DIR/sessions/persistent"; printf FIXTURE_OK'
 
 if ! output="$(run_fixture_box "${FIXTURE_PROJECT}" "${fixture_visibility}" 2>&1)"; then
     fail "symlinked Pi directory closure failed (${output})"
 fi
-[[ "${output}" == FIXTURE_OK && "$(<"${FIXTURE_AGENT_REAL}/sessions/persistent")" == fixture-state ]] || fail "symlinked Pi directory closure failed (${output})"
-pass 'whole-directory Pi symlink preserves logical access, real targets, root context, packages, and persistent state'
+[[ "${output}" == FIXTURE_OK && "$(<"${FIXTURE_STATE_ROOT}/sessions/persistent")" == fixture-state && ! -e "${FIXTURE_AGENT_REAL}/sessions/persistent" && ! -e "${FIXTURE_AGENT_REAL}/scripts/blocked" ]] || fail "symlinked Pi directory closure failed (${output})"
+pass 'whole-directory Pi symlink preserves portable resources while isolating persistent state'
 
-rm -f -- "${FIXTURE_AGENT_REAL}/sessions/persistent"
+rm -f -- "${FIXTURE_STATE_ROOT}/sessions/persistent"
 if ! output="$(run_fixture_box "${FIXTURE_AGENT_LOGICAL}" "${fixture_visibility}" 2>&1)"; then
     fail "Pi-directory target shadowed closure (${output})"
 fi
-[[ "${output}" == FIXTURE_OK && "$(<"${FIXTURE_AGENT_REAL}/sessions/persistent")" == fixture-state ]] || fail "Pi-directory target shadowed closure (${output})"
-pass 'selecting the Pi directory as target cannot hide later-mounted resources or state'
+[[ "${output}" == FIXTURE_OK && "$(<"${FIXTURE_STATE_ROOT}/sessions/persistent")" == fixture-state && ! -e "${FIXTURE_AGENT_REAL}/sessions/persistent" ]] || fail "Pi-directory target shadowed closure (${output})"
+pass 'selecting the Pi directory as target cannot hide machine-local state overlays'
 
-rm -f -- "${FIXTURE_AGENT_REAL}/sessions/locked"
+rm -f -- "${FIXTURE_STATE_ROOT}/sessions/locked"
 if ! output="$(run_fixture_box "${FIXTURE_PROJECT}" 'test ! -w "$PI_CODING_AGENT_DIR/settings.json"; test ! -w "$PI_CODING_AGENT_DIR/packages"; printf temporary > "$PI_CODING_AGENT_DIR/sessions/locked"; printf LOCKED_OK' --locked 2>&1)"; then
     fail "locked Pi launch failed (${output})"
 fi
-[[ "${output}" == LOCKED_OK && ! -e "${FIXTURE_AGENT_REAL}/sessions/locked" ]] || fail "locked Pi state was not ephemeral (${output})"
+[[ "${output}" == LOCKED_OK && ! -e "${FIXTURE_STATE_ROOT}/sessions/locked" && ! -e "${FIXTURE_AGENT_REAL}/sessions/locked" ]] || fail "locked Pi state was not ephemeral (${output})"
 pass '--locked keeps Pi resources read-only and state ephemeral'
 
 if ! output="$(run_fixture_box "${FIXTURE_PROJECT}" 'printf "{\"changed\":true}\n" > "$PI_CODING_AGENT_DIR/settings.json"; printf changed > "$PI_CODING_AGENT_DIR/packages/example/changed"; printf ALLOW_OK' --allow-pi-config 2>&1)"; then
     fail "--allow-pi-config launch failed (${output})"
 fi
 [[ "${output}" == ALLOW_OK && -e "${FIXTURE_AGENT_REAL}/packages/example/changed" && "$(<"${FIXTURE_AGENT_REAL}/settings.json")" == '{"changed":true}' ]] || fail "--allow-pi-config did not enable writes (${output})"
-pass '--allow-pi-config explicitly enables configuration and package-source writes'
+pass '--allow-pi-config explicitly enables configuration and package-source writes without replacing state isolation'
+
+direct_path_probe='case ":$PATH:" in *:/usr/bin:*) ;; *) exit 1 ;; esac; for command_name in sh readlink rmdir; do command -v "$command_name" >/dev/null || exit 1; done; printf DIRECT_PATH_OK'
+if ! output="$(run_fixture_box "${FIXTURE_PROJECT}" "${direct_path_probe}" 2>&1)" || [[ "${output}" != DIRECT_PATH_OK ]]; then
+    fail "direct-command system PATH probe failed (${output})"
+fi
+pass 'direct Devbox commands retain /usr/bin and standard cleanup tools'
+
+if ! output="$(env -i \
+    HOME="${FIXTURE_HOME}" USER="${USER:-developer}" LOGNAME="${LOGNAME:-${USER:-developer}}" \
+    XDG_CONFIG_HOME="${FIXTURE_HOME}/.config" XDG_DATA_HOME="${FIXTURE_HOME}/.local/share" \
+    XDG_STATE_HOME="${FIXTURE_HOME}/.local/state" XDG_CACHE_HOME="${FIXTURE_HOME}/.cache" \
+    PI_CODING_AGENT_DIR="${FIXTURE_AGENT_LOGICAL}" \
+    PATH="${PATH}" TERM="${TERM:-xterm-256color}" LANG="${LANG:-C.UTF-8}" \
+    DEVBOX_FORCE_PROBE=1 \
+    "${DEVBOX}" /bin/zsh -l -c \
+    'case ":$PATH:" in *:/usr/bin:*) ;; *) exit 1 ;; esac; for command_name in sh readlink rmdir; do command -v "$command_name" >/dev/null || exit 1; done; printf LOGIN_PATH_OK' \
+    -- "${FIXTURE_PROJECT}" -q --no-host-tools --no-aws --no-clipboard --no-ssh-agent 2>&1)" || [[ "${output}" != LOGIN_PATH_OK ]]; then
+    fail "login-shell system PATH probe failed (${output})"
+fi
+pass 'login Zsh retains /usr/bin and standard cleanup tools'
 
 if ! command -v pi >/dev/null 2>&1; then
     printf 'SKIP: real Pi unavailable\n'
@@ -199,9 +222,10 @@ sandbox_hashes="$("${DEVBOX}" /bin/bash --noprofile --norc -lc 'for name in AGEN
 [[ "${sandbox_hashes}" == "${host_hashes}" ]] || fail 'sandbox root Pi configuration hashes differ from host'
 pass 'sandbox root Pi context/configuration hashes match host'
 
+host_node_version="$(node --version)"
 host_pi_version="$(pi --version)"
 runtime="$("${DEVBOX}" /bin/bash --noprofile --norc -lc 'printf "%s %s" "$(node --version)" "$(pi --version)"' -- /home/aemonge/usr -q --no-aws --no-clipboard --no-ssh-agent)"
-[[ "${runtime}" == "v24.19.0 ${host_pi_version}" ]] || fail "unexpected real runtime (${runtime}; host Pi=${host_pi_version})"
-pass "sandbox uses Node 24.19.0 and the unchanged host Pi ${host_pi_version} runtime"
+[[ "${runtime}" == "${host_node_version} ${host_pi_version}" ]] || fail "unexpected real runtime (${runtime}; host Node=${host_node_version}; host Pi=${host_pi_version})"
+pass "sandbox uses the unchanged host Node ${host_node_version} and Pi ${host_pi_version} runtimes"
 
 printf 'devbox Pi parity tests passed\n'
