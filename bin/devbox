@@ -70,8 +70,9 @@ Filesystem boundary:
   The target is writable by default. .git remains writable while .github,
   .turbo, .cargo, and common lockfiles are read-only unless --allow-infra is
   used. System paths and host paths outside explicit mounts remain read-only or
-  absent. Pi and OpenCode development state, host-tool caches, AWS, clipboard,
-  SSH, terminal, and optional GUI integrations share one developer box.
+  absent. Pi credentials and development state, OpenCode development state,
+  host-tool caches, AWS, clipboard, SSH, terminal, and optional GUI integrations
+  share one developer box. Other Pi configuration remains read-only by default.
 
 Security scope:
   Defaults favor development convenience. Network, AWS credentials, SSH agent,
@@ -722,11 +723,16 @@ assemble_pi_agent_resource_closure() {
             bind_pi_agent_entry --ro-bind "${resource_path}"
         done
         for resource_path in "${PI_AGENT_ROOT_CONFIG_FILES[@]}"; do
-            if [[ "${LOCKED_MODE}" -eq 1 && "${resource_path}" == auth.json ]]; then
-                continue
-            fi
             bind_pi_agent_entry --ro-bind "${resource_path}"
         done
+        # Credentials are mutable runtime state: Pi refreshes OAuth tokens in place.
+        # Exact file binds preserve existing credentials without granting writes
+        # to settings, packages, trust, or the rest of the portable Pi root.
+        if [[ "${EPHEMERAL_STATE}" -eq 0 ]]; then
+            for resource_path in "${PI_AGENT_CREDENTIAL_FILES[@]}"; do
+                bind_pi_agent_entry --bind "${resource_path}"
+            done
+        fi
     fi
 }
 
@@ -1489,6 +1495,87 @@ discover_active_pty() {
     fi
 }
 
+bind_nvim_resources() {
+    local host_config_root="${XDG_CONFIG_HOME:-${HOST_HOME}/.config}"
+    local host_data_root="${XDG_DATA_HOME:-${HOST_HOME}/.local/share}"
+    local host_state_root="${XDG_STATE_HOME:-${HOST_HOME}/.local/state}"
+    local host_cache_root="${XDG_CACHE_HOME:-${HOST_HOME}/.cache}"
+    local host_nvim_config="${host_config_root}/nvim"
+    local host_nvim_data="${host_data_root}/nvim"
+    local host_nvim_lazy="${host_data_root}/nvim/lazy"
+    local host_nvim_lock="${host_config_root}/nvim/lazy-lock.json"
+    local host_nvim_state="${host_state_root}/nvim"
+    local host_nvim_cache="${host_cache_root}/nvim"
+    local host_devbox_nvim_lazy="${host_data_root}/devbox/nvim/lazy"
+    local host_devbox_nvim_lock="${host_state_root}/devbox/nvim/lazy-lock.json"
+    local sandbox_nvim_config="${SANDBOX_CONFIG_DIR}/nvim"
+    local sandbox_nvim_data="${SANDBOX_LOCAL_SHARE_DIR}/nvim"
+    local sandbox_nvim_state="${SANDBOX_LOCAL_STATE_DIR}/nvim"
+    local sandbox_nvim_cache="${SANDBOX_CACHE_DIR}/nvim"
+    local plugin_path
+    local resolved_config
+    local resolved_config_sandbox
+    local had_dotglob=0
+    local had_nullglob=0
+
+    [[ "${ALLOW_NVIM_REMOTE}" -eq 1 ]] || return 0
+
+    if [[ -d "${host_nvim_config}" ]]; then
+        resolved_config="$(realpath "${host_nvim_config}")"
+        add_prepared_bind_once --ro-bind "${host_nvim_config}" "${sandbox_nvim_config}"
+        map_host_path_to_sandbox "${resolved_config}"
+        resolved_config_sandbox="${REPLY}"
+        if [[ "${resolved_config_sandbox}" != "${sandbox_nvim_config}" ]]; then
+            add_prepared_bind_once --ro-bind "${resolved_config}" "${resolved_config_sandbox}"
+        fi
+        bind_symlink_targets_in_dir --ro-bind "${resolved_config}"
+        info "Neovim integration: mounted host configuration read-only"
+    fi
+    [[ -d "${host_nvim_data}" ]] && add_prepared_bind_once --ro-bind "${host_nvim_data}" "${sandbox_nvim_data}"
+
+    if [[ "${EPHEMERAL_STATE}" -eq 1 ]]; then
+        add_extra_dir_once "${sandbox_nvim_state}"
+        add_extra_dir_once "${sandbox_nvim_cache}"
+        return 0
+    fi
+
+    bind_runtime_dir "${host_nvim_state}" "${sandbox_nvim_state}"
+    bind_runtime_dir "${host_nvim_cache}" "${sandbox_nvim_cache}"
+    [[ -d "${host_nvim_config}" ]] || return 0
+
+    # lazy.nvim needs to create missing plugin directories, but existing host
+    # plugins should remain immutable. A dedicated devbox data directory is the
+    # writable layer; exact read-only child mounts preserve host installations.
+    bind_prepared_runtime_dir "${host_devbox_nvim_lazy}" "${sandbox_nvim_data}/lazy"
+    if [[ -d "${host_nvim_lazy}" ]]; then
+        shopt -q dotglob && had_dotglob=1
+        shopt -q nullglob && had_nullglob=1
+        shopt -s dotglob nullglob
+        for plugin_path in "${host_nvim_lazy}"/*; do
+            [[ -e "${plugin_path}" ]] || continue
+            add_prepared_bind_once --ro-bind "${plugin_path}" \
+                "${sandbox_nvim_data}/lazy/$(basename "${plugin_path}")"
+        done
+        ((had_dotglob)) || shopt -u dotglob
+        ((had_nullglob)) || shopt -u nullglob
+    fi
+
+    # Keep the configuration tree read-only while giving lazy.nvim one exact,
+    # persistent lockfile backed by devbox state. Seed it once from the host
+    # lockfile when present; never create or alter a file in the host config.
+    mkdir -p -- "$(dirname "${host_devbox_nvim_lock}")"
+    if [[ ! -e "${host_devbox_nvim_lock}" ]]; then
+        if [[ -f "${host_nvim_lock}" ]]; then
+            cp -p -- "${host_nvim_lock}" "${host_devbox_nvim_lock}"
+        else
+            printf '{}\n' >"${host_devbox_nvim_lock}"
+            chmod 0600 "${host_devbox_nvim_lock}"
+        fi
+    fi
+    add_prepared_bind_once --bind "${host_devbox_nvim_lock}" \
+        "${sandbox_nvim_config}/lazy-lock.json"
+}
+
 bind_terminal_integration() {
     local xdg_starship=""
     local sand_xdg_starship=""
@@ -1587,15 +1674,18 @@ bind_opencode_state() {
     local relative_path
     local host_config_root="${XDG_CONFIG_HOME:-${HOST_HOME}/.config}"
     local host_data_root="${XDG_DATA_HOME:-${HOST_HOME}/.local/share}"
+    local host_state_root="${XDG_STATE_HOME:-${HOST_HOME}/.local/state}"
     local host_cache_root="${XDG_CACHE_HOME:-${HOST_HOME}/.cache}"
     local host_opencode_config="${host_config_root}/opencode"
     local host_openspec_config="${host_config_root}/openspec"
     local host_opencode_data="${host_data_root}/opencode"
+    local host_opencode_state="${host_state_root}/opencode"
     local host_opencode_cache="${host_cache_root}/opencode"
     local sandbox_openspec_config="${SANDBOX_HOME}/.config/openspec"
     local openspec_destination_reserved=0
     local -a ephemeral_paths=(
         ".local/share/opencode"
+        ".local/state/opencode"
         ".cache/opencode"
         ".cache/devbox/opencode"
         ".opencode"
@@ -1636,6 +1726,9 @@ bind_opencode_state() {
         info "OpenSpec state: preserving the project-specific read-only mount"
     fi
     bind_runtime_dir "${host_opencode_data}" "${SANDBOX_HOME}/.local/share/opencode"
+    # The Neovim editor bridge hands files to the host server through this
+    # shared state path; a sandbox-only path is invisible to the host Neovim.
+    bind_runtime_dir "${host_opencode_state}" "${SANDBOX_HOME}/.local/state/opencode"
     bind_runtime_dir "${host_opencode_cache}" "${SANDBOX_HOME}/.cache/opencode"
     bind_runtime_dir "${host_cache_root}/devbox/opencode" "${SANDBOX_HOME}/.cache/devbox/opencode"
     bind_runtime_dir "${HOST_HOME}/.opencode" "${SANDBOX_HOME}/.opencode"
@@ -2216,9 +2309,10 @@ trap cleanup_file_mode_tmp_dir EXIT
 # preserves the logical agent path, assembles at its resolved destination, and
 # is applied after project binds so a parent or alias mount cannot hide it.
 # Direct startup locks live on the disposable tmpfs root; selected child state
-# persists through validated machine-local writable binds. Configuration and
-# package source remain read-only unless --allow-pi-config is explicit; that
-# option never replaces machine-local state or trust isolation.
+# persists through validated machine-local writable binds; existing credentials
+# persist through one exact writable bind. Other configuration and package source
+# remain read-only unless --allow-pi-config is explicit; that option never
+# replaces machine-local state or trust isolation.
 PI_AGENT_STATE_SUBDIRS=(
     checkpoints
     tasks
@@ -2266,8 +2360,10 @@ PI_AGENT_ROOT_CONFIG_FILES=(
     mcp-cache.json
     pi-atelier.json
     pi-statusline.json
-    auth.json
     models-store.json
+)
+PI_AGENT_CREDENTIAL_FILES=(
+    auth.json
 )
 
 while [[ $# -gt 0 ]]; do
@@ -2702,6 +2798,7 @@ bind_pi_xdg_resources
 bind_user_openspec_schemas
 bind_nearest_project_openspec
 bind_opencode_state
+bind_nvim_resources
 prepare_opencode_command_guard
 bind_aws_integration
 

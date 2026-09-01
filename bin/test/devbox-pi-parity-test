@@ -8,7 +8,18 @@ readonly DEVBOX="${SCRIPT_DIR}/../devbox"
 readonly TOOL_PROBE="${SCRIPT_DIR}/devbox-pi-tool-probe.ts"
 TEST_ROOT="$(mktemp -d)"
 readonly TEST_ROOT
-trap 'rm -rf -- "${TEST_ROOT}"' EXIT
+NVIM_SERVER_PID=""
+NVIM_SERVER_SOCKET=""
+cleanup() {
+    if [[ -n "${NVIM_SERVER_SOCKET}" && -S "${NVIM_SERVER_SOCKET}" ]]; then
+        nvim --server "${NVIM_SERVER_SOCKET}" --remote-expr 'execute("qa!")' >/dev/null 2>&1 || true
+    fi
+    if [[ -n "${NVIM_SERVER_PID}" ]]; then
+        wait "${NVIM_SERVER_PID}" 2>/dev/null || true
+    fi
+    rm -rf -- "${TEST_ROOT}"
+}
+trap cleanup EXIT
 
 pass() { printf 'PASS: %s\n' "$1"; }
 fail() { printf 'FAIL: %s\n' "$1" >&2; exit 1; }
@@ -22,6 +33,7 @@ run_fixture_box() {
         XDG_STATE_HOME="${FIXTURE_HOME}/.local/state" XDG_CACHE_HOME="${FIXTURE_HOME}/.cache" \
         PI_CODING_AGENT_DIR="${FIXTURE_AGENT_LOGICAL}" \
         PATH="${PATH}" TERM="${TERM:-xterm-256color}" LANG="${LANG:-C.UTF-8}" \
+        NVIM="${NVIM_SERVER_SOCKET}" \
         DEVBOX_FORCE_PROBE=1 \
         "${DEVBOX}" /bin/bash --noprofile --norc -lc "$1" -- "${target}" -q \
         --no-host-tools --no-aws --no-clipboard --no-ssh-agent "${@:2}"
@@ -41,13 +53,26 @@ mkdir -p -- \
     "${FIXTURE_AGENT_REAL}/extensions" "${FIXTURE_AGENT_REAL}/skills/example" \
     "${FIXTURE_AGENT_REAL}/prompts" "${FIXTURE_AGENT_REAL}/scripts" \
     "${FIXTURE_AGENT_REAL}/taskflows" "${FIXTURE_AGENT_REAL}/themes" \
-    "${FIXTURE_AGENT_REAL}/sessions"
+    "${FIXTURE_AGENT_REAL}/sessions" \
+    "${FIXTURE_HOME}/.config/nvim/scripts" \
+    "${FIXTURE_HOME}/.local/share/nvim/lazy/lazy.nvim"
 ln -s "${FIXTURE_AGENT_REAL}" "${FIXTURE_AGENT_LOGICAL}"
 printf '# fixture root context\n' >"${FIXTURE_AGENT_REAL}/AGENTS.md"
 printf '{"quietStartup":true}\n' >"${FIXTURE_AGENT_REAL}/settings.json"
 printf '{}\n' >"${FIXTURE_AGENT_REAL}/keybindings.json"
 printf '{}\n' >"${FIXTURE_AGENT_REAL}/fancy-footer.json"
 printf '{}\n' >"${FIXTURE_AGENT_REAL}/galactica-status.json"
+printf '{"existing":{"type":"api_key","key":"preserved"}}\n' >"${FIXTURE_AGENT_REAL}/auth.json"
+cat >"${FIXTURE_HOME}/.config/nvim/init.lua" <<'LUA'
+vim.g.devbox_fixture_config = true
+local plugin_dir = vim.fn.stdpath("data") .. "/lazy/fixture-missing"
+vim.fn.mkdir(plugin_dir, "p")
+vim.fn.writefile({ "installed" }, plugin_dir .. "/fixture.txt")
+vim.fn.writefile({ '{"fixture":{"branch":"main","commit":"fixture"}}' }, vim.fn.stdpath("config") .. "/lazy-lock.json")
+LUA
+printf 'preserved\n' >"${FIXTURE_HOME}/.local/share/nvim/lazy/lazy.nvim/fixture.txt"
+printf '%s\n' '#!/usr/bin/env bash' 'exec nvim --server "$NVIM" --remote "$1"' >"${FIXTURE_HOME}/.config/nvim/scripts/opencode-editor"
+chmod +x "${FIXTURE_HOME}/.config/nvim/scripts/opencode-editor"
 printf '{"name":"example"}\n' >"${FIXTURE_AGENT_REAL}/packages/example/package.json"
 printf 'package dependency\n' >"${FIXTURE_AGENT_REAL}/packages/example/node_modules/dependency.txt"
 printf 'npm package\n' >"${FIXTURE_AGENT_REAL}/npm/node_modules/example/index.js"
@@ -65,6 +90,53 @@ if ! output="$(run_fixture_box "${FIXTURE_PROJECT}" "${fixture_visibility}" 2>&1
 fi
 [[ "${output}" == FIXTURE_OK && "$(<"${FIXTURE_STATE_ROOT}/sessions/persistent")" == fixture-state && ! -e "${FIXTURE_AGENT_REAL}/sessions/persistent" && ! -e "${FIXTURE_AGENT_REAL}/scripts/blocked" ]] || fail "symlinked Pi directory closure failed (${output})"
 pass 'whole-directory Pi symlink preserves portable resources while isolating persistent state'
+
+nvim_config_probe='nvim --headless '\''+lua assert(vim.g.devbox_fixture_config)'\'' +qa; test -r "$XDG_DATA_HOME/nvim/lazy/fixture-missing/fixture.txt"; test ! -w "$XDG_DATA_HOME/nvim/lazy/lazy.nvim/fixture.txt"; grep -q '\''"fixture"'\'' "$XDG_CONFIG_HOME/nvim/lazy-lock.json"; printf NVIM_CONFIG_OK'
+if ! output="$(run_fixture_box "${FIXTURE_PROJECT}" "${nvim_config_probe}" 2>&1)"; then
+    fail "host Neovim configuration startup failed (${output})"
+fi
+[[ "${output}" == NVIM_CONFIG_OK ]] || fail "host Neovim configuration did not load inside devbox (${output})"
+[[ ! -e "${FIXTURE_HOME}/.config/nvim/lazy-lock.json" ]] || fail 'devbox created or changed the host Neovim lockfile'
+[[ ! -e "${FIXTURE_HOME}/.local/share/nvim/lazy/fixture-missing" ]] || fail 'devbox installed a plugin into the host Neovim data directory'
+[[ "$(<"${FIXTURE_HOME}/.local/share/nvim/lazy/lazy.nvim/fixture.txt")" == preserved ]] || fail 'devbox modified an existing host Neovim plugin'
+[[ -r "${FIXTURE_HOME}/.local/share/devbox/nvim/lazy/fixture-missing/fixture.txt" ]] || fail 'missing plugin did not persist in dedicated devbox data'
+grep -q '"fixture"' "${FIXTURE_HOME}/.local/state/devbox/nvim/lazy-lock.json" || fail 'lazy lockfile did not persist in dedicated devbox state'
+pass 'fresh Neovim startup installs missing plugins and updates its lockfile without mutating host config or existing plugins'
+
+credential_before="$(sha256sum "${FIXTURE_AGENT_REAL}/auth.json" | awk '{print $1}')"
+credential_update='test -w "$PI_CODING_AGENT_DIR/auth.json"; test ! -w "$PI_CODING_AGENT_DIR/settings.json"; printf '\''{"existing":{"type":"api_key","key":"preserved"},"refreshed":{"type":"api_key","key":"updated"}}\n'\'' > "$PI_CODING_AGENT_DIR/auth.json"; printf AUTH_UPDATED'
+if ! output="$(run_fixture_box "${FIXTURE_PROJECT}" "${credential_update}" 2>&1)"; then
+    fail "writable Pi credential update failed (${output})"
+fi
+[[ "${output}" == AUTH_UPDATED && "$(sha256sum "${FIXTURE_AGENT_REAL}/auth.json" | awk '{print $1}')" != "${credential_before}" ]] || fail "Pi credential update did not persist (${output})"
+credential_read='grep -q '\''"existing"'\'' "$PI_CODING_AGENT_DIR/auth.json" && grep -q '\''"refreshed"'\'' "$PI_CODING_AGENT_DIR/auth.json" && printf AUTH_PERSISTED'
+if ! output="$(run_fixture_box "${FIXTURE_PROJECT}" "${credential_read}" 2>&1)"; then
+    fail "persisted Pi credential read failed (${output})"
+fi
+[[ "${output}" == AUTH_PERSISTED ]] || fail "updated Pi credentials were not preserved across launches (${output})"
+pass 'existing Pi credentials are writable, preserve prior entries, and persist across devbox launches'
+
+NVIM_SERVER_SOCKET="${TEST_ROOT}/nvim.sock"
+nvim_target="${FIXTURE_PROJECT}/open-in-nvim.txt"
+printf 'open me\n' >"${nvim_target}"
+nvim --headless --clean --listen "${NVIM_SERVER_SOCKET}" </dev/null >"${TEST_ROOT}/nvim.stdout" 2>"${TEST_ROOT}/nvim.stderr" &
+NVIM_SERVER_PID=$!
+for _ in {1..100}; do
+    [[ -S "${NVIM_SERVER_SOCKET}" ]] && break
+    sleep 0.05
+done
+[[ -S "${NVIM_SERVER_SOCKET}" ]] || fail 'fixture Neovim server did not create its socket'
+nvim_open_command='test "$EDITOR" = "$HOME/.config/nvim/scripts/opencode-editor"; "$EDITOR" '"$(printf '%q' "${nvim_target}")"'; printf handoff > "$XDG_STATE_HOME/opencode/editor-handoff.marker"; printf NVIM_OPENED'
+if ! output="$(run_fixture_box "${FIXTURE_PROJECT}" "${nvim_open_command}" 2>&1)"; then
+    fail "Neovim editor bridge failed (${output})"
+fi
+opened_file="$(nvim --server "${NVIM_SERVER_SOCKET}" --remote-expr 'expand("%:p")')"
+[[ "${output}" == NVIM_OPENED && "${opened_file}" == "${nvim_target}" && "$(<"${FIXTURE_HOME}/.local/state/opencode/editor-handoff.marker")" == handoff ]] || fail "Neovim file opening or shared handoff failed (${output}; opened=${opened_file})"
+pass 'devbox EDITOR opens a project file in the forwarded Neovim server through shared handoff state'
+nvim --server "${NVIM_SERVER_SOCKET}" --remote-expr 'execute("qa!")' >/dev/null 2>&1 || true
+wait "${NVIM_SERVER_PID}" 2>/dev/null || true
+NVIM_SERVER_PID=""
+NVIM_SERVER_SOCKET=""
 
 rm -f -- "${FIXTURE_STATE_ROOT}/sessions/persistent"
 if ! output="$(run_fixture_box "${FIXTURE_AGENT_LOGICAL}" "${fixture_visibility}" 2>&1)"; then

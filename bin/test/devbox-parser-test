@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016 # Single-quoted fixture script expands only inside the sandbox.
 set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
@@ -32,12 +33,14 @@ readonly RUNTIME_DIR="${TEST_ROOT}/runtime"
 readonly WAYLAND_SOCKET="${RUNTIME_DIR}/wayland-9"
 readonly X11_SOCKET="/tmp/.X11-unix/X9"
 readonly TMUX_SOCKET="${RUNTIME_DIR}/tmux/default"
+readonly NVIM_SOCKET="${RUNTIME_DIR}/nvim.sock"
 readonly XAUTH_FILE="${TEST_HOME}/.Xauthority"
 ZSH_BIN="$(realpath "$(command -v zsh)")"
 readonly ZSH_BIN
 readonly AWS_CUSTOM_CREDENTIALS="${TEST_ROOT}/custom-aws-credentials"
 readonly LINKED_OPENCODE_CONFIG="${TEST_ROOT}/linked-opencode.json"
 readonly LINKED_OPENCODE_AGENT="${TEST_ROOT}/linked-opencode-agent.md"
+readonly LINKED_NVIM_INIT="${TEST_ROOT}/linked-nvim-init.lua"
 readonly LINKED_PI_AGENTS="${TEST_ROOT}/linked-pi-agents"
 readonly LINKED_PI_TASKFLOWS="${TEST_ROOT}/linked-pi-taskflows"
 readonly CUSTOM_XDG_CONFIG="${TEST_ROOT}/xdg-config"
@@ -57,6 +60,9 @@ mkdir -p -- \
     "${TEST_HOME}/.pi/agent" "${TEST_HOME}/.pi/agent/scripts" \
     "${LINKED_PI_AGENTS}" "${LINKED_PI_TASKFLOWS}" \
     "${TEST_HOME}/.config/opencode/agents" "${TEST_HOME}/.config/openspec" \
+    "${TEST_HOME}/.config/nvim/scripts" \
+    "${TEST_HOME}/.local/share/nvim/lazy/lazy.nvim" \
+    "${TEST_HOME}/.local/state/nvim" "${TEST_HOME}/.cache/nvim" \
     "${TEST_HOME}/.local/share/openspec/schemas/ramona-idea" \
     "${CUSTOM_XDG_CONFIG}/opencode" "${CUSTOM_XDG_CONFIG}/openspec" \
     "${CUSTOM_XDG_DATA}/opencode" "${CUSTOM_XDG_DATA}/openspec/schemas/ramona-plan" \
@@ -69,6 +75,13 @@ mkdir -p -- \
 
 printf '{}\n' >"${TEST_HOME}/.pi/agent/settings.json"
 printf '#!/usr/bin/env bash\n' >"${TEST_HOME}/.pi/agent/scripts/helper"
+printf '{"existing":{"type":"api_key","key":"fixture"}}\n' >"${TEST_HOME}/.pi/agent/auth.json"
+printf 'vim.g.devbox_fixture_config = true\n' >"${LINKED_NVIM_INIT}"
+ln -s "${LINKED_NVIM_INIT}" "${TEST_HOME}/.config/nvim/init.lua"
+printf 'plugin data\n' >"${TEST_HOME}/.local/share/nvim/fixture.txt"
+printf 'existing plugin\n' >"${TEST_HOME}/.local/share/nvim/lazy/lazy.nvim/fixture.txt"
+printf '%s\n' '#!/usr/bin/env bash' 'exec nvim --server "$NVIM" --remote "$1"' >"${TEST_HOME}/.config/nvim/scripts/opencode-editor"
+chmod +x "${TEST_HOME}/.config/nvim/scripts/opencode-editor"
 printf 'agent\n' >"${LINKED_PI_AGENTS}/ramona-step-engineer.md"
 printf 'flow\n' >"${LINKED_PI_TASKFLOWS}/ramona-happy-path.json"
 ln -s "${LINKED_PI_AGENTS}" "${TEST_HOME}/.pi/agent/agents"
@@ -106,7 +119,7 @@ printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"${PI_BIN}"
 printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"${OPENCODE_BIN}"
 printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"${FAKE_GIT_WRAPPER}"
 
-python3 - "${WAYLAND_SOCKET}" "${X11_SOCKET}" "${TMUX_SOCKET}" <<'PY'
+python3 - "${WAYLAND_SOCKET}" "${X11_SOCKET}" "${TMUX_SOCKET}" "${NVIM_SOCKET}" <<'PY'
 import os
 import socket
 import sys
@@ -157,7 +170,8 @@ run_devbox_process() {
         XDG_STATE_HOME="${DEVBOX_TEST_XDG_STATE_HOME:-${TEST_HOME}/.local/state}" \
         XDG_CACHE_HOME="${DEVBOX_TEST_XDG_CACHE_HOME:-${TEST_HOME}/.cache}" \
         XDG_RUNTIME_DIR="${RUNTIME_DIR}" WAYLAND_DISPLAY=wayland-9 \
-        DISPLAY=:9 XAUTHORITY="${XAUTH_FILE}" TMUX="${TMUX_SOCKET},777,0" TMUX_PANE=%7 \
+        DISPLAY=:9 XAUTHORITY="${XAUTH_FILE}" NVIM="${NVIM_SOCKET}" \
+        TMUX="${TMUX_SOCKET},777,0" TMUX_PANE=%7 \
         AWS_PROFILE=fixture AWS_REGION=us-east-1 \
         AWS_SHARED_CREDENTIALS_FILE="${DEVBOX_TEST_AWS_CREDENTIALS_FILE:-${AWS_CUSTOM_CREDENTIALS}}" \
         SCODER_GIT="${FAKE_GIT_WRAPPER}" \
@@ -328,6 +342,8 @@ assert_sequence_absent 'restricted mode does not enable broad device access' --d
 assert_sequence_absent 'restricted mode does not bind the complete host device tree' --dev-bind /dev /dev
 assert_sequence_contains 'Pi agent root is disposable' --tmpfs "${TEST_HOME}/.pi/agent"
 assert_sequence_contains 'Pi settings remain read-only' --ro-bind "${TEST_HOME}/.pi/agent/settings.json" "${TEST_HOME}/.pi/agent/settings.json"
+assert_sequence_contains 'existing Pi credentials are mounted writable and persistent' --bind "${TEST_HOME}/.pi/agent/auth.json" "${TEST_HOME}/.pi/agent/auth.json"
+assert_sequence_absent 'existing Pi credentials are not overlaid read-only' --ro-bind "${TEST_HOME}/.pi/agent/auth.json" "${TEST_HOME}/.pi/agent/auth.json"
 assert_sequence_contains 'symlink-backed Pi agents are resolved and mounted read-only' --ro-bind "${LINKED_PI_AGENTS}" "${TEST_HOME}/.pi/agent/agents"
 assert_sequence_contains 'symlink-backed Pi Taskflows are resolved and mounted read-only' --ro-bind "${LINKED_PI_TASKFLOWS}" "${TEST_HOME}/.pi/agent/taskflows"
 assert_sequence_contains 'user OpenSpec schemas are mounted read-only at the canonical XDG destination' --ro-bind "${TEST_HOME}/.local/share/openspec/schemas" "${TEST_HOME}/.local/share/openspec/schemas"
@@ -339,6 +355,20 @@ printf 'PASS: host Ramona state is owner-only\n'
 assert_sequence_contains 'Pi agent root is pinned' --setenv PI_CODING_AGENT_DIR "${TEST_HOME}/.pi/agent"
 assert_sequence_contains 'OpenCode config is writable in the shared box' --bind "${TEST_HOME}/.config/opencode" "${TEST_HOME}/.config/opencode"
 assert_sequence_contains 'OpenCode data is writable in the shared box' --bind "${TEST_HOME}/.local/share/opencode" "${TEST_HOME}/.local/share/opencode"
+assert_sequence_contains 'Neovim editor handoff state is shared with the host' --bind "${TEST_HOME}/.local/state/opencode" "${TEST_HOME}/.local/state/opencode"
+assert_sequence_contains 'host Neovim configuration is mounted read-only' --ro-bind "${TEST_HOME}/.config/nvim" "${TEST_HOME}/.config/nvim"
+assert_sequence_contains 'symlinked Neovim configuration targets remain visible read-only' --ro-bind "${LINKED_NVIM_INIT}" "${LINKED_NVIM_INIT}"
+assert_sequence_contains 'host Neovim plugin data is mounted read-only' --ro-bind "${TEST_HOME}/.local/share/nvim" "${TEST_HOME}/.local/share/nvim"
+assert_sequence_contains 'missing Neovim plugins install into dedicated devbox data' --bind "${TEST_HOME}/.local/share/devbox/nvim/lazy" "${TEST_HOME}/.local/share/nvim/lazy"
+assert_sequence_contains 'existing Neovim plugins remain read-only' --ro-bind "${TEST_HOME}/.local/share/nvim/lazy/lazy.nvim" "${TEST_HOME}/.local/share/nvim/lazy/lazy.nvim"
+assert_sequence_absent 'the host Neovim plugin directory is never writable' --bind "${TEST_HOME}/.local/share/nvim/lazy" "${TEST_HOME}/.local/share/nvim/lazy"
+assert_sequence_contains 'lazy-lock uses one writable devbox state file' --bind "${TEST_HOME}/.local/state/devbox/nvim/lazy-lock.json" "${TEST_HOME}/.config/nvim/lazy-lock.json"
+assert_sequence_absent 'the host Neovim configuration directory stays read-only' --bind "${TEST_HOME}/.config/nvim" "${TEST_HOME}/.config/nvim"
+assert_sequence_contains 'Neovim runtime state remains writable' --bind "${TEST_HOME}/.local/state/nvim" "${TEST_HOME}/.local/state/nvim"
+assert_sequence_contains 'Neovim cache remains writable' --bind "${TEST_HOME}/.cache/nvim" "${TEST_HOME}/.cache/nvim"
+assert_sequence_contains 'working Neovim editor bridge is mounted read-only' --ro-bind "${TEST_HOME}/.config/nvim/scripts/opencode-editor" "${TEST_HOME}/.config/nvim/scripts/opencode-editor"
+assert_sequence_contains 'Neovim editor bridge is selected inside devbox' --setenv EDITOR "${TEST_HOME}/.config/nvim/scripts/opencode-editor"
+assert_sequence_contains 'active Neovim server socket is forwarded exactly' --bind "${NVIM_SOCKET}" "${NVIM_SOCKET}"
 assert_sequence_contains 'interactive-shell OpenCode launches use the guarded command' --ro-bind "${DEVBOX_ROOT}/devbox-opencode-guard" /devbox/bin/opencode
 assert_sequence_contains 'interactive-shell OpenCode guard can run the integrity helper' --ro-bind "${DEVBOX_ROOT}/devbox-opencode-integrity" /devbox/lib/devbox-opencode-integrity
 assert_sequence_contains 'interactive-shell OpenCode guard receives the real executable' --setenv DEVBOX_REAL_OPENCODE "${OPENCODE_BIN}"
@@ -416,6 +446,10 @@ assert_sequence_absent '--locked disables tmux socket forwarding' --bind "${TMUX
 assert_sequence_contains '--locked keeps OpenCode configuration readable' --ro-bind "${TEST_HOME}/.config/opencode" "${TEST_HOME}/.config/opencode"
 assert_sequence_absent '--locked does not persist OpenCode configuration writes' --bind "${TEST_HOME}/.config/opencode" "${TEST_HOME}/.config/opencode"
 assert_sequence_absent '--locked keeps Pi state ephemeral' --bind "${TEST_HOME}/.pi/agent/tasks" "${TEST_HOME}/.pi/agent/tasks"
+assert_sequence_absent '--locked hides persistent Pi credentials' --bind "${TEST_HOME}/.pi/agent/auth.json" "${TEST_HOME}/.pi/agent/auth.json"
+assert_sequence_absent '--locked keeps Neovim handoff state ephemeral' --bind "${TEST_HOME}/.local/state/opencode" "${TEST_HOME}/.local/state/opencode"
+assert_sequence_absent '--locked hides host Neovim configuration' --ro-bind "${TEST_HOME}/.config/nvim" "${TEST_HOME}/.config/nvim"
+assert_sequence_absent '--locked keeps Neovim runtime state ephemeral' --bind "${TEST_HOME}/.local/state/nvim" "${TEST_HOME}/.local/state/nvim"
 assert_sequence_absent '--locked keeps Ramona state ephemeral' --bind "${TEST_HOME}/.local/state/ramona" "${TEST_HOME}/.local/state/ramona"
 assert_sequence_contains '--locked creates disposable Ramona state' --dir "${TEST_HOME}/.local/state/ramona"
 assert_sequence_contains '--locked keeps global Pi agents readable and read-only' --ro-bind "${LINKED_PI_AGENTS}" "${TEST_HOME}/.pi/agent/agents"
