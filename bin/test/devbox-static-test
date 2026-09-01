@@ -93,6 +93,7 @@ assert_contains 'keeps host Neovim configuration read-only' 'add_prepared_bind_o
 assert_contains 'uses dedicated writable data for missing Neovim plugins' 'bind_prepared_runtime_dir "${host_devbox_nvim_lazy}" "${sandbox_nvim_data}/lazy"'
 assert_contains 'keeps existing Neovim plugins read-only' 'add_prepared_bind_once --ro-bind "${plugin_path}"'
 assert_contains 'uses an exact devbox-backed writable lazy lockfile' '"${sandbox_nvim_config}/lazy-lock.json"'
+assert_contains 'requires an existing lockfile mountpoint under read-only Neovim config' 'if [[ -f "${host_nvim_lock}" ]]'
 assert_contains 'keeps Neovim runtime state writable' 'bind_runtime_dir "${host_nvim_state}" "${sandbox_nvim_state}"'
 assert_contains 'shares Neovim editor handoff state with the host' '"${SANDBOX_HOME}/.local/state/opencode"'
 assert_contains 'expands Cargo workspace targets' 'cargo_workspace_expand_target'

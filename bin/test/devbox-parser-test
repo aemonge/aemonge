@@ -78,6 +78,7 @@ printf '#!/usr/bin/env bash\n' >"${TEST_HOME}/.pi/agent/scripts/helper"
 printf '{"existing":{"type":"api_key","key":"fixture"}}\n' >"${TEST_HOME}/.pi/agent/auth.json"
 printf 'vim.g.devbox_fixture_config = true\n' >"${LINKED_NVIM_INIT}"
 ln -s "${LINKED_NVIM_INIT}" "${TEST_HOME}/.config/nvim/init.lua"
+printf '{}\n' >"${TEST_HOME}/.config/nvim/lazy-lock.json"
 printf 'plugin data\n' >"${TEST_HOME}/.local/share/nvim/fixture.txt"
 printf 'existing plugin\n' >"${TEST_HOME}/.local/share/nvim/lazy/lazy.nvim/fixture.txt"
 printf '%s\n' '#!/usr/bin/env bash' 'exec nvim --server "$NVIM" --remote "$1"' >"${TEST_HOME}/.config/nvim/scripts/opencode-editor"
@@ -389,6 +390,11 @@ assert_sequence_contains 'DISPLAY is restored for X11 clipboard' --setenv DISPLA
 assert_sequence_absent 'clipboard does not expose the complete runtime directory' --bind "${RUNTIME_DIR}" "${RUNTIME_DIR}"
 assert_sequence_contains 'tmux uses an exact socket bind by default' --bind "${TMUX_SOCKET}" "${TMUX_SOCKET}"
 assert_no_conflicting_bind_destinations 'default mount plan has no conflicting RO/RW destinations'
+
+rm -f -- "${TEST_HOME}/.config/nvim/lazy-lock.json"
+run_devbox pi -- "${TEST_PROJECT}" -q
+assert_bind_destination_absent 'missing Neovim lockfiles do not create file mounts below read-only config' "${TEST_HOME}/.config/nvim/lazy-lock.json"
+printf '{}\n' >"${TEST_HOME}/.config/nvim/lazy-lock.json"
 
 run_devbox pi -- "${SYMLINK_LOGICAL_TARGET}" -q
 assert_sequence_contains 'project OpenSpec takes read-only precedence over writable global OpenSpec state' --ro-bind "${SYMLINK_PROJECT_OPENSPEC}" "${TEST_HOME}/.config/openspec"

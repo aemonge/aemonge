@@ -1560,20 +1560,18 @@ bind_nvim_resources() {
         ((had_nullglob)) || shopt -u nullglob
     fi
 
-    # Keep the configuration tree read-only while giving lazy.nvim one exact,
-    # persistent lockfile backed by devbox state. Seed it once from the host
-    # lockfile when present; never create or alter a file in the host config.
-    mkdir -p -- "$(dirname "${host_devbox_nvim_lock}")"
-    if [[ ! -e "${host_devbox_nvim_lock}" ]]; then
-        if [[ -f "${host_nvim_lock}" ]]; then
+    # Keep the configuration tree read-only while giving an existing lazy.nvim
+    # lockfile one exact writable overlay backed by devbox state. Bubblewrap
+    # cannot create a new file mountpoint beneath a read-only directory, so a
+    # configuration without lazy-lock.json simply keeps the whole tree read-only.
+    if [[ -f "${host_nvim_lock}" ]]; then
+        mkdir -p -- "$(dirname "${host_devbox_nvim_lock}")"
+        if [[ ! -e "${host_devbox_nvim_lock}" ]]; then
             cp -p -- "${host_nvim_lock}" "${host_devbox_nvim_lock}"
-        else
-            printf '{}\n' >"${host_devbox_nvim_lock}"
-            chmod 0600 "${host_devbox_nvim_lock}"
         fi
+        add_prepared_bind_once --bind "${host_devbox_nvim_lock}" \
+            "${sandbox_nvim_config}/lazy-lock.json"
     fi
-    add_prepared_bind_once --bind "${host_devbox_nvim_lock}" \
-        "${sandbox_nvim_config}/lazy-lock.json"
 }
 
 bind_terminal_integration() {

@@ -50,12 +50,13 @@ env -i \
 LAUNCHER
 chmod +x "${PTY_LAUNCHER}"
 
+# Isolate ambient terminal input while the child still owns script's slave PTY.
 if output="$(
     DEVBOX_PTY_TEST_DEVBOX="${DEVBOX}" \
     DEVBOX_PTY_TEST_HOME="${TEST_HOME}" \
     DEVBOX_PTY_TEST_PROJECT="${TEST_PROJECT}" \
     DEVBOX_PTY_TEST_SCODER_GIT="${SCODER_GIT}" \
-        script -qefc "${PTY_LAUNCHER}" /dev/null | tr -d '\r'
+        script -qefc "${PTY_LAUNCHER}" /dev/null </dev/null | tr -d '\r'
 )" && [[ "${output}" == PTY_OK\ path=/dev/pts/* ]]; then
     printf 'PASS: restricted devbox preserves the exact active PTY and foreground process group\n'
 else
