@@ -326,11 +326,17 @@ get_setenv_value() {
 
 run_devbox pi hello -- "${TEST_PROJECT}" -q
 FIRST_SHARED_RUNTIME="$(get_setenv_value XDG_RUNTIME_DIR)"
-assert_tail 'command and arguments before -- execute inside the box' "${PI_BIN}" hello
+assert_tail 'command and arguments before -- execute inside the box' /devbox/bin/pi hello
 assert_sequence_contains 'agent context is mounted separately and read-only' --ro-bind "${DEVBOX_ROOT}/devbox-agent-context.md" /devbox/agent-context.md
+assert_sequence_contains 'Pi guard is mounted read-only inside the sandbox' --ro-bind "${DEVBOX_ROOT}/devbox-pi-guard" /devbox/bin/pi
+assert_sequence_contains 'Pi guard receives the real executable' --setenv DEVBOX_REAL_PI "${PI_BIN}"
 assert_sequence_contains 'Devbox activity is explicit' --setenv DEVBOX_ACTIVE 1
 assert_sequence_contains 'Devbox project root is explicit' --setenv DEVBOX_PROJECT_ROOT "${TEST_PROJECT}"
 assert_sequence_contains 'agent context path is explicit' --setenv DEVBOX_AGENT_CONTEXT_FILE /devbox/agent-context.md
+assert_sequence_contains 'OpenCode appends the mounted Devbox context through runtime config' \
+    --setenv OPENCODE_CONFIG_CONTENT '{"instructions":["/devbox/agent-context.md"]}'
+[[ ":$(get_setenv_value PATH):" == *:/devbox/bin:* ]] || { printf 'FAIL: agent guard directory is missing from PATH\n' >&2; exit 1; }
+printf 'PASS: agent guard directory is available on PATH\n'
 assert_sequence_contains 'effective filesystem mode is explicit' --setenv DEVBOX_FS_MODE rw
 assert_sequence_contains 'effective network capability is explicit' --setenv DEVBOX_NETWORK 1
 assert_sequence_contains 'Git policy identity is explicit' --setenv DEVBOX_GIT_POLICY wrapped
@@ -341,7 +347,7 @@ assert_sequence_contains 'Pi scripts are mounted read-only' --ro-bind "${TEST_HO
 printf 'PASS: local trust mode is 0700\n'
 
 run_devbox pi before --- after -- "${TEST_PROJECT}" -q
-assert_tail '--- passes a literal -- to the child command' "${PI_BIN}" before -- after
+assert_tail '--- passes a literal -- to the child command' /devbox/bin/pi before -- after
 DEVBOX_SHARED_RUNTIME="$(get_setenv_value XDG_RUNTIME_DIR)"
 DEVBOX_EFFECTIVE_TMPDIR="$(get_setenv_value TMPDIR)"
 [[ ! -e "${FIRST_SHARED_RUNTIME}" ]] || {

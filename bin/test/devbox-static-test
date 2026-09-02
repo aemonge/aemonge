@@ -5,10 +5,12 @@ set -Eeuo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 readonly DEVBOX="${SCRIPT_DIR}/../devbox"
 readonly DEVBOX_GIT="${SCRIPT_DIR}/../devbox-git"
+readonly DEVBOX_PI_GUARD="${SCRIPT_DIR}/../devbox-pi-guard"
 readonly DEVBOX_AGENT_CONTEXT="${SCRIPT_DIR}/../devbox-agent-context.md"
 
 [[ -x "${DEVBOX}" ]] || { printf 'FAIL: devbox executable missing: %s\n' "${DEVBOX}" >&2; exit 1; }
 [[ -x "${DEVBOX_GIT}" ]] || { printf 'FAIL: devbox-git executable missing: %s\n' "${DEVBOX_GIT}" >&2; exit 1; }
+[[ -x "${DEVBOX_PI_GUARD}" ]] || { printf 'FAIL: Devbox Pi guard missing: %s\n' "${DEVBOX_PI_GUARD}" >&2; exit 1; }
 [[ -r "${DEVBOX_AGENT_CONTEXT}" ]] || { printf 'FAIL: Devbox agent context missing: %s\n' "${DEVBOX_AGENT_CONTEXT}" >&2; exit 1; }
 
 assert_contains() {
@@ -48,6 +50,8 @@ assert_contains 'mounts separate read-only agent guidance' '--ro-bind "${DEVBOX_
 assert_contains 'marks sandbox processes as active Devbox processes' '--setenv DEVBOX_ACTIVE 1'
 assert_contains 'exports the selected project root' '--setenv DEVBOX_PROJECT_ROOT "${SANDBOX_PROJECT_ROOT}"'
 assert_contains 'points processes to the agent context file' '--setenv DEVBOX_AGENT_CONTEXT_FILE "${DEVBOX_AGENT_CONTEXT_SANDBOX}"'
+assert_contains 'routes Pi through the sandbox context guard' 'prepare_pi_command_guard'
+assert_contains 'adds Devbox context to OpenCode instructions' 'add_sandbox_env_once OPENCODE_CONFIG_CONTENT'
 assert_contains 'reports the policy-wrapped Git boundary' '--setenv DEVBOX_GIT_POLICY wrapped'
 assert_contains 'rejects writable host-root targets' 'refusing to mount the host root writable'
 assert_contains 'assembles one canonical Pi resource closure' 'assemble_pi_agent_resource_closure'
@@ -80,6 +84,7 @@ assert_contains 'runs OpenCode plugin integrity before direct launches' 'run_ope
 assert_contains 'guards OpenCode launched later from an interactive shell' 'prepare_opencode_command_guard'
 assert_contains 'runs comprehensive live parity validation' 'test/devbox-live-test'
 assert_contains 'runs extended unified live validation' 'test/devbox-live-extended-test'
+assert_contains 'runs focused agent-context adapter validation' 'test/devbox-agent-context-test'
 assert_contains 'runs focused Pi state isolation validation' 'test/devbox-pi-state-test'
 assert_contains 'runs real Pi parity and symlink-mount validation' 'test/devbox-pi-parity-test'
 assert_contains 'runs real controlling-PTY validation' 'test/devbox-pty-test'

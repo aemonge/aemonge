@@ -1277,6 +1277,52 @@ discover_pi_binary() {
     esac
 }
 
+ensure_devbox_command_guard_path() {
+    case ":${SANDBOX_PATH}:" in
+    *:/devbox/bin:*) ;;
+    *) SANDBOX_PATH="/devbox/bin:${SANDBOX_PATH}" ;;
+    esac
+}
+
+prepare_pi_command_guard() {
+    local script_dir
+    local guard_host
+    local pi_host
+    local pi_real
+    local guard_sandbox="/devbox/bin/pi"
+
+    if [[ "${PI_COMMAND_DIRECT}" -eq 1 ]]; then
+        pi_real="${PI_BIN_REAL}"
+    else
+        pi_host="$(command -v pi 2>/dev/null || true)"
+        [[ "${pi_host}" == /* && -x "${pi_host}" ]] || return 0
+        pi_real="$(realpath "${pi_host}")"
+        add_parent_dirs_once "$(dirname "${pi_real}")"
+        case "${pi_real}" in
+        /usr/* | /bin/* | /sbin/*) ;;
+        *)
+            if ! bind_pi_binary_package_tree "${pi_real}"; then
+                add_extra_bind_once --ro-bind "${pi_real}" "${pi_real}"
+            fi
+            ;;
+        esac
+    fi
+
+    script_dir="$(cd -- "$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")" && pwd -P)"
+    guard_host="${script_dir}/devbox-pi-guard"
+    if [[ ! -x "${guard_host}" ]]; then
+        error "Pi command guard is missing or not executable: ${guard_host}"
+        exit 1
+    fi
+
+    add_prepared_bind_once --ro-bind "${guard_host}" "${guard_sandbox}"
+    add_sandbox_env_once DEVBOX_REAL_PI "${pi_real}"
+    ensure_devbox_command_guard_path
+    if [[ "${PI_COMMAND_DIRECT}" -eq 1 ]]; then
+        RAW_COMMAND[0]="${guard_sandbox}"
+    fi
+}
+
 has_explicit_opencode_port() {
     local argument
     local index
@@ -1377,7 +1423,9 @@ prepare_opencode_command_guard() {
     add_prepared_bind_once --ro-bind "${helper_host}" "${helper_sandbox}"
     add_sandbox_env_once DEVBOX_REAL_OPENCODE "${opencode_real}"
     add_sandbox_env_once DEVBOX_OPENCODE_INTEGRITY_HELPER "${helper_sandbox}"
-    SANDBOX_PATH="/devbox/bin:${SANDBOX_PATH}"
+    add_sandbox_env_once OPENCODE_CONFIG_CONTENT \
+        "{\"instructions\":[\"${DEVBOX_AGENT_CONTEXT_SANDBOX}\"]}"
+    ensure_devbox_command_guard_path
 }
 
 discover_git_wrapper() {
@@ -2188,6 +2236,8 @@ run_devbox_validation() {
         "${test_project}/.git" \
         "${test_project}/.github"
     printf '%s\n' '{"packages":["./packages/devbox-validation-package"]}' >"${test_home}/.pi/agent/settings.json"
+    printf '%s\n' '{"instructions":["existing-instruction.md"]}' >"${test_home}/.config/opencode/opencode.json"
+    printf '# Existing OpenCode instruction\n' >"${test_home}/.config/opencode/existing-instruction.md"
     cat >"${test_home}/.pi/agent/extensions/devbox-validation.ts" <<'DEVBOX_EXTENSION'
 export default function (pi: any) {
   pi.registerFlag("devbox-auto-extension-loaded", {
@@ -2304,8 +2354,26 @@ DEVBOX_PACKAGE
                 validation_fail "Test A.4 FAIL: real OpenCode launch failed (status=${command_status}; expected=${expected_output}; actual=${output})"
                 failed=$((failed + 1))
             fi
+
+            if output="$(env -u SSH_AUTH_SOCK \
+                HOME="${test_home}" USER="${USER:-developer}" LOGNAME="${LOGNAME:-${USER:-developer}}" \
+                XDG_CONFIG_HOME="${test_home}/.config" XDG_DATA_HOME="${test_home}/.local/share" \
+                XDG_STATE_HOME="${test_home}/.local/state" XDG_CACHE_HOME="${test_home}/.cache" \
+                PATH="${PATH}" TERM="${TERM:-xterm-256color}" LANG="${LANG:-C.UTF-8}" \
+                DEVBOX_GIT="${DEVBOX_GIT:-${script_dir}/devbox-git}" \
+                DEVBOX_FORCE_PROBE=1 \
+                "${script_path}" opencode debug config --pure -- "${test_project}" -q \
+                --no-aws --no-clipboard --no-ssh-agent 2>/dev/null)" && \
+                jq -e '.instructions as $instructions | (($instructions | index("existing-instruction.md")) != null and ($instructions | index("/devbox/agent-context.md")) != null)' \
+                    <<<"${output}" >/dev/null; then
+                validation_pass 'Test A.5 PASS: OpenCode appends sandbox-only Devbox agent instructions'
+            else
+                validation_fail "Test A.5 FAIL: OpenCode did not append Devbox agent instructions (${output})"
+                failed=$((failed + 1))
+            fi
         else
             validation_warn 'Test A.4 SKIP: OpenCode unavailable'
+            validation_warn 'Test A.5 SKIP: OpenCode unavailable'
         fi
     else
         validation_fail 'Test 0.2 FAIL: bwrap namespace probe failed'
@@ -2316,6 +2384,7 @@ DEVBOX_PACKAGE
         "${script_dir}/test/devbox-live-test" \
         "${script_dir}/test/devbox-live-extended-test" \
         "${script_dir}/test/devbox-static-test" \
+        "${script_dir}/test/devbox-agent-context-test" \
         "${script_dir}/test/devbox-pi-state-test" \
         "${script_dir}/test/devbox-pi-parity-test" \
         "${script_dir}/test/devbox-pty-test" \
@@ -2442,6 +2511,7 @@ SANDBOX_ENVS=()
 PI_AGENT_STATE_SOURCE_ROOT=""
 PI_AGENT_STATE_IS_INDEPENDENT=0
 PI_AGENT_SESSION_SOURCE_DIR=""
+PI_COMMAND_DIRECT=0
 declare -A EXTRA_DIR_SET=()
 declare -A PARENT_DIR_EXPANSION_SET=()
 declare -A EXTRA_BIND_DEST_SET=()
@@ -2805,6 +2875,7 @@ else
 fi
 
 if [[ "$(basename -- "${RAW_COMMAND[0]}")" == "pi" ]]; then
+    PI_COMMAND_DIRECT=1
     PI_BIN="${RAW_COMMAND[0]}"
     discover_pi_binary
     RAW_COMMAND[0]="${PI_BIN_SANDBOX}"
@@ -2946,6 +3017,7 @@ bind_user_openspec_schemas
 bind_nearest_project_openspec
 bind_opencode_state
 bind_nvim_resources
+prepare_pi_command_guard
 prepare_opencode_command_guard
 bind_aws_integration
 
