@@ -46,7 +46,7 @@ readonly BWRAP_PROBE_CAPTURE="${TEST_ROOT}/bwrap-probe-args"
 readonly FAKE_PI="${TEST_BIN}/pi"
 readonly TEST_PNPM_HOME="${TEST_HOME}/.local/share/pnpm"
 readonly FAKE_PNPM_PI="${TEST_PNPM_HOME}/bin/pi"
-readonly FAKE_SCODER_GIT="${TEST_BIN}/scoder-git"
+readonly FAKE_DEVBOX_GIT="${TEST_BIN}/devbox-git"
 
 mkdir -p \
     "${TEST_HOME}/.pi/agent" \
@@ -157,7 +157,7 @@ printf '%s\n' \
     'exec node "$basedir/../global/v11/fake/node_modules/@earendil-works/pi-coding-agent/dist/cli.js" "$@"' \
     >"${FAKE_PNPM_PI}"
 printf 'console.log("fake pi")\n' >"${TEST_PNPM_HOME}/global/v11/fake/node_modules/@earendil-works/pi-coding-agent/dist/cli.js"
-printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"${FAKE_SCODER_GIT}"
+printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"${FAKE_DEVBOX_GIT}"
 if command -v python3 >/dev/null 2>&1; then
     python3 - "${TEST_NVIM_SOCKET}" "${TEST_NVIM_LISTEN_SOCKET}" "${TEST_TMUX_SOCKET}" "${TEST_PI_STATUS_SOCKET}" "${TEST_PI_DENIED_SOCKET}" <<'PY'
 import os
@@ -212,7 +212,7 @@ if [[ "${is_probe}" -eq 1 ]]; then
 fi
 printf '%s\0' "$@" >"${SPI_TEST_BWRAP_CAPTURE}"
 BWRAP_EOF
-chmod +x "${TEST_NVIM_EDITOR}" "${FAKE_PI}" "${FAKE_PNPM_PI}" "${FAKE_SCODER_GIT}" "${TEST_BIN}/bwrap"
+chmod +x "${TEST_NVIM_EDITOR}" "${FAKE_PI}" "${FAKE_PNPM_PI}" "${FAKE_DEVBOX_GIT}" "${TEST_BIN}/bwrap"
 
 run_spi_with_stderr() {
     local stderr_file="$1"
@@ -268,7 +268,7 @@ run_spi_with_stderr() {
         USER="${USER:-aemonge}" LOGNAME="${LOGNAME:-${USER:-aemonge}}" \
         TERM="${TERM:-xterm-256color}" LANG="${LANG:-C.UTF-8}" \
         "${optional_env[@]}" \
-        PI_BIN="${pi_bin}" SCODER_GIT="${FAKE_SCODER_GIT}" \
+        PI_BIN="${pi_bin}" DEVBOX_GIT="${FAKE_DEVBOX_GIT}" \
         SPI_FORCE_PROBE=1 SPI_TEST_BWRAP_CAPTURE="${BWRAP_CAPTURE}" \
         SPI_TEST_BWRAP_PROBE_CAPTURE="${BWRAP_PROBE_CAPTURE}" \
         "${SPI}" "$@" >/dev/null 2>"${stderr_file}"; then
@@ -628,10 +628,10 @@ assert_sequence_value_prefix 'private spi TMPDIR is created' --dir /tmp/spi-
 assert_sequence_tail_prefix 'private spi TMPDIR is chmod 0700' /tmp/spi- --chmod 0700
 assert_sequence_tail_prefix 'TMPDIR environment points at private spi path' /tmp/spi- --setenv TMPDIR
 assert_sequence_contains 'PI_CODING_AGENT_DIR is pinned to the mounted default agent root' --setenv PI_CODING_AGENT_DIR "${TEST_HOME}/.pi/agent"
-assert_sequence_contains 'git is shadowed by scoder-git wrapper' --ro-bind "${FAKE_SCODER_GIT}" /usr/bin/git
+assert_sequence_contains 'git is shadowed by devbox-git wrapper' --ro-bind "${FAKE_DEVBOX_GIT}" /usr/bin/git
 assert_sequence_absent 'project .pi is writable through the selected target bind' --ro-bind "${TEST_PROJECT}/.pi" "${TEST_PROJECT}/.pi"
 assert_sequence_absent 'project .agents is writable through the selected target bind' --ro-bind "${TEST_PROJECT}/.agents" "${TEST_PROJECT}/.agents"
-assert_sequence_absent 'project .git remains writable like scoder effective defaults' --ro-bind "${TEST_PROJECT}/.git" "${TEST_PROJECT}/.git"
+assert_sequence_absent 'project .git remains writable like devbox effective defaults' --ro-bind "${TEST_PROJECT}/.git" "${TEST_PROJECT}/.git"
 for protected_dir in .github .turbo .cargo; do
     assert_sequence_contains "default target protects ${protected_dir}" --ro-bind "${TEST_PROJECT}/${protected_dir}" "${TEST_PROJECT}/${protected_dir}"
 done
@@ -768,7 +768,7 @@ assert_sequence_absent '--no-nvim-remote suppresses the NVIM socket bind' --bind
 assert_sequence_absent '--no-nvim-remote suppresses NVIM_LISTEN_ADDRESS socket bind' --bind "${TEST_NVIM_LISTEN_SOCKET}" "${TEST_NVIM_LISTEN_SOCKET}"
 assert_sequence_absent '--no-nvim-remote suppresses NVIM environment' --setenv NVIM "${TEST_NVIM_SOCKET}"
 assert_sequence_absent '--no-nvim-remote suppresses the Neovim editor script bind' --ro-bind "${TEST_NVIM_EDITOR}" "${TEST_NVIM_EDITOR}"
-assert_sequence_contains '--no-nvim-remote falls back to scoder-compatible editor command' --setenv EDITOR v_quickedit_hover
+assert_sequence_contains '--no-nvim-remote falls back to devbox-compatible editor command' --setenv EDITOR v_quickedit_hover
 if [[ -S "${TEST_TMUX_SOCKET}" ]]; then
     assert_sequence_contains '--no-nvim-remote keeps exact tmux forwarding' --bind "${TEST_TMUX_SOCKET}" "${TEST_TMUX_SOCKET}"
     assert_sequence_contains '--no-nvim-remote keeps TMUX environment' --setenv TMUX "${TEST_TMUX_SOCKET},123,0"
@@ -828,7 +828,7 @@ if env -i \
     XDG_STATE_HOME="${TEST_STATE}" \
     USER="${USER:-aemonge}" LOGNAME="${LOGNAME:-${USER:-aemonge}}" \
     TERM="${TERM:-xterm-256color}" LANG="${LANG:-C.UTF-8}" \
-    PI_BIN="${FAKE_PI}" SCODER_GIT="${FAKE_SCODER_GIT}" \
+    PI_BIN="${FAKE_PI}" DEVBOX_GIT="${FAKE_DEVBOX_GIT}" \
     SPI_TEST_BWRAP_CAPTURE="${BWRAP_CAPTURE}" \
     SPI_TEST_BWRAP_PROBE_CAPTURE="${BWRAP_PROBE_CAPTURE}" \
     "${SPI}" -- "${TEST_PROJECT}" -q --backend bwrap -x true >/dev/null 2>"${TEST_ROOT}/probe.err"; then
@@ -846,7 +846,7 @@ if env -i \
     HOME="${TEST_HOME}" PATH="${TEST_BIN}:${PATH}" XDG_STATE_HOME="${TEST_STATE}" \
     USER="${USER:-aemonge}" LOGNAME="${LOGNAME:-${USER:-aemonge}}" \
     TERM="${TERM:-xterm-256color}" LANG="${LANG:-C.UTF-8}" \
-    PI_BIN="${FAKE_PI}" SCODER_GIT="${FAKE_SCODER_GIT}" \
+    PI_BIN="${FAKE_PI}" DEVBOX_GIT="${FAKE_DEVBOX_GIT}" \
     SPI_TEST_BWRAP_CAPTURE="${BWRAP_CAPTURE}" SPI_TEST_BWRAP_PROBE_CAPTURE="${BWRAP_PROBE_CAPTURE}" \
     "${SPI}" -- "${TEST_PROJECT}" -q --backend bwrap -x true >/dev/null 2>"${TEST_ROOT}/cache.err" && \
     [[ -e "${BWRAP_CAPTURE}" && ! -e "${BWRAP_PROBE_CAPTURE}" ]]; then
@@ -858,7 +858,7 @@ else
 fi
 
 rm -f -- "${BWRAP_CAPTURE}"
-if env -i HOME="${TEST_HOME}" PATH="${TEST_BIN}:${PATH}" PI_BIN="${FAKE_PI}" SCODER_GIT="${FAKE_SCODER_GIT}" \
+if env -i HOME="${TEST_HOME}" PATH="${TEST_BIN}:${PATH}" PI_BIN="${FAKE_PI}" DEVBOX_GIT="${FAKE_DEVBOX_GIT}" \
     "${SPI}" -- / -q -x true >/dev/null 2>"${TEST_ROOT}/root-target.err"; then
     printf 'FAIL: writable host-root target unexpectedly succeeded\n' >&2
     exit 1
@@ -870,7 +870,7 @@ fi
 printf 'PASS: writable host-root targets are rejected before launch\n'
 
 rm -f -- "${BWRAP_CAPTURE}"
-if env -i HOME="${TEST_HOME}" PATH="${TEST_BIN}:${PATH}" PI_BIN="${FAKE_PI}" SCODER_GIT="${FAKE_SCODER_GIT}" \
+if env -i HOME="${TEST_HOME}" PATH="${TEST_BIN}:${PATH}" PI_BIN="${FAKE_PI}" DEVBOX_GIT="${FAKE_DEVBOX_GIT}" \
     "${SPI}" -- "${TEST_PROJECT}" -q --backend unsupported >/dev/null 2>"${TEST_ROOT}/backend.err"; then
     printf 'FAIL: unsupported backend unexpectedly succeeded\n' >&2
     exit 1
@@ -888,7 +888,7 @@ fi
 
 if [[ "${SPI_VALIDATION_EXTERNAL:-0}" == "1" ]]; then
     printf 'PASS: --validate regression check skipped during validation re-entry\n'
-elif command -v bwrap >/dev/null 2>&1 && [[ -x "${SCRIPT_DIR}/../scoder-git" ]]; then
+elif command -v bwrap >/dev/null 2>&1 && [[ -x "${SCRIPT_DIR}/../devbox-git" ]]; then
     readonly VALIDATE_HOME="${TEST_ROOT}/validate-home"
     mkdir -p "${VALIDATE_HOME}"
     if env -i \
@@ -897,7 +897,7 @@ elif command -v bwrap >/dev/null 2>&1 && [[ -x "${SCRIPT_DIR}/../scoder-git" ]];
         USER="${USER:-aemonge}" LOGNAME="${LOGNAME:-${USER:-aemonge}}" \
         TERM="${TERM:-xterm-256color}" LANG="${LANG:-C.UTF-8}" \
         PI_BIN=/bin/true PI_CODING_AGENT_DIR="${VALIDATE_HOME}/.pi/agent" \
-        SCODER_GIT="${SCRIPT_DIR}/../scoder-git" \
+        DEVBOX_GIT="${SCRIPT_DIR}/../devbox-git" \
         "${SPI}" -- "${TEST_PROJECT}" --validate >"${TEST_ROOT}/validate.out" 2>"${TEST_ROOT}/validate.err"; then
         assert_file_contains '--validate runs validation suite, not doctor only' "${TEST_ROOT}/validate.out" 'All SPI validation tests passed'
         assert_file_absent '--validate output is not just doctor diagnostics' "${TEST_ROOT}/validate.out" 'SPI doctor'
@@ -912,7 +912,7 @@ elif command -v bwrap >/dev/null 2>&1 && [[ -x "${SCRIPT_DIR}/../scoder-git" ]];
         exit 1
     fi
 else
-    printf 'PASS: --validate regression check skipped because real bwrap/scoder-git is unavailable\n'
+    printf 'PASS: --validate regression check skipped because real bwrap/devbox-git is unavailable\n'
 fi
 
 printf 'spi parser and bwrap capture tests passed\n'

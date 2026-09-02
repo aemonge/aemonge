@@ -2,7 +2,7 @@
 
 Build a safe launcher for Pi with **two isolation backends**:
 
-1. **Bubblewrap backend** — run the entire Pi process inside a Linux `bwrap` sandbox, learning from `bin/scoder`.
+1. **Bubblewrap backend** — run the entire Pi process inside a Linux `bwrap` sandbox, learning from `bin/devbox`.
 2. **Gondolin backend** — keep Pi on the host and route its tools into a Gondolin micro-VM, learning from <https://github.com/pasky/pi-gondolin> and Pi's installed containerization guidance.
 
 > Terminology: “Pi Bubblewrap” below means a Bubblewrap sandbox for the Pi coding agent, not a Python wrapper.
@@ -12,7 +12,7 @@ Build a safe launcher for Pi with **two isolation backends**:
 - Provide a single `spi` command with predictable safety policies across both backends.
 - Preserve Pi's normal interactive, print, JSON, RPC, session, model, skill, prompt, theme, and extension workflows where the selected backend can safely support them.
 - Default to fail-closed behavior: inability to establish isolation must stop startup rather than silently run a tool on the host.
-- Reuse proven `scoder` behavior without creating an unmaintainable copy of its entire script.
+- Reuse proven `devbox` behavior without creating an unmaintainable copy of its entire script.
 - Clearly communicate backend-specific trust boundaries; Bubblewrap and Gondolin do not isolate the same things.
 
 ## Non-goals for the first release
@@ -63,7 +63,7 @@ Build a safe launcher for Pi with **two isolation backends**:
   - [ ] `--quiet`, `--help`, and `--version`
 - [ ] Forward every argument before `--` to Pi unchanged.
 - [ ] Default `TARGET` to `$PWD`; canonicalize and validate it before launch.
-- [ ] Support directory targets and, if retained from `scoder`, safe single-file targets.
+- [ ] Support directory targets and, if retained from `devbox`, safe single-file targets.
 - [ ] Preserve terminal resize, signals, exit status, cancellation, and streamed command output.
 - [ ] Print the selected backend and effective high-level policy unless `--quiet` is used.
 - [ ] Never silently fall back to plain `pi` or host tool execution.
@@ -96,7 +96,7 @@ Build a safe launcher for Pi with **two isolation backends**:
 
 ## Bubblewrap backend requirements
 
-- [ ] Extract/reuse a shared sandbox core from `bin/scoder` where practical; avoid an unchecked full copy.
+- [ ] Extract/reuse a shared sandbox core from `bin/devbox` where practical; avoid an unchecked full copy.
 - [ ] Run the **whole Pi process**, including trusted extensions, inside Bubblewrap.
 - [ ] Mount `/usr`, runtime libraries, and required system configuration read-only.
 - [ ] Use a tmpfs home shell with only explicit persistent paths mounted from the host.
@@ -164,7 +164,7 @@ Build a safe launcher for Pi with **two isolation backends**:
 - [ ] Document credential, network, extension, workspace-write-through, and custom-tool limitations.
 - [ ] Add shell completions or completion-friendly `--help` output.
 - [ ] Add versioning and a changelog entry.
-- [ ] Keep `scoder` backward-compatible while shared components are extracted.
+- [ ] Keep `devbox` backward-compatible while shared components are extracted.
 
 ## Validation and test requirements
 
@@ -204,7 +204,7 @@ The initial `spi` release is accepted when all of the following are true:
 10. Pi interactive, print, JSON, and RPC modes either pass integration tests or fail early with a documented unsupported-mode error.
 11. `spi --doctor` reports all required dependencies, selected backend, mounts, credential exposure class, network policy, and actionable remediation.
 12. `spi --validate` runs the backend's security integration suite and returns nonzero on any failed invariant.
-13. Existing `scoder` behavior and its validation suite continue to pass after shared-code extraction.
+13. Existing `devbox` behavior and its validation suite continue to pass after shared-code extraction.
 14. Documentation accurately distinguishes Pi project trust, Bubblewrap whole-process containment, and Gondolin tool-only containment.
 
 ## Suggested delivery phases
@@ -212,13 +212,13 @@ The initial `spi` release is accepted when all of the following are true:
 ### Phase 1 — specification and shared policy
 
 - [ ] Finalize threat model and CLI.
-- [ ] Inventory reusable `scoder` functions and tests.
+- [ ] Inventory reusable `devbox` functions and tests.
 - [ ] Define a backend-neutral policy/mount representation.
 
 ### Phase 2 — Bubblewrap MVP
 
 - [ ] Implement `spi --backend bwrap`.
-- [ ] Port relevant `scoder` validation tests.
+- [ ] Port relevant `devbox` validation tests.
 - [ ] Add Pi state/resource persistence and protection tests.
 
 ### Phase 3 — Gondolin MVP

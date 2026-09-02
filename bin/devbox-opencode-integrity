@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC2034 # Cache-hit state is retained from the validated scoder implementation.
+# shellcheck disable=SC2034 # Cache-hit state is retained from the validated devbox implementation.
 # Structural OpenCode plugin preflight used by devbox.
-# Derived from scoder's validated plugin-integrity implementation.
+# Derived from devbox's validated plugin-integrity implementation.
 set -euo pipefail
 
 PROGRAM_NAME="devbox"

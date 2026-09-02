@@ -3,8 +3,8 @@ set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 readonly SCRIPT_DIR
-SCODER_GIT="$(cd -- "${SCRIPT_DIR}/.." && pwd -P)/scoder-git"
-readonly SCODER_GIT
+DEVBOX_GIT="$(cd -- "${SCRIPT_DIR}/.." && pwd -P)/devbox-git"
+readonly DEVBOX_GIT
 
 FAILED=0
 
@@ -17,13 +17,13 @@ pass() {
     printf '✅ %s\n' "$*"
 }
 
-run_scoder_git() {
+run_devbox_git() {
     local tmpdir="$1"
     shift
 
-    SCODER_REAL_GIT="${tmpdir}/fake-git" \
-        SCODER_GIT_TEST_LOG="${tmpdir}/git.log" \
-        "${SCODER_GIT}" "$@"
+    DEVBOX_REAL_GIT="${tmpdir}/fake-git" \
+        DEVBOX_GIT_TEST_LOG="${tmpdir}/git.log" \
+        "${DEVBOX_GIT}" "$@"
 }
 
 assert_denied() {
@@ -32,12 +32,12 @@ assert_denied() {
     shift 2
 
     local output=""
-    if output="$(run_scoder_git "${tmpdir}" "$@" 2>&1)"; then
+    if output="$(run_devbox_git "${tmpdir}" "$@" 2>&1)"; then
         fail "${name}: command unexpectedly succeeded"
         return
     fi
 
-    if grep -qE 'Denied|BLOCKED|fatal: scoder blocked' <<<"${output}"; then
+    if grep -qE 'Denied|BLOCKED|fatal: devbox blocked' <<<"${output}"; then
         pass "${name}"
     else
         fail "${name}: expected denial, got: ${output}"
@@ -53,14 +53,14 @@ assert_denied_stdout_visible() {
     local stderr_file="${tmpdir}/stderr.txt"
     local status=0
 
-    run_scoder_git "${tmpdir}" "$@" >"${stdout_file}" 2>"${stderr_file}" || status=$?
+    run_devbox_git "${tmpdir}" "$@" >"${stdout_file}" 2>"${stderr_file}" || status=$?
 
     if [[ "${status}" -eq 0 ]]; then
         fail "${name}: command unexpectedly succeeded"
         return
     fi
 
-    if grep -qE 'Denied|BLOCKED|fatal: scoder blocked' "${stdout_file}" && grep -qE 'Denied|BLOCKED|fatal: scoder blocked' "${stderr_file}"; then
+    if grep -qE 'Denied|BLOCKED|fatal: devbox blocked' "${stdout_file}" && grep -qE 'Denied|BLOCKED|fatal: devbox blocked' "${stderr_file}"; then
         pass "${name}"
     else
         fail "${name}: denial not visible on both stdout and stderr (stdout=$(<"${stdout_file}"), stderr=$(<"${stderr_file}"))"
@@ -74,7 +74,7 @@ assert_denied_with_hint() {
     shift 3
 
     local output=""
-    if output="$(run_scoder_git "${tmpdir}" "$@" 2>&1)"; then
+    if output="$(run_devbox_git "${tmpdir}" "$@" 2>&1)"; then
         fail "${name}: command unexpectedly succeeded"
         return
     fi
@@ -92,14 +92,14 @@ assert_push_denied_as_fatal() {
 
     local output=""
     local status=0
-    output="$(run_scoder_git "${tmpdir}" push 2>&1)" || status=$?
+    output="$(run_devbox_git "${tmpdir}" push 2>&1)" || status=$?
 
     if [[ "${status}" -ne 128 ]]; then
         fail "${name}: expected exit 128, got ${status}; output=${output}"
         return
     fi
 
-    if [[ "${output}" == *"fatal: scoder blocked git push"* && \
+    if [[ "${output}" == *"fatal: devbox blocked git push"* && \
         "${output}" == *"no push was performed"* ]]; then
         pass "${name}"
     else
@@ -113,7 +113,7 @@ assert_allowed() {
     shift 2
 
     local output=""
-    if ! output="$(run_scoder_git "${tmpdir}" "$@" 2>&1)"; then
+    if ! output="$(run_devbox_git "${tmpdir}" "$@" 2>&1)"; then
         fail "${name}: command failed: ${output}"
         return
     fi
@@ -145,8 +145,8 @@ assert_commit_hardened() {
 }
 
 main() {
-    if [[ ! -x "${SCODER_GIT}" ]]; then
-        fail "scoder-git executable is missing: ${SCODER_GIT}"
+    if [[ ! -x "${DEVBOX_GIT}" ]]; then
+        fail "devbox-git executable is missing: ${DEVBOX_GIT}"
         return 1
     fi
 
@@ -158,9 +158,9 @@ main() {
     cat >"${tmpdir}/fake-git" <<'FAKE_GIT'
 #!/usr/bin/env bash
 set -Eeuo pipefail
-printf 'REAL_GIT %q' "$0" >>"${SCODER_GIT_TEST_LOG}"
-printf ' %q' "$@" >>"${SCODER_GIT_TEST_LOG}"
-printf '\n' >>"${SCODER_GIT_TEST_LOG}"
+printf 'REAL_GIT %q' "$0" >>"${DEVBOX_GIT_TEST_LOG}"
+printf ' %q' "$@" >>"${DEVBOX_GIT_TEST_LOG}"
+printf '\n' >>"${DEVBOX_GIT_TEST_LOG}"
     scope_dir=""
     first_arg="${1:-}"
     second_arg="${2:-}"
@@ -236,10 +236,10 @@ FAKE_GIT
     assert_denied "${tmpdir}" "denies git push" push
     assert_denied_stdout_visible "${tmpdir}" "denial is visible on stdout and stderr" push
     assert_push_denied_as_fatal "${tmpdir}" "git push is reported as fatal blocked failure"
-    assert_denied_with_hint "${tmpdir}" "push denial has assistant hint" "never push from scoder" push
+    assert_denied_with_hint "${tmpdir}" "push denial has assistant hint" "never push from devbox" push
     assert_denied "${tmpdir}" "denies git pull" pull
     assert_denied "${tmpdir}" "denies git rebase" rebase main
-    assert_denied_with_hint "${tmpdir}" "rebase denial has assistant hint" "do not rewrite or integrate history inside scoder" rebase main
+    assert_denied_with_hint "${tmpdir}" "rebase denial has assistant hint" "do not rewrite or integrate history inside devbox" rebase main
     assert_denied "${tmpdir}" "denies git reset --hard" reset --hard
     assert_denied_with_hint "${tmpdir}" "hard reset denial has assistant hint" "do not discard tracked work" reset --hard
     assert_denied "${tmpdir}" "denies git reset --hard commit" reset --hard HEAD
@@ -257,21 +257,21 @@ FAKE_GIT
     assert_denied "${tmpdir}" "denies git switch --detach" switch --detach HEAD
     assert_denied "${tmpdir}" "denies git switch extra arg" switch safe-target extra
     assert_denied "${tmpdir}" "denies git switch without branch" switch
-    assert_denied "${tmpdir}" "denies git commit -F outside repo" commit -F /tmp/scoder-outside-message
-    assert_denied_with_hint "${tmpdir}" "path escape denial has assistant hint" "keep paths inside the repository" commit -F /tmp/scoder-outside-message
+    assert_denied "${tmpdir}" "denies git commit -F outside repo" commit -F /tmp/devbox-outside-message
+    assert_denied_with_hint "${tmpdir}" "path escape denial has assistant hint" "keep paths inside the repository" commit -F /tmp/devbox-outside-message
     assert_denied "${tmpdir}" "denies git global unsafe -c" -c core.hooksPath=.githooks commit -m unsafe
-    assert_denied_with_hint "${tmpdir}" "unsafe config denial has assistant hint" "do not bypass scoder protections" -c core.hooksPath=.githooks commit -m unsafe
+    assert_denied_with_hint "${tmpdir}" "unsafe config denial has assistant hint" "do not bypass devbox protections" -c core.hooksPath=.githooks commit -m unsafe
     assert_denied "${tmpdir}" "denies git maintenance register" maintenance register
     assert_denied "${tmpdir}" "denies unknown git worktree subcommand" worktree bogus
     assert_denied "${tmpdir}" "denies unknown git subcommand" daemon
     assert_denied_with_hint "${tmpdir}" "unknown command denial has assistant hint" "ask the user whether this command should be added with tests" daemon
 
     if [[ "${FAILED}" -eq 0 ]]; then
-        printf '🎉 scoder-git focused tests passed\n'
+        printf '🎉 devbox-git focused tests passed\n'
         return 0
     fi
 
-    printf '⚠️  %d scoder-git focused test(s) failed\n' "${FAILED}" >&2
+    printf '⚠️  %d devbox-git focused test(s) failed\n' "${FAILED}" >&2
     return 1
 }
 

@@ -38,15 +38,6 @@ abbr mh='mesh-hop'
 abbr sgt='sync-galactica-term'
 abbr zgc='zsh-generate-completions'
 
-# OpenCode sandbox
-abbr sc='scoder'
-abbr scr='scoder --ro'
-abbr scw='scoder --web-developer'
-abbr scv='scoder --validate'
-abbr scg='scoder --allow-git'
-abbr sch='scoder --allow-host-tools'
-abbr scn='scoder --no-host-tools'
-
 # v / Neovim wrapper
 abbr ve='v edit'
 abbr vs='v split'

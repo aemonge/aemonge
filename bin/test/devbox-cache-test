@@ -16,7 +16,7 @@ readonly EXECUTION_MARKER="${TEST_ROOT}/cache-content-executed"
 mkdir -p -- "${TEST_HOME}/.pi/agent" "${TEST_BIN}" "${TEST_PROJECT}/.git"
 printf '{}\n' >"${TEST_HOME}/.pi/agent/settings.json"
 printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"${TEST_BIN}/pi"
-printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"${TEST_BIN}/scoder-git"
+printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"${TEST_BIN}/devbox-git"
 cat >"${TEST_BIN}/bwrap" <<'BWRAP'
 #!/usr/bin/env bash
 set -Eeuo pipefail
@@ -32,7 +32,7 @@ if [[ "${1:-}" == --help ]]; then
 fi
 exit 0
 BWRAP
-chmod +x "${TEST_BIN}/pi" "${TEST_BIN}/scoder-git" "${TEST_BIN}/bwrap"
+chmod +x "${TEST_BIN}/pi" "${TEST_BIN}/devbox-git" "${TEST_BIN}/bwrap"
 
 run_devbox_home() {
     local sandbox_home="$1"
@@ -41,7 +41,7 @@ run_devbox_home() {
     env -i \
         HOME="${sandbox_home}" USER="${USER:-developer}" LOGNAME="${LOGNAME:-${USER:-developer}}" \
         PATH="${TEST_BIN}:/usr/bin:/bin" TERM=xterm-256color LANG=C.UTF-8 \
-        SCODER_GIT="${TEST_BIN}/scoder-git" DEVBOX_CACHE_TEST_LOG="${CALL_LOG}" \
+        DEVBOX_GIT="${TEST_BIN}/devbox-git" DEVBOX_CACHE_TEST_LOG="${CALL_LOG}" \
         "${DEVBOX}" pi -- "${TEST_PROJECT}" -q --no-host-tools --no-aws --no-clipboard --no-ssh-agent "$@"
 }
 
@@ -81,7 +81,7 @@ path.write_text("\n".join(
 PY
 : >"${CALL_LOG}"
 run_devbox
-if grep -Fq -- "${MALICIOUS_GIT}" "${CALL_LOG}" || ! grep -Fq -- "${TEST_BIN}/scoder-git" "${CALL_LOG}"; then
+if grep -Fq -- "${MALICIOUS_GIT}" "${CALL_LOG}" || ! grep -Fq -- "${TEST_BIN}/devbox-git" "${CALL_LOG}"; then
     printf 'FAIL: poisoned cached Git canonical path was trusted\n' >&2
     exit 1
 fi

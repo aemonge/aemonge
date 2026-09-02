@@ -20,7 +20,7 @@ readonly REAL_OPENCODE_MARKER="${TEST_ROOT}/real-opencode-invoked"
 mkdir -p -- "${TEST_BIN}" "${TEST_PROJECT}" "$(dirname "${CONFIG_FILE}")" "${PACKAGE_CACHE}"
 # shellcheck disable=SC2016 # Variables expand when the generated fixture executes.
 printf '%s\n' '#!/usr/bin/env bash' '[[ -z "${OPENCODE_TEST_REAL_MARKER:-}" ]] || : >"${OPENCODE_TEST_REAL_MARKER}"' 'exit 0' >"${TEST_BIN}/opencode"
-printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"${TEST_BIN}/scoder-git"
+printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"${TEST_BIN}/devbox-git"
 cat >"${TEST_BIN}/bwrap" <<'BWRAP'
 #!/usr/bin/env bash
 set -Eeuo pipefail
@@ -40,13 +40,13 @@ for ((index = 0; index < ${#args[@]}; index++)); do
 done
 : >"${DEVBOX_TEST_BWRAP_MARKER}"
 BWRAP
-chmod +x "${TEST_BIN}/opencode" "${TEST_BIN}/scoder-git" "${TEST_BIN}/bwrap"
+chmod +x "${TEST_BIN}/opencode" "${TEST_BIN}/devbox-git" "${TEST_BIN}/bwrap"
 
 run_devbox() {
     env -i \
         HOME="${TEST_HOME}" USER="${USER:-developer}" LOGNAME="${LOGNAME:-${USER:-developer}}" \
         PATH="${TEST_BIN}:/usr/bin:/bin" TERM=xterm-256color LANG=C.UTF-8 \
-        SCODER_GIT="${TEST_BIN}/scoder-git" \
+        DEVBOX_GIT="${TEST_BIN}/devbox-git" \
         DEVBOX_FORCE_PROBE=1 DEVBOX_TEST_BWRAP_MARKER="${BWRAP_MARKER}" \
         "${DEVBOX}" "$@"
 }
@@ -163,7 +163,7 @@ printf '%s\n' 'export default {};' >"${LOCKED_PACKAGE}/dist/index.js"
 rm -f -- "${BWRAP_MARKER}"
 env -i HOME="${LOCKED_HOME}" USER="${USER:-developer}" LOGNAME="${LOGNAME:-${USER:-developer}}" \
     PATH="${TEST_BIN}:/usr/bin:/bin" TERM=xterm-256color LANG=C.UTF-8 \
-    SCODER_GIT="${TEST_BIN}/scoder-git" DEVBOX_FORCE_PROBE=1 DEVBOX_TEST_BWRAP_MARKER="${BWRAP_MARKER}" \
+    DEVBOX_GIT="${TEST_BIN}/devbox-git" DEVBOX_FORCE_PROBE=1 DEVBOX_TEST_BWRAP_MARKER="${BWRAP_MARKER}" \
     "${DEVBOX}" opencode run -- "${TEST_PROJECT}" -q --locked >/dev/null
 if [[ -e "${BWRAP_MARKER}" && ! -e "${LOCKED_HOME}/.cache/devbox" ]]; then
     printf 'PASS: --locked validates OpenCode without persisting host integrity state\n'

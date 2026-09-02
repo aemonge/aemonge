@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # spi - Safe, development-transparent wrapper for Pi using Bubblewrap.
-# Pi-specific adaptation of bin/scoder's filesystem boundary and tool model.
+# Pi-specific adaptation of bin/devbox's filesystem boundary and tool model.
 
 set -euo pipefail
 
@@ -63,12 +63,12 @@ Environment:
   TMPDIR                     Set inside sandbox to /tmp/spi-<pid>
 
 Filesystem boundary:
-  The selected directory is writable by default. Matching scoder's effective
+  The selected directory is writable by default. Matching devbox's effective
   policy, .git remains writable while critical root infrastructure (.github,
   .turbo, .cargo, and common lockfiles) is overlaid read-only unless
   --allow-infra is used. Host paths outside the target stay unavailable or
   read-only unless explicitly exposed as runtime state or with --add-rw. Git
-  is shadowed with the same scoder-git policy wrapper used by scoder.
+  is shadowed with the same devbox-git policy wrapper used by devbox.
 
 Pi state model:
   Normal mode uses tmpfs HOME, exposes existing ~/.pi read-only, and overlays
@@ -86,7 +86,7 @@ Pi state model:
 
 Development integration:
   Host development tools and caches, SSH agent forwarding, optional GUI or
-  Chromium DevTools access, and the Neovim editor/socket bridge follow scoder's
+  Chromium DevTools access, and the Neovim editor/socket bridge follow devbox's
   development model. Tmux and Neovim sockets are exposed by exact path rather
   than mounting the complete runtime directory. OpenCode-style plugin integrity
   verification for Pi extensions is pending future work.
@@ -177,8 +177,8 @@ write_discovery_cache() {
         printf 'SPI_CACHE_BWRAP_NAMESPACE_SUPPORT=%q\n' "${SPI_CACHE_BWRAP_NAMESPACE_SUPPORT:-}"
         printf 'SPI_CACHE_REAL_GIT_HOST=%q\n' "${SPI_CACHE_REAL_GIT_HOST:-}"
         printf 'SPI_CACHE_REAL_GIT_REALPATH=%q\n' "${SPI_CACHE_REAL_GIT_REALPATH:-}"
-        printf 'SPI_CACHE_SCODER_GIT_HOST=%q\n' "${SPI_CACHE_SCODER_GIT_HOST:-}"
-        printf 'SPI_CACHE_SCODER_GIT_REALPATH=%q\n' "${SPI_CACHE_SCODER_GIT_REALPATH:-}"
+        printf 'SPI_CACHE_DEVBOX_GIT_HOST=%q\n' "${SPI_CACHE_DEVBOX_GIT_HOST:-}"
+        printf 'SPI_CACHE_DEVBOX_GIT_REALPATH=%q\n' "${SPI_CACHE_DEVBOX_GIT_REALPATH:-}"
     } >"${SPI_DISCOVERY_CACHE}"
     chmod 600 "${SPI_DISCOVERY_CACHE}"
 }
@@ -747,15 +747,15 @@ discover_pi_binary() {
 
 discover_git_wrapper() {
     local script_dir
-    local requested_scoder_git
+    local requested_devbox_git
     local requested_real_git
 
     script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-    requested_scoder_git="${SCODER_GIT:-${script_dir}/scoder-git}"
+    requested_devbox_git="${DEVBOX_GIT:-${script_dir}/devbox-git}"
     requested_real_git="$(command -v git 2>/dev/null || true)"
 
-    if [[ ! -x "${requested_scoder_git}" ]]; then
-        error "scoder-git wrapper not found or not executable: ${requested_scoder_git}"
+    if [[ ! -x "${requested_devbox_git}" ]]; then
+        error "devbox-git wrapper not found or not executable: ${requested_devbox_git}"
         exit 1
     fi
     if [[ -z "${requested_real_git}" || ! -x "${requested_real_git}" ]]; then
@@ -764,12 +764,12 @@ discover_git_wrapper() {
     fi
 
     if is_discovery_cache_current "${SPI_CACHE_BWRAP_PATH}" "${SPI_CACHE_BWRAP_VERSION}" &&
-        [[ "${SPI_CACHE_SCODER_GIT_HOST:-}" == "${requested_scoder_git}" && -x "${SPI_CACHE_SCODER_GIT_REALPATH:-}" ]]; then
-        SCODER_GIT_HOST="${SPI_CACHE_SCODER_GIT_REALPATH}"
+        [[ "${SPI_CACHE_DEVBOX_GIT_HOST:-}" == "${requested_devbox_git}" && -x "${SPI_CACHE_DEVBOX_GIT_REALPATH:-}" ]]; then
+        DEVBOX_GIT_HOST="${SPI_CACHE_DEVBOX_GIT_REALPATH}"
     else
-        SCODER_GIT_HOST="$(realpath "${requested_scoder_git}")"
-        SPI_CACHE_SCODER_GIT_HOST="${requested_scoder_git}"
-        SPI_CACHE_SCODER_GIT_REALPATH="${SCODER_GIT_HOST}"
+        DEVBOX_GIT_HOST="$(realpath "${requested_devbox_git}")"
+        SPI_CACHE_DEVBOX_GIT_HOST="${requested_devbox_git}"
+        SPI_CACHE_DEVBOX_GIT_REALPATH="${DEVBOX_GIT_HOST}"
     fi
 
     if is_discovery_cache_current "${SPI_CACHE_BWRAP_PATH}" "${SPI_CACHE_BWRAP_VERSION}" &&
@@ -1063,7 +1063,7 @@ run_doctor() {
     printf '\nSPI configuration summary\n'
     printf '  sandbox: Bubblewrap only\n'
     printf '  Pi state root: %s%s\n' "${PI_AGENT_DIR}" "$([[ "${PI_AGENT_DIR_FROM_ENV}" -eq 1 ]] && printf ' (from PI_CODING_AGENT_DIR)' || printf ' (Pi default)')"
-    printf '  target policy: writable by default with scoder-compatible critical infrastructure read-only\n'
+    printf '  target policy: writable by default with devbox-compatible critical infrastructure read-only\n'
     printf '  host tools: %s\n' "$([[ "${ALLOW_HOST_TOOLS}" -eq 1 ]] && printf enabled || printf disabled)"
     printf '  SSH agent forwarding: %s\n' "$([[ "${FORWARD_SSH_AGENT}" -eq 1 ]] && printf enabled || printf disabled)"
     printf '  GUI access: %s\n' "$([[ "${ALLOW_GUI}" -eq 1 ]] && printf enabled || printf disabled)"
@@ -1481,7 +1481,7 @@ PY
         # shellcheck disable=SC2016 # $HOME expands inside the sandbox.
         output="$(run_validation_spi -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'for d in "$HOME/.cache/uv" "$HOME/.local/share/pnpm" "$HOME/.local/share/cargo" "$HOME/.local/share/go" "$HOME/.bun"; do if ! test -w "$d"; then printf "NOT_WRITABLE:%s" "$d"; exit 1; fi; done; printf HOST_TOOL_STATE_OK' 2>&1 || true)"
         if [[ "${output}" == 'HOST_TOOL_STATE_OK' ]]; then
-            validation_pass 'Test D.1b PASS: scoder-parity host tool state is writable'
+            validation_pass 'Test D.1b PASS: devbox-parity host tool state is writable'
         else
             validation_fail "Test D.1b FAIL: host tool state is unavailable (${output})"
             failed_tests=$((failed_tests + 1))
@@ -1543,7 +1543,7 @@ PY
         output="$(run_validation_spi -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'for path in .github/spi-validation .turbo/spi-validation .cargo/spi-validation .gitignore package-lock.json poetry.lock Cargo.lock pnpm-lock.yaml yarn.lock; do if { printf bad > "$path"; } 2>/dev/null; then printf "WRITE_ALLOWED:%s" "$path"; exit 1; fi; done; printf INFRA_RO' 2>&1 || true)"
         if [[ "${output}" == *INFRA_RO* && "${output}" != *WRITE_ALLOWED:* ]] && [[ ! -e "${test_project}/.github/spi-validation" ]] &&
             [[ "$(<"${test_project}/Cargo.lock")" == 'lock' ]]; then
-            validation_pass 'Test C.4 PASS: scoder-compatible critical infrastructure is read-only by default'
+            validation_pass 'Test C.4 PASS: devbox-compatible critical infrastructure is read-only by default'
         else
             validation_fail "Test C.4 FAIL: critical infrastructure protection failed (${output})"
             failed_tests=$((failed_tests + 1))
@@ -1746,7 +1746,7 @@ PY
         # shellcheck disable=SC2016 # EDITOR/VISUAL expand inside the sandboxed shell.
         output="$(run_spi_terminal_fixture -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'test "$EDITOR" = "$HOME/.config/nvim/scripts/opencode-editor" && test "$VISUAL" = "$EDITOR" && test -x "$EDITOR" && if { printf bad > "$EDITOR"; } 2>/dev/null; then exit 1; fi; printf NVIM_EDITOR_OK' 2>&1 || true)"
         if [[ "${output}" == *NVIM_EDITOR_OK* ]] && [[ "$(head -n 1 "${terminal_nvim_editor}")" == '#!/usr/bin/env bash' ]]; then
-            validation_pass 'Test H.3b PASS: scoder-compatible Neovim EDITOR/VISUAL bridge is read-only'
+            validation_pass 'Test H.3b PASS: devbox-compatible Neovim EDITOR/VISUAL bridge is read-only'
         else
             validation_fail "Test H.3b FAIL: Neovim editor bridge failed (${output})"
             failed_tests=$((failed_tests + 1))
@@ -1814,16 +1814,16 @@ PY
             failed_tests=$((failed_tests + 1))
         fi
 
-        output="$(run_validation_spi -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'git --scoder-git-version' 2>&1 || true)"
-        if [[ "${output}" == scoder-git* ]]; then
-            validation_pass 'Test M.1 PASS: /usr/bin/git is shadowed by scoder-git'
+        output="$(run_validation_spi -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'git --devbox-git-version' 2>&1 || true)"
+        if [[ "${output}" == devbox-git* ]]; then
+            validation_pass 'Test M.1 PASS: /usr/bin/git is shadowed by devbox-git'
         else
             validation_fail "Test M.1 FAIL: /usr/bin/git is not shadowed (${output})"
             failed_tests=$((failed_tests + 1))
         fi
 
         output="$(run_validation_spi -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'git push 2>&1' 2>&1 || true)"
-        if [[ "${output}" == *'fatal: scoder blocked git push'* ]]; then
+        if [[ "${output}" == *'fatal: devbox blocked git push'* ]]; then
             validation_pass 'Test M.2 PASS: git push is denied by policy wrapper'
         else
             validation_fail "Test M.2 FAIL: git push was not denied (${output})"
@@ -2268,8 +2268,8 @@ if ! is_discovery_cache_current "${SPI_CACHE_BWRAP_PATH}" "${SPI_CACHE_BWRAP_VER
     SPI_CACHE_BWRAP_NAMESPACE_SUPPORT=""
     SPI_CACHE_REAL_GIT_HOST=""
     SPI_CACHE_REAL_GIT_REALPATH=""
-    SPI_CACHE_SCODER_GIT_HOST=""
-    SPI_CACHE_SCODER_GIT_REALPATH=""
+    SPI_CACHE_DEVBOX_GIT_HOST=""
+    SPI_CACHE_DEVBOX_GIT_REALPATH=""
 fi
 if is_discovery_cache_current "${SPI_CACHE_BWRAP_PATH}" "${SPI_CACHE_BWRAP_VERSION}" &&
     [[ -n "${SPI_CACHE_BWRAP_DISABLE_USERNS_SUPPORTED:-}" ]]; then
@@ -2493,7 +2493,7 @@ if [[ -n "${PROJECT_ALIAS_DIR}" ]]; then
     add_prepared_bind_once "${PROJECT_BIND_FLAG}" "${PROJECT_SOURCE_DIR}" "${PROJECT_ALIAS_DIR}"
 fi
 
-# Match scoder's effective target-root policy: Git metadata stays writable by
+# Match devbox's effective target-root policy: Git metadata stays writable by
 # default, while critical build/repository infrastructure is protected unless
 # --allow-infra is explicit.
 PROTECTED_INFRA_DIRS=(
@@ -2561,7 +2561,7 @@ fi
 BWRAP_CMD+=(--ro-bind /etc /etc)
 BWRAP_CMD+=(
     --ro-bind "${REAL_GIT_HOST}" /spi/real-git
-    --ro-bind "${SCODER_GIT_HOST}" /usr/bin/git
+    --ro-bind "${DEVBOX_GIT_HOST}" /usr/bin/git
 )
 
 if [[ "${RESTRICT_DEV}" -eq 1 ]]; then
@@ -2624,7 +2624,7 @@ BWRAP_CMD+=(
     --setenv VISUAL "${SANDBOX_EDITOR}"
     --setenv SHELL "${SHELL:-/bin/bash}"
     --setenv GIT_OPTIONAL_LOCKS 0
-    --setenv SCODER_REAL_GIT /spi/real-git
+    --setenv DEVBOX_REAL_GIT /spi/real-git
     --setenv TMPDIR "${SPI_TMPDIR}"
     --setenv PNPM_HOME "${SANDBOX_PNPM_HOME}"
     --setenv PLAYWRIGHT_BROWSERS_PATH "${SANDBOX_PLAYWRIGHT_BROWSERS_CACHE}"

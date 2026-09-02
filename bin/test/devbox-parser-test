@@ -28,7 +28,7 @@ readonly CAPTURE="${TEST_ROOT}/bwrap.args"
 readonly PI_BIN="${TEST_BIN}/pi"
 readonly OPENCODE_BIN="${TEST_BIN}/opencode"
 readonly DEVBOX_SYMLINK="${TEST_BIN}/devbox"
-readonly FAKE_GIT_WRAPPER="${TEST_BIN}/scoder-git"
+readonly FAKE_GIT_WRAPPER="${TEST_BIN}/devbox-git"
 readonly RUNTIME_DIR="${TEST_ROOT}/runtime"
 readonly WAYLAND_SOCKET="${RUNTIME_DIR}/wayland-9"
 readonly X11_SOCKET="/tmp/.X11-unix/X9"
@@ -176,7 +176,7 @@ run_devbox_process() {
         TMUX="${TMUX_SOCKET},777,0" TMUX_PANE=%7 \
         AWS_PROFILE=fixture AWS_REGION=us-east-1 \
         AWS_SHARED_CREDENTIALS_FILE="${DEVBOX_TEST_AWS_CREDENTIALS_FILE:-${AWS_CUSTOM_CREDENTIALS}}" \
-        SCODER_GIT="${FAKE_GIT_WRAPPER}" \
+        DEVBOX_GIT="${FAKE_GIT_WRAPPER}" \
         DEVBOX_FORCE_PROBE=1 DEVBOX_TEST_CAPTURE="${CAPTURE}" \
         "${devbox_entry}" "$@"
 }

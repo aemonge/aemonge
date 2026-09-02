@@ -1434,8 +1434,7 @@ discover_git_wrapper() {
     local requested_devbox_git_real
     local requested_real_git_real
 
-    # SCODER_GIT remains a compatibility override while callers migrate.
-    requested_devbox_git="${DEVBOX_GIT:-${SCODER_GIT:-${SCRIPT_DIR}/devbox-git}}"
+    requested_devbox_git="${DEVBOX_GIT:-${SCRIPT_DIR}/devbox-git}"
     requested_real_git="$(command -v git 2>/dev/null || true)"
 
     if [[ ! -x "${requested_devbox_git}" ]]; then
@@ -2390,7 +2389,7 @@ DEVBOX_PACKAGE
         "${script_dir}/test/devbox-pty-test" \
         "${script_dir}/test/devbox-cache-test" \
         "${script_dir}/test/devbox-git-identity-test" \
-        "${script_dir}/test/scoder-git-test" \
+        "${script_dir}/test/devbox-git-policy-test" \
         "${script_dir}/test/devbox-parser-test" \
         "${script_dir}/test/devbox-opencode-integrity-test" \
         "${script_dir}/test/devbox-opencode-preflight-test"; do
@@ -3092,7 +3091,7 @@ if [[ -n "${PROJECT_ALIAS_DIR}" ]]; then
     fi
 fi
 
-# Match scoder's effective target-root policy: Git metadata stays writable by
+# Match devbox's effective target-root policy: Git metadata stays writable by
 # default, while critical build/repository infrastructure is protected unless
 # --allow-infra is explicit.
 PROTECTED_INFRA_DIRS=(
@@ -3267,7 +3266,6 @@ BWRAP_CMD+=(
     --setenv DEVBOX_GIT_PROGRAM_NAME devbox-git
     --setenv DEVBOX_RUNTIME_NAME devbox
     --setenv DEVBOX_REAL_GIT /devbox/real-git
-    --setenv SCODER_REAL_GIT /devbox/real-git
     --setenv TMPDIR "${DEVBOX_TMPDIR}"
     --setenv PNPM_HOME "${SANDBOX_PNPM_HOME}"
     --setenv PLAYWRIGHT_BROWSERS_PATH "${SANDBOX_PLAYWRIGHT_BROWSERS_CACHE}"

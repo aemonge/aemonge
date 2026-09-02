@@ -484,7 +484,7 @@ PY
         # shellcheck disable=SC2016 # $HOME expands inside the sandbox.
         output="$(run_validation_devbox -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'for d in "$HOME/.cache/uv" "$HOME/.local/share/pnpm" "$HOME/.local/share/cargo" "$HOME/.local/share/go" "$HOME/.bun"; do if ! test -w "$d"; then printf "NOT_WRITABLE:%s" "$d"; exit 1; fi; done; printf HOST_TOOL_STATE_OK' 2>&1 || true)"
         if [[ "${output}" == 'HOST_TOOL_STATE_OK' ]]; then
-            validation_pass 'Test D.1b PASS: scoder-parity host tool state is writable'
+            validation_pass 'Test D.1b PASS: devbox-parity host tool state is writable'
         else
             validation_fail "Test D.1b FAIL: host tool state is unavailable (${output})"
             failed_tests=$((failed_tests + 1))
@@ -546,7 +546,7 @@ PY
         output="$(run_validation_devbox -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'for path in .github/devbox-validation .turbo/devbox-validation .cargo/devbox-validation .gitignore package-lock.json poetry.lock Cargo.lock pnpm-lock.yaml yarn.lock; do if { printf bad > "$path"; } 2>/dev/null; then printf "WRITE_ALLOWED:%s" "$path"; exit 1; fi; done; printf INFRA_RO' 2>&1 || true)"
         if [[ "${output}" == *INFRA_RO* && "${output}" != *WRITE_ALLOWED:* ]] && [[ ! -e "${test_project}/.github/devbox-validation" ]] &&
             [[ "$(<"${test_project}/Cargo.lock")" == 'lock' ]]; then
-            validation_pass 'Test C.4 PASS: scoder-compatible critical infrastructure is read-only by default'
+            validation_pass 'Test C.4 PASS: devbox-compatible critical infrastructure is read-only by default'
         else
             validation_fail "Test C.4 FAIL: critical infrastructure protection failed (${output})"
             failed_tests=$((failed_tests + 1))
@@ -838,7 +838,7 @@ PY
         # shellcheck disable=SC2016 # EDITOR/VISUAL expand inside the sandboxed shell.
         output="$(run_devbox_terminal_fixture -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'test "$EDITOR" = "$HOME/.config/nvim/scripts/opencode-editor" && test "$VISUAL" = "$EDITOR" && test -x "$EDITOR" && if { printf bad > "$EDITOR"; } 2>/dev/null; then exit 1; fi; printf NVIM_EDITOR_OK' 2>&1 || true)"
         if [[ "${output}" == *NVIM_EDITOR_OK* ]] && [[ "$(head -n 1 "${terminal_nvim_editor}")" == '#!/usr/bin/env bash' ]]; then
-            validation_pass 'Test H.3b PASS: scoder-compatible Neovim EDITOR/VISUAL bridge is read-only'
+            validation_pass 'Test H.3b PASS: devbox-compatible Neovim EDITOR/VISUAL bridge is read-only'
         else
             validation_fail "Test H.3b FAIL: Neovim editor bridge failed (${output})"
             failed_tests=$((failed_tests + 1))
