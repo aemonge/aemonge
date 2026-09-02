@@ -72,6 +72,7 @@ mkdir -p -- \
     "${TEST_HOME}/.opencode" "${TEST_HOME}/.agents" "${TEST_HOME}/.bun" \
     "${TEST_HOME}/.aws/sso/cache" "${TEST_HOME}/.aws/cli/cache" \
     "${RUNTIME_DIR}" /tmp/.X11-unix
+chmod 0700 -- "${RUNTIME_DIR}"
 
 printf '{}\n' >"${TEST_HOME}/.pi/agent/settings.json"
 printf '#!/usr/bin/env bash\n' >"${TEST_HOME}/.pi/agent/scripts/helper"
@@ -309,7 +310,22 @@ assert_tail() {
     printf 'PASS: %s\n' "${description}"
 }
 
+get_setenv_value() {
+    local name="$1"
+    local value=""
+    local index
+
+    for ((index = 0; index < ${#BWRAP_ARGS[@]} - 2; index++)); do
+        if [[ "${BWRAP_ARGS[index]}" == --setenv && "${BWRAP_ARGS[index + 1]}" == "${name}" ]]; then
+            value="${BWRAP_ARGS[index + 2]}"
+        fi
+    done
+    [[ -n "${value}" ]] || return 1
+    printf '%s\n' "${value}"
+}
+
 run_devbox pi hello -- "${TEST_PROJECT}" -q
+FIRST_SHARED_RUNTIME="$(get_setenv_value XDG_RUNTIME_DIR)"
 assert_tail 'command and arguments before -- execute inside the box' "${PI_BIN}" hello
 assert_sequence_contains 'agent context is mounted separately and read-only' --ro-bind "${DEVBOX_ROOT}/devbox-agent-context.md" /devbox/agent-context.md
 assert_sequence_contains 'Devbox activity is explicit' --setenv DEVBOX_ACTIVE 1
@@ -326,6 +342,28 @@ printf 'PASS: local trust mode is 0700\n'
 
 run_devbox pi before --- after -- "${TEST_PROJECT}" -q
 assert_tail '--- passes a literal -- to the child command' "${PI_BIN}" before -- after
+DEVBOX_SHARED_RUNTIME="$(get_setenv_value XDG_RUNTIME_DIR)"
+DEVBOX_EFFECTIVE_TMPDIR="$(get_setenv_value TMPDIR)"
+[[ ! -e "${FIRST_SHARED_RUNTIME}" ]] || {
+    printf 'FAIL: runtime from the completed prior Devbox process was not pruned\n' >&2
+    exit 1
+}
+printf 'PASS: stale editor runtime is pruned after its exact creating process exits\n'
+[[ "${DEVBOX_SHARED_RUNTIME}" == "${RUNTIME_DIR}"/devbox/run.*.*.* ]] || {
+    printf 'FAIL: shared editor runtime is outside the owner runtime (%s)\n' "${DEVBOX_SHARED_RUNTIME}" >&2
+    exit 1
+}
+[[ "${DEVBOX_EFFECTIVE_TMPDIR}" == "${DEVBOX_SHARED_RUNTIME}" ]] || {
+    printf 'FAIL: TMPDIR and XDG_RUNTIME_DIR do not share one editor handoff path\n' >&2
+    exit 1
+}
+printf 'PASS: TMPDIR and XDG_RUNTIME_DIR share one owner-only editor runtime\n'
+[[ "$(stat -c %a -- "${DEVBOX_SHARED_RUNTIME}")" == 700 ]] || {
+    printf 'FAIL: shared editor runtime is not mode 0700\n' >&2
+    exit 1
+}
+printf 'PASS: shared editor runtime is mode 0700\n'
+assert_sequence_contains 'editor runtime is exact-bound at the same host and sandbox path' --bind "${DEVBOX_SHARED_RUNTIME}" "${DEVBOX_SHARED_RUNTIME}"
 assert_sequence_contains 'target is mounted read-write by default' --bind "${TEST_PROJECT}" "${TEST_PROJECT}"
 assert_sequence_contains 'critical .github infrastructure is read-only' --ro-bind "${TEST_PROJECT}/.github" "${TEST_PROJECT}/.github"
 assert_sequence_contains 'critical Cargo.lock is read-only' --ro-bind "${TEST_PROJECT}/Cargo.lock" "${TEST_PROJECT}/Cargo.lock"
@@ -383,7 +421,7 @@ assert_sequence_contains 'AWS CLI cache is writable by default' --bind "${TEST_H
 assert_sequence_contains 'AWS profile environment is inherited by default' --setenv AWS_PROFILE fixture
 assert_sequence_contains 'custom AWS credential files are exact-mounted read-only' --ro-bind "${AWS_CUSTOM_CREDENTIALS}" "${AWS_CUSTOM_CREDENTIALS}"
 assert_sequence_contains 'custom AWS credential path is preserved' --setenv AWS_SHARED_CREDENTIALS_FILE "${AWS_CUSTOM_CREDENTIALS}"
-assert_sequence_contains 'Wayland clipboard uses an exact socket bind' --bind "${WAYLAND_SOCKET}" "${WAYLAND_SOCKET}"
+assert_sequence_contains 'Wayland clipboard uses an exact socket bind inside the editor runtime' --bind "${WAYLAND_SOCKET}" "${DEVBOX_SHARED_RUNTIME}/wayland-9"
 assert_sequence_contains 'Wayland display environment is restored' --setenv WAYLAND_DISPLAY wayland-9
 assert_sequence_contains 'X11 clipboard uses an exact socket bind' --bind "${X11_SOCKET}" "${X11_SOCKET}"
 assert_sequence_contains 'DISPLAY is restored for X11 clipboard' --setenv DISPLAY :9

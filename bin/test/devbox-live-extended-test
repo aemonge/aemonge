@@ -41,6 +41,7 @@ mkdir -p -- \
     "${TEST_HOME}/.local/bin" "${TEST_PROJECT}/.git" "${TEST_PROJECT}/.venv/bin" \
     "${TEST_PROJECT}/src/lib" "${RUNTIME_DIR}" /tmp/.X11-unix \
     "${WORKSPACE_MEMBER}/src"
+chmod 0700 -- "${RUNTIME_DIR}"
 printf '{}\n' >"${TEST_HOME}/.pi/agent/settings.json"
 printf '{}\n' >"${LINKED_CONFIG_TARGET}"
 printf '# linked agent\n' >"${LINKED_AGENT_TARGET}"

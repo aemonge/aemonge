@@ -95,7 +95,7 @@ Environment:
   DEVBOX_TERMINAL_SOCKETS    1/0 default for Neovim/tmux socket forwarding
   DEVBOX_HOST_TOOLS         1/0 default for host development tools
   PI_CODING_AGENT_DIR       Optional Pi state root override
-  TMPDIR                    Private /tmp/devbox-<pid> path inside the box
+  TMPDIR                    Owner-only per-run temp path; host-shared only for active Neovim handoff
 USAGE_EOF
 }
 
@@ -659,7 +659,7 @@ bind_pi_writable_state() {
     local resource_path
     local trust_source="${PI_AGENT_STATE_SOURCE_ROOT}/trust.json"
     local trust_destination="${SANDBOX_PI_AGENT_ASSEMBLY_DIR}/trust.json"
-    local state_mirror="${DEVBOX_TMPDIR}/pi-agent-state"
+    local state_mirror="${DEVBOX_INTERNAL_TMPDIR}/pi-agent-state"
 
     for resource_path in "${PI_AGENT_STATE_SUBDIRS[@]}"; do
         add_pi_prepared_bind_once --bind \
@@ -1415,6 +1415,115 @@ bind_zsh_startup_files() {
     done
 }
 
+process_start_time() {
+    local pid="$1"
+    awk '{ print $22 }' "/proc/${pid}/stat" 2>/dev/null || true
+}
+
+prune_stale_editor_runtimes() {
+    local runtime_base="$1"
+    local candidate
+    local name
+    local pid
+    local started
+    local current_started
+    local remainder
+    local had_nullglob=0
+    local -a candidates=()
+
+    shopt -q nullglob && had_nullglob=1
+    shopt -s nullglob
+    candidates=("${runtime_base}"/run.*.*.*)
+    ((had_nullglob)) || shopt -u nullglob
+    for candidate in "${candidates[@]}"; do
+        [[ -d "${candidate}" && ! -L "${candidate}" ]] || continue
+        [[ "$(stat -c %u -- "${candidate}" 2>/dev/null || true)" == "$(id -u)" ]] || continue
+        name="$(basename -- "${candidate}")"
+        remainder="${name#run.}"
+        pid="${remainder%%.*}"
+        remainder="${remainder#*.}"
+        started="${remainder%%.*}"
+        [[ "${pid}" =~ ^[0-9]+$ && "${started}" =~ ^[0-9]+$ ]] || continue
+        current_started="$(process_start_time "${pid}")"
+        [[ -n "${current_started}" && "${current_started}" == "${started}" ]] && continue
+        rm -rf -- "${candidate}"
+    done
+}
+
+prepare_nvim_editor_runtime() {
+    local host_runtime="${XDG_RUNTIME_DIR:-}"
+    local runtime_parent
+    local process_started
+    local uid
+
+    [[ "${ALLOW_NVIM_REMOTE}" -eq 1 && "${ALLOW_TERMINAL_SOCKETS}" -eq 1 ]] || return 0
+    [[ -n "${NVIM:-}" && "${NVIM}" == /* && -S "${NVIM}" ]] || return 0
+
+    uid="$(id -u)"
+    if [[ "${host_runtime}" == /* && -d "${host_runtime}" && ! -L "${host_runtime}" && -w "${host_runtime}" ]] &&
+        [[ "$(stat -c %u -- "${host_runtime}" 2>/dev/null || true)" == "${uid}" ]] &&
+        [[ "$(stat -c %a -- "${host_runtime}" 2>/dev/null || true)" == 700 ]]; then
+        runtime_parent="${host_runtime}"
+    else
+        runtime_parent="/tmp/devbox-editor-runtime-${uid}"
+        if [[ -L "${runtime_parent}" || ( -e "${runtime_parent}" && ! -d "${runtime_parent}" ) ]]; then
+            error "unsafe fallback editor runtime path: ${runtime_parent}"
+            exit 1
+        fi
+        if [[ ! -d "${runtime_parent}" ]]; then
+            (umask 077 && mkdir -- "${runtime_parent}") || {
+                error "failed to create editor runtime base: ${runtime_parent}"
+                exit 1
+            }
+        fi
+        if [[ "$(stat -c %u -- "${runtime_parent}" 2>/dev/null || true)" != "${uid}" ]]; then
+            error "editor runtime base is not owned by the current user: ${runtime_parent}"
+            exit 1
+        fi
+        chmod 0700 -- "${runtime_parent}"
+    fi
+
+    DEVBOX_EDITOR_RUNTIME_BASE="${runtime_parent}/devbox"
+    if [[ -L "${DEVBOX_EDITOR_RUNTIME_BASE}" || ( -e "${DEVBOX_EDITOR_RUNTIME_BASE}" && ! -d "${DEVBOX_EDITOR_RUNTIME_BASE}" ) ]]; then
+        error "unsafe Devbox editor runtime path: ${DEVBOX_EDITOR_RUNTIME_BASE}"
+        exit 1
+    fi
+    if [[ ! -d "${DEVBOX_EDITOR_RUNTIME_BASE}" ]]; then
+        (umask 077 && mkdir -- "${DEVBOX_EDITOR_RUNTIME_BASE}") || {
+            error "failed to create Devbox editor runtime: ${DEVBOX_EDITOR_RUNTIME_BASE}"
+            exit 1
+        }
+    fi
+    if [[ "$(stat -c %u -- "${DEVBOX_EDITOR_RUNTIME_BASE}" 2>/dev/null || true)" != "${uid}" ]]; then
+        error "Devbox editor runtime is not owned by the current user: ${DEVBOX_EDITOR_RUNTIME_BASE}"
+        exit 1
+    fi
+    chmod 0700 -- "${DEVBOX_EDITOR_RUNTIME_BASE}"
+    prune_stale_editor_runtimes "${DEVBOX_EDITOR_RUNTIME_BASE}"
+
+    process_started="$(process_start_time "$$")"
+    [[ "${process_started}" =~ ^[0-9]+$ ]] || {
+        error "could not identify the Devbox process lifetime for editor runtime cleanup"
+        exit 1
+    }
+    DEVBOX_TMPDIR="$(mktemp -d "${DEVBOX_EDITOR_RUNTIME_BASE}/run.$$.${process_started}.XXXXXXXX")" || {
+        error "failed to create per-run Neovim editor runtime"
+        exit 1
+    }
+    chmod 0700 -- "${DEVBOX_TMPDIR}"
+    DEVBOX_EDITOR_RUNTIME_SHARED=1
+
+    if is_path_within /tmp "${DEVBOX_EDITOR_RUNTIME_BASE}"; then
+        add_extra_dir_once "${runtime_parent}"
+        add_extra_dir_once "${DEVBOX_EDITOR_RUNTIME_BASE}"
+    else
+        add_parent_dirs_once "${DEVBOX_EDITOR_RUNTIME_BASE}"
+    fi
+    add_extra_bind_once --bind "${DEVBOX_TMPDIR}" "${DEVBOX_TMPDIR}"
+    add_sandbox_env_once XDG_RUNTIME_DIR "${DEVBOX_TMPDIR}"
+    info "Neovim integration: exact-sharing owner-only editor runtime ${DEVBOX_TMPDIR}"
+}
+
 bind_terminal_socket_path() {
     local env_name="$1"
     local host_p="$2"
@@ -1753,6 +1862,7 @@ bind_clipboard_integration() {
     local runtime_dir="${XDG_RUNTIME_DIR:-}"
     local wayland_display="${WAYLAND_DISPLAY:-}"
     local wayland_socket=""
+    local sandbox_wayland_socket=""
     local display_value="${DISPLAY:-}"
     local display_number=""
     local x11_socket=""
@@ -1768,7 +1878,11 @@ bind_clipboard_integration() {
             wayland_socket="${runtime_dir}/${wayland_display}"
         fi
         if [[ -S "${wayland_socket}" ]]; then
-            bind_runtime_path_precreated "${wayland_socket}" "${wayland_socket}"
+            sandbox_wayland_socket="${wayland_socket}"
+            if [[ "${DEVBOX_EDITOR_RUNTIME_SHARED}" -eq 1 && "${wayland_display}" != /* ]]; then
+                sandbox_wayland_socket="${DEVBOX_TMPDIR}/${wayland_display}"
+            fi
+            bind_runtime_path_precreated "${wayland_socket}" "${sandbox_wayland_socket}"
             add_sandbox_env_once XDG_RUNTIME_DIR "${runtime_dir}"
             add_sandbox_env_once WAYLAND_DISPLAY "${wayland_display}"
             info "Clipboard integration: exact Wayland socket forwarded"
@@ -2255,6 +2369,9 @@ DEVBOX_CACHE_BWRAP_PATH=""
 DEVBOX_CACHE_BWRAP_VERSION=""
 BWRAP_DISABLE_USERNS_SUPPORTED=0
 ACTIVE_PTY_PATH=""
+DEVBOX_EDITOR_RUNTIME_SHARED=0
+DEVBOX_EDITOR_RUNTIME_BASE=""
+DEVBOX_INTERNAL_TMPDIR=""
 
 trace_startup "defaults initialized"
 PI_AGENT_DIR_FROM_ENV=0
@@ -2713,7 +2830,9 @@ SANDBOX_PLAYWRIGHT_BROWSERS_CACHE="${SANDBOX_CACHE_DIR}/ms-playwright"
 SANDBOX_EDITOR="v_quickedit_hover"
 NVIM_EDITOR_SCRIPT="${HOST_HOME}/.config/nvim/scripts/opencode-editor"
 SANDBOX_NVIM_EDITOR="${SANDBOX_HOME}/.config/nvim/scripts/opencode-editor"
+DEVBOX_INTERNAL_TMPDIR="/tmp/devbox-internal-$$"
 DEVBOX_TMPDIR="/tmp/devbox-$$"
+prepare_nvim_editor_runtime
 
 PI_AGENT_DIR_REAL="$(realpath -m "${PI_AGENT_DIR}")"
 map_host_path_to_sandbox "${PI_AGENT_DIR}"
@@ -2975,8 +3094,16 @@ fi
 BWRAP_CMD+=(
     --proc /proc
     --tmpfs /tmp
-    --dir "${DEVBOX_TMPDIR}"
-    --chmod 0700 "${DEVBOX_TMPDIR}"
+    --dir "${DEVBOX_INTERNAL_TMPDIR}"
+    --chmod 0700 "${DEVBOX_INTERNAL_TMPDIR}"
+)
+if [[ "${DEVBOX_EDITOR_RUNTIME_SHARED}" -eq 0 ]]; then
+    BWRAP_CMD+=(
+        --dir "${DEVBOX_TMPDIR}"
+        --chmod 0700 "${DEVBOX_TMPDIR}"
+    )
+fi
+BWRAP_CMD+=(
     --tmpfs /home
     --dir "${SANDBOX_HOME}"
     --dir "${SANDBOX_LOCAL_DIR}"

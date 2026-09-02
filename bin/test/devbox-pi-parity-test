@@ -34,6 +34,7 @@ run_fixture_box() {
         HOME="${FIXTURE_HOME}" USER="${USER:-developer}" LOGNAME="${LOGNAME:-${USER:-developer}}" \
         XDG_CONFIG_HOME="${FIXTURE_HOME}/.config" XDG_DATA_HOME="${FIXTURE_HOME}/.local/share" \
         XDG_STATE_HOME="${FIXTURE_HOME}/.local/state" XDG_CACHE_HOME="${FIXTURE_HOME}/.cache" \
+        XDG_RUNTIME_DIR="${FIXTURE_RUNTIME}" \
         PI_CODING_AGENT_DIR="${FIXTURE_AGENT_LOGICAL}" \
         PATH="${PATH}" TERM="${TERM:-xterm-256color}" LANG="${LANG:-C.UTF-8}" \
         NVIM="${NVIM_SERVER_SOCKET}" \
@@ -48,9 +49,10 @@ FIXTURE_AGENT_LOGICAL="${FIXTURE_HOME}/.pi/agent"
 FIXTURE_AGENT_REAL="${FIXTURE_REAL_PROJECT}/.pi/agent"
 FIXTURE_PROJECT="${TEST_ROOT}/ordinary-project"
 FIXTURE_STATE_ROOT="${FIXTURE_HOME}/.local/state/devbox/pi-agent"
-readonly FIXTURE_HOME FIXTURE_REAL_PROJECT FIXTURE_AGENT_LOGICAL FIXTURE_AGENT_REAL FIXTURE_PROJECT FIXTURE_STATE_ROOT
+FIXTURE_RUNTIME="${TEST_ROOT}/runtime"
+readonly FIXTURE_HOME FIXTURE_REAL_PROJECT FIXTURE_AGENT_LOGICAL FIXTURE_AGENT_REAL FIXTURE_PROJECT FIXTURE_STATE_ROOT FIXTURE_RUNTIME
 mkdir -p -- \
-    "${FIXTURE_HOME}/.pi" "${FIXTURE_AGENT_REAL}" "${FIXTURE_PROJECT}" \
+    "${FIXTURE_HOME}/.pi" "${FIXTURE_AGENT_REAL}" "${FIXTURE_PROJECT}" "${FIXTURE_RUNTIME}" \
     "${FIXTURE_AGENT_REAL}/packages/example/node_modules" \
     "${FIXTURE_AGENT_REAL}/npm/node_modules/example" \
     "${FIXTURE_AGENT_REAL}/extensions" "${FIXTURE_AGENT_REAL}/skills/example" \
@@ -59,9 +61,11 @@ mkdir -p -- \
     "${FIXTURE_AGENT_REAL}/sessions" \
     "${FIXTURE_HOME}/.config/nvim/scripts" \
     "${FIXTURE_HOME}/.local/share/nvim/lazy/lazy.nvim"
+chmod 0700 -- "${FIXTURE_RUNTIME}"
 ln -s "${FIXTURE_AGENT_REAL}" "${FIXTURE_AGENT_LOGICAL}"
 printf '# fixture root context\n' >"${FIXTURE_AGENT_REAL}/AGENTS.md"
-printf '{"quietStartup":true}\n' >"${FIXTURE_AGENT_REAL}/settings.json"
+printf '{"quietStartup":true,"externalEditor":"%s"}\n' \
+    "${FIXTURE_HOME}/.config/nvim/scripts/pi-editor" >"${FIXTURE_AGENT_REAL}/settings.json"
 printf '{}\n' >"${FIXTURE_AGENT_REAL}/keybindings.json"
 printf '{}\n' >"${FIXTURE_AGENT_REAL}/fancy-footer.json"
 printf '{}\n' >"${FIXTURE_AGENT_REAL}/galactica-status.json"
@@ -88,6 +92,55 @@ opened="$(nvim --server "$NVIM" --remote-expr "$expr" </dev/null)"
 [[ "$opened" == "$file" ]]
 EDITOR
 chmod +x "${FIXTURE_HOME}/.config/nvim/scripts/opencode-editor"
+cat >"${FIXTURE_HOME}/.config/nvim/scripts/pi-editor" <<'EDITOR'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+(($# == 1)) || exit 2
+runtime_dir=${XDG_RUNTIME_DIR:?}
+request_dir=$(mktemp -d "${runtime_dir}/pi-editor.XXXXXXXX")
+request="${request_dir}/request"
+done_fifo="${request_dir}/done"
+bridge_fifo="${request_dir}/bridge"
+bridge_writer=""
+cleanup() {
+    if [[ -n "${bridge_writer}" ]]; then
+        kill "${bridge_writer}" 2>/dev/null || true
+        wait "${bridge_writer}" 2>/dev/null || true
+    fi
+    exec 3>&- 3<&- || true
+    rm -rf -- "${request_dir}"
+}
+trap cleanup EXIT
+mkfifo -m 600 -- "${done_fifo}" "${bridge_fifo}"
+printf '%s\n%s\n%s\n' "$1" "${done_fifo}" "${bridge_fifo}" >"${request}"
+exec 3<>"${done_fifo}"
+(printf '%s\n' "${PI_NVIM_BRIDGE:?}" >"${bridge_fifo}") &
+bridge_writer=$!
+vim_quote() {
+    local value=${1//\'/\'\'}
+    printf "'%s'" "${value}"
+}
+expr="luaeval(\"(function(request_path) local request=vim.fn.readfile(request_path); vim.fn.delete(request_path); local prompt=request[1]; local done=request[2]; local bridge=request[3]; local descriptor=vim.json.decode(vim.fn.readfile(bridge)[1]); assert(vim.fn.filereadable(prompt)==1, 'prompt invisible'); assert(vim.fn.getftype(descriptor.path)=='socket', 'bridge invisible'); vim.fn.writefile({'edited in host'}, prompt); vim.fn.writefile({'done'}, done); return true end)(_A)\", $(vim_quote "${request}"))"
+[[ "$(nvim --server "${NVIM:?}" --remote-expr "${expr}" </dev/null)" == v:true ]]
+wait "${bridge_writer}"
+bridge_writer=""
+IFS= read -r -u 3 _
+EDITOR
+chmod +x "${FIXTURE_HOME}/.config/nvim/scripts/pi-editor"
+cat >"${FIXTURE_HOME}/.config/nvim/scripts/make-socket.py" <<'PY'
+import os
+import socket
+import sys
+path = sys.argv[1]
+try:
+    os.unlink(path)
+except FileNotFoundError:
+    pass
+sock = socket.socket(socket.AF_UNIX)
+sock.bind(path)
+sock.close()
+PY
 printf '{"name":"example"}\n' >"${FIXTURE_AGENT_REAL}/packages/example/package.json"
 printf 'package dependency\n' >"${FIXTURE_AGENT_REAL}/packages/example/node_modules/dependency.txt"
 printf 'npm package\n' >"${FIXTURE_AGENT_REAL}/npm/node_modules/example/index.js"
@@ -147,6 +200,12 @@ if ! output="$(run_fixture_box "${FIXTURE_PROJECT}" "${nvim_open_command}" 2>&1)
 fi
 [[ "${output}" == NVIM_OPENED && "$(<"${FIXTURE_HOME}/.local/state/opencode/editor-handoff.marker")" == handoff ]] || fail "Neovim file opening or shared handoff failed (${output})"
 pass 'devbox EDITOR opens a project file in the forwarded Neovim server through shared handoff state'
+pi_editor_command='prompt="$TMPDIR/prompt.md"; bridge="$TMPDIR/pi-nvim-bridge.sock"; printf original > "$prompt"; python3 "$HOME/.config/nvim/scripts/make-socket.py" "$bridge"; descriptor=$(printf '\''{"path":"%s"}'\'' "$bridge"); PI_NVIM_BRIDGE="$descriptor" "$HOME/.config/nvim/scripts/pi-editor" "$prompt"; test "$(cat "$prompt")" = "edited in host"; rm -f -- "$bridge"; printf PI_EDITOR_OK'
+if ! output="$(run_fixture_box "${FIXTURE_PROJECT}" "${pi_editor_command}" 2>&1)"; then
+    fail "Pi prompt editor namespace round-trip failed (${output})"
+fi
+[[ "${output}" == PI_EDITOR_OK ]] || fail "Pi prompt editor did not round-trip prompt and bridge paths (${output})"
+pass 'Pi prompt, FIFO request, and bridge socket round-trip through the exact shared editor runtime'
 nvim --server "${NVIM_SERVER_SOCKET}" --remote-expr 'execute("qa!")' >/dev/null 2>&1 || true
 wait "${NVIM_SERVER_PID}" 2>/dev/null || true
 NVIM_SERVER_PID=""
