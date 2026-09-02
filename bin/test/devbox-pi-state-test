@@ -172,10 +172,11 @@ LEAF_AGENT="${LEAF_HOME}/.pi/agent"
 LEAF_PROJECT="${TEST_ROOT}/leaf-managed-project"
 LEAF_PORTABLE="${TEST_ROOT}/leaf-managed-portable"
 LEAF_STATE="${LEAF_HOME}/.local/state/devbox/pi-agent"
-mkdir -p -- "${LEAF_AGENT}" "${LEAF_PROJECT}" "${LEAF_PORTABLE}/git/github.com/example/cache" \
+mkdir -p -- "${LEAF_AGENT}/sessions" "${LEAF_PROJECT}" "${LEAF_PORTABLE}/git/github.com/example/cache" \
     "${LEAF_PORTABLE}/tasks" "${LEAF_PORTABLE}/trust" \
     "${LEAF_STATE}/git/github.com/example/cache"
 printf '{}\n' >"${LEAF_AGENT}/settings.json"
+printf 'host-session\n' >"${LEAF_AGENT}/sessions/sentinel"
 printf 'portable-cache\n' >"${LEAF_PORTABLE}/git/github.com/example/cache/sentinel"
 printf 'portable-version\n' >"${LEAF_PORTABLE}/git/github.com/example/cache/existing"
 printf 'machine-version\n' >"${LEAF_STATE}/git/github.com/example/cache/existing"
@@ -188,6 +189,12 @@ run_box "${LEAF_HOME}" "${LEAF_PROJECT}"
 load_capture
 assert_sequence 'a real agent root with managed state leaves switches to machine-local state' \
     --bind "${LEAF_STATE}/tasks" "${LEAF_AGENT}/tasks"
+assert_sequence 'a regular local session directory remains shared with host Pi' \
+    --bind "${LEAF_AGENT}/sessions" "${LEAF_AGENT}/sessions"
+assert_sequence_absent 'managed state does not redirect regular host sessions' \
+    --bind "${LEAF_STATE}/sessions" "${LEAF_AGENT}/sessions"
+[[ "$(<"${LEAF_AGENT}/sessions/sentinel")" == host-session ]] || fail 'host Pi session changed during mount planning'
+[[ ! -e "${LEAF_STATE}/sessions" ]] || fail 'unused isolated session state was created'
 [[ "$(<"${LEAF_STATE}/git/github.com/example/cache/sentinel")" == portable-cache ]] || fail 'portable Git cache was not seeded machine-locally'
 [[ "$(<"${LEAF_STATE}/git/github.com/example/cache/existing")" == machine-version ]] || fail 'existing machine-local Git cache entry was overwritten'
 [[ -f "${LEAF_STATE}/.portable-git-seeded-v1" ]] || fail 'portable Git cache seed marker was not recorded'

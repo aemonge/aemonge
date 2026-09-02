@@ -580,12 +580,14 @@ seed_independent_pi_git_cache() {
 
 prepare_pi_writable_state() {
     local resource_path
+    local resource_source
     local default_agent_dir="${HOST_HOME}/.pi/agent"
     local portable_state_symlink=0
 
     # A real default agent root normally owns its state directly. If any
     # non-trust writable leaf is already symlink-managed, treat the collection
-    # as portable and isolate all state rather than following those links.
+    # as portable and isolate managed state rather than following those links.
+    # A regular local sessions leaf is selected separately below for host parity.
     if [[ "${PI_AGENT_DIR}" == "${default_agent_dir}" && "${PI_AGENT_DIR_REAL}" == "${default_agent_dir}" ]]; then
         for resource_path in "${PI_AGENT_STATE_SUBDIRS[@]}"; do
             [[ "${resource_path}" == trust ]] && continue
@@ -606,6 +608,20 @@ prepare_pi_writable_state() {
         PI_AGENT_STATE_IS_INDEPENDENT=1
     fi
 
+    PI_AGENT_SESSION_SOURCE_DIR="${PI_AGENT_STATE_SOURCE_ROOT}/sessions"
+    # A real default agent root already gives host Pi a machine-local session
+    # directory. Keep that one leaf shared even when other managed state leaves
+    # require an independent Devbox state root, so Pi session IDs work on both
+    # sides of the sandbox boundary. Whole-agent and session-leaf symlinks stay
+    # isolated and are never followed writable.
+    if [[ "${PI_AGENT_STATE_IS_INDEPENDENT}" -eq 1 && \
+        "${PI_AGENT_DIR}" == "${default_agent_dir}" && \
+        "${PI_AGENT_DIR_REAL}" == "${default_agent_dir}" && \
+        ! -L "${PI_AGENT_DIR}/sessions" ]]; then
+        validate_pi_state_directory_leaf "${PI_AGENT_DIR}" sessions || exit 1
+        PI_AGENT_SESSION_SOURCE_DIR="${PI_AGENT_DIR}/sessions"
+    fi
+
     # Validate every writable source before creating or changing state. Leaves
     # under a portable whole-agent root are hidden by the assembled tmpfs and
     # are not sources in normal mode, so they may remain untouched. A writable
@@ -622,6 +638,10 @@ prepare_pi_writable_state() {
         validate_independent_pi_state_root || exit 1
         if [[ -e "${PI_AGENT_STATE_SOURCE_ROOT}" ]]; then
             for resource_path in "${PI_AGENT_STATE_SUBDIRS[@]}"; do
+                if [[ "${resource_path}" == sessions && \
+                    "${PI_AGENT_SESSION_SOURCE_DIR}" != "${PI_AGENT_STATE_SOURCE_ROOT}/sessions" ]]; then
+                    continue
+                fi
                 validate_pi_state_directory_leaf "${PI_AGENT_STATE_SOURCE_ROOT}" "${resource_path}" || exit 1
             done
             validate_pi_trust_file "${PI_AGENT_STATE_SOURCE_ROOT}" || exit 1
@@ -641,7 +661,11 @@ prepare_pi_writable_state() {
         umask 077
         mkdir -p -- "${PI_AGENT_STATE_SOURCE_ROOT}"
         for resource_path in "${PI_AGENT_STATE_SUBDIRS[@]}"; do
-            mkdir -p -- "${PI_AGENT_STATE_SOURCE_ROOT}/${resource_path}"
+            resource_source="${PI_AGENT_STATE_SOURCE_ROOT}/${resource_path}"
+            if [[ "${resource_path}" == sessions ]]; then
+                resource_source="${PI_AGENT_SESSION_SOURCE_DIR}"
+            fi
+            mkdir -p -- "${resource_source}"
         done
     )
     seed_independent_pi_git_cache || exit 1
@@ -657,13 +681,18 @@ prepare_pi_writable_state() {
 
 bind_pi_writable_state() {
     local resource_path
+    local resource_source
     local trust_source="${PI_AGENT_STATE_SOURCE_ROOT}/trust.json"
     local trust_destination="${SANDBOX_PI_AGENT_ASSEMBLY_DIR}/trust.json"
     local state_mirror="${DEVBOX_INTERNAL_TMPDIR}/pi-agent-state"
 
     for resource_path in "${PI_AGENT_STATE_SUBDIRS[@]}"; do
+        resource_source="${PI_AGENT_STATE_SOURCE_ROOT}/${resource_path}"
+        if [[ "${resource_path}" == sessions ]]; then
+            resource_source="${PI_AGENT_SESSION_SOURCE_DIR}"
+        fi
         add_pi_prepared_bind_once --bind \
-            "${PI_AGENT_STATE_SOURCE_ROOT}/${resource_path}" \
+            "${resource_source}" \
             "${SANDBOX_PI_AGENT_ASSEMBLY_DIR}/${resource_path}"
     done
 
@@ -2412,6 +2441,7 @@ SAFE_BINDS=()
 SANDBOX_ENVS=()
 PI_AGENT_STATE_SOURCE_ROOT=""
 PI_AGENT_STATE_IS_INDEPENDENT=0
+PI_AGENT_SESSION_SOURCE_DIR=""
 declare -A EXTRA_DIR_SET=()
 declare -A PARENT_DIR_EXPANSION_SET=()
 declare -A EXTRA_BIND_DEST_SET=()
