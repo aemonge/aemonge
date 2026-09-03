@@ -1934,6 +1934,72 @@ bind_opencode_state() {
     fi
 }
 
+prepare_ssh_client_integration() {
+    local host_ssh_dir="${HOST_HOME}/.ssh"
+    local config_path
+    local config_name
+    local config_fd
+    local known_hosts_path
+    local known_hosts_name
+    local known_hosts_fd
+    local public_key
+    local had_nullglob=0
+    local -a system_config_files=()
+
+    if [[ -d /etc/ssh/ssh_config.d ]]; then
+        shopt -q nullglob && had_nullglob=1
+        shopt -s nullglob
+        system_config_files=(/etc/ssh/ssh_config.d/*.conf)
+        ((had_nullglob)) || shopt -u nullglob
+        for config_path in "${system_config_files[@]}"; do
+            [[ -f "${config_path}" && -r "${config_path}" ]] || continue
+            config_name="$(basename -- "${config_path}")"
+            exec {config_fd}<"${config_path}"
+            SSH_CLIENT_FDS+=("${config_fd}")
+            SSH_SYSTEM_CONFIG_ARGS+=(
+                --perms 0644
+                --file "${config_fd}" "/etc/ssh/ssh_config.d/${config_name}"
+            )
+        done
+        if [[ "${#SSH_SYSTEM_CONFIG_ARGS[@]}" -gt 0 ]]; then
+            SSH_SYSTEM_CONFIG_ARGS=(
+                --perms 0755
+                --tmpfs /etc/ssh/ssh_config.d
+                "${SSH_SYSTEM_CONFIG_ARGS[@]}"
+                --remount-ro /etc/ssh/ssh_config.d
+            )
+        fi
+    fi
+
+    [[ "${LOCKED_MODE}" -eq 0 && -d "${host_ssh_dir}" ]] || return 0
+    add_extra_dir_once "${SANDBOX_HOME}/.ssh"
+
+    config_path="${host_ssh_dir}/config"
+    if [[ -f "${config_path}" && -r "${config_path}" ]]; then
+        exec {config_fd}<"${config_path}"
+        SSH_CLIENT_FDS+=("${config_fd}")
+        SSH_USER_CONFIG_ARGS+=(
+            --perms 0600
+            --ro-bind-data "${config_fd}" "${SANDBOX_HOME}/.ssh/config"
+        )
+    fi
+
+    for known_hosts_name in known_hosts known_hosts2; do
+        known_hosts_path="${host_ssh_dir}/${known_hosts_name}"
+        [[ -f "${known_hosts_path}" && -r "${known_hosts_path}" ]] || continue
+        exec {known_hosts_fd}<"${known_hosts_path}"
+        SSH_CLIENT_FDS+=("${known_hosts_fd}")
+        SSH_USER_CONFIG_ARGS+=(
+            --perms 0600
+            --file "${known_hosts_fd}" "${SANDBOX_HOME}/.ssh/${known_hosts_name}"
+        )
+    done
+
+    while IFS= read -r -d '' public_key; do
+        add_prepared_bind_once --ro-bind "${public_key}" "${public_key}"
+    done < <(find "${host_ssh_dir}" -type f -name '*.pub' -print0)
+}
+
 bind_clipboard_integration() {
     local runtime_dir="${XDG_RUNTIME_DIR:-}"
     local wayland_display="${WAYLAND_DISPLAY:-}"
@@ -2507,6 +2573,9 @@ EXTRA_DIRS=()
 PI_BINDS=()
 SAFE_BINDS=()
 SANDBOX_ENVS=()
+SSH_SYSTEM_CONFIG_ARGS=()
+SSH_USER_CONFIG_ARGS=()
+SSH_CLIENT_FDS=()
 PI_AGENT_STATE_SOURCE_ROOT=""
 PI_AGENT_STATE_IS_INDEPENDENT=0
 PI_AGENT_SESSION_SOURCE_DIR=""
@@ -3038,6 +3107,7 @@ opt_ro_bind_path /var/run/nscd /var/run/nscd
 bind_terminal_integration
 bind_pi_socket_envs
 bind_clipboard_integration
+prepare_ssh_client_integration
 
 if [[ "${ALLOW_GUI}" -eq 1 ]]; then
     info "Allowing GUI/session access"
@@ -3159,6 +3229,7 @@ fi
 [[ -d /lib64 ]] && BWRAP_CMD+=(--ro-bind /lib64 /lib64)
 [[ -d /sys ]] && BWRAP_CMD+=(--ro-bind /sys /sys)
 BWRAP_CMD+=(--ro-bind /etc /etc)
+BWRAP_CMD+=("${SSH_SYSTEM_CONFIG_ARGS[@]}")
 BWRAP_CMD+=(
     --ro-bind "${REAL_GIT_HOST}" /devbox/real-git
     --ro-bind "${DEVBOX_GIT_HOST}" /usr/bin/git
@@ -3214,6 +3285,7 @@ BWRAP_CMD+=(
     --dir "${SANDBOX_CACHE_DIR}"
 )
 BWRAP_CMD+=("${EXTRA_DIRS[@]}")
+BWRAP_CMD+=("${SSH_USER_CONFIG_ARGS[@]}")
 if [[ "${SANDBOX_PROJECT_ROOT}" != "/" ]]; then
     BWRAP_CMD+=(--dir "$(dirname "${SANDBOX_PROJECT_ROOT}")")
     BWRAP_CMD+=(--dir "${SANDBOX_PROJECT_ROOT}")

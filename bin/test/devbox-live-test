@@ -7,7 +7,12 @@ readonly DEVBOX="${SCRIPT_DIR}/../devbox"
 export DEVBOX_TEST_TARGET="${DEVBOX}"
 PI_BIN=pi
 LIVE_VALIDATION_ROOT=""
+LIVE_VALIDATION_SSH_AGENT_PID=""
 cleanup_live_validation() {
+    if [[ -n "${LIVE_VALIDATION_SSH_AGENT_PID}" ]]; then
+        kill "${LIVE_VALIDATION_SSH_AGENT_PID}" 2>/dev/null || true
+        wait "${LIVE_VALIDATION_SSH_AGENT_PID}" 2>/dev/null || true
+    fi
     if [[ -n "${LIVE_VALIDATION_ROOT}" && -d "${LIVE_VALIDATION_ROOT}" ]]; then
         rm -rf -- "${LIVE_VALIDATION_ROOT}"
     fi
@@ -41,6 +46,8 @@ run_validation() {
     local terminal_nvim_listen_socket
     local terminal_nvim_editor
     local terminal_tmux_socket
+    local ssh_agent_socket
+    local ssh_test_key
     local target_file_path
     local sibling_file_path
     local plugin_home
@@ -82,6 +89,8 @@ run_validation() {
     terminal_nvim_listen_socket="${terminal_runtime_dir}/nvim-listen.sock"
     terminal_nvim_editor="${test_home}/.config/nvim/scripts/opencode-editor"
     terminal_tmux_socket="${terminal_runtime_dir}/tmux/default"
+    ssh_agent_socket="${terminal_runtime_dir}/ssh-agent.sock"
+    ssh_test_key="${test_home}/.ssh/ssh-keys/personal/devbox-test"
     target_file_path="${test_project}/src/lib/target.txt"
     sibling_file_path="${test_project}/src/lib/sibling.txt"
     plugin_home="${validation_root}/plugin-home"
@@ -127,6 +136,7 @@ run_validation() {
         "${test_home}/.cache/pi" \
         "${test_home}/.agents/skills/example" \
         "${test_home}/.local/bin" \
+        "${test_home}/.ssh/ssh-keys/personal" \
         "${test_home}/.config/nvim/scripts" \
         "${terminal_xdg_config_home}" \
         "${terminal_zdotdir}" \
@@ -184,6 +194,18 @@ run_validation() {
     printf 'linked-private-data\n' >"${linked_resource_home}/.local/share/private-data/hidden.txt"
     printf 'skill-resource\n' >"${test_home}/.agents/skills/example/SKILL.md"
     printf 'project-skill-resource\n' >"${test_project}/.agents/skills/example/SKILL.md"
+    cat >"${test_home}/.ssh/config" <<'SSH_CONFIG'
+Host devbox-ssh-fixture
+    HostName localhost
+    Port 2355
+    IdentityFile ~/.ssh/ssh-keys/personal/devbox-test
+SSH_CONFIG
+    printf 'fixture-host-key\n' >"${test_home}/.ssh/known_hosts"
+    printf 'private-key-must-stay-hidden\n' >"${ssh_test_key}"
+    printf 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFixturePublicKeyOnly devbox-test\n' >"${ssh_test_key}.pub"
+    chmod 0700 "${test_home}/.ssh" "${test_home}/.ssh/ssh-keys" "${test_home}/.ssh/ssh-keys/personal"
+    chmod 0600 "${test_home}/.ssh/config" "${test_home}/.ssh/known_hosts" "${ssh_test_key}"
+    chmod 0644 "${ssh_test_key}.pub"
     printf "format = \"\$directory\"\n" >"${test_home}/.config/starship.toml"
     printf "format = \"\$character\"\n" >"${terminal_xdg_config_home}/starship.toml"
     printf 'validation-zshenv\n' >"${test_home}/.zshenv"
@@ -798,23 +820,76 @@ PY
             failed_tests=$((failed_tests + 1))
         fi
 
-        if [[ -S "${terminal_nvim_socket}" ]]; then
-            # shellcheck disable=SC2016 # $SSH_AUTH_SOCK must expand inside the sandboxed shell.
-            output="$(DEVBOX_VALIDATION_SSH_AUTH_SOCK="${terminal_nvim_socket}" run_validation_devbox -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'test -S "$SSH_AUTH_SOCK" && printf SSH_AGENT_OK' 2>&1 || true)"
-            if [[ "${output}" == 'SSH_AGENT_OK' ]]; then
-                validation_pass 'Test H.1a PASS: SSH_AUTH_SOCK is forwarded by default'
+        # shellcheck disable=SC2016 # SSH client paths and settings expand inside the sandboxed shell.
+        output="$(run_validation_devbox -- "${test_project}" -q --backend bwrap --no-ssh-agent -x /bin/bash --noprofile --norc -lc '
+            ssh -G localhost >/dev/null 2>&1 || exit 1
+            test "$(ssh -F "$HOME/.ssh/config" -G devbox-ssh-fixture 2>/dev/null | awk '\''$1 == "port" { print $2; exit }'\'')" = 2355 || exit 1
+            test -r "$HOME/.ssh/config" || exit 1
+            if { printf bad >>"$HOME/.ssh/config"; } 2>/dev/null; then exit 1; fi
+            grep -qx fixture-host-key "$HOME/.ssh/known_hosts" || exit 1
+            printf sandbox-only >>"$HOME/.ssh/known_hosts" || exit 1
+            test -r "$HOME/.ssh/ssh-keys/personal/devbox-test.pub" || exit 1
+            if { printf bad >>"$HOME/.ssh/ssh-keys/personal/devbox-test.pub"; } 2>/dev/null; then exit 1; fi
+            test ! -e "$HOME/.ssh/ssh-keys/personal/devbox-test" || exit 1
+            printf SSH_CLIENT_STATE_OK
+        ' 2>&1 || true)"
+        if [[ "${output}" == 'SSH_CLIENT_STATE_OK' ]] && [[ "$(<"${test_home}/.ssh/known_hosts")" == 'fixture-host-key' ]]; then
+            validation_pass 'Test H.1a PASS: SSH client config, ephemeral host trust, and public keys are safely exposed'
+        else
+            validation_fail "Test H.1a FAIL: SSH client integration failed (${output})"
+            failed_tests=$((failed_tests + 1))
+        fi
+
+        if command -v ssh-agent >/dev/null 2>&1 && command -v ssh-add >/dev/null 2>&1 && command -v ssh-keygen >/dev/null 2>&1; then
+            rm -f -- "${ssh_test_key}" "${ssh_test_key}.pub" "${ssh_agent_socket}"
+            ssh-keygen -q -t ed25519 -N '' -C devbox-validation -f "${ssh_test_key}"
+            ssh-agent -D -a "${ssh_agent_socket}" >/dev/null 2>&1 &
+            LIVE_VALIDATION_SSH_AGENT_PID=$!
+            for _ in {1..50}; do
+                [[ -S "${ssh_agent_socket}" ]] && break
+                sleep 0.02
+            done
+            SSH_AUTH_SOCK="${ssh_agent_socket}" ssh-add "${ssh_test_key}" >/dev/null 2>&1
+            # shellcheck disable=SC2016 # $SSH_AUTH_SOCK and $HOME expand inside the sandboxed shell.
+            output="$(DEVBOX_VALIDATION_SSH_AUTH_SOCK="${ssh_agent_socket}" run_validation_devbox -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc '
+                test -S "$SSH_AUTH_SOCK" || exit 1
+                ssh-add -T "$HOME/.ssh/ssh-keys/personal/devbox-test.pub" || exit 1
+                printf SSH_AGENT_SIGNING_OK
+            ' 2>&1 || true)"
+            if [[ "${output}" == 'SSH_AGENT_SIGNING_OK' ]]; then
+                validation_pass 'Test H.1b PASS: forwarded SSH agent performs a signing operation'
             else
-                validation_fail "Test H.1a FAIL: SSH_AUTH_SOCK forwarding failed (${output})"
+                validation_fail "Test H.1b FAIL: SSH agent signing failed (${output})"
                 failed_tests=$((failed_tests + 1))
             fi
             # shellcheck disable=SC2016 # $SSH_AUTH_SOCK expands inside the sandboxed shell.
-            output="$(DEVBOX_VALIDATION_SSH_AUTH_SOCK="${terminal_nvim_socket}" run_validation_devbox -- "${test_project}" -q --backend bwrap --no-ssh-agent -x /bin/bash --noprofile --norc -lc 'test -z "${SSH_AUTH_SOCK:-}" && printf NO_SSH_AGENT' 2>&1 || true)"
+            output="$(DEVBOX_VALIDATION_SSH_AUTH_SOCK="${ssh_agent_socket}" run_validation_devbox -- "${test_project}" -q --backend bwrap --no-ssh-agent -x /bin/bash --noprofile --norc -lc 'test -z "${SSH_AUTH_SOCK:-}" && printf NO_SSH_AGENT' 2>&1 || true)"
             if [[ "${output}" == 'NO_SSH_AGENT' ]]; then
-                validation_pass 'Test H.1b PASS: --no-ssh-agent disables forwarding'
+                validation_pass 'Test H.1c PASS: --no-ssh-agent disables forwarding'
             else
-                validation_fail "Test H.1b FAIL: --no-ssh-agent did not disable forwarding (${output})"
+                validation_fail "Test H.1c FAIL: --no-ssh-agent did not disable forwarding (${output})"
                 failed_tests=$((failed_tests + 1))
             fi
+            kill "${LIVE_VALIDATION_SSH_AGENT_PID}" 2>/dev/null || true
+            wait "${LIVE_VALIDATION_SSH_AGENT_PID}" 2>/dev/null || true
+            LIVE_VALIDATION_SSH_AGENT_PID=""
+        else
+            printf 'ℹ️  Test H.1b/H.1c SKIP: OpenSSH agent test tools unavailable\n'
+        fi
+
+        # shellcheck disable=SC2016 # SSH paths and environment expand inside the sandboxed shell.
+        output="$(run_validation_devbox -- "${test_project}" -q --backend bwrap --locked -x /bin/bash --noprofile --norc -lc '
+            test -z "${SSH_AUTH_SOCK:-}" || exit 1
+            test ! -e "$HOME/.ssh/config" || exit 1
+            test ! -e "$HOME/.ssh/known_hosts" || exit 1
+            test ! -e "$HOME/.ssh/ssh-keys/personal/devbox-test.pub" || exit 1
+            printf LOCKED_SSH_HIDDEN
+        ' 2>&1 || true)"
+        if [[ "${output}" == 'LOCKED_SSH_HIDDEN' ]]; then
+            validation_pass 'Test H.1d PASS: --locked hides user SSH metadata and agent access'
+        else
+            validation_fail "Test H.1d FAIL: --locked exposed SSH integration (${output})"
+            failed_tests=$((failed_tests + 1))
         fi
 
         # shellcheck disable=SC2016 # Environment variables must expand inside the sandboxed shell.
