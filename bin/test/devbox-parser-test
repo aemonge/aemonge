@@ -24,6 +24,14 @@ readonly TEST_DEP_APP="${TEST_DEP_REPO}/app"
 readonly TEST_DEP_LIB="${TEST_DEP_REPO}/lib"
 readonly TEST_ESCAPE_APP="${TEST_DEP_REPO}/escape-app"
 readonly TEST_OUTSIDE_DEP="${TEST_ROOT}/outside-dependency"
+readonly ABSOLUTE_PI_PACKAGE="${TEST_HOME}/projects/absolute-pi-package"
+readonly ABSOLUTE_PI_EXTENSION="${TEST_HOME}/projects/absolute-pi-extension.ts"
+readonly ABSOLUTE_PI_PACKAGE_ALIAS="${TEST_HOME}/projects/absolute-pi-package-alias"
+readonly IN_TREE_ABSOLUTE_PI_PACKAGE="${TEST_HOME}/.pi/agent/packages/in-tree-absolute"
+readonly OUTSIDE_HOME_PI_PACKAGE="${TEST_ROOT}/outside-home-pi-package"
+readonly OVERLAP_PI_PACKAGE="${TEST_HOME}/overlap-pi-package"
+readonly OVERLAP_PI_PROJECT="${OVERLAP_PI_PACKAGE}/project"
+readonly PROJECT_LOCAL_PI_PACKAGE="${TEST_PROJECT}/absolute-pi-package"
 readonly CAPTURE="${TEST_ROOT}/bwrap.args"
 readonly PI_BIN="${TEST_BIN}/pi"
 readonly OPENCODE_BIN="${TEST_BIN}/opencode"
@@ -57,7 +65,9 @@ mkdir -p -- \
     "${TEST_WORKSPACE_MEMBER}/src" \
     "${TEST_DEP_REPO}/.git" "${TEST_DEP_APP}/src" "${TEST_DEP_LIB}/src" \
     "${TEST_ESCAPE_APP}/src" "${TEST_OUTSIDE_DEP}/src" \
-    "${TEST_HOME}/.pi/agent" "${TEST_HOME}/.pi/agent/scripts" \
+    "${ABSOLUTE_PI_PACKAGE}/extensions" "${OUTSIDE_HOME_PI_PACKAGE}" \
+    "${OVERLAP_PI_PROJECT}" "${PROJECT_LOCAL_PI_PACKAGE}" \
+    "${TEST_HOME}/.pi/agent/scripts" "${IN_TREE_ABSOLUTE_PI_PACKAGE}" \
     "${LINKED_PI_AGENTS}" "${LINKED_PI_TASKFLOWS}" \
     "${TEST_HOME}/.config/opencode/agents" "${TEST_HOME}/.config/openspec" \
     "${TEST_HOME}/.config/nvim/scripts" \
@@ -74,7 +84,16 @@ mkdir -p -- \
     "${RUNTIME_DIR}" /tmp/.X11-unix
 chmod 0700 -- "${RUNTIME_DIR}"
 
-printf '{}\n' >"${TEST_HOME}/.pi/agent/settings.json"
+printf '{"packages":["%s",{"source":"%s","extensions":["+absolute.ts"]},"npm:ignored","./packages/relative"]}\n' \
+    "${ABSOLUTE_PI_PACKAGE}" "${ABSOLUTE_PI_EXTENSION}" \
+    >"${TEST_HOME}/.pi/agent/settings.json"
+printf 'export default function () {}\n' >"${ABSOLUTE_PI_PACKAGE}/extensions/intercept.ts"
+printf 'export default function () {}\n' >"${ABSOLUTE_PI_EXTENSION}"
+printf '{"pi":{"extensions":[]}}\n' >"${OUTSIDE_HOME_PI_PACKAGE}/package.json"
+printf '{"pi":{"extensions":[]}}\n' >"${OVERLAP_PI_PACKAGE}/package.json"
+printf '{"pi":{"extensions":[]}}\n' >"${PROJECT_LOCAL_PI_PACKAGE}/package.json"
+printf '{"pi":{"extensions":[]}}\n' >"${IN_TREE_ABSOLUTE_PI_PACKAGE}/package.json"
+ln -s "${ABSOLUTE_PI_PACKAGE}" "${ABSOLUTE_PI_PACKAGE_ALIAS}"
 printf '#!/usr/bin/env bash\n' >"${TEST_HOME}/.pi/agent/scripts/helper"
 printf '{"existing":{"type":"api_key","key":"fixture"}}\n' >"${TEST_HOME}/.pi/agent/auth.json"
 printf 'vim.g.devbox_fixture_config = true\n' >"${LINKED_NVIM_INIT}"
@@ -343,8 +362,77 @@ assert_sequence_contains 'Git policy identity is explicit' --setenv DEVBOX_GIT_P
 assert_sequence_contains 'private real Git uses the Devbox contract' --setenv DEVBOX_REAL_GIT /devbox/real-git
 assert_sequence_contains 'local trust state is mounted writable' --bind "${TEST_HOME}/.pi/agent/trust" "${TEST_HOME}/.pi/agent/trust"
 assert_sequence_contains 'Pi scripts are mounted read-only' --ro-bind "${TEST_HOME}/.pi/agent/scripts" "${TEST_HOME}/.pi/agent/scripts"
+assert_sequence_contains 'string-form absolute local Pi packages are exact-mounted read-only' --ro-bind "${ABSOLUTE_PI_PACKAGE}" "${ABSOLUTE_PI_PACKAGE}"
+assert_sequence_contains 'object-form absolute local Pi extensions are exact-mounted read-only' --ro-bind "${ABSOLUTE_PI_EXTENSION}" "${ABSOLUTE_PI_EXTENSION}"
+assert_sequence_absent 'absolute local Pi packages are never auto-mounted writable' --bind "${ABSOLUTE_PI_PACKAGE}" "${ABSOLUTE_PI_PACKAGE}"
 [[ "$(stat -c %a "${TEST_HOME}/.pi/agent/trust")" == 700 ]] || { printf 'FAIL: local trust mode is not 0700\n' >&2; exit 1; }
 printf 'PASS: local trust mode is 0700\n'
+
+printf '{"packages":["%s"]}\n' "${TEST_ROOT}/missing-absolute-pi-package" \
+    >"${TEST_HOME}/.pi/agent/settings.json"
+assert_devbox_failure \
+    'missing absolute local Pi packages fail before sandbox launch' \
+    'configured absolute local Pi package does not exist' \
+    pi -- "${TEST_PROJECT}" -q
+printf '{"packages":["%s"]}\n' "${OUTSIDE_HOME_PI_PACKAGE}" \
+    >"${TEST_HOME}/.pi/agent/settings.json"
+assert_devbox_failure \
+    'outside-home Pi packages require explicit authorization' \
+    'configured absolute local Pi package is outside the safe home scope' \
+    pi -- "${TEST_PROJECT}" -q
+run_devbox pi -- "${TEST_PROJECT}" -q --add "${OUTSIDE_HOME_PI_PACKAGE}"
+assert_sequence_contains \
+    'explicit --add authorizes an outside-home configured Pi package read-only' \
+    --ro-bind "${OUTSIDE_HOME_PI_PACKAGE}" "${OUTSIDE_HOME_PI_PACKAGE}"
+assert_no_conflicting_bind_destinations \
+    'explicitly authorized outside-home Pi package has one coherent mount'
+assert_devbox_failure \
+    'locked mode rejects explicitly writable configured Pi packages' \
+    'configured absolute local Pi package cannot be writable in locked mode' \
+    pi -- "${TEST_PROJECT}" -q --locked --add-rw "${OUTSIDE_HOME_PI_PACKAGE}"
+printf '{"packages":["%s"]}\n' "${OVERLAP_PI_PACKAGE}" \
+    >"${TEST_HOME}/.pi/agent/settings.json"
+assert_devbox_failure \
+    'Pi package ancestors cannot shadow the selected project' \
+    'configured absolute local Pi package contains the selected project' \
+    pi -- "${OVERLAP_PI_PROJECT}" -q
+printf '{"packages":["%s/../absolute-pi-package"]}\n' "${ABSOLUTE_PI_PACKAGE}" \
+    >"${TEST_HOME}/.pi/agent/settings.json"
+assert_devbox_failure \
+    'noncanonical absolute Pi package paths fail closed' \
+    'configured absolute local Pi package path is not canonical' \
+    pi -- "${TEST_PROJECT}" -q
+printf '{"packages":["%s"]}\n' "${ABSOLUTE_PI_PACKAGE_ALIAS}" \
+    >"${TEST_HOME}/.pi/agent/settings.json"
+assert_devbox_failure \
+    'symlinked absolute Pi package aliases cannot bypass overlap validation' \
+    'configured absolute local Pi package path must resolve canonically' \
+    pi -- "${TEST_PROJECT}" -q
+printf '{"pi":{"extensions":[]}}\n' >"${TEST_HOME}/.config/package.json"
+printf '{"packages":["%s"]}\n' "${TEST_HOME}/.config" \
+    >"${TEST_HOME}/.pi/agent/settings.json"
+assert_devbox_failure \
+    'Pi package ancestors cannot shadow protected runtime mounts' \
+    'configured absolute local Pi package contains a protected mount' \
+    pi -- "${TEST_PROJECT}" -q
+rm -f -- "${TEST_HOME}/.config/package.json"
+printf '{"pi":{"extensions":[]}}\n' >"${TEST_HOME}/.config/opencode/package.json"
+printf '{"packages":["%s"]}\n' "${TEST_HOME}/.config/opencode" \
+    >"${TEST_HOME}/.pi/agent/settings.json"
+assert_devbox_failure \
+    'internal writable mounts never count as explicit package authorization' \
+    'configured absolute local Pi package contains a protected mount' \
+    pi -- "${TEST_PROJECT}" -q
+rm -f -- "${TEST_HOME}/.config/opencode/package.json"
+printf '{"packages":["%s"]}\n' "${PROJECT_LOCAL_PI_PACKAGE}" \
+    >"${TEST_HOME}/.pi/agent/settings.json"
+run_devbox pi -- "${TEST_PROJECT}" -q
+assert_sequence_absent \
+    'packages already inside the selected project need no overriding mount' \
+    --ro-bind "${PROJECT_LOCAL_PI_PACKAGE}" "${PROJECT_LOCAL_PI_PACKAGE}"
+printf '{"packages":["%s",{"source":"%s"}]}\n' \
+    "${ABSOLUTE_PI_PACKAGE}" "${ABSOLUTE_PI_EXTENSION}" \
+    >"${TEST_HOME}/.pi/agent/settings.json"
 
 run_devbox pi before --- after -- "${TEST_PROJECT}" -q
 assert_tail '--- passes a literal -- to the child command' /devbox/bin/pi before -- after
@@ -447,6 +535,9 @@ assert_no_conflicting_bind_destinations 'symlinked project OpenSpec mount plan h
 
 run_devbox -- "${TEST_PROJECT}" -q
 assert_tail 'omitting a command starts a Zsh login shell' "${ZSH_BIN}" -l
+assert_sequence_contains \
+    'interactive Devbox shells retain configured absolute local Pi packages' \
+    --ro-bind "${ABSOLUTE_PI_PACKAGE}" "${ABSOLUTE_PI_PACKAGE}"
 
 run_devbox opencode run -- "${TEST_PROJECT}" -q
 assert_tail 'OpenCode executes through the same command-first interface' "${OPENCODE_BIN}" run
@@ -486,6 +577,19 @@ assert_sequence_absent '--allow-infra removes lockfile protection' --ro-bind "${
 run_devbox pi -- "${TEST_PROJECT}" -q --ro
 assert_sequence_contains '--ro mounts the complete target read-only' --ro-bind "${TEST_PROJECT}" "${TEST_PROJECT}"
 
+run_devbox pi -- "${TEST_PROJECT}" -q --allow-pi-config
+assert_sequence_contains '--allow-pi-config keeps external absolute Pi packages read-only' --ro-bind "${ABSOLUTE_PI_PACKAGE}" "${ABSOLUTE_PI_PACKAGE}"
+assert_sequence_absent '--allow-pi-config cannot make external absolute Pi packages writable' --bind "${ABSOLUTE_PI_PACKAGE}" "${ABSOLUTE_PI_PACKAGE}"
+printf '{"packages":["%s"]}\n' "${IN_TREE_ABSOLUTE_PI_PACKAGE}" \
+    >"${TEST_HOME}/.pi/agent/settings.json"
+run_devbox pi -- "${TEST_PROJECT}" -q --allow-pi-config
+assert_sequence_absent \
+    '--allow-pi-config does not re-overlay authorized in-tree package sources read-only' \
+    --ro-bind "${IN_TREE_ABSOLUTE_PI_PACKAGE}" "${IN_TREE_ABSOLUTE_PI_PACKAGE}"
+printf '{"packages":["%s",{"source":"%s"}]}\n' \
+    "${ABSOLUTE_PI_PACKAGE}" "${ABSOLUTE_PI_EXTENSION}" \
+    >"${TEST_HOME}/.pi/agent/settings.json"
+
 run_devbox pi -- "${TEST_PROJECT}" -q --locked
 assert_sequence_contains '--locked mounts the target read-only' --ro-bind "${TEST_PROJECT}" "${TEST_PROJECT}"
 assert_sequence_contains '--locked isolates networking' --unshare-net
@@ -505,6 +609,8 @@ assert_sequence_contains '--locked creates disposable Ramona state' --dir "${TES
 assert_sequence_contains '--locked keeps global Pi agents readable and read-only' --ro-bind "${LINKED_PI_AGENTS}" "${TEST_HOME}/.pi/agent/agents"
 assert_sequence_contains '--locked keeps saved Pi Taskflows readable and read-only' --ro-bind "${LINKED_PI_TASKFLOWS}" "${TEST_HOME}/.pi/agent/taskflows"
 assert_sequence_contains '--locked keeps user OpenSpec schemas readable and read-only' --ro-bind "${TEST_HOME}/.local/share/openspec/schemas" "${TEST_HOME}/.local/share/openspec/schemas"
+assert_sequence_contains '--locked keeps external absolute Pi packages read-only' --ro-bind "${ABSOLUTE_PI_PACKAGE}" "${ABSOLUTE_PI_PACKAGE}"
+assert_sequence_absent '--locked never mounts external absolute Pi packages writable' --bind "${ABSOLUTE_PI_PACKAGE}" "${ABSOLUTE_PI_PACKAGE}"
 assert_sequence_contains '--locked keeps /dev/fd compatibility' --symlink /proc/self/fd /dev/fd
 assert_sequence_contains '--locked keeps /dev/stdin compatibility' --symlink /proc/self/fd/0 /dev/stdin
 assert_sequence_contains '--locked keeps /dev/stdout compatibility' --symlink /proc/self/fd/1 /dev/stdout

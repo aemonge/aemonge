@@ -50,7 +50,8 @@ FIXTURE_AGENT_REAL="${FIXTURE_REAL_PROJECT}/.pi/agent"
 FIXTURE_PROJECT="${TEST_ROOT}/ordinary-project"
 FIXTURE_STATE_ROOT="${FIXTURE_HOME}/.local/state/devbox/pi-agent"
 FIXTURE_RUNTIME="${TEST_ROOT}/runtime"
-readonly FIXTURE_HOME FIXTURE_REAL_PROJECT FIXTURE_AGENT_LOGICAL FIXTURE_AGENT_REAL FIXTURE_PROJECT FIXTURE_STATE_ROOT FIXTURE_RUNTIME
+FIXTURE_ABSOLUTE_PACKAGE="${FIXTURE_HOME}/projects/absolute-pi-package"
+readonly FIXTURE_HOME FIXTURE_REAL_PROJECT FIXTURE_AGENT_LOGICAL FIXTURE_AGENT_REAL FIXTURE_PROJECT FIXTURE_STATE_ROOT FIXTURE_RUNTIME FIXTURE_ABSOLUTE_PACKAGE
 mkdir -p -- \
     "${FIXTURE_HOME}/.pi" "${FIXTURE_AGENT_REAL}" "${FIXTURE_PROJECT}" "${FIXTURE_RUNTIME}" \
     "${FIXTURE_AGENT_REAL}/packages/example/node_modules" \
@@ -59,13 +60,15 @@ mkdir -p -- \
     "${FIXTURE_AGENT_REAL}/prompts" "${FIXTURE_AGENT_REAL}/scripts" \
     "${FIXTURE_AGENT_REAL}/taskflows" "${FIXTURE_AGENT_REAL}/themes" \
     "${FIXTURE_AGENT_REAL}/sessions" \
+    "${FIXTURE_ABSOLUTE_PACKAGE}" \
     "${FIXTURE_HOME}/.config/nvim/scripts" \
     "${FIXTURE_HOME}/.local/share/nvim/lazy/lazy.nvim"
 chmod 0700 -- "${FIXTURE_RUNTIME}"
 ln -s "${FIXTURE_AGENT_REAL}" "${FIXTURE_AGENT_LOGICAL}"
 printf '# fixture root context\n' >"${FIXTURE_AGENT_REAL}/AGENTS.md"
-printf '{"quietStartup":true,"externalEditor":"%s"}\n' \
-    "${FIXTURE_HOME}/.config/nvim/scripts/pi-editor" >"${FIXTURE_AGENT_REAL}/settings.json"
+printf '{"quietStartup":true,"externalEditor":"%s","packages":["%s"]}\n' \
+    "${FIXTURE_HOME}/.config/nvim/scripts/pi-editor" "${FIXTURE_ABSOLUTE_PACKAGE}" \
+    >"${FIXTURE_AGENT_REAL}/settings.json"
 printf '{}\n' >"${FIXTURE_AGENT_REAL}/keybindings.json"
 printf '{}\n' >"${FIXTURE_AGENT_REAL}/fancy-footer.json"
 printf '{}\n' >"${FIXTURE_AGENT_REAL}/galactica-status.json"
@@ -143,6 +146,17 @@ sock.close()
 PY
 printf '{"name":"example"}\n' >"${FIXTURE_AGENT_REAL}/packages/example/package.json"
 printf 'package dependency\n' >"${FIXTURE_AGENT_REAL}/packages/example/node_modules/dependency.txt"
+printf '%s\n' '{"name":"absolute-fixture","pi":{"extensions":["./index.ts"]}}' \
+    >"${FIXTURE_ABSOLUTE_PACKAGE}/package.json"
+cat >"${FIXTURE_ABSOLUTE_PACKAGE}/index.ts" <<'ABSOLUTE_PACKAGE'
+export default function (pi: any) {
+  pi.registerFlag("absolute-local-package-loaded", {
+    description: "absolute local package loaded",
+    type: "boolean",
+    default: false,
+  });
+}
+ABSOLUTE_PACKAGE
 printf 'npm package\n' >"${FIXTURE_AGENT_REAL}/npm/node_modules/example/index.js"
 printf 'extension\n' >"${FIXTURE_AGENT_REAL}/extensions/example.ts"
 printf '# skill\n' >"${FIXTURE_AGENT_REAL}/skills/example/SKILL.md"
@@ -158,6 +172,21 @@ if ! output="$(run_fixture_box "${FIXTURE_PROJECT}" "${fixture_visibility}" 2>&1
 fi
 [[ "${output}" == FIXTURE_OK && "$(<"${FIXTURE_STATE_ROOT}/sessions/persistent")" == fixture-state && ! -e "${FIXTURE_AGENT_REAL}/sessions/persistent" && ! -e "${FIXTURE_AGENT_REAL}/scripts/blocked" ]] || fail "symlinked Pi directory closure failed (${output})"
 pass 'whole-directory Pi symlink preserves portable resources while isolating persistent state'
+
+if ! output="$(env -i \
+    HOME="${FIXTURE_HOME}" USER="${USER:-developer}" LOGNAME="${LOGNAME:-${USER:-developer}}" \
+    XDG_CONFIG_HOME="${FIXTURE_HOME}/.config" XDG_DATA_HOME="${FIXTURE_HOME}/.local/share" \
+    XDG_STATE_HOME="${FIXTURE_HOME}/.local/state" XDG_CACHE_HOME="${FIXTURE_HOME}/.cache" \
+    XDG_RUNTIME_DIR="${FIXTURE_RUNTIME}" PI_CODING_AGENT_DIR="${FIXTURE_AGENT_LOGICAL}" \
+    PATH="${PATH}" TERM="${TERM:-xterm-256color}" LANG="${LANG:-C.UTF-8}" \
+    DEVBOX_FORCE_PROBE=1 \
+    "${DEVBOX}" pi --help -- "${FIXTURE_PROJECT}" -q \
+        --no-host-tools --no-aws --no-clipboard --no-ssh-agent 2>&1)"; then
+    fail "absolute local Pi package load failed (${output})"
+fi
+[[ "${output}" == *--absolute-local-package-loaded* ]] || \
+    fail "absolute local Pi package extension was not loaded (${output})"
+pass 'direct Devbox Pi loads configured absolute local packages read-only'
 
 nvim_config_probe='nvim --headless '\''+lua assert(vim.g.devbox_fixture_config)'\'' +qa; test -r "$XDG_DATA_HOME/nvim/lazy/fixture-missing/fixture.txt"; test ! -w "$XDG_DATA_HOME/nvim/lazy/lazy.nvim/fixture.txt"; grep -q '\''"fixture"'\'' "$XDG_CONFIG_HOME/nvim/lazy-lock.json"; printf NVIM_CONFIG_OK'
 if ! output="$(run_fixture_box "${FIXTURE_PROJECT}" "${nvim_config_probe}" 2>&1)"; then
@@ -399,10 +428,26 @@ git --no-optional-locks diff --numstat HEAD
 [[ "${sandbox_git_probe}" == *$'1\t0\tfooter.txt'* ]] || fail 'Fancy Footer Git numstat probe did not report the fixture diff'
 pass 'Fancy Footer lock-free Git status and diff totals match host'
 
-host_hashes="$(for name in AGENTS.md settings.json keybindings.json fancy-footer.json galactica-status.json; do sha256sum "/home/aemonge/.pi/agent/${name}"; done | awk '{print $1}')"
-sandbox_hashes="$("${DEVBOX}" /bin/bash --noprofile --norc -lc 'for name in AGENTS.md settings.json keybindings.json fancy-footer.json galactica-status.json; do sha256sum "$PI_CODING_AGENT_DIR/$name"; done' -- /home/aemonge/.pi/agent -q --no-aws --no-clipboard --no-ssh-agent | awk '{print $1}')"
-[[ "${sandbox_hashes}" == "${host_hashes}" ]] || fail 'sandbox root Pi configuration hashes differ from host'
-pass 'sandbox root Pi context/configuration hashes match host'
+host_config_inventory="$(for name in AGENTS.md settings.json keybindings.json fancy-footer.json galactica-status.json; do
+    if [[ -f "/home/aemonge/.pi/agent/${name}" ]]; then
+        checksum="$(sha256sum "/home/aemonge/.pi/agent/${name}")"
+        printf 'file %s %s\n' "${name}" "${checksum%% *}"
+    else
+        printf 'absent %s\n' "${name}"
+    fi
+done)"
+sandbox_config_inventory="$("${DEVBOX}" /bin/bash --noprofile --norc -lc '
+for name in AGENTS.md settings.json keybindings.json fancy-footer.json galactica-status.json; do
+    if [[ -f "$PI_CODING_AGENT_DIR/$name" ]]; then
+        checksum="$(sha256sum "$PI_CODING_AGENT_DIR/$name")"
+        printf "file %s %s\\n" "$name" "${checksum%% *}"
+    else
+        printf "absent %s\\n" "$name"
+    fi
+done
+' -- /home/aemonge/.pi/agent -q --no-aws --no-clipboard --no-ssh-agent)"
+[[ "${sandbox_config_inventory}" == "${host_config_inventory}" ]] || fail 'sandbox root Pi configuration inventory differs from host'
+pass 'sandbox root Pi context/configuration presence and hashes match host'
 
 host_node_version="$(node --version)"
 host_pi_version="$(pi --version)"

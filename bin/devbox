@@ -446,6 +446,202 @@ bind_user_openspec_schemas() {
     add_prepared_bind_once --ro-bind "${host_schemas}" "${sandbox_schemas}"
 }
 
+is_pi_package_directory() {
+    local package_dir="$1"
+    local manifest_path="${package_dir}/package.json"
+
+    if [[ -d "${package_dir}/extensions" || -d "${package_dir}/skills" ||
+        -d "${package_dir}/prompts" || -d "${package_dir}/themes" ]]; then
+        return 0
+    fi
+    [[ -f "${manifest_path}" ]] || return 1
+
+    if command -v jq >/dev/null 2>&1; then
+        jq -e '
+            .pi
+            | type == "object"
+                and (has("extensions") or has("skills") or has("prompts") or has("themes"))
+        ' "${manifest_path}" >/dev/null 2>&1
+        return
+    fi
+    python3 - "${manifest_path}" <<'PY' >/dev/null 2>&1
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as manifest_file:
+    manifest = json.load(manifest_file)
+pi_manifest = manifest.get("pi")
+raise SystemExit(0 if isinstance(pi_manifest, dict) and any(
+    key in pi_manifest for key in ("extensions", "skills", "prompts", "themes")
+) else 1)
+PY
+}
+
+bind_pi_absolute_local_packages() {
+    local settings_path="${PI_AGENT_DIR}/settings.json"
+    local package_sources=""
+    local package_source
+    local resolved_package_source
+    local protected_destination
+    local existing_package_mount
+    local bind_index
+    local bind_flag
+
+    [[ -f "${settings_path}" ]] || return 0
+    if command -v jq >/dev/null 2>&1; then
+        if ! package_sources="$(
+            jq -r '
+                (.packages // []) as $packages
+                | if ($packages | type) != "array" then
+                    error("Pi settings packages must be an array")
+                  else
+                    $packages[]
+                  end
+                | if type == "string" then .
+                  elif type == "object" then (.source // empty)
+                  else empty
+                  end
+                | select(type == "string" and startswith("/"))
+                | if test("[\\r\\n]") then error("local package paths cannot contain newlines")
+                  else .
+                  end
+            ' "${settings_path}"
+        )"; then
+            error "could not parse safe absolute local Pi packages from: ${settings_path}"
+            exit 1
+        fi
+    elif command -v python3 >/dev/null 2>&1; then
+        if ! package_sources="$(python3 - "${settings_path}" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as settings_file:
+    settings = json.load(settings_file)
+packages = settings.get("packages") or []
+if not isinstance(packages, list):
+    raise ValueError("Pi settings packages must be an array")
+for entry in packages:
+    source = entry if isinstance(entry, str) else entry.get("source") if isinstance(entry, dict) else None
+    if isinstance(source, str) and source.startswith("/"):
+        if "\n" in source or "\r" in source:
+            raise ValueError("local package paths cannot contain newlines")
+        print(source)
+PY
+        )"; then
+            error "could not parse safe absolute local Pi packages from: ${settings_path}"
+            exit 1
+        fi
+    else
+        warning "cannot discover absolute local Pi packages without jq or python3; use --add for each package"
+        return 0
+    fi
+
+    while IFS= read -r package_source; do
+        [[ -n "${package_source}" ]] || continue
+        case "${package_source}" in
+        *//* | */./* | */. | */../* | */.. | */)
+            error "configured absolute local Pi package path is not canonical: ${package_source}"
+            exit 1
+            ;;
+        esac
+        if [[ ! -e "${package_source}" ]]; then
+            error "configured absolute local Pi package does not exist: ${package_source}"
+            exit 1
+        fi
+        if [[ ! -f "${package_source}" && ! -d "${package_source}" ]]; then
+            error "configured absolute local Pi package is not a file or directory: ${package_source}"
+            exit 1
+        fi
+
+        resolved_package_source="$(realpath -- "${package_source}")"
+        if [[ "${resolved_package_source}" != "${package_source}" ]]; then
+            error "configured absolute local Pi package path must resolve canonically: ${package_source}"
+            error "configure the resolved path or authorize the alias explicitly with --add"
+            exit 1
+        fi
+        existing_package_mount="${EXPLICIT_BIND_DEST_SET[${package_source}]:-}"
+        if [[ "${LOCKED_MODE}" -eq 1 && "${existing_package_mount}" == --bind ]]; then
+            error "configured absolute local Pi package cannot be writable in locked mode: ${package_source}"
+            exit 1
+        fi
+        if [[ -n "${existing_package_mount}" ]]; then
+            info "Pi integration: absolute local package already has an explicit mount (${package_source})"
+            continue
+        fi
+        if [[ "${ALLOW_PI_CONFIG}" -eq 1 ]] &&
+            is_path_within "${PI_AGENT_DIR_REAL}" "${resolved_package_source}"; then
+            info "Pi integration: absolute local package is already writable inside the authorized Pi configuration (${package_source})"
+            continue
+        fi
+        if is_path_within "${PROJECT_SOURCE_DIR}" "${resolved_package_source}"; then
+            info "Pi integration: absolute local package is already inside the selected project (${package_source})"
+            continue
+        fi
+        if ! is_path_within "${HOST_HOME}" "${resolved_package_source}" ||
+            [[ "${resolved_package_source}" == "${HOST_HOME}" ]]; then
+            error "configured absolute local Pi package is outside the safe home scope: ${package_source}"
+            error "authorize it explicitly with --add"
+            exit 1
+        fi
+        if [[ -f "${resolved_package_source}" ]]; then
+            case "${resolved_package_source}" in
+            *.ts | *.js) ;;
+            *)
+                error "configured absolute local Pi package file is not a TypeScript or JavaScript extension: ${package_source}"
+                exit 1
+                ;;
+            esac
+        elif ! is_pi_package_directory "${resolved_package_source}"; then
+            error "configured absolute local Pi package directory has no package manifest or conventional resources: ${package_source}"
+            exit 1
+        fi
+
+        if is_path_within "${resolved_package_source}" "${PROJECT_SOURCE_DIR}"; then
+            error "configured absolute local Pi package contains the selected project: ${package_source}"
+            error "select the package itself as the target or authorize it explicitly with --add"
+            exit 1
+        fi
+        for protected_destination in "${!EXTRA_BIND_DEST_SET[@]}"; do
+            if is_path_within "${resolved_package_source}" "${protected_destination}"; then
+                error "configured absolute local Pi package contains a protected mount: ${package_source}"
+                error "authorize the exact package explicitly with --add"
+                exit 1
+            fi
+        done
+        for ((bind_index = 0; bind_index < ${#EXTRA_BINDS[@]}; bind_index++)); do
+            bind_flag="${EXTRA_BINDS[bind_index]}"
+            case "${bind_flag}" in
+            --bind | --ro-bind)
+                protected_destination="${EXTRA_BINDS[bind_index + 2]:-}"
+                if is_path_within "${resolved_package_source}" "${protected_destination}"; then
+                    error "configured absolute local Pi package contains a protected mount: ${package_source}"
+                    error "authorize the exact package explicitly with --add"
+                    exit 1
+                fi
+                bind_index=$((bind_index + 2))
+                ;;
+            esac
+        done
+        for ((bind_index = 0; bind_index < ${#SAFE_BINDS[@]}; bind_index++)); do
+            bind_flag="${SAFE_BINDS[bind_index]}"
+            case "${bind_flag}" in
+            --bind | --ro-bind)
+                protected_destination="${SAFE_BINDS[bind_index + 2]:-}"
+                if is_path_within "${resolved_package_source}" "${protected_destination}"; then
+                    error "configured absolute local Pi package contains a protected mount: ${package_source}"
+                    error "authorize the exact package explicitly with --add"
+                    exit 1
+                fi
+                bind_index=$((bind_index + 2))
+                ;;
+            esac
+        done
+
+        add_pi_prepared_bind_once --ro-bind "${package_source}" "${package_source}"
+        info "Pi integration: mounted absolute local package read-only (${package_source})"
+    done <<<"${package_sources}"
+}
+
 add_pi_prepared_bind_once() {
     local bind_flag="$1"
     local host_p="$2"
@@ -951,6 +1147,7 @@ add_custom_bind() {
     fi
     resolved_path="$(realpath "${requested_path}")"
     add_prepared_bind_once "${bind_flag}" "${resolved_path}" "${resolved_path}"
+    EXPLICIT_BIND_DEST_SET["${resolved_path}"]="${bind_flag}"
 }
 
 cleanup_file_mode_tmp_dir() {
@@ -2282,6 +2479,7 @@ run_devbox_validation() {
     local validation_root
     local test_home
     local test_project
+    local absolute_pi_package
     local failed=0
     local output
     local expected_output
@@ -2292,15 +2490,16 @@ run_devbox_validation() {
     validation_root="$(mktemp -d "${TMPDIR:-/tmp}/devbox-validation.XXXXXX")"
     test_home="${validation_root}/home"
     test_project="${validation_root}/project"
+    absolute_pi_package="${test_home}/projects/absolute-pi-package"
     mkdir -p -- \
         "${test_home}/.pi/agent/extensions" \
-        "${test_home}/.pi/agent/packages/devbox-validation-package" \
+        "${absolute_pi_package}" \
         "${test_home}/.config/opencode" \
         "${test_home}/.aws/sso/cache" \
         "${test_home}/.aws/cli/cache" \
         "${test_project}/.git" \
         "${test_project}/.github"
-    printf '%s\n' '{"packages":["./packages/devbox-validation-package"]}' >"${test_home}/.pi/agent/settings.json"
+    printf '{"packages":["%s"]}\n' "${absolute_pi_package}" >"${test_home}/.pi/agent/settings.json"
     printf '%s\n' '{"instructions":["existing-instruction.md"]}' >"${test_home}/.config/opencode/opencode.json"
     printf '# Existing OpenCode instruction\n' >"${test_home}/.config/opencode/existing-instruction.md"
     cat >"${test_home}/.pi/agent/extensions/devbox-validation.ts" <<'DEVBOX_EXTENSION'
@@ -2313,8 +2512,8 @@ export default function (pi: any) {
 }
 DEVBOX_EXTENSION
     printf '%s\n' '{"name":"devbox-validation-package","pi":{"extensions":["./index.ts"]}}' \
-        >"${test_home}/.pi/agent/packages/devbox-validation-package/package.json"
-    cat >"${test_home}/.pi/agent/packages/devbox-validation-package/index.ts" <<'DEVBOX_PACKAGE'
+        >"${absolute_pi_package}/package.json"
+    cat >"${absolute_pi_package}/index.ts" <<'DEVBOX_PACKAGE'
 export default function (pi: any) {
   pi.registerFlag("devbox-package-extension-loaded", {
     description: "devbox package extension loaded",
@@ -2583,6 +2782,7 @@ PI_COMMAND_DIRECT=0
 declare -A EXTRA_DIR_SET=()
 declare -A PARENT_DIR_EXPANSION_SET=()
 declare -A EXTRA_BIND_DEST_SET=()
+declare -A EXPLICIT_BIND_DEST_SET=()
 declare -A SANDBOX_ENV_SET=()
 declare -A CARGO_PATH_DEPENDENCY_SET=()
 
@@ -3209,6 +3409,11 @@ done
 for added_path in "${ADD_RW_PATHS[@]}"; do
     add_custom_bind --bind "${added_path}"
 done
+
+# Resolve user-configured absolute Pi packages only after every ordinary mount
+# destination is known. Their later PI_BINDS placement cannot then shadow an
+# earlier protected child without the overlap check rejecting the launch.
+bind_pi_absolute_local_packages
 
 discover_active_pty
 
