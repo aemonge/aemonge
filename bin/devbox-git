@@ -151,6 +151,17 @@ arg_present() {
     return 1
 }
 
+validate_diff_tree_args() {
+    if [[ $# -ne 5 ||
+        "$1" != "diff-tree" ||
+        "$2" != "--no-commit-id" ||
+        "$3" != "--name-only" ||
+        "$4" != "-r" ||
+        "$5" != "HEAD" ]]; then
+        deny "git diff-tree only allows: git diff-tree --no-commit-id --name-only -r HEAD"
+    fi
+}
+
 split_global_options() {
     GLOBAL_GIT_ARGS=()
     REMAINING_GIT_ARGS=()
@@ -533,6 +544,8 @@ main() {
         return 0
     fi
 
+    local -a original_git_args=("$@")
+
     local real_git
     real_git="$(find_real_git)"
 
@@ -556,6 +569,10 @@ main() {
         ;;
     status | diff | log | show | branch | rev-parse | merge-base | for-each-ref | symbolic-ref | cat-file | name-rev | ls-files)
         exec "${real_git}" "${GLOBAL_GIT_ARGS[@]}" "$@"
+        ;;
+    diff-tree)
+        validate_diff_tree_args "${original_git_args[@]}"
+        exec "${real_git}" "$@"
         ;;
     remote)
         case "${2:-}" in

@@ -44,6 +44,27 @@ assert_denied() {
     fi
 }
 
+assert_denied_before_real_git() {
+    local tmpdir="$1"
+    local name="$2"
+    shift 2
+
+    local output=""
+    : >"${tmpdir}/git.log"
+    if output="$(run_devbox_git "${tmpdir}" "$@" 2>&1)"; then
+        fail "${name}: command unexpectedly succeeded"
+        return
+    fi
+
+    if [[ -s "${tmpdir}/git.log" ]]; then
+        fail "${name}: real git was invoked: $(<"${tmpdir}/git.log")"
+    elif grep -qE 'Denied|BLOCKED|fatal: devbox blocked' <<<"${output}"; then
+        pass "${name}"
+    else
+        fail "${name}: expected denial, got: ${output}"
+    fi
+}
+
 assert_denied_stdout_visible() {
     local tmpdir="$1"
     local name="$2"
@@ -125,6 +146,34 @@ assert_allowed() {
     fi
 }
 
+assert_forwarded_exactly() {
+    local tmpdir="$1"
+    local name="$2"
+    shift 2
+
+    local output=""
+    : >"${tmpdir}/git.log"
+    if ! output="$(run_devbox_git "${tmpdir}" "$@" 2>&1)"; then
+        fail "${name}: command failed: ${output}"
+        return
+    fi
+
+    local expected=""
+    printf -v expected 'REAL_GIT %q' "${tmpdir}/fake-git"
+    local arg
+    for arg in "$@"; do
+        printf -v expected '%s %q' "${expected}" "${arg}"
+    done
+
+    local actual
+    actual="$(<"${tmpdir}/git.log")"
+    if [[ "${actual}" == "${expected}" ]]; then
+        pass "${name}"
+    else
+        fail "${name}: expected exact forwarding '${expected}', got '${actual}'"
+    fi
+}
+
 assert_commit_hardened() {
     local tmpdir="$1"
     local name="$2"
@@ -197,6 +246,7 @@ FAKE_GIT
 
     assert_allowed "${tmpdir}" "allows git status" status
     assert_allowed "${tmpdir}" "allows git diff" diff -- README.md
+    assert_forwarded_exactly "${tmpdir}" "allows exact bounded git diff-tree inspection" diff-tree --no-commit-id --name-only -r HEAD
     assert_allowed "${tmpdir}" "allows lock-free Fancy Footer status" --no-optional-locks status --porcelain=2 --branch
     assert_allowed "${tmpdir}" "allows lock-free Fancy Footer diff" --no-optional-locks diff --numstat HEAD
     assert_allowed "${tmpdir}" "allows git merge-base" merge-base main feature/test
@@ -232,6 +282,19 @@ FAKE_GIT
     assert_commit_hardened "${tmpdir}" "allows normal git commit" commit -m 'safe commit'
     assert_commit_hardened "${tmpdir}" "allows git global -c before commit" -c user.name=OpenAgent -c user.email=openagent@example.com commit -m 'safe commit'
     assert_allowed "${tmpdir}" "allows git commit -F with global -C" -C "${tmpdir}" commit -F commit-message.txt
+
+    assert_denied_before_real_git "${tmpdir}" "denies reordered git diff-tree flags" diff-tree --name-only --no-commit-id -r HEAD
+    assert_denied_before_real_git "${tmpdir}" "denies git diff-tree missing HEAD" diff-tree --no-commit-id --name-only -r
+    assert_denied_before_real_git "${tmpdir}" "denies git diff-tree extra flags" diff-tree --no-commit-id --name-only -r --root HEAD
+    assert_denied_before_real_git "${tmpdir}" "denies git diff-tree alternate revisions" diff-tree --no-commit-id --name-only -r 'HEAD^'
+    assert_denied_before_real_git "${tmpdir}" "denies stdin-driven git diff-tree revisions" diff-tree --no-commit-id --name-only -r --stdin
+    assert_denied_before_real_git "${tmpdir}" "denies git diff-tree external diff execution" diff-tree --no-commit-id --name-only -r HEAD --ext-diff
+    assert_denied_before_real_git "${tmpdir}" "denies git diff-tree output file writes" diff-tree --no-commit-id --name-only -r HEAD --output=/tmp/devbox-diff-tree-output
+    assert_denied_before_real_git "${tmpdir}" "denies git diff-tree path arguments" diff-tree --no-commit-id --name-only -r HEAD -- README.md
+    assert_denied_before_real_git "${tmpdir}" "denies global options for git diff-tree" --no-optional-locks diff-tree --no-commit-id --name-only -r HEAD
+    assert_denied_before_real_git "${tmpdir}" "denies git-dir overrides for git diff-tree" --git-dir=.git diff-tree --no-commit-id --name-only -r HEAD
+    assert_denied_before_real_git "${tmpdir}" "denies config overrides for git diff-tree" -c user.name=OpenAgent diff-tree --no-commit-id --name-only -r HEAD
+    assert_denied_before_real_git "${tmpdir}" "denies global delimiter before git diff-tree" -- diff-tree --no-commit-id --name-only -r HEAD
 
     assert_denied "${tmpdir}" "denies git push" push
     assert_denied_stdout_visible "${tmpdir}" "denial is visible on stdout and stderr" push
