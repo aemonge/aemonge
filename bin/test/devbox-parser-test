@@ -34,6 +34,14 @@ readonly OVERLAP_PI_PROJECT="${OVERLAP_PI_PACKAGE}/project"
 readonly PROJECT_LOCAL_PI_PACKAGE="${TEST_PROJECT}/absolute-pi-package"
 readonly CAPTURE="${TEST_ROOT}/bwrap.args"
 readonly PI_BIN="${TEST_BIN}/pi"
+readonly EXTERNAL_PNPM_HOME="${TEST_ROOT}/external/pnpm"
+readonly EXTERNAL_PI_BIN="${EXTERNAL_PNPM_HOME}/bin/pi"
+readonly EXTERNAL_PI_TARGET="${EXTERNAL_PNPM_HOME}/global/v11/fixture/node_modules/@earendil-works/pi-coding-agent/dist/cli.js"
+readonly EXTERNAL_PI_STORE_TARGET="${EXTERNAL_PNPM_HOME}/store/v11/links/pi-coding-agent/dist/cli.js"
+readonly UNSAFE_PNPM_HOME="${TEST_ROOT}/unsafe/pnpm"
+readonly UNSAFE_PI_BIN="${UNSAFE_PNPM_HOME}/bin/pi"
+readonly UNSAFE_PI_TARGET="${UNSAFE_PNPM_HOME}/global/v11/fixture/node_modules/@earendil-works/pi-coding-agent/dist/cli.js"
+readonly OUTSIDE_PI_TARGET="${TEST_ROOT}/outside-pi-cli.js"
 readonly OPENCODE_BIN="${TEST_BIN}/opencode"
 readonly DEVBOX_SYMLINK="${TEST_BIN}/devbox"
 readonly FAKE_GIT_WRAPPER="${TEST_BIN}/devbox-git"
@@ -81,6 +89,8 @@ mkdir -p -- \
     "${TEST_HOME}/.local/share/opencode" "${TEST_HOME}/.cache/opencode" \
     "${TEST_HOME}/.opencode" "${TEST_HOME}/.agents" "${TEST_HOME}/.bun" \
     "${TEST_HOME}/.aws/sso/cache" "${TEST_HOME}/.aws/cli/cache" \
+    "${EXTERNAL_PNPM_HOME}/bin" "$(dirname "${EXTERNAL_PI_TARGET}")" "$(dirname "${EXTERNAL_PI_STORE_TARGET}")" \
+    "${UNSAFE_PNPM_HOME}/bin" "$(dirname "${UNSAFE_PI_TARGET}")" "${UNSAFE_PNPM_HOME}/store" \
     "${RUNTIME_DIR}" /tmp/.X11-unix
 chmod 0700 -- "${RUNTIME_DIR}"
 
@@ -137,6 +147,12 @@ printf '%s\n' '[package]' 'name = "outside"' 'version = "0.1.0"' >"${TEST_OUTSID
 printf 'pub fn outside() {}\n' >"${TEST_OUTSIDE_DEP}/src/lib.rs"
 
 printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"${PI_BIN}"
+printf 'console.log("external pi")\n' >"${EXTERNAL_PI_STORE_TARGET}"
+ln -s "${EXTERNAL_PI_STORE_TARGET}" "${EXTERNAL_PI_TARGET}"
+printf '%s\n' '#!/bin/sh' 'exit 0' "# cmd-shim-target=${EXTERNAL_PI_TARGET}" >"${EXTERNAL_PI_BIN}"
+printf 'console.log("outside pi")\n' >"${OUTSIDE_PI_TARGET}"
+ln -s "${OUTSIDE_PI_TARGET}" "${UNSAFE_PI_TARGET}"
+printf '%s\n' '#!/bin/sh' 'exit 0' "# cmd-shim-target=${UNSAFE_PI_TARGET}" >"${UNSAFE_PI_BIN}"
 printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"${OPENCODE_BIN}"
 printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"${FAKE_GIT_WRAPPER}"
 
@@ -173,7 +189,7 @@ for ((i = 0; i < ${#args[@]}; i++)); do
 done
 printf '%s\0' "$@" >"${DEVBOX_TEST_CAPTURE}"
 BWRAP
-chmod +x "${TEST_BIN}/bwrap" "${PI_BIN}" "${OPENCODE_BIN}" "${FAKE_GIT_WRAPPER}"
+chmod +x "${TEST_BIN}/bwrap" "${PI_BIN}" "${EXTERNAL_PI_BIN}" "${UNSAFE_PI_BIN}" "${OPENCODE_BIN}" "${FAKE_GIT_WRAPPER}"
 ln -s "${DEVBOX}" "${DEVBOX_SYMLINK}"
 
 BWRAP_ARGS=()
@@ -184,7 +200,7 @@ run_devbox_process() {
     env -i \
         HOME="${TEST_HOME}" \
         USER="${USER:-developer}" LOGNAME="${LOGNAME:-${USER:-developer}}" \
-        PATH="${TEST_BIN}:/usr/local/bin:/usr/bin:/bin" \
+        PATH="${DEVBOX_TEST_PATH:-${TEST_BIN}:/usr/local/bin:/usr/bin:/bin}" \
         TERM=xterm-256color LANG=C.UTF-8 \
         XDG_CONFIG_HOME="${DEVBOX_TEST_XDG_CONFIG_HOME:-${TEST_HOME}/.config}" \
         XDG_DATA_HOME="${DEVBOX_TEST_XDG_DATA_HOME:-${TEST_HOME}/.local/share}" \
@@ -346,6 +362,7 @@ get_setenv_value() {
 run_devbox pi hello -- "${TEST_PROJECT}" -q
 FIRST_SHARED_RUNTIME="$(get_setenv_value XDG_RUNTIME_DIR)"
 assert_tail 'command and arguments before -- execute inside the box' /devbox/bin/pi hello
+assert_sequence_contains 'unrecognized Pi executables retain exact-file fallback' --ro-bind "${PI_BIN}" "${PI_BIN}"
 assert_sequence_contains 'agent context is mounted separately and read-only' --ro-bind "${DEVBOX_ROOT}/devbox-agent-context.md" /devbox/agent-context.md
 assert_sequence_contains 'Pi guard is mounted read-only inside the sandbox' --ro-bind "${DEVBOX_ROOT}/devbox-pi-guard" /devbox/bin/pi
 assert_sequence_contains 'Pi guard receives the real executable' --setenv DEVBOX_REAL_PI "${PI_BIN}"
@@ -367,6 +384,37 @@ assert_sequence_contains 'object-form absolute local Pi extensions are exact-mou
 assert_sequence_absent 'absolute local Pi packages are never auto-mounted writable' --bind "${ABSOLUTE_PI_PACKAGE}" "${ABSOLUTE_PI_PACKAGE}"
 [[ "$(stat -c %a "${TEST_HOME}/.pi/agent/trust")" == 700 ]] || { printf 'FAIL: local trust mode is not 0700\n' >&2; exit 1; }
 printf 'PASS: local trust mode is 0700\n'
+
+DEVBOX_TEST_PATH="${EXTERNAL_PNPM_HOME}/bin:${TEST_BIN}:/usr/local/bin:/usr/bin:/bin" \
+    run_devbox pi -- "${TEST_PROJECT}" -q --no-host-tools
+assert_sequence_contains \
+    'selected pnpm Pi outside HOME exposes its verified package tree read-only' \
+    --ro-bind "${EXTERNAL_PNPM_HOME}" "${EXTERNAL_PNPM_HOME}"
+assert_sequence_absent \
+    'selected external pnpm Pi never exposes its package tree writable' \
+    --bind "${EXTERNAL_PNPM_HOME}" "${EXTERNAL_PNPM_HOME}"
+assert_sequence_absent \
+    'selected external pnpm Pi does not mount only the fragile shim file' \
+    --ro-bind "${EXTERNAL_PI_BIN}" "${EXTERNAL_PI_BIN}"
+
+DEVBOX_TEST_PATH="${UNSAFE_PNPM_HOME}/bin:${TEST_BIN}:/usr/local/bin:/usr/bin:/bin" \
+    run_devbox pi -- "${TEST_PROJECT}" -q --no-host-tools
+assert_sequence_absent \
+    'pnpm shim targets resolving outside their package root cannot broaden mounts' \
+    --ro-bind "${UNSAFE_PNPM_HOME}" "${UNSAFE_PNPM_HOME}"
+assert_sequence_contains \
+    'escaping pnpm shim targets retain exact-file fallback' \
+    --ro-bind "${UNSAFE_PI_BIN}" "${UNSAFE_PI_BIN}"
+
+printf '%s\n' '#!/bin/sh' 'exit 0' '# cmd-shim-target=relative/cli.js' >"${UNSAFE_PI_BIN}"
+DEVBOX_TEST_PATH="${UNSAFE_PNPM_HOME}/bin:${TEST_BIN}:/usr/local/bin:/usr/bin:/bin" \
+    run_devbox pi -- "${TEST_PROJECT}" -q --no-host-tools
+assert_sequence_absent \
+    'relative pnpm shim targets cannot broaden mounts' \
+    --ro-bind "${UNSAFE_PNPM_HOME}" "${UNSAFE_PNPM_HOME}"
+assert_sequence_contains \
+    'relative pnpm shim targets retain exact-file fallback' \
+    --ro-bind "${UNSAFE_PI_BIN}" "${UNSAFE_PI_BIN}"
 
 printf '{"packages":["%s"]}\n' "${TEST_ROOT}/missing-absolute-pi-package" \
     >"${TEST_HOME}/.pi/agent/settings.json"

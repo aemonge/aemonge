@@ -1102,11 +1102,46 @@ bind_pi_socket_envs() {
     done <<<"${env_output}"
 }
 
+derive_pnpm_home_from_pi_shim() {
+    local pi_bin_real="$1"
+    local bin_dir
+    local candidate
+    local marker
+    local shim_target
+    local shim_target_real
+
+    [[ -f "${pi_bin_real}" && -r "${pi_bin_real}" ]] || return 1
+    bin_dir="$(dirname -- "${pi_bin_real}")"
+    [[ "$(basename -- "${bin_dir}")" == "bin" ]] || return 1
+    candidate="$(dirname -- "${bin_dir}")"
+    [[ "$(basename -- "${candidate}")" == "pnpm" ]] || return 1
+    [[ "$(realpath "${candidate}" 2>/dev/null || true)" == "${candidate}" ]] || return 1
+    [[ -d "${candidate}/global" && -d "${candidate}/store" ]] || return 1
+
+    marker="$(tail -n 1 -- "${pi_bin_real}" 2>/dev/null || true)"
+    case "${marker}" in
+    '# cmd-shim-target='*) shim_target="${marker#\# cmd-shim-target=}" ;;
+    *) return 1 ;;
+    esac
+    [[ "${shim_target}" == /* ]] || return 1
+    case "${shim_target}" in
+    *//* | */./* | */. | */../* | */.. | */) return 1 ;;
+    esac
+    [[ -f "${shim_target}" && -r "${shim_target}" ]] || return 1
+    is_path_within "${candidate}/global" "${shim_target}" || return 1
+    shim_target_real="$(realpath "${shim_target}" 2>/dev/null || true)"
+    [[ -n "${shim_target_real}" ]] || return 1
+    is_path_within "${candidate}/store" "${shim_target_real}" || return 1
+
+    printf '%s\n' "${candidate}"
+}
+
 bind_pi_binary_package_tree() {
     local pi_bin_real="$1"
     local candidate
     local resolved_candidate
     local sand_candidate
+    local derived_candidate
     local -a pnpm_home_candidates=()
 
     if [[ -n "${PNPM_HOME:-}" && "${PNPM_HOME}" == /* ]]; then
@@ -1132,6 +1167,12 @@ bind_pi_binary_package_tree() {
         info "Pi integration: mounted pnpm package tree read-only because host tools are disabled"
         return 0
     done
+
+    if derived_candidate="$(derive_pnpm_home_from_pi_shim "${pi_bin_real}")"; then
+        opt_ro_bind_dir "${derived_candidate}" "${derived_candidate}"
+        info "Pi integration: mounted the selected pnpm Pi package tree read-only"
+        return 0
+    fi
 
     return 1
 }
