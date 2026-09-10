@@ -369,9 +369,22 @@ check_opencode_plugins() {
     [[ ${failures} -eq 0 ]]
 }
 
+plugin_integrity_digest_stream() {
+    local record
+    local digest
+    while IFS= read -r -d '' record; do
+        digest="${record%% *}"
+        if [[ ! "${digest}" =~ ^[0-9a-f]{64}$ ]]; then
+            return 1
+        fi
+        printf '%s\0' "${digest}"
+    done
+}
+
 plugin_integrity_path_fingerprint() {
     local fingerprint
     local path
+    local index=0
     local -a file_paths=()
     local -a directory_paths=()
     local -a directory_entries=()
@@ -400,25 +413,37 @@ plugin_integrity_path_fingerprint() {
         rm -f -- "${snapshot_file}"
     fi
 
+    # Path-spelling independent by design: bind mounts alias the same inodes
+    # at different paths (host preflight vs sandbox guard), so the stream
+    # carries stat identity, stored symlink targets, and content hashes only.
     fingerprint="$({
-        printf 'paths\0'
-        printf '%s\0' "$@"
-        realpath -ez -- "$@" || return 1
-        stat --printf='path\0%n\0identity\0%F:%s:%Y:%i\0link\0%N\0' -- "$@" || return 1
+        printf 'devbox-plugin-integrity-fingerprint-v2\0'
+        printf 'salt\0%s\0' "${DEVBOX_PLUGIN_INTEGRITY_SALT:-}"
+        printf 'count\0%s\0' "$#"
+        for path in "$@"; do
+            index=$((index + 1))
+            stat --printf="item\0${index}\0identity\0%F:%s:%Y:%i\0" -- "${path}" || return 1
+            if [[ -L "${path}" ]]; then
+                printf 'link\0%s\0' "$(readlink -- "${path}")"
+            fi
+        done
         if [[ ${#file_paths[@]} -gt 0 ]]; then
-            sha256sum -z -- "${file_paths[@]}" || return 1
+            sha256sum -z -- "${file_paths[@]}" | plugin_integrity_digest_stream || return 1
         fi
-        if [[ ${#directory_entries[@]} -gt 0 ]]; then
-            stat --printf='entry\0%n\0identity\0%F:%s:%Y:%i\0link\0%N\0' \
-                -- "${directory_entries[@]}" || return 1
-        fi
+        for path in "${directory_entries[@]}"; do
+            stat --printf='entry\0identity\0%F:%s:%Y:%i\0' -- "${path}" || return 1
+            printf 'name\0%s\0' "${path##*/}"
+            if [[ -L "${path}" ]]; then
+                printf 'link\0%s\0' "$(readlink -- "${path}")"
+            fi
+        done
     } | sha256sum)" || return 1
     REPLY="${fingerprint%% *}"
 }
 
 is_plugin_integrity_cache_current() {
     local cache_file="$1"
-    local current_script="$2"
+    local integrity_token="$2"
     local current_config="$3"
     local cache_fd
     local header
@@ -434,7 +459,7 @@ is_plugin_integrity_cache_current() {
     [[ "${owner}" == "$(id -u)" && "${mode}" == "600" ]] || return 1
 
     exec {cache_fd}<"${cache_file}" || return 1
-    if ! IFS= read -r -d '' header <&"${cache_fd}" || [[ "${header}" != "devbox-plugin-integrity-v1" ]]; then
+    if ! IFS= read -r -d '' header <&"${cache_fd}" || [[ "${header}" != "devbox-plugin-integrity-v2" ]]; then
         exec {cache_fd}<&-
         return 1
     fi
@@ -450,8 +475,8 @@ is_plugin_integrity_cache_current() {
     exec {cache_fd}<&-
 
     [[ -z "${path}" && ${#cached_paths[@]} -ge 2 ]] || return 1
-    [[ "${cached_paths[0]}" == "${current_script}" && "${cached_paths[1]}" == "${current_config}" ]] || return 1
-    plugin_integrity_path_fingerprint "${cached_paths[@]}" && [[ "${REPLY}" == "${expected_fingerprint}" ]]
+    [[ "${cached_paths[0]}" == "${integrity_token}" && "${cached_paths[1]}" == "${current_config}" ]] || return 1
+    plugin_integrity_path_fingerprint "${cached_paths[@]:1}" && [[ "${REPLY}" == "${expected_fingerprint}" ]]
 }
 
 collect_plugin_integrity_paths() {
@@ -481,7 +506,7 @@ write_plugin_integrity_cache() {
     temporary_file="$(mktemp "${cache_file}.tmp.XXXXXX")" || return 1
 
     if ! {
-        printf 'devbox-plugin-integrity-v1\0'
+        printf 'devbox-plugin-integrity-v2\0'
         printf '%s\0' "${fingerprint}"
         printf '%s\0' "$@"
     } >"${temporary_file}"; then
@@ -502,15 +527,27 @@ check_opencode_plugins_cached() {
     local config_path="$2"
     local cache_root="$3"
     local integrity_cache="$4"
+    local integrity_token="devbox-opencode-integrity"
+    local script_digest=""
     local first_fingerprint
     local second_fingerprint
     local index
     local -a first_paths=()
     local -a second_paths=()
 
+    # Script identity is its content, not its invocation path: the host
+    # preflight and the sandbox guard run this same file through different
+    # bind-mount spellings and must reach the same cache decision.
+    if ! script_digest="$(sha256sum -- "${script_path}")"; then
+        error "OpenCode plugin integrity helper is unreadable: ${script_path}"
+        return 1
+    fi
+    script_digest="${script_digest%% *}"
+    DEVBOX_PLUGIN_INTEGRITY_SALT="helper-sha256:${script_digest}"
+
     DEVBOX_PLUGIN_INTEGRITY_CACHE_HIT=0
     if command -v sha256sum >/dev/null 2>&1 &&
-        is_plugin_integrity_cache_current "${integrity_cache}" "${script_path}" "${config_path}"; then
+        is_plugin_integrity_cache_current "${integrity_cache}" "${integrity_token}" "${config_path}"; then
         DEVBOX_PLUGIN_INTEGRITY_CACHE_HIT=1
         trace_startup "OpenCode plugin integrity cache hit"
         return 0
@@ -526,7 +563,6 @@ check_opencode_plugins_cached() {
         return 0
     fi
 
-    DEVBOX_PLUGIN_WATCH_PATHS=("${script_path}" "${DEVBOX_PLUGIN_WATCH_PATHS[@]}")
     collect_plugin_integrity_paths
     first_paths=("${DEVBOX_PLUGIN_UNIQUE_PATHS[@]}")
     if ! plugin_integrity_path_fingerprint "${first_paths[@]}"; then
@@ -539,7 +575,6 @@ check_opencode_plugins_cached() {
     if ! check_opencode_plugins "${config_path}" "${cache_root}"; then
         return 1
     fi
-    DEVBOX_PLUGIN_WATCH_PATHS=("${script_path}" "${DEVBOX_PLUGIN_WATCH_PATHS[@]}")
     collect_plugin_integrity_paths
     second_paths=("${DEVBOX_PLUGIN_UNIQUE_PATHS[@]}")
     if ! plugin_integrity_path_fingerprint "${second_paths[@]}"; then
@@ -559,7 +594,8 @@ check_opencode_plugins_cached() {
         fi
     done
 
-    if ! write_plugin_integrity_cache "${integrity_cache}" "${second_fingerprint}" "${second_paths[@]}"; then
+    if ! write_plugin_integrity_cache "${integrity_cache}" "${second_fingerprint}" \
+        "${integrity_token}" "${second_paths[@]}"; then
         error "OpenCode plugin integrity changed while caching successful validation"
         rm -f -- "${integrity_cache}"
         return 1

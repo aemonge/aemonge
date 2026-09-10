@@ -1,5 +1,52 @@
 # Known Bugs
 
+## devbox: OpenCode plugin integrity cache never survived a launch
+
+- **Status:** Fixed in working tree
+- **Observed:** Every `devbox opencode` launch paid two full plugin integrity
+  validations (~5 s cold each on this machine), and
+  `~/.cache/devbox/opencode/plugin-integrity-v1.bin` never survived between
+  launches, so the cache could never pay off.
+- **Reproduction snippet:**
+  ```console
+  time devbox opencode --version   # slow: full cold validation
+  ls ~/.cache/devbox/opencode/     # cache file missing again
+  ```
+- **Current evidence:** The cache was keyed on the helper invocation path
+  (`cached_paths[0] == $0`) and the fingerprint embedded literal path strings
+  (`realpath`, stat `%n`, `%N`). The host preflight runs the helper as
+  `/home/<user>/usr/bin/devbox-opencode-integrity` while the in-sandbox guard
+  runs `/devbox/lib/devbox-opencode-integrity`, so each context deleted and
+  rewrote the other's cache forever. Measured: 5.3 s cold, 1.6 s no-cache,
+  0.1 s warm hit; cache file absent since it was created.
+- **Next investigation notes:** None.
+- **Resolution:** Fingerprints are now path-spelling independent (stat
+  identity, stored symlink targets, content hashes only), script identity is
+  a canonical token plus the helper's own content hash as a fingerprint salt,
+  and the cache header is `devbox-plugin-integrity-v2`. Host preflight and
+  sandbox guard share one cache: cold 2.1 s once, then 0.25 s hits from either
+  context (Tests O.32/O.33 in `bin/test/devbox-opencode-integrity-test`).
+
+## devbox: zsh startup files mounted without ~/.config/zsh
+
+- **Status:** Documented, deferred by Human decision
+- **Observed:** Every interactive devbox shell prints
+  `.zshrc:source:15: no such file or directory:
+  /home/aemonge/.config/zsh/bootstrap.zsh` and then stops loading shell
+  configuration, so the in-box shell loses prompt, plugins, and integrations.
+- **Reproduction snippet:**
+  ```console
+  devbox   # interactive shell; watch the bootstrap.zsh error
+  ```
+- **Current evidence:** `bind_zsh_startup_files` in `bin/devbox` binds only
+  `.zshenv`, `.zshrc`, `.zprofile`, `.zlogin`; the modular config under
+  `~/.config/zsh/` (bootstrap, completions, theme, plugins, pyenv/aws/nvim
+  integrations) is never mounted, and `.zshrc` line 15 aborts on it.
+- **Next investigation notes:** A one-line read-only bind of `~/.config/zsh`
+  next to the existing zsh file binds in `bin/devbox` should restore parity;
+  deliberately deferred, document only.
+- **Resolution:** None (deferred).
+
 ## spi validation: Pi XDG config/data resources missing
 
 - **Status:** Fixed in working tree
@@ -89,3 +136,13 @@
 - **Observed:** Notifications work or were observed outside SPI/raw Pi, but appear blocked or missing when running under `spi`.
 - **Current evidence:** This has not been diagnosed or fixed. Footer parity commit `9f888ab` did not address notification delivery.
 - **Next investigation notes:** Compare raw `pi` versus `spi` notification behavior directly. Likely investigation surfaces include DBus, `XDG_RUNTIME_DIR`, terminal OSC/socket notification mechanisms, and sandbox-visible runtime sockets, but these are hypotheses, not conclusions. Preserve SPI's intended no-upward-write boundary while testing any parity fix.
+
+## Performance notes (documented, not bugs)
+
+- First devbox launch after a reboot is dominated by cold reads from the
+  LUKS-encrypted disk; later launches reuse the warm page cache. Nothing is
+  wrong — it is disk-cache warming.
+- Prefer one long-lived interactive `devbox` shell over one `devbox <cmd>`
+  launch per operation; every launch pays fixed probe and bind setup.
+- `--web-developer` mode polls a Chromium DevTools endpoint (1 s timeout,
+  0.5 s retry sleeps); it stays off the default launch path.

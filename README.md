@@ -42,6 +42,7 @@ development workflow:
 ### Documentation
 
 - `docs/`: Contains various documentation files, including my PDF resume
+- `BUGS.md`: Known bugs, deferred issues, and devbox performance notes
 
 ## Key Features
 

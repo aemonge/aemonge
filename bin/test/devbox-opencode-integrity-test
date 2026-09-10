@@ -538,6 +538,44 @@ run_tests() {
     # shellcheck disable=SC2329 # Restore the no-op test hook after mutation fixtures.
     plugin_integrity_cache_validation_hook() { :; }
 
+    local alias_root="${plugin_home}/alias-tree"
+    local alias_link="${plugin_home}/alias-link"
+    local alias_fingerprint_a=""
+    local alias_fingerprint_b=""
+    mkdir -p "${alias_root}/sub"
+    printf '%s\n' 'export default {};' >"${alias_root}/sub/index.js"
+    ln -sfn -- "${alias_root}" "${alias_link}"
+    DEVBOX_PLUGIN_INTEGRITY_SALT="unit-test"
+    plugin_integrity_path_fingerprint "${alias_root}/sub/index.js"
+    alias_fingerprint_a="${REPLY}"
+    plugin_integrity_path_fingerprint "${alias_link}/sub/index.js"
+    alias_fingerprint_b="${REPLY}"
+    DEVBOX_PLUGIN_INTEGRITY_SALT=""
+    if [[ -n "${alias_fingerprint_a}" && "${alias_fingerprint_a}" == "${alias_fingerprint_b}" ]]; then
+        echo "PASS Test O.32: fingerprint ignores path spelling of the same file"
+    else
+        echo "FAIL Test O.32: fingerprint changed between bind-mount path spellings"
+        failed_tests=$((failed_tests + 1))
+    fi
+
+    local parity_helper_a="${plugin_home}/helper-parity-a"
+    local parity_helper_b="${plugin_home}/helper-parity-b"
+    local parity_cache="${plugin_home}/devbox-cache/parity-v1"
+    cp -- "${SCRIPT_DIR}/../devbox-opencode-integrity" "${parity_helper_a}"
+    cp -- "${SCRIPT_DIR}/../devbox-opencode-integrity" "${parity_helper_b}"
+    printf '%s\n' '{"plugin":["valid-plugin"]}' >"${plugin_config}"
+    printf '%s\n' '{"name":"valid-plugin","main":"dist/index.js"}' >"${valid_package}/package.json"
+    printf '%s\n' 'export default {};' >"${integrity_entry}"
+    rm -f -- "${parity_cache}"
+    if check_opencode_plugins_cached "${parity_helper_a}" "${plugin_config}" "${plugin_cache_root}" "${parity_cache}" &&
+        [[ "${DEVBOX_PLUGIN_INTEGRITY_CACHE_HIT:-}" == "0" ]] &&
+        check_opencode_plugins_cached "${parity_helper_b}" "${plugin_config}" "${plugin_cache_root}" "${parity_cache}" &&
+        [[ "${DEVBOX_PLUGIN_INTEGRITY_CACHE_HIT:-}" == "1" ]]; then
+        echo "PASS Test O.33: cache written via one helper path hits via another"
+    else
+        echo "FAIL Test O.33: same-content helpers at different paths did not share the cache"
+        failed_tests=$((failed_tests + 1))
+    fi
 
     printf '\n'
     if [[ "${failed_tests}" -eq 0 ]]; then
