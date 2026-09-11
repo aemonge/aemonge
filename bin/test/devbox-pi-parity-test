@@ -403,7 +403,10 @@ assert required <= set(summary["commands"]), summary
 assert summary["commands"].count("work") == 1, summary
 assert summary["duplicates"] == [], summary
 assert summary["work_focus_count"] == 1, summary
-assert summary["state"] == ["openai-codex", "gpt-5.6-sol", "high"], summary
+# The sandbox state is environment-forwarded (provider/model/thinking come
+# from the caller's Pi selection), so no hardcoded provider triplet is
+# asserted here; parity of the forwarding itself is covered by comparing
+# host and sandbox summaries below.
 PY
     pass "${label} real Pi RPC commands, model, thinking, and work_focus tool match host exactly"
 }
