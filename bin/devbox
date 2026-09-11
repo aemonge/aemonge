@@ -151,6 +151,8 @@ read_discovery_cache() {
     local decoded_value
     local valid=1
     local count=0
+    local -a cache_keys=()
+    local -a cache_encoded_values=()
     local -A seen_keys=()
 
     while IFS='=' read -r cache_key encoded_value; do
@@ -166,15 +168,42 @@ read_discovery_cache() {
             continue
         fi
         seen_keys["${cache_key}"]=1
-        if ! decoded_value="$(printf '%s' "${encoded_value}" | base64 --decode 2>/dev/null)"; then
-            valid=0
-            continue
-        fi
-        printf -v "${cache_key}" '%s' "${decoded_value}"
+        cache_keys+=("${cache_key}")
+        cache_encoded_values+=("${encoded_value}")
         count=$((count + 1))
     done <"${DEVBOX_DISCOVERY_CACHE}"
 
-    [[ "${valid}" -eq 1 && "${count}" -eq 9 ]]
+    [[ "${valid}" -eq 1 && "${count}" -eq 9 ]] || return 1
+
+    # One decode for the whole payload: an encoded newline (Cg==) separates
+    # values, so decoded values split cleanly on newlines. Values are
+    # newline-free by construction; a line-count mismatch means corruption
+    # or tampering and invalidates the cache. Assignment happens only after
+    # full validation, which is stricter than assigning while scanning.
+    local joined_encoded=""
+    local padded_value
+    local last_index=$(( ${#cache_keys[@]} - 1 ))
+    local index
+    for index in "${!cache_keys[@]}"; do
+        # read strips one trailing '=' from singly padded values; GNU base64
+        # only tolerates an unpadded tail at end-of-stream, so restore
+        # canonical padding before values are joined into one stream.
+        padded_value="${cache_encoded_values[index]}"
+        while (( ${#padded_value} % 4 != 0 )); do
+            padded_value+="="
+        done
+        joined_encoded+="${padded_value}"
+        [[ "${index}" -eq "${last_index}" ]] || joined_encoded+=$'\nCg==\n'
+    done
+    decoded_value="$(base64 --decode <<<"${joined_encoded}" 2>/dev/null)" || return 1
+    local -a cache_decoded_values=()
+    mapfile -t cache_decoded_values <<<"${decoded_value}"
+    [[ "${#cache_decoded_values[@]}" -eq "${#cache_keys[@]}" ]] || return 1
+    for index in "${!cache_keys[@]}"; do
+        printf -v "${cache_keys[index]}" '%s' "${cache_decoded_values[index]}"
+        DEVBOX_CACHE_READ_SNAPSHOT["${cache_keys[index]}"]="${cache_decoded_values[index]}"
+    done
+    return 0
 }
 
 write_discovery_cache_value() {
@@ -199,7 +228,7 @@ init_discovery_cache() {
         return 0
     fi
     if [[ -f "${DEVBOX_DISCOVERY_CACHE}" && ! -L "${DEVBOX_DISCOVERY_CACHE}" ]] &&
-        [[ "$(stat -c %u -- "${DEVBOX_DISCOVERY_CACHE}" 2>/dev/null || true)" == "$(id -u)" ]] &&
+        [[ "$(stat -c %u -- "${DEVBOX_DISCOVERY_CACHE}" 2>/dev/null || true)" == "${EUID}" ]] &&
         [[ "$(stat -c %a -- "${DEVBOX_DISCOVERY_CACHE}" 2>/dev/null || true)" == 600 ]] &&
         read_discovery_cache; then
         DEVBOX_DISCOVERY_CACHE_VALID=1
@@ -216,12 +245,28 @@ is_discovery_cache_current() {
     [[ "${DEVBOX_CACHE_BWRAP_VERSION:-}" == "${expected_bwrap_version}" ]] || return 1
 }
 
+discovery_cache_matches_read_snapshot() {
+    local cache_key
+
+    [[ "${DEVBOX_DISCOVERY_CACHE_VALID:-0}" -eq 1 ]] || return 1
+    for cache_key in DEVBOX_CACHE_SCRIPT_MTIME DEVBOX_CACHE_BWRAP_PATH DEVBOX_CACHE_BWRAP_VERSION \
+        DEVBOX_CACHE_BWRAP_DISABLE_USERNS_SUPPORTED DEVBOX_CACHE_BWRAP_NAMESPACE_SUPPORT \
+        DEVBOX_CACHE_REAL_GIT_HOST DEVBOX_CACHE_REAL_GIT_REALPATH \
+        DEVBOX_CACHE_DEVBOX_GIT_HOST DEVBOX_CACHE_DEVBOX_GIT_REALPATH; do
+        [[ "${!cache_key}" == "${DEVBOX_CACHE_READ_SNAPSHOT[${cache_key}]:-}" ]] || return 1
+    done
+    [[ "${DEVBOX_CACHE_SCRIPT_MTIME}" == "$(file_mtime "$0")" ]]
+}
+
 write_discovery_cache() {
     local temporary_cache
 
     [[ -n "${DEVBOX_DISCOVERY_CACHE:-}" ]] || return 0
     [[ "${EPHEMERAL_STATE:-0}" -eq 0 ]] || return 0
     command -v base64 >/dev/null 2>&1 || return 0
+    if discovery_cache_matches_read_snapshot; then
+        return 0
+    fi
     umask 077
     temporary_cache="$(mktemp "${DEVBOX_DISCOVERY_CACHE}.tmp.XXXXXX")"
     if ! {
@@ -316,7 +361,7 @@ add_prepared_bind_once() {
     resolve_bind_source_path "${host_p}"
     resolved_host_p="${REPLY}"
     register_bind_destination "${bind_flag}" "${resolved_host_p}" "${sand_p}" || return 0
-    add_parent_dirs_once "$(dirname "${sand_p}")"
+    add_parent_dirs_once "${sand_p%/*}"
     if [[ -d "${resolved_host_p}" ]]; then
         EXTRA_BINDS+=(--dir "${sand_p}")
     fi
@@ -348,7 +393,7 @@ bind_runtime_dir_precreated() {
 
     resolve_bind_source_path "${host_p}"
     resolved_host_p="${REPLY}"
-    add_parent_dirs_once "$(dirname "${sand_p}")"
+    add_parent_dirs_once "${sand_p%/*}"
     add_extra_bind_once --bind "${resolved_host_p}" "${sand_p}"
 }
 
@@ -376,7 +421,7 @@ bind_runtime_path_precreated() {
     [[ -e "${host_p}" ]] || return 0
     resolve_bind_source_path "${host_p}"
     resolved_host_p="${REPLY}"
-    add_parent_dirs_once "$(dirname "${sand_p}")"
+    add_parent_dirs_once "${sand_p%/*}"
     add_extra_bind_once --bind "${resolved_host_p}" "${sand_p}"
 }
 
@@ -388,7 +433,7 @@ opt_ro_bind_path() {
     [[ -e "${host_p}" ]] || return 0
     resolve_bind_source_path "${host_p}"
     resolved_host_p="${REPLY}"
-    add_parent_dirs_once "$(dirname "${sand_p}")"
+    add_parent_dirs_once "${sand_p%/*}"
     add_extra_bind_once --ro-bind "${resolved_host_p}" "${sand_p}"
 }
 
@@ -651,7 +696,7 @@ add_pi_prepared_bind_once() {
     resolve_bind_source_path "${host_p}"
     resolved_host_p="${REPLY}"
     register_bind_destination "${bind_flag}" "${resolved_host_p}" "${sand_p}" || return 0
-    add_parent_dirs_once "$(dirname "${sand_p}")"
+    add_parent_dirs_once "${sand_p%/*}"
     [[ -d "${resolved_host_p}" ]] && PI_BINDS+=(--dir "${sand_p}")
     PI_BINDS+=("${bind_flag}" "${resolved_host_p}" "${sand_p}")
 }
@@ -930,7 +975,7 @@ assemble_pi_agent_resource_closure() {
         done
     else
         opt_ro_bind_dir "${HOST_HOME}/.pi" "${SANDBOX_HOME}/.pi"
-        add_parent_dirs_once "$(dirname "${SANDBOX_PI_AGENT_ASSEMBLY_DIR}")"
+    add_parent_dirs_once "${SANDBOX_PI_AGENT_ASSEMBLY_DIR%/*}"
         add_extra_dir_once "${SANDBOX_PI_AGENT_ASSEMBLY_DIR}"
         PI_BINDS+=(--tmpfs "${SANDBOX_PI_AGENT_ASSEMBLY_DIR}")
     fi
@@ -1091,6 +1136,8 @@ bind_pi_socket_envs() {
     env_output="$(compgen -e || true)"
     while IFS= read -r env_name; do
         [[ -n "${env_name}" ]] || continue
+        # Cheap glob pre-filter mirrors the first case in the safety check.
+        [[ "${env_name}" == PI_*SOCKET* ]] || continue
         is_safe_pi_socket_env_name "${env_name}" || continue
         host_p="${!env_name:-}"
         is_safe_pi_socket_path "${host_p}" || continue
@@ -1486,7 +1533,7 @@ prepare_command_binary() {
     case "${command_real}" in
     /usr/* | /bin/* | /sbin/*) return 0 ;;
     esac
-    add_parent_dirs_once "$(dirname "${command_real}")"
+    add_parent_dirs_once "${command_real%/*}"
     add_extra_bind_once --ro-bind "${command_real}" "${command_real}"
 }
 
@@ -1504,7 +1551,7 @@ discover_pi_binary() {
     PI_BIN_REAL="$(realpath "${PI_BIN_HOST}")"
     PI_BIN_SANDBOX="${PI_BIN_REAL}"
 
-    add_parent_dirs_once "$(dirname "${PI_BIN_REAL}")"
+    add_parent_dirs_once "${PI_BIN_REAL%/*}"
     case "${PI_BIN_REAL}" in
     /usr/* | /bin/* | /sbin/*) ;;
     *)
@@ -1535,7 +1582,7 @@ prepare_pi_command_guard() {
         pi_host="$(command -v pi 2>/dev/null || true)"
         [[ "${pi_host}" == /* && -x "${pi_host}" ]] || return 0
         pi_real="$(realpath "${pi_host}")"
-        add_parent_dirs_once "$(dirname "${pi_real}")"
+    add_parent_dirs_once "${pi_real%/*}"
         case "${pi_real}" in
         /usr/* | /bin/* | /sbin/*) ;;
         *)
@@ -1546,7 +1593,7 @@ prepare_pi_command_guard() {
         esac
     fi
 
-    script_dir="$(cd -- "$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")" && pwd -P)"
+    script_dir="${SCRIPT_DIR}"
     guard_host="${script_dir}/devbox-pi-guard"
     if [[ ! -x "${guard_host}" ]]; then
         error "Pi command guard is missing or not executable: ${guard_host}"
@@ -1591,7 +1638,7 @@ is_opencode_port_live() {
 apply_nvim_opencode_port_default() {
     local command_name
 
-    command_name="$(basename -- "${RAW_COMMAND[0]}")"
+    command_name="${RAW_COMMAND[0]##*/}"
     [[ "${command_name}" == "opencode" ]] || return 0
     [[ -n "${NVIM_OPENCODE_PORT:-}" ]] || return 0
     has_explicit_opencode_port && return 0
@@ -1607,13 +1654,13 @@ run_opencode_plugin_preflight() {
     local package_cache="${XDG_CACHE_HOME:-${HOST_HOME}/.cache}/opencode/packages"
     local integrity_cache="${XDG_CACHE_HOME:-${HOST_HOME}/.cache}/devbox/opencode/plugin-integrity-v1.bin"
 
-    command_name="$(basename -- "${RAW_COMMAND[0]}")"
+    command_name="${RAW_COMMAND[0]##*/}"
     [[ "${command_name}" == "opencode" ]] || return 0
     case "${RAW_COMMAND[1]:-}" in
     plugin | plug) return 0 ;;
     esac
 
-    script_dir="$(cd -- "$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")" && pwd -P)"
+    script_dir="${SCRIPT_DIR}"
     integrity_helper="${script_dir}/devbox-opencode-integrity"
     if [[ ! -x "${integrity_helper}" ]]; then
         error "OpenCode plugin integrity helper is missing: ${integrity_helper}"
@@ -1645,7 +1692,7 @@ prepare_opencode_command_guard() {
     opencode_host="$(command -v opencode 2>/dev/null || true)"
     [[ "${opencode_host}" == /* && -x "${opencode_host}" ]] || return 0
     opencode_real="$(realpath "${opencode_host}")"
-    script_dir="$(cd -- "$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")" && pwd -P)"
+    script_dir="${SCRIPT_DIR}"
     guard_host="${script_dir}/devbox-opencode-guard"
     helper_host="${script_dir}/devbox-opencode-integrity"
     if [[ ! -x "${guard_host}" || ! -x "${helper_host}" ]]; then
@@ -1752,7 +1799,7 @@ prune_stale_editor_runtimes() {
     for candidate in "${candidates[@]}"; do
         [[ -d "${candidate}" && ! -L "${candidate}" ]] || continue
         [[ "$(stat -c %u -- "${candidate}" 2>/dev/null || true)" == "$(id -u)" ]] || continue
-        name="$(basename -- "${candidate}")"
+        name="${candidate##*/}"
         remainder="${name#run.}"
         pid="${remainder%%.*}"
         remainder="${remainder#*.}"
@@ -1977,7 +2024,7 @@ bind_nvim_resources() {
         for plugin_path in "${host_nvim_lazy}"/*; do
             [[ -e "${plugin_path}" ]] || continue
             add_prepared_bind_once --ro-bind "${plugin_path}" \
-                "${sandbox_nvim_data}/lazy/$(basename "${plugin_path}")"
+        "${sandbox_nvim_data}/lazy/${plugin_path##*/}"
         done
         ((had_dotglob)) || shopt -u dotglob
         ((had_nullglob)) || shopt -u nullglob
@@ -1988,7 +2035,7 @@ bind_nvim_resources() {
     # cannot create a new file mountpoint beneath a read-only directory, so a
     # configuration without lazy-lock.json simply keeps the whole tree read-only.
     if [[ -f "${host_nvim_lock}" ]]; then
-        mkdir -p -- "$(dirname "${host_devbox_nvim_lock}")"
+    mkdir -p -- "${host_devbox_nvim_lock%/*}"
         if [[ ! -e "${host_devbox_nvim_lock}" ]]; then
             cp -p -- "${host_nvim_lock}" "${host_devbox_nvim_lock}"
         fi
@@ -2191,7 +2238,7 @@ prepare_ssh_client_integration() {
         ((had_nullglob)) || shopt -u nullglob
         for config_path in "${system_config_files[@]}"; do
             [[ -f "${config_path}" && -r "${config_path}" ]] || continue
-            config_name="$(basename -- "${config_path}")"
+    config_name="${config_path##*/}"
             exec {config_fd}<"${config_path}"
             SSH_CLIENT_FDS+=("${config_fd}")
             SSH_SYSTEM_CONFIG_ARGS+=(
@@ -2467,7 +2514,7 @@ run_doctor() {
         status=$?
     fi
 
-    script_dir="$(cd -- "$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")" && pwd -P)"
+    script_dir="${SCRIPT_DIR}"
     integrity_helper="${script_dir}/devbox-opencode-integrity"
     printf '\ndevbox doctor: checking current OpenCode configuration\n'
     if [[ ! -x "${integrity_helper}" ]]; then
@@ -2527,7 +2574,7 @@ run_devbox_validation() {
     local command_status
     local test_script
 
-    script_dir="$(cd -- "$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")" && pwd -P)"
+    script_dir="${SCRIPT_DIR}"
     validation_root="$(mktemp -d "${TMPDIR:-/tmp}/devbox-validation.XXXXXX")"
     test_home="${validation_root}/home"
     test_project="${validation_root}/project"
@@ -2765,6 +2812,7 @@ HOST_USER="${USER:-andres}"
 HOST_LOGNAME="${LOGNAME:-${HOST_USER}}"
 DEVBOX_TRACE_STARTUP_STARTED=0
 DEVBOX_TRACE_STARTUP_LAST=0
+declare -A DEVBOX_CACHE_READ_SNAPSHOT=()
 DEVBOX_CACHE_DIR=""
 DEVBOX_DISCOVERY_CACHE=""
 DEVBOX_DISCOVERY_CACHE_VALID=0
@@ -3183,7 +3231,7 @@ else
     trace_startup "bwrap namespace probe completed"
 fi
 
-if [[ "$(basename -- "${RAW_COMMAND[0]}")" == "pi" ]]; then
+if [[ "${RAW_COMMAND[0]##*/}" == "pi" ]]; then
     PI_COMMAND_DIRECT=1
     PI_BIN="${RAW_COMMAND[0]}"
     discover_pi_binary
