@@ -2059,6 +2059,18 @@ bind_terminal_integration() {
     fi
 
     bind_zsh_startup_files "${HOST_HOME}" "${SANDBOX_HOME}"
+    # The zsh configuration tree typically lives behind a symlink into the
+    # user's dotfiles repository; bind the resolved target read-only at the
+    # symlink destination, mirroring the starship.toml treatment above.
+    if [[ -d "${HOST_HOME}/.config/zsh" ]]; then
+        opt_ro_bind_dir "${HOST_HOME}/.config/zsh" "${SANDBOX_HOME}/.config/zsh"
+        # Share the plugin manager and its compiled cache writable, like the
+        # pnpm store, so zinit neither reinstalls inside the sandbox nor
+        # regenerates caches on every launch.
+        bind_runtime_dir "${HOST_HOME}/.local/share/zinit" "${SANDBOX_HOME}/.local/share/zinit"
+        bind_runtime_dir "${HOST_HOME}/.cache/zinit" "${SANDBOX_HOME}/.cache/zinit"
+        info "Terminal integration: mounted zsh configuration closure"
+    fi
     if [[ -n "${ZDOTDIR:-}" ]]; then
         if [[ "${ZDOTDIR}" == /* ]] && is_path_within "${HOST_HOME}" "${ZDOTDIR}"; then
             map_host_path_to_sandbox "${ZDOTDIR}"

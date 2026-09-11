@@ -38,6 +38,8 @@ assert_contains 'identifies the unified command' 'readonly PROGRAM_NAME="devbox"
 assert_contains 'uses command-first parsing' 'DEVBOX_COMMAND+=("$1")'
 assert_contains 'supports a literal child delimiter' 'DEVBOX_COMMAND+=(--)'
 assert_contains 'defaults to an interactive Zsh login shell' 'RAW_COMMAND=("${DEVBOX_SHELL:-zsh}" -l)'
+assert_contains 'mounts the zsh configuration tree' 'opt_ro_bind_dir "${HOST_HOME}/.config/zsh" "${SANDBOX_HOME}/.config/zsh"'
+assert_contains 'shares the zinit plugin manager with the sandbox' 'bind_runtime_dir "${HOST_HOME}/.local/share/zinit" "${SANDBOX_HOME}/.local/share/zinit"'
 assert_absent 'does not expose a box/profile selector' '--box'
 assert_absent 'does not advertise an exec mode' '-x, --exec'
 assert_contains 'uses a writable target by default' 'FS_MODE="${DEVBOX_FS_MODE:-rw}"'
