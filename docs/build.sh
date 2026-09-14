@@ -40,6 +40,9 @@ clean_up() {
 	echo "Cleaning up render staging..."
 	rm -f ./articles_navigation.json
 	rm -f "$FAILED_ARTICLES_LOG"
+	# Quarto emits generated *_files/ sidecars next to its inputs; they are
+	# regenerable artifacts, never handmade source.
+	find "$ARTICLES_DIR" -type d -name "*_files" -exec rm -rf {} + >/dev/null 2>&1
 	find "$SCRIPT_DIR" -maxdepth 1 -type d -name "*_files" -exec rm -rf {} + >/dev/null 2>&1
 	find "$SCRIPT_DIR" -maxdepth 1 -type f -name "*.html" ! -name "index.html" ! -name "home.html" -exec rm -f {} + >/dev/null 2>&1
 	echo "Clean-up completed!"
