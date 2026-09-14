@@ -2150,6 +2150,64 @@ bind_symlink_targets_in_dir() {
     done
 }
 
+bind_skills_home_symlink_targets() {
+    local skills_home
+    local resolved_home
+    local host_path
+    local resolved_target
+    local target_sandbox_path
+    local existing_policy
+    local had_nullglob=0
+    local had_dotglob=0
+    local -a skills_homes=()
+    local -a symlink_candidates=()
+    local -A visited_homes=()
+
+    if [[ -d "${HOST_HOME}/.agents/skills" ]]; then
+        skills_homes+=("${HOST_HOME}/.agents/skills")
+    fi
+    if [[ -d "${PI_AGENT_DIR}/skills" ]]; then
+        skills_homes+=("$(realpath "${PI_AGENT_DIR}/skills")")
+    fi
+    (( ${#skills_homes[@]} )) || return 0
+
+    for skills_home in "${skills_homes[@]}"; do
+        resolved_home="$(realpath "${skills_home}")"
+        [[ -n "${visited_homes[${resolved_home}]:-}" ]] && continue
+        visited_homes["${resolved_home}"]=1
+
+        shopt -q nullglob && had_nullglob=1
+        shopt -q dotglob && had_dotglob=1
+        shopt -s nullglob dotglob
+        symlink_candidates=("${skills_home}"/*)
+        ((had_nullglob)) || shopt -u nullglob
+        ((had_dotglob)) || shopt -u dotglob
+
+        for host_path in "${symlink_candidates[@]}"; do
+            [[ -L "${host_path}" ]] || continue
+            resolved_target="$(realpath "${host_path}" 2>/dev/null || true)"
+            if [[ -z "${resolved_target}" || ! -d "${resolved_target}" ]]; then
+                warning "Skipping skills symlink without a directory target: ${host_path}"
+                continue
+            fi
+            if [[ "${resolved_target}" == "${HOST_HOME}" ]] || \
+                ! is_path_within "${HOST_HOME}" "${resolved_target}"; then
+                warning "Skipping skills symlink escaping HOME: ${host_path} -> ${resolved_target}"
+                continue
+            fi
+            map_host_path_to_sandbox "${resolved_target}"
+            target_sandbox_path="${REPLY}"
+            existing_policy="${EXTRA_BIND_DEST_SET[${target_sandbox_path}]:-}"
+            if [[ -n "${existing_policy}" && "${existing_policy}" != "--ro-bind|${resolved_target}" ]]; then
+                info "Preserving existing mount for skills symlink target: ${target_sandbox_path}"
+                continue
+            fi
+            add_prepared_bind_once --ro-bind "${resolved_target}" "${target_sandbox_path}"
+            info "Skills symlink target mounted read-only: ${host_path} -> ${target_sandbox_path}"
+        done
+    done
+}
+
 bind_opencode_state() {
     local relative_path
     local host_config_root="${XDG_CONFIG_HOME:-${HOST_HOME}/.config}"
@@ -3510,6 +3568,13 @@ done
 for added_path in "${ADD_RW_PATHS[@]}"; do
     add_custom_bind --bind "${added_path}"
 done
+
+# Skills homes can contain symlinked children (articles -> ~/articles) whose
+# targets exist only on the host. Bind each resolved target read-only at its
+# own canonical path so the links resolve naturally inside the sandbox. Running
+# after every project and custom bind keeps already-owned destinations intact;
+# running before Pi package resolution keeps the overlap guard effective.
+bind_skills_home_symlink_targets
 
 # Resolve user-configured absolute Pi packages only after every ordinary mount
 # destination is known. Their later PI_BINDS placement cannot then shadow an
