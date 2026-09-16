@@ -1600,8 +1600,18 @@ prepare_pi_command_guard() {
         exit 1
     fi
 
+    local pi_title_host
+    local pi_title_sandbox="/devbox/pi-title.ts"
+    pi_title_host="${script_dir}/devbox-pi-title.ts"
+    if [[ ! -r "${pi_title_host}" ]]; then
+        error "Pi title extension is missing or unreadable: ${pi_title_host}"
+        exit 1
+    fi
+
     add_prepared_bind_once --ro-bind "${guard_host}" "${guard_sandbox}"
     add_sandbox_env_once DEVBOX_REAL_PI "${pi_real}"
+    add_prepared_bind_once --ro-bind "${pi_title_host}" "${pi_title_sandbox}"
+    add_sandbox_env_once DEVBOX_PI_TITLE_EXTENSION "${pi_title_sandbox}"
     ensure_devbox_command_guard_path
     if [[ "${PI_COMMAND_DIRECT}" -eq 1 ]]; then
         RAW_COMMAND[0]="${guard_sandbox}"

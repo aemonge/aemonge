@@ -12,6 +12,7 @@ if [[ ! -r "${DEVBOX_AGENT_CONTEXT_FILE}" ]]; then
     printf 'devbox: Pi agent context is not readable: %s\n' "${DEVBOX_AGENT_CONTEXT_FILE}" >&2
     exit 1
 fi
+: "${DEVBOX_PI_TITLE_EXTENSION:=}"
 
 case "${1:-}" in
 install | remove | uninstall | update | list | config | \
@@ -28,6 +29,18 @@ for argument in "$@"; do
         ;;
     esac
 done
+
+if [[ -n "${DEVBOX_PI_TITLE_EXTENSION}" && ! -r "${DEVBOX_PI_TITLE_EXTENSION}" ]]; then
+    printf 'devbox: Pi title extension is not readable: %s\n' "${DEVBOX_PI_TITLE_EXTENSION}" >&2
+    exit 1
+fi
+
+if [[ -n "${DEVBOX_PI_TITLE_EXTENSION}" ]]; then
+    exec "${DEVBOX_REAL_PI}" \
+        --append-system-prompt "${DEVBOX_AGENT_CONTEXT_FILE}" \
+        --extension "${DEVBOX_PI_TITLE_EXTENSION}" \
+        "$@"
+fi
 
 exec "${DEVBOX_REAL_PI}" \
     --append-system-prompt "${DEVBOX_AGENT_CONTEXT_FILE}" \
