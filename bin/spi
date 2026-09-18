@@ -46,7 +46,8 @@ Options after "--":
       --no-host-tools        Disable host development tool binds
       --no-nvim-remote       Disable the active Neovim socket/editor bridge
   -g, --allow-gui            Allow GUI/session access
-  -s, --no-ssh-agent         Do not forward SSH_AUTH_SOCK
+  -s, --ssh-agent           Forward SSH_AUTH_SOCK into the sandbox (opt-in)
+      --no-ssh-agent        Do not forward SSH_AUTH_SOCK
   -w, --web-developer        Enable GUI mode and Chromium DevTools
       --full-dev             Allow full /dev access inside sandbox
 
@@ -1708,11 +1709,19 @@ PY
 
         if [[ -S "${terminal_nvim_socket}" ]]; then
             # shellcheck disable=SC2016 # $SSH_AUTH_SOCK must expand inside the sandboxed shell.
-            output="$(SPI_VALIDATION_SSH_AUTH_SOCK="${terminal_nvim_socket}" run_validation_spi -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'test -S "$SSH_AUTH_SOCK" && printf SSH_AGENT_OK' 2>&1 || true)"
-            if [[ "${output}" == 'SSH_AGENT_OK' ]]; then
-                validation_pass 'Test H.1a PASS: SSH_AUTH_SOCK is forwarded by default'
+            output="$(SPI_VALIDATION_SSH_AUTH_SOCK="${terminal_nvim_socket}" run_validation_spi -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'test -z "${SSH_AUTH_SOCK:-}" && printf NO_SSH_AGENT_BY_DEFAULT' 2>&1 || true)"
+            if [[ "${output}" == 'NO_SSH_AGENT_BY_DEFAULT' ]]; then
+                validation_pass 'Test H.1a PASS: SSH_AUTH_SOCK stays unset by default'
             else
-                validation_fail "Test H.1a FAIL: SSH_AUTH_SOCK forwarding failed (${output})"
+                validation_fail "Test H.1a FAIL: SSH agent was forwarded without --ssh-agent (${output})"
+                failed_tests=$((failed_tests + 1))
+            fi
+            # shellcheck disable=SC2016 # $SSH_AUTH_SOCK must expand inside the sandboxed shell.
+            output="$(SPI_VALIDATION_SSH_AUTH_SOCK="${terminal_nvim_socket}" run_validation_spi -- "${test_project}" -q --backend bwrap --ssh-agent -x /bin/bash --noprofile --norc -lc 'test -S "$SSH_AUTH_SOCK" && printf SSH_AGENT_OK' 2>&1 || true)"
+            if [[ "${output}" == 'SSH_AGENT_OK' ]]; then
+                validation_pass 'Test H.1a2 PASS: --ssh-agent forwards SSH_AUTH_SOCK'
+            else
+                validation_fail "Test H.1a2 FAIL: --ssh-agent forwarding failed (${output})"
                 failed_tests=$((failed_tests + 1))
             fi
             # shellcheck disable=SC2016 # $SSH_AUTH_SOCK expands inside the sandboxed shell.
@@ -1976,7 +1985,7 @@ ALLOW_HOST_TOOLS_DISABLE_SET=0
 ALLOW_GUI=0
 WEB_DEVELOPER_MODE=0
 ALLOW_NVIM_REMOTE=1
-FORWARD_SSH_AGENT=1
+FORWARD_SSH_AGENT="${DEVBOX_SSH_AGENT:-0}"
 RESTRICT_DEV=1
 RO_SET=0
 RW_SET=0
@@ -2190,7 +2199,11 @@ while [[ $# -gt 0 ]]; do
         ALLOW_GUI=1
         shift
         ;;
-    -s | --no-ssh-agent)
+    -s | --ssh-agent)
+        FORWARD_SSH_AGENT=1
+        shift
+        ;;
+    --no-ssh-agent)
         FORWARD_SSH_AGENT=0
         shift
         ;;

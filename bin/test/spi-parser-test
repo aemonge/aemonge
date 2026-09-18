@@ -724,8 +724,11 @@ fi
 
 if [[ -S "${TEST_PI_DENIED_SOCKET}" ]]; then
     SPI_TEST_SSH_AUTH_SOCK="${TEST_PI_DENIED_SOCKET}" run_spi -- "${TEST_PROJECT}" -q --backend bwrap
-    assert_sequence_contains 'SSH agent socket is forwarded by default' --bind "${TEST_PI_DENIED_SOCKET}" "${TEST_PI_DENIED_SOCKET}"
-    assert_sequence_contains 'SSH_AUTH_SOCK is restored in the sandbox' --setenv SSH_AUTH_SOCK "${TEST_PI_DENIED_SOCKET}"
+    assert_sequence_absent 'SSH agent socket is not forwarded by default' --bind "${TEST_PI_DENIED_SOCKET}" "${TEST_PI_DENIED_SOCKET}"
+    assert_sequence_absent 'SSH_AUTH_SOCK stays unset in the sandbox by default' --setenv SSH_AUTH_SOCK "${TEST_PI_DENIED_SOCKET}"
+    SPI_TEST_SSH_AUTH_SOCK="${TEST_PI_DENIED_SOCKET}" run_spi -- "${TEST_PROJECT}" -q --backend bwrap -s
+    assert_sequence_contains '-s opts into the SSH socket bind' --bind "${TEST_PI_DENIED_SOCKET}" "${TEST_PI_DENIED_SOCKET}"
+    assert_sequence_contains '-s restores SSH_AUTH_SOCK in the sandbox' --setenv SSH_AUTH_SOCK "${TEST_PI_DENIED_SOCKET}"
     SPI_TEST_SSH_AUTH_SOCK="${TEST_PI_DENIED_SOCKET}" run_spi -- "${TEST_PROJECT}" -q --backend bwrap --no-ssh-agent
     assert_sequence_absent '--no-ssh-agent suppresses the SSH socket bind' --bind "${TEST_PI_DENIED_SOCKET}" "${TEST_PI_DENIED_SOCKET}"
     assert_sequence_absent '--no-ssh-agent suppresses SSH_AUTH_SOCK' --setenv SSH_AUTH_SOCK "${TEST_PI_DENIED_SOCKET}"

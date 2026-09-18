@@ -53,7 +53,8 @@ Options after "--":
       --no-network           Unshare the network namespace
       --no-nvim-remote       Disable the active Neovim socket/editor bridge
       --no-terminal-sockets  Disable Neovim and tmux socket forwarding
-      --no-ssh-agent         Do not forward SSH_AUTH_SOCK
+  -s, --ssh-agent           Forward SSH_AUTH_SOCK into the sandbox (opt-in)
+      --no-ssh-agent        Do not forward SSH_AUTH_SOCK
   -g, --allow-gui            Allow broader GUI/session access
   -w, --web-developer        Enable GUI mode and Chromium DevTools
       --full-dev             Allow full /dev access inside the box
@@ -64,7 +65,7 @@ Examples:
   devbox pi "fix this" -- ~/src/app   # Pi in the shared developer box
   devbox opencode -- ~/src/app -w     # OpenCode with browser developer mode
   devbox aws sts get-caller-identity  # AWS CLI with default AWS integration
-  devbox pi -- --no-aws --no-ssh-agent
+  devbox pi -- --no-aws -s
 
 Filesystem boundary:
   The target is writable by default. .git remains writable while .github,
@@ -75,11 +76,12 @@ Filesystem boundary:
   share one developer box. Other Pi configuration remains read-only by default.
 
 Security scope:
-  Defaults favor development convenience. Network, AWS credentials, SSH agent,
-  and clipboard access are available when detected. Any process in the box can
-  use those capabilities. Use --no-network, --no-aws, --no-ssh-agent,
-  --no-clipboard, --no-host-tools, and --ro to harden a run, or use --locked
-  for the strict read-only/offline/credential-free preset.
+  Defaults favor development convenience. Network, AWS credentials, and
+  clipboard access are available when detected. Any process in the box can
+  use those capabilities. SSH agent forwarding is opt-in via --ssh-agent or
+  DEVBOX_SSH_AGENT=1. Use --no-network, --no-aws, --no-clipboard,
+  --no-host-tools, and --ro to harden a run, or use --locked for the strict
+  read-only/offline/credential-free preset.
 
 Environment:
   DEVBOX_ACTIVE             1 inside a running Devbox sandbox
@@ -91,7 +93,7 @@ Environment:
   DEVBOX_AWS                1/0 default for AWS integration
   DEVBOX_CLIPBOARD          1/0 default for clipboard integration
   DEVBOX_NETWORK            1/0 default for shared networking
-  DEVBOX_SSH_AGENT          1/0 default for SSH-agent forwarding
+  DEVBOX_SSH_AGENT          1/0 opt-in for SSH-agent forwarding (default 0)
   DEVBOX_TERMINAL_SOCKETS    1/0 default for Neovim/tmux socket forwarding
   DEVBOX_HOST_TOOLS         1/0 default for host development tools
   PI_CODING_AGENT_DIR       Optional Pi state root override
@@ -2880,7 +2882,7 @@ ALLOW_TERMINAL_SOCKETS="${DEVBOX_TERMINAL_SOCKETS:-1}"
 ALLOW_AWS="${DEVBOX_AWS:-1}"
 ALLOW_CLIPBOARD="${DEVBOX_CLIPBOARD:-1}"
 SHARE_NETWORK="${DEVBOX_NETWORK:-1}"
-FORWARD_SSH_AGENT="${DEVBOX_SSH_AGENT:-1}"
+FORWARD_SSH_AGENT="${DEVBOX_SSH_AGENT:-0}"
 RESTRICT_DEV=1
 LOCKED_MODE=0
 EPHEMERAL_STATE=0
@@ -3171,7 +3173,11 @@ while [[ $# -gt 0 ]]; do
         ALLOW_GUI=1
         shift
         ;;
-    -s | --no-ssh-agent)
+    -s | --ssh-agent)
+        FORWARD_SSH_AGENT=1
+        shift
+        ;;
+    --no-ssh-agent)
         FORWARD_SSH_AGENT=0
         shift
         ;;

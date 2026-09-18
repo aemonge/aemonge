@@ -851,15 +851,15 @@ PY
             done
             SSH_AUTH_SOCK="${ssh_agent_socket}" ssh-add "${ssh_test_key}" >/dev/null 2>&1
             # shellcheck disable=SC2016 # $SSH_AUTH_SOCK and $HOME expand inside the sandboxed shell.
-            output="$(DEVBOX_VALIDATION_SSH_AUTH_SOCK="${ssh_agent_socket}" run_validation_devbox -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc '
+            output="$(DEVBOX_VALIDATION_SSH_AUTH_SOCK="${ssh_agent_socket}" run_validation_devbox -- "${test_project}" -q --backend bwrap --ssh-agent -x /bin/bash --noprofile --norc -lc '
                 test -S "$SSH_AUTH_SOCK" || exit 1
                 ssh-add -T "$HOME/.ssh/ssh-keys/personal/devbox-test.pub" || exit 1
                 printf SSH_AGENT_SIGNING_OK
             ' 2>&1 || true)"
             if [[ "${output}" == 'SSH_AGENT_SIGNING_OK' ]]; then
-                validation_pass 'Test H.1b PASS: forwarded SSH agent performs a signing operation'
+                validation_pass 'Test H.1b PASS: --ssh-agent forwarded agent performs a signing operation'
             else
-                validation_fail "Test H.1b FAIL: SSH agent signing failed (${output})"
+                validation_fail "Test H.1b FAIL: --ssh-agent agent signing failed (${output})"
                 failed_tests=$((failed_tests + 1))
             fi
             # shellcheck disable=SC2016 # $SSH_AUTH_SOCK expands inside the sandboxed shell.
@@ -868,6 +868,14 @@ PY
                 validation_pass 'Test H.1c PASS: --no-ssh-agent disables forwarding'
             else
                 validation_fail "Test H.1c FAIL: --no-ssh-agent did not disable forwarding (${output})"
+                failed_tests=$((failed_tests + 1))
+            fi
+            # shellcheck disable=SC2016 # $SSH_AUTH_SOCK expands inside the sandboxed shell.
+            output="$(DEVBOX_VALIDATION_SSH_AUTH_SOCK="${ssh_agent_socket}" run_validation_devbox -- "${test_project}" -q --backend bwrap -x /bin/bash --noprofile --norc -lc 'test -z "${SSH_AUTH_SOCK:-}" && printf NO_SSH_AGENT_BY_DEFAULT' 2>&1 || true)"
+            if [[ "${output}" == 'NO_SSH_AGENT_BY_DEFAULT' ]]; then
+                validation_pass 'Test H.1e PASS: SSH agent forwarding is off by default'
+            else
+                validation_fail "Test H.1e FAIL: SSH agent was forwarded without --ssh-agent (${output})"
                 failed_tests=$((failed_tests + 1))
             fi
             kill "${LIVE_VALIDATION_SSH_AGENT_PID}" 2>/dev/null || true

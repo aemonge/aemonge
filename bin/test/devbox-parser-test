@@ -50,6 +50,7 @@ readonly WAYLAND_SOCKET="${RUNTIME_DIR}/wayland-9"
 readonly X11_SOCKET="/tmp/.X11-unix/X9"
 readonly TMUX_SOCKET="${RUNTIME_DIR}/tmux/default"
 readonly NVIM_SOCKET="${RUNTIME_DIR}/nvim.sock"
+readonly SSH_AGENT_SOCKET="${RUNTIME_DIR}/ssh-agent.sock"
 readonly XAUTH_FILE="${TEST_HOME}/.Xauthority"
 ZSH_BIN="$(realpath "$(command -v zsh)")"
 readonly ZSH_BIN
@@ -156,7 +157,7 @@ printf '%s\n' '#!/bin/sh' 'exit 0' "# cmd-shim-target=${UNSAFE_PI_TARGET}" >"${U
 printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"${OPENCODE_BIN}"
 printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"${FAKE_GIT_WRAPPER}"
 
-python3 - "${WAYLAND_SOCKET}" "${X11_SOCKET}" "${TMUX_SOCKET}" "${NVIM_SOCKET}" <<'PY'
+python3 - "${WAYLAND_SOCKET}" "${X11_SOCKET}" "${TMUX_SOCKET}" "${NVIM_SOCKET}" "${SSH_AGENT_SOCKET}" <<'PY'
 import os
 import socket
 import sys
@@ -209,6 +210,7 @@ run_devbox_process() {
         XDG_RUNTIME_DIR="${RUNTIME_DIR}" WAYLAND_DISPLAY=wayland-9 \
         DISPLAY=:9 XAUTHORITY="${XAUTH_FILE}" NVIM="${NVIM_SOCKET}" \
         TMUX="${TMUX_SOCKET},777,0" TMUX_PANE=%7 \
+        SSH_AUTH_SOCK="${SSH_AGENT_SOCKET}" \
         AWS_PROFILE=fixture AWS_REGION=us-east-1 \
         AWS_SHARED_CREDENTIALS_FILE="${DEVBOX_TEST_AWS_CREDENTIALS_FILE:-${AWS_CUSTOM_CREDENTIALS}}" \
         DEVBOX_GIT="${FAKE_GIT_WRAPPER}" \
@@ -569,7 +571,17 @@ assert_sequence_contains 'X11 clipboard uses an exact socket bind' --bind "${X11
 assert_sequence_contains 'DISPLAY is restored for X11 clipboard' --setenv DISPLAY :9
 assert_sequence_absent 'clipboard does not expose the complete runtime directory' --bind "${RUNTIME_DIR}" "${RUNTIME_DIR}"
 assert_sequence_contains 'tmux uses an exact socket bind by default' --bind "${TMUX_SOCKET}" "${TMUX_SOCKET}"
+assert_sequence_absent 'SSH agent socket is not forwarded by default' --bind "${SSH_AGENT_SOCKET}" "${SSH_AGENT_SOCKET}"
+assert_sequence_absent 'SSH_AUTH_SOCK stays unset by default' --setenv SSH_AUTH_SOCK "${SSH_AGENT_SOCKET}"
 assert_no_conflicting_bind_destinations 'default mount plan has no conflicting RO/RW destinations'
+
+run_devbox -- "${TEST_PROJECT}" -q -s
+assert_sequence_contains '-s opts into the SSH agent socket bind' --bind "${SSH_AGENT_SOCKET}" "${SSH_AGENT_SOCKET}"
+assert_sequence_contains '-s restores SSH_AUTH_SOCK in the sandbox' --setenv SSH_AUTH_SOCK "${SSH_AGENT_SOCKET}"
+
+run_devbox -- "${TEST_PROJECT}" -q --no-ssh-agent
+assert_sequence_absent '--no-ssh-agent suppresses the SSH socket bind' --bind "${SSH_AGENT_SOCKET}" "${SSH_AGENT_SOCKET}"
+assert_sequence_absent '--no-ssh-agent suppresses SSH_AUTH_SOCK' --setenv SSH_AUTH_SOCK "${SSH_AGENT_SOCKET}"
 
 rm -f -- "${TEST_HOME}/.config/nvim/lazy-lock.json"
 run_devbox pi -- "${TEST_PROJECT}" -q
@@ -664,11 +676,12 @@ assert_sequence_contains '--locked keeps /dev/stdin compatibility' --symlink /pr
 assert_sequence_contains '--locked keeps /dev/stdout compatibility' --symlink /proc/self/fd/1 /dev/stdout
 assert_sequence_contains '--locked keeps /dev/stderr compatibility' --symlink /proc/self/fd/2 /dev/stderr
 
-run_devbox pi -- "${TEST_PROJECT}" -q --locked --allow-infra --allow-pi-config --full-dev --aws --clipboard
+run_devbox pi -- "${TEST_PROJECT}" -q --locked --allow-infra --allow-pi-config --full-dev --aws --clipboard -s
 assert_sequence_contains '--locked remains authoritative regardless of later permissive options' --ro-bind "${TEST_PROJECT}/.github" "${TEST_PROJECT}/.github"
 assert_sequence_absent '--locked cannot re-enable broad device access' --dev /dev
 assert_sequence_absent '--locked cannot re-enable AWS' --ro-bind "${TEST_HOME}/.aws" "${TEST_HOME}/.aws"
 assert_sequence_absent '--locked cannot re-enable clipboard' --bind "${WAYLAND_SOCKET}" "${WAYLAND_SOCKET}"
+assert_sequence_absent '--locked cannot re-enable SSH agent forwarding' --bind "${SSH_AGENT_SOCKET}" "${SSH_AGENT_SOCKET}"
 assert_sequence_absent '--locked cannot make global Pi configuration writable' --bind "${TEST_HOME}/.pi" "${TEST_HOME}/.pi"
 assert_sequence_contains '--locked remains file-descriptor compatible' --symlink /proc/self/fd /dev/fd
 

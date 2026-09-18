@@ -140,8 +140,8 @@ output="$(run_box /bin/bash --noprofile --norc -lc \
     -- "${TEST_PROJECT}" -q --no-network --no-aws --no-clipboard --no-ssh-agent 2>&1 || true)"
 [[ "${output}" == NETWORK_ISOLATED ]] && pass 'Test P.9 PASS: --no-network removes the default network route' || fail "Test P.9 FAIL: ${output}"
 
-missing_socket_output="$(env -i HOME="${TEST_HOME}" USER="${USER:-developer}" LOGNAME="${LOGNAME:-${USER:-developer}}" PATH="${PATH}" TERM=xterm-256color LANG=C.UTF-8 DEVBOX_GIT="${DEVBOX_GIT}" SSH_AUTH_SOCK="${TEST_ROOT}/missing.sock" "${DEVBOX}" /bin/true -- "${TEST_PROJECT}" -q --no-aws --no-clipboard 2>&1 || true)"
-[[ "${missing_socket_output}" == *'SSH_AUTH_SOCK is not a socket'* ]] && pass 'Test P.10 PASS: missing SSH agent sockets fail closed with a clear diagnostic' || fail "Test P.10 FAIL: ${missing_socket_output}"
+missing_socket_output="$(env -i HOME="${TEST_HOME}" USER="${USER:-developer}" LOGNAME="${LOGNAME:-${USER:-developer}}" PATH="${PATH}" TERM=xterm-256color LANG=C.UTF-8 DEVBOX_GIT="${DEVBOX_GIT}" SSH_AUTH_SOCK="${TEST_ROOT}/missing.sock" "${DEVBOX}" /bin/true -- "${TEST_PROJECT}" -q -s --no-aws --no-clipboard 2>&1 || true)"
+[[ "${missing_socket_output}" == *'SSH_AUTH_SOCK is not a socket'* ]] && pass 'Test P.10 PASS: missing SSH agent sockets fail closed with a clear diagnostic under --ssh-agent' || fail "Test P.10 FAIL: ${missing_socket_output}"
 
 output="$(run_box /bin/bash --noprofile --norc -lc \
     "printf swapped > '${TEST_PROJECT}/src/lib/.target.tmp' && mv '${TEST_PROJECT}/src/lib/.target.tmp' '${TARGET_FILE}' && cat '${TARGET_FILE}'" \

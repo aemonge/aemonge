@@ -16,7 +16,7 @@ The effective runtime policy is exposed through:
 - `DEVBOX_FS_MODE`: `ro` or `rw` project filesystem mode.
 - `DEVBOX_NETWORK`: whether the host network namespace is shared (`1` or `0`).
 - `DEVBOX_AWS`: whether AWS configuration and credential sources are exposed.
-- `DEVBOX_SSH_AGENT`: whether the SSH agent is forwarded.
+- `DEVBOX_SSH_AGENT`: whether the SSH agent is forwarded (opt-in; default off).
 - `DEVBOX_CLIPBOARD`: whether detected clipboard sockets are exposed.
 - `DEVBOX_TERMINAL_SOCKETS`: whether selected Neovim/tmux sockets are forwarded.
 - `DEVBOX_HOST_TOOLS`: whether supported host development tools are mounted.
