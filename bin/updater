@@ -21,8 +21,9 @@ subtitle() {
 }
 
 show_help() {
-    echo "Usage: $SCRIPT_NAME [OPTION]"
+    echo "Usage: $SCRIPT_NAME [OPTION] [COMMAND]..."
     echo "Run system updates for various package managers."
+    echo "With no COMMAND, runs 'doctor' (dependency and local dev-tool paths check)."
     echo
     echo "Options:"
     echo "  -h, --help, help    Show this help message and exit"
@@ -48,7 +49,7 @@ show_help() {
     echo "  gem                 Update ruby packages"
     echo "  pnpm                Update pnpm packages"
     echo "  bun                 Update bun runtime and global packages"
-    echo "  pip                 Update pipx packages"
+    echo "  pip                 Update uv tools (self update + tool upgrades)"
     echo "  pi                  Update pi and packages"
     echo "  zinit               Update zinit plugins"
     echo "  clean-dev           Clean (nvim, zinit, treesitter, mason) dev packages"
@@ -122,16 +123,16 @@ typeset -A STAGE_DESCRIPTIONS=(
     flatpak "Update using flatpak"
     hardware "Update hardware firmware"
     clam "Update ClamAV database"
-    clam-scan "Scan with pre-settings"
+    clam-scan "Use preconfigured ClamAV scan settings"
     cargo "Update cargo packages"
     go "Update go packages"
     gem "Update ruby packages"
     pnpm "Update pnpm packages"
     bun "Update bun runtime and global packages"
-    pip "Update pipx packages"
+    pip "Update uv tools (self update + tool upgrades)"
     pi "Update pi and packages"
     zinit "Update zinit plugins"
-    clean-dev "Clean dev packages"
+    clean-dev "Clean (nvim, zinit, treesitter, mason) dev packages"
     neovim "Update Neovim plugins"
     opencode-refresh "Refresh OpenCode local deps and plugin package cache"
     bins "Update linked bins and sbins"
@@ -448,7 +449,7 @@ update_snap() {
     require_command "systemctl" "systemd operations" || return $?
     require_command "pamac" "pamac snap update" || return $?
 
-    $QUIET || title "Running 'pamac upgrade --enable-snap --no-confirm'"
+    $QUIET || title "Running 'pamac update --enable-snap --no-confirm'"
 
     local update_status=0
     local snap_services_started=false
@@ -607,6 +608,7 @@ update_bun() {
         (cd "$HOME/.bun/install/global" && bun update)
     else
         skip_stage "bun global install directory not found."
+        return $?
     fi
 }
 
@@ -618,6 +620,7 @@ update_zinit() {
     local zinit_script="$HOME/.local/share/zinit/zinit.git/zinit.zsh"
     if [[ ! -f "$zinit_script" ]]; then
         skip_stage "zinit script not found at $zinit_script."
+        return $?
     fi
 
     $QUIET || title "Running: 'zsh -ic \"zinit self-update\",\"update -a\"'"
@@ -694,7 +697,7 @@ link_bins() {
 
     local src_dirs=("$user_home/usr/bin" "$user_home/usr/sbin")
     local dest_dirs=("$target_bin" "$target_sbin")
-    for i in {0..1}; do
+    for i in 1 2; do
         if [[ -d "${src_dirs[$i]}" ]]; then
             find "${src_dirs[$i]}" -type f -executable -print0 |
                 xargs -0 -I {} ln -sf {} "${dest_dirs[$i]}/"
@@ -1003,7 +1006,7 @@ run_doctor() {
     doctor_any_command "Arch/AUR updater" "install paru or pamac" paru pamac
     doctor_command "flatpak"
     doctor_command "uv"
-    doctor_command "pnpm" "install pnpm if you want the pnpm daily stage: pamac install pnpm" || true
+    doctor_command "pnpm" "install pnpm if you want the pnpm daily stage: pamac install pnpm"
     doctor_command "bun"
     doctor_command "go-global-update" "go install github.com/Gelio/go-global-update@latest"
     doctor_command "gem"
@@ -1086,7 +1089,7 @@ main() {
         --only)
             shift
             if [[ -z "$1" ]]; then
-                echo "Missing value for --only"
+                echo "Missing value for --only" >&2
                 exit 1
             fi
             only_flag_used=true
@@ -1100,7 +1103,7 @@ main() {
         --skip)
             shift
             if [[ -z "$1" ]]; then
-                echo "Missing value for --skip"
+                echo "Missing value for --skip" >&2
                 exit 1
             fi
             local -a parsed_skip
