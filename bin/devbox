@@ -2228,6 +2228,16 @@ bind_skills_home_symlink_targets() {
     done
 }
 
+bind_appa_config() {
+    local host_config_appa="${XDG_CONFIG_HOME:-${HOST_HOME}/.config}/appa"
+    local sand_config_appa="${SANDBOX_CONFIG_DIR}/appa"
+
+    [[ -d "${host_config_appa}" ]] || return 0
+    opt_ro_bind_dir "${host_config_appa}" "${sand_config_appa}"
+    bind_symlink_targets_in_dir --ro-bind "${host_config_appa}"
+    info "AppA integration: mounted appa configuration read-only"
+}
+
 bind_opencode_state() {
     local relative_path
     local host_config_root="${XDG_CONFIG_HOME:-${HOST_HOME}/.config}"
@@ -3467,6 +3477,7 @@ bind_pi_xdg_resources
 bind_user_openspec_schemas
 bind_nearest_project_openspec
 bind_opencode_state
+bind_appa_config
 bind_nvim_resources
 prepare_pi_command_guard
 prepare_opencode_command_guard
