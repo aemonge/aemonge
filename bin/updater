@@ -312,6 +312,41 @@ acquire_lock() {
     fi
 }
 
+silence_update_noise() {
+    # One-time, idempotent de-noising for this machine (root runs only).
+    #
+    # Mask 1 - cachyos-reboot-required.hook: its per-user desktop notification
+    # (busctl --machine=<user>@.host --user) opens a synthetic PAM login session,
+    # which drags in pam_mount and broadcasts a LUKS password prompt to every
+    # tty. Pacman's documented HookDir override: symlink to /dev/null disables
+    # the system hook. Rollback: rm /etc/pacman.d/hooks/cachyos-reboot-required.hook
+    #
+    # Mask 2 - /usr/lib/initcpio/post/sbctl prints a pointless "Secureboot key
+    # directory doesn't exist" warning on every kernel rebuild while Secure Boot
+    # is disabled. The shadow defers to the real hook the moment sbctl keys
+    # exist, so enabling Secure Boot later never yields silently-unsigned
+    # kernels. Rollback: rm /etc/initcpio/post/sbctl
+    [[ $EUID -eq 0 ]] || return 0
+
+    if mkdir -p /etc/pacman.d/hooks 2>/dev/null &&
+        [[ ! -e /etc/pacman.d/hooks/cachyos-reboot-required.hook ]]; then
+        ln -s /dev/null /etc/pacman.d/hooks/cachyos-reboot-required.hook 2>/dev/null || true
+    fi
+
+    if mkdir -p /etc/initcpio/post 2>/dev/null &&
+        [[ ! -e /etc/initcpio/post/sbctl ]]; then
+        cat >/etc/initcpio/post/sbctl 2>/dev/null <<'SHADOW' || true
+#!/usr/bin/env bash
+# Shadow of /usr/lib/initcpio/post/sbctl: quiet while Secure Boot is unused,
+# defers to the real hook as soon as sbctl keys exist.
+sbctl setup --print-state --json 2>/dev/null |
+    awk '/installed/ { gsub(/,$/,"",$2); print $2 }' | grep -qx true || exit 0
+exec /usr/lib/initcpio/post/sbctl "$@"
+SHADOW
+        chmod 0755 /etc/initcpio/post/sbctl 2>/dev/null || true
+    fi
+}
+
 check_command() {
     if ! command -v "$1" &>/dev/null; then
         subtitle "Warning: $1 not found. Skipping $2." >&2
@@ -368,6 +403,15 @@ check_last_clean() {
         fi
     else
         echo "ℹ️  INFO: No clean history found. Consider running: sudo updater clean-dev" >&2
+    fi
+}
+
+check_reboot_needed() {
+    # Replaces the masked reboot reminder: once a replacement kernel is
+    # installed, the running kernel's module directory disappears — that
+    # is exactly the moment a reboot is due.
+    if [[ ! -d "/usr/lib/modules/$(uname -r)" ]]; then
+        echo "==> INFO: kernel $(uname -r) has been replaced — reboot recommended" >&2
     fi
 }
 
@@ -1134,6 +1178,8 @@ main() {
 
     acquire_lock
 
+    silence_update_noise
+
     if [ $shutdown_after = true ]; then
         if $QUIET; then
             time_function run_all_updates >/dev/null
@@ -1178,6 +1224,7 @@ main() {
         done
     fi
 
+    check_reboot_needed
     print_stage_summary
 }
 
