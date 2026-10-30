@@ -13,3 +13,4 @@ bin/yarnpkg
 # configs
 configs/unlinked/pcloud/data.db
 configs/dot-config/nvim/lazy-lock.json
+graphify-out/
