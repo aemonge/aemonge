@@ -1,6 +1,6 @@
 # Execute
 
-> state: in progress — awaiting Human validation · counters below are truth
+> state: complete — schema approved 2026-10-30 · counters below are truth
 
 ### Slice 1 — registry yield rule
 
@@ -63,8 +63,14 @@
   `devbox pi` in `~/.config/nvim` and confirm the box opens with the config
   tree writable and `lazy-lock.json` edits landing in the project.
 
-- [ ] Human validation, response · outcome · surfaced:
-      (awaiting your run — bugs/errors/debt will route to
-      openspec/learnings/debt.md)
+- [x] Human validation, response: VALID · outcome: accepted — host-side
+      launch of `devbox pi` in `~/.config/nvim` confirmed (post symlink
+      repoint): box opens, config tree project-owned · surfaced: git-mv
+      allowlist gap + host-side symlink boundary → routed to
+      openspec/learnings/debt.md
 
   gate-attributed · tool: bash · paths: — · at 2026-10-30T09:15:25Z
+
+  gate-attributed · tool: bash · paths: — · at 2026-10-30T09:15:38Z
+
+  gate-attributed · tool: bash · paths: — · at 2026-10-30T09:27:18Z
