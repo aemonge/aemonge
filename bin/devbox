@@ -304,6 +304,13 @@ is_path_within() {
     [[ "${child_path}" == "${parent_path}" || "${child_path}" == "${parent_path}"/* ]]
 }
 
+is_project_owned_path() {
+    local sand_p="$1"
+    [[ -n "${SANDBOX_PROJECT_ROOT:-}" && "${sand_p}" == "${SANDBOX_PROJECT_ROOT}" ]] && return 0
+    [[ -n "${PROJECT_ALIAS_DIR:-}" && "${sand_p}" == "${PROJECT_ALIAS_DIR}" ]] && return 0
+    return 1
+}
+
 add_extra_dir_once() {
     local dir_path="$1"
     [[ -n "${EXTRA_DIR_SET[${dir_path}]:-}" ]] && return 0
@@ -2018,12 +2025,19 @@ bind_nvim_resources() {
     local plugin_path
     local resolved_config
     local resolved_config_sandbox
+    local nvim_config_mounted=0
     local had_dotglob=0
     local had_nullglob=0
 
     [[ "${ALLOW_NVIM_REMOTE}" -eq 1 ]] || return 0
 
-    if [[ -d "${host_nvim_config}" ]]; then
+    if is_project_owned_path "${sandbox_nvim_config}"; then
+        # The selected project is this configuration tree: the project bind
+        # owns it (writable unless --ro), so the read-only resource mounts and
+        # the lazy-lock.json state overlay must not shadow project edits.
+        info "Neovim integration: configuration is the selected project; the project bind owns the tree"
+    elif [[ -d "${host_nvim_config}" ]]; then
+        nvim_config_mounted=1
         resolved_config="$(realpath "${host_nvim_config}")"
         add_prepared_bind_once --ro-bind "${host_nvim_config}" "${sandbox_nvim_config}"
         map_host_path_to_sandbox "${resolved_config}"
@@ -2067,7 +2081,7 @@ bind_nvim_resources() {
     # lockfile one exact writable overlay backed by devbox state. Bubblewrap
     # cannot create a new file mountpoint beneath a read-only directory, so a
     # configuration without lazy-lock.json simply keeps the whole tree read-only.
-    if [[ -f "${host_nvim_lock}" ]]; then
+    if [[ -f "${host_nvim_lock}" && "${nvim_config_mounted}" -eq 1 ]]; then
     mkdir -p -- "${host_devbox_nvim_lock%/*}"
         if [[ ! -e "${host_devbox_nvim_lock}" ]]; then
             cp -p -- "${host_nvim_lock}" "${host_devbox_nvim_lock}"
