@@ -341,6 +341,19 @@ register_bind_destination() {
     if [[ "${existing}" == "${policy}" ]]; then
         return 1
     fi
+    # One destination fed by one resolved source: the writable bind owns it.
+    # A read-only mount of the same source yields in either registration
+    # order — bwrap applies later mounts on top, so an explicit project bind
+    # shadows an earlier resource mount instead of aborting the launch.
+    if [[ "${existing}" == "--bind|${host_p}" && "${bind_flag}" == "--ro-bind" ]]; then
+        info "Read-only mount yields to writable bind at ${sand_p}"
+        return 1
+    fi
+    if [[ "${existing}" == "--ro-bind|${host_p}" && "${bind_flag}" == "--bind" ]]; then
+        EXTRA_BIND_DEST_SET["${sand_p}"]="${policy}"
+        info "Writable bind takes over read-only mount at ${sand_p}"
+        return 0
+    fi
     error "conflicting mount policy for ${sand_p}: ${existing} versus ${policy}"
     exit 1
 }
